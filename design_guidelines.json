@@ -1,0 +1,153 @@
+{
+  "project_name": "MTSS School Platform",
+  "design_philosophy": {
+    "identity": "E1 - The Anti-AI Designer",
+    "core_principles": [
+      "Clarity over Decoration: Data must be instantly readable.",
+      "Warmth over Sterility: Schools are human places, not hospitals.",
+      "Function as Aesthetic: The Tier colors (Green/Yellow/Red) drive the visual language.",
+      "Mobile-First Ergonomics: Teachers use tablets while walking around."
+    ],
+    "anti_patterns": [
+      "NO standard 'admin dashboard' templates.",
+      "NO stark white backgrounds without texture or warmth.",
+      "NO generic 'Lorem Ipsum'—use real educational terminology.",
+      "NO 'pure black' text—use Slate-900."
+    ]
+  },
+  "typography": {
+    "font_family": {
+      "headings": "Manrope, sans-serif",
+      "body": "Inter, sans-serif",
+      "data": "JetBrains Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-4xl font-bold tracking-tight text-slate-900",
+      "h2": "text-2xl font-semibold tracking-tight text-slate-800",
+      "h3": "text-xl font-medium text-slate-800",
+      "body": "text-base text-slate-600 leading-relaxed",
+      "small": "text-sm text-slate-500",
+      "data_label": "text-xs font-semibold uppercase tracking-wider text-slate-400"
+    }
+  },
+  "colors": {
+    "palette": {
+      "background": "bg-slate-50",
+      "surface": "bg-white",
+      "primary": {
+        "main": "bg-slate-900",
+        "text": "text-slate-900",
+        "hover": "hover:bg-slate-800"
+      },
+      "secondary": {
+        "main": "bg-slate-100",
+        "text": "text-slate-700",
+        "hover": "hover:bg-slate-200"
+      },
+      "accent": {
+        "wellbeing": "bg-indigo-50 text-indigo-700 border-indigo-200",
+        "academic": "bg-blue-50 text-blue-700 border-blue-200"
+      },
+      "tiers": {
+        "tier1": {
+          "bg": "bg-emerald-50",
+          "text": "text-emerald-700",
+          "border": "border-emerald-200",
+          "badge": "bg-emerald-100 text-emerald-800"
+        },
+        "tier2": {
+          "bg": "bg-amber-50",
+          "text": "text-amber-700",
+          "border": "border-amber-200",
+          "badge": "bg-amber-100 text-amber-800"
+        },
+        "tier3": {
+          "bg": "bg-rose-50",
+          "text": "text-rose-700",
+          "border": "border-rose-200",
+          "badge": "bg-rose-100 text-rose-800"
+        }
+      }
+    }
+  },
+  "layout": {
+    "grid_system": "Bento Grid (Asymmetric)",
+    "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+    "spacing": {
+      "section_gap": "gap-8",
+      "card_padding": "p-6",
+      "internal_gap": "space-y-4"
+    },
+    "border_radius": {
+      "card": "rounded-xl",
+      "button": "rounded-lg",
+      "input": "rounded-md"
+    },
+    "shadows": {
+      "card": "shadow-sm hover:shadow-md transition-shadow duration-200",
+      "dropdown": "shadow-lg ring-1 ring-black ring-opacity-5"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-slate-900 text-white hover:bg-slate-800 shadow-sm transition-all active:scale-95",
+      "secondary": "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 shadow-sm",
+      "ghost": "bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+      "destructive": "bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200"
+    },
+    "cards": {
+      "base": "bg-white border border-slate-200 rounded-xl overflow-hidden relative",
+      "interactive": "hover:border-slate-300 transition-colors cursor-pointer"
+    },
+    "badges": {
+      "base": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+      "tier1": "bg-emerald-100 text-emerald-800",
+      "tier2": "bg-amber-100 text-amber-800",
+      "tier3": "bg-rose-100 text-rose-800"
+    },
+    "inputs": {
+      "base": "block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+    }
+  },
+  "assets": {
+    "images": {
+      "student_avatars": [
+        "https://images.unsplash.com/photo-1727450395991-d76222e6c985?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjh8MHwxfHNlYXJjaHwyfHxkaXZlcnNlJTIwc3R1ZGVudCUyMHBvcnRyYWl0cyUyMHNtaWxpbmclMjBzY2hvb2wlMjB1bmlmb3JtfGVufDB8fHx8MTc3MzM3Njg5NXww&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1587425598226-4906c39a362c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjh8MHwxfHNlYXJjaHwzfHxkaXZlcnNlJTIwc3R1ZGVudCUyMHBvcnRyYWl0cyUyMHNtaWxpbmclMjBzY2hvb2wlMjB1bmlmb3JtfGVufDB8fHx8MTc3MzM3Njg5NXww&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1698993081947-8a3654303904?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjh8MHwxfHNlYXJjaHw0fHxkaXZlcnNlJTIwc3R1ZGVudCUyMHBvcnRyYWl0cyUyMHNtaWxpbmclMjBzY2hvb2wlMjB1bmlmb3JtfGVufDB8fHx8MTc3MzM3Njg5NXww&ixlib=rb-4.1.0&q=85"
+      ],
+      "school_building": "https://images.unsplash.com/photo-1656426741103-746055f27760?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHwyfHxtb2Rlcm4lMjBwcmltYXJ5JTIwc2Nob29sJTIwYnVpbGRpbmclMjBleHRlcmlvciUyMG1pbmltYWxpc3R8ZW58MHx8fHwxNzczMzc2ODk2fDA&ixlib=rb-4.1.0&q=85",
+      "login_bg": "https://images.unsplash.com/photo-1656426741103-746055f27760?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHwyfHxtb2Rlcm4lMjBwcmltYXJ5JTIwc2Nob29sJTIwYnVpbGRpbmclMjBleHRlcmlvciUyMG1pbmltYWxpc3R8ZW58MHx8fHwxNzczMzc2ODk2fDA&ixlib=rb-4.1.0&q=85"
+    },
+    "icons": {
+      "library": "lucide-react",
+      "style": "stroke-width={1.5} size={20}"
+    }
+  },
+  "design_rules": {
+    "universal": [
+      "No gradients for backgrounds, only solid colors or subtle patterns.",
+      "Use 'gap-6' or 'gap-8' for grid layouts to create breathing room.",
+      "All interactive elements must have a ':focus-visible' state for accessibility.",
+      "Use 'data-testid' for all key interactive elements.",
+      "Transition duration should be 'duration-200' for snappy feel.",
+      "Avoid 'drop-shadow-xl' except for modals. Use 'shadow-sm' or 'shadow' for cards."
+    ],
+    "charts": {
+      "library": "recharts",
+      "style": "Clean, minimal axis lines. Use brand colors for data series. Tooltips must be rounded-lg and shadowed."
+    },
+    "accessibility": {
+      "contrast": "Ensure text color satisfies WCAG AA against background.",
+      "focus": "ring-2 ring-indigo-500 ring-offset-2"
+    }
+  },
+  "instructions_to_main_agent": [
+    "1. Setup Layout: Create a 'DashboardLayout' component with a sidebar and top bar.",
+    "2. Theme: Apply 'bg-slate-50' to the body in index.css.",
+    "3. Components: Customize Shadcn components in 'components/ui' to match 'rounded-xl' radius.",
+    "4. Pages: Implement 'Dashboard', 'Screening', 'StudentProfile', 'Intervention', 'Analytics', 'Settings'.",
+    "5. Mock Data: Create a 'mockData.js' file to populate the charts and tables with realistic school data.",
+    "6. Routing: Use 'react-router-dom' for navigation."
+  ]
+}
