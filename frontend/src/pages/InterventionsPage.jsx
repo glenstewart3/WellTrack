@@ -1,0 +1,294 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { getTierColors, INTERVENTION_TYPES } from '../utils/tierUtils';
+import { Plus, X, Target, Loader, Sparkles, ChevronRight } from 'lucide-react';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+export default function InterventionsPage() {
+  const navigate = useNavigate();
+  const [interventions, setInterventions] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState('active');
+  const [filterType, setFilterType] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [aiStudent, setAiStudent] = useState('');
+  const [aiSuggestions, setAiSuggestions] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [form, setForm] = useState({
+    student_id: '', intervention_type: '', assigned_staff: '',
+    start_date: '', review_date: '', goals: '', frequency: '', status: 'active', progress_notes: ''
+  });
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [intRes, studRes] = await Promise.all([
+          axios.get(`${API}/interventions`, { withCredentials: true }),
+          axios.get(`${API}/students/summary`, { withCredentials: true }),
+        ]);
+        setInterventions(intRes.data);
+        setStudents(studRes.data);
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
+    };
+    load();
+  }, []);
+
+  const getStudentName = (sid) => {
+    const s = students.find(x => x.student_id === sid);
+    return s ? `${s.first_name} ${s.last_name}` : sid;
+  };
+
+  const getStudentTier = (sid) => {
+    const s = students.find(x => x.student_id === sid);
+    return s?.mtss_tier;
+  };
+
+  const filtered = interventions.filter(i => {
+    const matchStatus = !filterStatus || i.status === filterStatus;
+    const matchType = !filterType || i.intervention_type === filterType;
+    return matchStatus && matchType;
+  });
+
+  const saveIntervention = async () => {
+    if (!form.student_id || !form.intervention_type || !form.assigned_staff) return;
+    setSaving(true);
+    try {
+      const res = await axios.post(`${API}/interventions`, form, { withCredentials: true });
+      setInterventions(prev => [res.data, ...prev]);
+      setShowAdd(false);
+      setForm({ student_id: '', intervention_type: '', assigned_staff: '', start_date: '', review_date: '', goals: '', frequency: '', status: 'active', progress_notes: '' });
+    } catch (e) { console.error(e); }
+    finally { setSaving(false); }
+  };
+
+  const updateStatus = async (id, status) => {
+    try {
+      const updated = await axios.put(`${API}/interventions/${id}`, { status }, { withCredentials: true });
+      setInterventions(prev => prev.map(i => i.intervention_id === id ? updated.data : i));
+    } catch (e) { console.error(e); }
+  };
+
+  const getAiSuggestions = async () => {
+    if (!aiStudent) return;
+    setAiLoading(true);
+    try {
+      const res = await axios.post(`${API}/interventions/ai-suggest/${aiStudent}`, {}, { withCredentials: true });
+      setAiSuggestions(res.data.recommendations || []);
+    } catch (e) { console.error(e); setAiSuggestions([]); }
+    finally { setAiLoading(false); }
+  };
+
+  const intTypes = [...new Set(interventions.map(i => i.intervention_type))];
+
+  return (
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto fade-in">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3" style={{fontFamily:'Manrope,sans-serif'}}>
+            <Target size={28} className="text-slate-600" /> Interventions
+          </h1>
+          <p className="text-slate-500 mt-1">{interventions.filter(i => i.status === 'active').length} active interventions</p>
+        </div>
+        <button onClick={() => setShowAdd(true)} data-testid="new-intervention-btn"
+          className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors">
+          <Plus size={16} /> New Intervention
+        </button>
+      </div>
+
+      {/* AI Suggestions Panel */}
+      <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5 mb-6">
+        <div className="flex flex-wrap items-center gap-3">
+          <Sparkles size={18} className="text-indigo-600" />
+          <p className="text-sm font-semibold text-indigo-900">AI Intervention Suggestions</p>
+          <select value={aiStudent} onChange={e => setAiStudent(e.target.value)}
+            data-testid="ai-student-selector"
+            className="flex-1 min-w-48 px-3 py-2 text-sm border border-indigo-200 rounded-lg focus:outline-none bg-white">
+            <option value="">Select a student...</option>
+            {students.filter(s => (s.mtss_tier || 0) >= 2).map(s => (
+              <option key={s.student_id} value={s.student_id}>
+                {s.first_name} {s.last_name} — Tier {s.mtss_tier}
+              </option>
+            ))}
+          </select>
+          <button onClick={getAiSuggestions} disabled={!aiStudent || aiLoading} data-testid="get-ai-suggestions-btn"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50">
+            {aiLoading ? <Loader size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            Get Suggestions
+          </button>
+        </div>
+
+        {aiSuggestions && (
+          <div className="mt-4 grid sm:grid-cols-3 gap-3">
+            {aiSuggestions.map((rec, i) => (
+              <div key={i} className="bg-white rounded-xl p-4 border border-indigo-100">
+                <div className="flex justify-between items-start mb-2">
+                  <h4 className="font-semibold text-slate-900 text-sm">{rec.type}</h4>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${rec.priority === 'high' ? 'bg-rose-100 text-rose-700' : rec.priority === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                    {rec.priority}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mb-2">{rec.rationale}</p>
+                <p className="text-xs font-medium text-slate-700 mb-1">Goals: <span className="font-normal">{rec.goals}</span></p>
+                <p className="text-xs text-slate-400">{rec.frequency} · {rec.timeline}</p>
+                <button
+                  onClick={() => { setForm(p => ({...p, intervention_type: rec.type, goals: rec.goals, frequency: rec.frequency, student_id: aiStudent || '' })); setShowAdd(true); }}
+                  className="mt-2 w-full text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                  Use this recommendation →
+                </button>
+              </div>
+            ))}
+            {aiSuggestions.length === 0 && <p className="text-sm text-slate-400 col-span-3">No suggestions generated. Try a different student.</p>}
+          </div>
+        )}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 mb-4">
+        <div className="flex rounded-lg border border-slate-200 overflow-hidden bg-white">
+          {[['', 'All'], ['active', 'Active'], ['completed', 'Completed'], ['paused', 'Paused']].map(([val, label]) => (
+            <button key={val} onClick={() => setFilterStatus(val)}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${filterStatus === val ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <select value={filterType} onChange={e => setFilterType(e.target.value)}
+          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none bg-white">
+          <option value="">All Types</option>
+          {intTypes.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </div>
+
+      {/* Interventions Table */}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        {loading ? (
+          <div className="p-8 space-y-3">{[1,2,3,4].map(i => <div key={i} className="h-16 bg-slate-100 rounded animate-pulse" />)}</div>
+        ) : filtered.length === 0 ? (
+          <div className="p-16 text-center text-slate-400">
+            <Target size={40} className="mx-auto mb-3 opacity-30" />
+            <p>No interventions found</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  {['Student', 'Type', 'Staff', 'Start', 'Review', 'Status', 'Actions'].map(h => (
+                    <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(intv => {
+                  const tier = getStudentTier(intv.student_id);
+                  const tc = getTierColors(tier);
+                  return (
+                    <tr key={intv.intervention_id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                      <td className="py-3.5 px-4">
+                        <button onClick={() => navigate(`/students/${intv.student_id}`)}
+                          className="flex items-center gap-2 hover:text-indigo-600 transition-colors">
+                          {tier && <span className={`w-2 h-2 rounded-full ${tc.dot} shrink-0`} />}
+                          <span className="font-medium text-slate-900">{getStudentName(intv.student_id)}</span>
+                          <ChevronRight size={12} className="text-slate-300" />
+                        </button>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-full font-medium">{intv.intervention_type}</span>
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600 text-xs">{intv.assigned_staff}</td>
+                      <td className="py-3.5 px-4 text-slate-500 text-xs">{intv.start_date}</td>
+                      <td className="py-3.5 px-4 text-slate-500 text-xs">{intv.review_date}</td>
+                      <td className="py-3.5 px-4">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${intv.status === 'active' ? 'bg-emerald-100 text-emerald-700' : intv.status === 'completed' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                          {intv.status}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="flex gap-1.5">
+                          {intv.status === 'active' && (
+                            <button onClick={() => updateStatus(intv.intervention_id, 'completed')}
+                              className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
+                              Complete
+                            </button>
+                          )}
+                          {intv.status === 'active' && (
+                            <button onClick={() => updateStatus(intv.intervention_id, 'paused')}
+                              className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors">
+                              Pause
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Add Modal */}
+      {showAdd && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="font-bold text-slate-900 text-lg" style={{fontFamily:'Manrope,sans-serif'}}>New Intervention</h3>
+              <button onClick={() => setShowAdd(false)}><X size={18} className="text-slate-400" /></button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Student</label>
+                <select value={form.student_id} onChange={e => setForm(p => ({...p, student_id: e.target.value}))}
+                  data-testid="intervention-student-select"
+                  className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 bg-white">
+                  <option value="">Select Student</option>
+                  {students.map(s => <option key={s.student_id} value={s.student_id}>{s.first_name} {s.last_name} — {s.class_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Intervention Type</label>
+                <select value={form.intervention_type} onChange={e => setForm(p => ({...p, intervention_type: e.target.value}))}
+                  className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 bg-white">
+                  <option value="">Select Type</option>
+                  {INTERVENTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <input placeholder="Assigned Staff" value={form.assigned_staff} onChange={e => setForm(p => ({...p, assigned_staff: e.target.value}))}
+                className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-xs text-slate-400 block mb-1">Start Date</label>
+                  <input type="date" value={form.start_date} onChange={e => setForm(p => ({...p, start_date: e.target.value}))}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none" /></div>
+                <div><label className="text-xs text-slate-400 block mb-1">Review Date</label>
+                  <input type="date" value={form.review_date} onChange={e => setForm(p => ({...p, review_date: e.target.value}))}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none" /></div>
+              </div>
+              <input placeholder="Frequency (e.g. Weekly, 3x per week)" value={form.frequency} onChange={e => setForm(p => ({...p, frequency: e.target.value}))}
+                className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+              <textarea placeholder="Goals" rows={3} value={form.goals} onChange={e => setForm(p => ({...p, goals: e.target.value}))}
+                className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 resize-none" />
+              <textarea placeholder="Initial progress notes (optional)" rows={2} value={form.progress_notes} onChange={e => setForm(p => ({...p, progress_notes: e.target.value}))}
+                className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 resize-none" />
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button onClick={saveIntervention} disabled={saving} data-testid="save-intervention-btn"
+                className="flex-1 bg-slate-900 text-white py-3 text-sm font-semibold rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-60">
+                {saving ? 'Saving...' : 'Save Intervention'}
+              </button>
+              <button onClick={() => setShowAdd(false)}
+                className="flex-1 bg-slate-100 text-slate-700 py-3 text-sm font-medium rounded-xl hover:bg-slate-200 transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

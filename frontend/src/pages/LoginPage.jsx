@@ -1,0 +1,94 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Shield } from 'lucide-react';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+export default function LoginPage() {
+  const navigate = useNavigate();
+
+  const handleGoogleLogin = () => {
+    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+    const redirectUrl = window.location.origin + '/dashboard';
+    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* Left panel */}
+      <div className="flex-1 flex flex-col justify-center px-8 py-12 lg:px-16">
+        <div className="max-w-md w-full mx-auto">
+          {/* Logo */}
+          <div className="flex items-center gap-3 mb-10">
+            <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center shadow-sm">
+              <Shield size={20} className="text-white" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>MTSS Platform</p>
+              <p className="text-xs text-slate-400 font-medium">WellTrack — Student Wellbeing</p>
+            </div>
+          </div>
+
+          {/* Heading */}
+          <h1 className="text-4xl font-bold text-slate-900 mb-3" style={{fontFamily:'Manrope,sans-serif'}}>
+            Welcome back
+          </h1>
+          <p className="text-slate-500 mb-8 text-base leading-relaxed">
+            Sign in to access your school's MTSS wellbeing platform. Supporting every student, every tier.
+          </p>
+
+          {/* Login button */}
+          <button
+            onClick={handleGoogleLogin}
+            data-testid="google-login-btn"
+            className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 rounded-xl px-6 py-3.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all duration-150 active:scale-[0.98]"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18">
+              <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+              <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+              <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/>
+              <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"/>
+            </svg>
+            Continue with Google
+          </button>
+
+          <p className="mt-6 text-xs text-slate-400 text-center">
+            Secure authentication via Google OAuth. Your data stays within your school.
+          </p>
+        </div>
+      </div>
+
+      {/* Right panel */}
+      <div className="hidden lg:flex flex-1 bg-slate-900 flex-col justify-between p-12">
+        <div />
+        <div>
+          <div className="grid grid-cols-3 gap-3 mb-8">
+            {[
+              { label: 'Tier 1', count: '68%', color: 'bg-emerald-500', desc: 'Low Risk' },
+              { label: 'Tier 2', count: '22%', color: 'bg-amber-400', desc: 'Emerging Risk' },
+              { label: 'Tier 3', count: '10%', color: 'bg-rose-500', desc: 'High Risk' },
+            ].map(item => (
+              <div key={item.label} className="bg-white/10 rounded-xl p-4">
+                <div className={`w-3 h-3 rounded-full ${item.color} mb-2`} />
+                <p className="text-2xl font-bold text-white" style={{fontFamily:'Manrope,sans-serif'}}>{item.count}</p>
+                <p className="text-xs text-white/60 mt-1">{item.label}</p>
+                <p className="text-xs text-white/40">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-3" style={{fontFamily:'Manrope,sans-serif'}}>
+            Every student matters.
+          </h2>
+          <p className="text-white/60 text-sm leading-relaxed max-w-sm">
+            MTSS WellTrack helps your school identify students who need support before they fall through the cracks — using evidence-based SAEBRS screening and wellbeing analytics.
+          </p>
+        </div>
+        <div className="flex gap-3">
+          {['Universal Screening', 'Early Intervention', 'Progress Monitoring', 'Data-Driven'].map(tag => (
+            <span key={tag} className="text-xs text-white/50 bg-white/10 px-3 py-1 rounded-full">{tag}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
