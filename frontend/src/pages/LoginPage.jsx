@@ -1,14 +1,19 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Shield } from 'lucide-react';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
+import { Shield, AlertCircle } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const errorFromCallback = location.state?.error;
+  const [accessError, setAccessError] = useState(errorFromCallback || '');
 
   const handleGoogleLogin = () => {
     // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+    setAccessError('');
     const redirectUrl = window.location.origin + '/dashboard';
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
@@ -24,8 +29,8 @@ export default function LoginPage() {
               <Shield size={20} className="text-white" />
             </div>
             <div>
-              <p className="text-lg font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>MTSS Platform</p>
-              <p className="text-xs text-slate-400 font-medium">WellTrack — Student Wellbeing</p>
+              <p className="text-lg font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>WellTrack</p>
+              <p className="text-xs text-slate-400 font-medium">MTSS Student Wellbeing Platform</p>
             </div>
           </div>
 
@@ -36,6 +41,17 @@ export default function LoginPage() {
           <p className="text-slate-500 mb-8 text-base leading-relaxed">
             Sign in to access your school's MTSS wellbeing platform. Supporting every student, every tier.
           </p>
+
+          {/* Error */}
+          {accessError && (
+            <div className="flex items-start gap-3 bg-rose-50 border border-rose-200 rounded-xl p-4 mb-5" data-testid="login-access-error">
+              <AlertCircle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-rose-700">Access Denied</p>
+                <p className="text-xs text-rose-600 mt-0.5">{accessError}</p>
+              </div>
+            </div>
+          )}
 
           {/* Login button */}
           <button
@@ -76,11 +92,11 @@ export default function LoginPage() {
               </div>
             ))}
           </div>
-          <h2 className="text-2xl font-bold text-white mb-3" style={{fontFamily:'Manrope,sans-serif'}}>
+          <h1 className="text-4xl font-bold text-white mb-3" style={{fontFamily:'Manrope,sans-serif'}}>
             Every student matters.
-          </h2>
+          </h1>
           <p className="text-white/60 text-sm leading-relaxed max-w-sm">
-            MTSS WellTrack helps your school identify students who need support before they fall through the cracks — using evidence-based SAEBRS screening and wellbeing analytics.
+            WellTrack helps your school identify students who need support before they fall through the cracks — using evidence-based SAEBRS screening and wellbeing analytics.
           </p>
         </div>
         <div className="flex gap-3">

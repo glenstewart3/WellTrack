@@ -214,16 +214,15 @@ async def process_session(req: SessionRequest, response: Response):
     picture = data.get("picture", "")
     session_token = data["session_token"]
 
+    # WHITELIST CHECK: Only allow users that already exist in the database
     existing = await db.users.find_one({"email": email}, {"_id": 0})
-    if existing:
-        user_id = existing["user_id"]
-        await db.users.update_one({"email": email}, {"$set": {"name": name, "picture": picture}})
-    else:
-        user_id = f"user_{uuid.uuid4().hex[:12]}"
-        await db.users.insert_one({
-            "user_id": user_id, "email": email, "name": name, "picture": picture,
-            "role": "teacher", "created_at": datetime.now(timezone.utc).isoformat()
-        })
+    if not existing:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied. Your account has not been registered. Please contact your school administrator."
+        )
+    user_id = existing["user_id"]
+    await db.users.update_one({"email": email}, {"$set": {"name": name, "picture": picture}})
 
     expires_at = datetime.now(timezone.utc) + timedelta(days=7)
     await db.user_sessions.insert_one({
@@ -251,11 +250,67 @@ async def logout(request: Request, response: Response):
 
 @api_router.put("/auth/role")
 async def update_role(data: dict, user=Depends(get_current_user)):
+    # Only admins can change roles
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Only administrators can change user roles")
+    target_user_id = data.get("user_id", user["user_id"])
     role = data.get("role")
     if role not in ["teacher", "wellbeing", "leadership", "admin"]:
         raise HTTPException(status_code=400, detail="Invalid role")
-    await db.users.update_one({"user_id": user["user_id"]}, {"$set": {"role": role}})
+    await db.users.update_one({"user_id": target_user_id}, {"$set": {"role": role}})
     return {"message": "Role updated", "role": role}
+
+# ==============================
+# USER MANAGEMENT (Admin only)
+# ==============================
+
+@api_router.get("/users")
+async def get_users(user=Depends(get_current_user)):
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    users = await db.users.find({}, {"_id": 0}).sort("name", 1).to_list(500)
+    return users
+
+@api_router.post("/users")
+async def create_user(data: dict, user=Depends(get_current_user)):
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    email = data.get("email", "").lower().strip()
+    name = data.get("name", "")
+    role = data.get("role", "teacher")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    existing = await db.users.find_one({"email": email})
+    if existing:
+        raise HTTPException(status_code=409, detail="User with this email already exists")
+    user_id = f"user_{uuid.uuid4().hex[:12]}"
+    new_user = {
+        "user_id": user_id, "email": email, "name": name,
+        "picture": "", "role": role,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.users.insert_one({**new_user})
+    return new_user
+
+@api_router.put("/users/{user_id}/role")
+async def update_user_role(user_id: str, data: dict, user=Depends(get_current_user)):
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    role = data.get("role")
+    if role not in ["teacher", "wellbeing", "leadership", "admin"]:
+        raise HTTPException(status_code=400, detail="Invalid role")
+    await db.users.update_one({"user_id": user_id}, {"$set": {"role": role}})
+    return {"message": "Role updated"}
+
+@api_router.delete("/users/{user_id}")
+async def delete_user(user_id: str, user=Depends(get_current_user)):
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    if user_id == user["user_id"]:
+        raise HTTPException(status_code=400, detail="Cannot delete your own account")
+    await db.users.delete_one({"user_id": user_id})
+    await db.user_sessions.delete_many({"user_id": user_id})
+    return {"message": "User deleted"}
 
 # ==============================
 # STUDENT ROUTES
@@ -274,7 +329,7 @@ async def get_students(class_name: Optional[str] = None, year_level: Optional[st
 @api_router.post("/students")
 async def create_student(student: Student, user=Depends(get_current_user)):
     d = student.model_dump()
-    await db.students.insert_one(d)
+    await db.students.insert_one({**d})
     return d
 
 @api_router.get("/students/summary")
@@ -366,7 +421,7 @@ async def get_attendance(student_id: str, user=Depends(get_current_user)):
 @api_router.post("/attendance")
 async def add_attendance(record: AttendanceRecord, user=Depends(get_current_user)):
     d = record.model_dump()
-    await db.attendance.insert_one(d)
+    await db.attendance.insert_one({**d})
     student = await db.students.find_one({"student_id": record.student_id}, {"_id": 0})
     if student:
         pct = await get_student_attendance_pct(record.student_id)
@@ -394,7 +449,7 @@ async def get_sessions(class_name: Optional[str] = None, user=Depends(get_curren
 @api_router.post("/screening/sessions")
 async def create_session(session: ScreeningSession, user=Depends(get_current_user)):
     d = session.model_dump()
-    await db.screening_sessions.insert_one(d)
+    await db.screening_sessions.insert_one({**d})
     return d
 
 @api_router.post("/screening/saebrs")
@@ -407,7 +462,7 @@ async def submit_saebrs(result: SAEBRSResult, user=Depends(get_current_user)):
     d = result.model_dump()
     d.update({"social_score": s, "academic_score": a, "emotional_score": e,
                "total_score": t, "risk_level": r, "social_risk": sr, "academic_risk": ar, "emotional_risk": er})
-    await db.saebrs_results.insert_one(d)
+    await db.saebrs_results.insert_one({**d})
     student = await db.students.find_one({"student_id": result.student_id}, {"_id": 0})
     if student and r == "High Risk":
         name = f"{student['first_name']} {student['last_name']}"
@@ -441,7 +496,7 @@ async def submit_saebrs_plus(result: SAEBRSPlusResult, user=Depends(get_current_
     d = result.model_dump()
     d.update({"social_domain": soc, "academic_domain": aca, "emotional_domain": emo,
                "belonging_domain": bel, "attendance_domain": att_dom, "wellbeing_total": total, "wellbeing_tier": tier})
-    await db.saebrs_plus_results.insert_one(d)
+    await db.saebrs_plus_results.insert_one({**d})
     return d
 
 @api_router.get("/screening/results/{student_id}")
@@ -467,7 +522,7 @@ async def get_interventions(student_id: Optional[str] = None, status: Optional[s
 @api_router.post("/interventions")
 async def create_intervention(intervention: Intervention, user=Depends(get_current_user)):
     d = intervention.model_dump()
-    await db.interventions.insert_one(d)
+    await db.interventions.insert_one({**d})
     return d
 
 @api_router.put("/interventions/{iid}")
@@ -541,7 +596,7 @@ async def get_case_notes(student_id: Optional[str] = None, user=Depends(get_curr
 @api_router.post("/case-notes")
 async def add_case_note(note: CaseNote, user=Depends(get_current_user)):
     d = note.model_dump()
-    await db.case_notes.insert_one(d)
+    await db.case_notes.insert_one({**d})
     return d
 
 @api_router.delete("/case-notes/{case_id}")
@@ -851,6 +906,41 @@ async def interventions_csv(user=Depends(get_current_user)):
     buf.seek(0)
     return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=interventions.csv"})
 
+@api_router.get("/settings/export-all")
+async def export_all_data(user=Depends(get_current_user)):
+    """Export all data as JSON backup"""
+    backup = {}
+    collections = ["students", "attendance", "screening_sessions", "saebrs_results",
+                   "saebrs_plus_results", "interventions", "case_notes", "alerts", "school_settings"]
+    for col in collections:
+        docs = await db[col].find({}, {"_id": 0}).to_list(10000)
+        backup[col] = docs
+    backup["exported_at"] = datetime.now(timezone.utc).isoformat()
+    backup["version"] = "1.0"
+    json_bytes = json.dumps(backup, default=str, indent=2).encode("utf-8")
+    return StreamingResponse(
+        iter([json_bytes]),
+        media_type="application/json",
+        headers={"Content-Disposition": "attachment; filename=welltrack_backup.json"}
+    )
+
+@api_router.post("/settings/restore")
+async def restore_all_data(request: Request, user=Depends(get_current_user)):
+    """Restore data from JSON backup"""
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    body = await request.json()
+    restorable = ["students", "attendance", "screening_sessions", "saebrs_results",
+                  "saebrs_plus_results", "interventions", "case_notes", "alerts", "school_settings"]
+    restored = {}
+    for col in restorable:
+        if col in body and isinstance(body[col], list):
+            await db[col].delete_many({})
+            if body[col]:
+                await db[col].insert_many([{**doc} for doc in body[col]])
+            restored[col] = len(body[col])
+    return {"message": "Data restored successfully", "restored": restored}
+
 # ==============================
 # SEED FUNCTION
 # ==============================
@@ -1055,6 +1145,18 @@ async def startup():
         logger.info("Empty database — seeding demo data...")
         await seed_database()
         logger.info("Demo data seeded successfully")
+    # Ensure there's at least one admin user pre-registered
+    admin_count = await db.users.count_documents({"role": "admin"})
+    if admin_count == 0:
+        logger.info("No admin users found — creating default admin placeholder")
+        await db.users.insert_one({
+            "user_id": f"user_{uuid.uuid4().hex[:12]}",
+            "email": "admin@school.edu.au",
+            "name": "School Administrator",
+            "picture": "",
+            "role": "admin",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
 
 @app.on_event("shutdown")
 async def shutdown():

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ClipboardCheck, ChevronRight, ChevronLeft, CheckCircle, Loader } from 'lucide-react';
+import { ClipboardCheck, ChevronRight, ChevronLeft, CheckCircle, Loader, AlertTriangle } from 'lucide-react';
 import { getRiskColors } from '../utils/tierUtils';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -98,6 +98,7 @@ export default function ScreeningPage() {
   const [saving, setSaving] = useState(false);
   const [completedStudents, setCompletedStudents] = useState(new Set());
   const [mode, setMode] = useState('saebrs'); // saebrs or plus
+  const [startError, setStartError] = useState('');
 
   const [socialItems, setSocialItems] = useState(new Array(6).fill(-1));
   const [academicItems, setAcademicItems] = useState(new Array(6).fill(-1));
@@ -113,6 +114,7 @@ export default function ScreeningPage() {
 
   const startScreening = async () => {
     if (!selectedClass) return;
+    setStartError('');
     try {
       // Create screening session
       const sessionRes = await axios.post(`${API}/screening/sessions`, {
@@ -133,7 +135,10 @@ export default function ScreeningPage() {
       setAcademicItems(new Array(6).fill(2));
       setEmotionalItems(new Array(7).fill(2));
       setStep('saebrs');
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      setStartError(e.response?.data?.detail || 'Failed to start screening. Please try again.');
+    }
   };
 
   const currentStudent = students[currentStudentIdx];
@@ -236,6 +241,13 @@ export default function ScreeningPage() {
             className="w-full bg-slate-900 text-white py-3.5 rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
             <ClipboardCheck size={16} /> Begin Screening
           </button>
+
+          {startError && (
+            <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-xl p-3">
+              <AlertTriangle size={15} className="text-rose-600 shrink-0" />
+              <p className="text-sm text-rose-700">{startError}</p>
+            </div>
+          )}
         </div>
       </div>
     );

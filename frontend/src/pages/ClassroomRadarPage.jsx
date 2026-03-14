@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, getRiskColors, RISK_INDICATOR_LABELS, RISK_INDICATOR_COLORS } from '../utils/tierUtils';
-import { Radar } from 'lucide-react';
+import { Radar, ChevronUp, ChevronDown } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -12,6 +12,8 @@ export default function ClassroomRadarPage() {
   const [selectedClass, setSelectedClass] = useState('');
   const [radarData, setRadarData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [sortField, setSortField] = useState('tier');
+  const [sortDir, setSortDir] = useState('desc');
 
   useEffect(() => {
     axios.get(`${API}/classes`, { withCredentials: true }).then(r => {
@@ -32,6 +34,44 @@ export default function ClassroomRadarPage() {
   const tierCounts = { 0: 0, 1: 0, 2: 0, 3: 0 };
   radarData.forEach(s => { tierCounts[s.mtss_tier || 0]++; });
 
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir('desc');
+    }
+  };
+
+  const sortedData = useMemo(() => {
+    return [...radarData].sort((a, b) => {
+      let aVal, bVal;
+      switch (sortField) {
+        case 'tier': aVal = a.mtss_tier || 0; bVal = b.mtss_tier || 0; break;
+        case 'saebrs': aVal = a.saebrs_total ?? 999; bVal = b.saebrs_total ?? 999; break;
+        case 'attendance': aVal = a.attendance_pct; bVal = b.attendance_pct; break;
+        case 'indicators': aVal = a.risk_indicators.length; bVal = b.risk_indicators.length; break;
+        case 'name': aVal = a.student.last_name; bVal = b.student.last_name; return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        default: aVal = a.mtss_tier || 0; bVal = b.mtss_tier || 0;
+      }
+      return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+  }, [radarData, sortField, sortDir]);
+
+  const SortHeader = ({ field, label }) => (
+    <th
+      onClick={() => handleSort(field)}
+      className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:text-slate-700 select-none"
+    >
+      <span className="flex items-center gap-1">
+        {label}
+        {sortField === field ? (
+          sortDir === 'desc' ? <ChevronDown size={12} className="text-slate-700" /> : <ChevronUp size={12} className="text-slate-700" />
+        ) : <ChevronDown size={12} className="opacity-30" />}
+      </span>
+    </th>
+  );
+
   const getRiskLevel = (tier) => {
     if (tier === 3) return 'high';
     if (tier === 2) return 'emerging';
@@ -48,7 +88,7 @@ export default function ClassroomRadarPage() {
           <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3" style={{fontFamily:'Manrope,sans-serif'}}>
             <Radar size={28} className="text-slate-600" /> Class Risk Radar
           </h1>
-          <p className="text-slate-500 mt-1">Identify students who may need support — sorted by highest concern.</p>
+          <p className="text-slate-500 mt-1">Identify students who may need support. Click column headers to sort.</p>
         </div>
         <select
           value={selectedClass}
@@ -88,13 +128,18 @@ export default function ClassroomRadarPage() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  {['Student', 'MTSS Tier', 'SAEBRS Risk', 'Wellbeing Tier', 'Attendance', 'Indicators', 'Intervention', ''].map(h => (
-                    <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                  ))}
+                  <SortHeader field="name" label="Student" />
+                  <SortHeader field="tier" label="MTSS Tier" />
+                  <SortHeader field="saebrs" label="SAEBRS Risk" />
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">Wellbeing</th>
+                  <SortHeader field="attendance" label="Attendance" />
+                  <SortHeader field="indicators" label="Indicators" />
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">Intervention</th>
+                  <th className="py-3 px-4"></th>
                 </tr>
               </thead>
               <tbody>
-                {radarData.map(item => {
+                {sortedData.map(item => {
                   const tierColors = getTierColors(item.mtss_tier);
                   return (
                     <tr

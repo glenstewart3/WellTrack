@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, ClipboardCheck, Users, Radar, BarChart3,
   Target, Users2, Bell, FileText, Settings, LogOut,
-  Menu, X, ChevronRight, Shield
+  Menu, X, ChevronRight, Shield, UserCog
 } from 'lucide-react';
 
 const navItems = [
@@ -18,6 +18,7 @@ const navItems = [
   { path: '/alerts', icon: Bell, label: 'Alerts' },
   { path: '/reports', icon: FileText, label: 'Reports' },
   { path: '/settings', icon: Settings, label: 'Settings' },
+  { path: '/users', icon: UserCog, label: 'User Management', adminOnly: true },
 ];
 
 const roleLabels = { teacher: 'Teacher', wellbeing: 'Wellbeing Staff', leadership: 'Leadership', admin: 'Administrator' };
@@ -42,8 +43,8 @@ export default function DashboardLayout() {
             <Shield size={16} className="text-white" />
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>MTSS Platform</p>
-            <p className="text-xs text-slate-400">WellTrack</p>
+            <p className="text-sm font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>WellTrack</p>
+            <p className="text-xs text-slate-400">MTSS Wellbeing Platform</p>
           </div>
         </div>
       </div>
@@ -51,7 +52,7 @@ export default function DashboardLayout() {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 sidebar-scroll overflow-y-auto">
         <div className="space-y-0.5">
-          {navItems.map(({ path, icon: Icon, label }) => (
+          {navItems.filter(item => !item.adminOnly || user?.role === 'admin').map(({ path, icon: Icon, label }) => (
             <NavLink
               key={path}
               to={path}

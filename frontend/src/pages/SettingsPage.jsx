@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Settings, Trash2, Database, AlertTriangle, CheckCircle, Loader, School } from 'lucide-react';
+import { Settings, Trash2, Database, AlertTriangle, CheckCircle, Loader, School, Download, Upload, RefreshCw } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -19,9 +19,13 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [wiping, setWiping] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [msg, setMsg] = useState('');
+  const [msgType, setMsgType] = useState('success');
   const [showWipeConfirm, setShowWipeConfirm] = useState(false);
   const [wipeInput, setWipeInput] = useState('');
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     axios.get(`${API}/settings`, { withCredentials: true })
@@ -34,6 +38,7 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       await axios.put(`${API}/settings`, settings, { withCredentials: true });
+      setMsgType('success');
       setMsg('Settings saved successfully');
       setTimeout(() => setMsg(''), 3000);
     } catch (e) { console.error(e); }
@@ -44,10 +49,50 @@ export default function SettingsPage() {
     setSeeding(true);
     try {
       const res = await axios.post(`${API}/settings/seed`, {}, { withCredentials: true });
+      setMsgType('success');
       setMsg(`Demo data loaded: ${res.data.students} students, ${res.data.interventions} interventions`);
       setTimeout(() => setMsg(''), 5000);
     } catch (e) { console.error(e); }
     finally { setSeeding(false); }
+  };
+
+  const exportData = async () => {
+    setExporting(true);
+    try {
+      const res = await axios.get(`${API}/settings/export-all`, { withCredentials: true, responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/json' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `welltrack_backup_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      setMsgType('success');
+      setMsg('Data exported successfully');
+      setTimeout(() => setMsg(''), 3000);
+    } catch (e) { console.error(e); }
+    finally { setExporting(false); }
+  };
+
+  const handleRestoreFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setRestoring(true);
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const res = await axios.post(`${API}/settings/restore`, data, { withCredentials: true });
+      const counts = Object.entries(res.data.restored || {}).map(([k, v]) => `${v} ${k}`).join(', ');
+      setMsgType('success');
+      setMsg(`Data restored successfully: ${counts}`);
+      setTimeout(() => setMsg(''), 5000);
+    } catch (e) {
+      setMsgType('error');
+      setMsg(e.response?.data?.detail || 'Failed to restore data. Ensure the file is a valid WellTrack backup.');
+      setTimeout(() => setMsg(''), 5000);
+    }
+    finally { setRestoring(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
   };
 
   const wipeData = async () => {
@@ -57,6 +102,7 @@ export default function SettingsPage() {
       await axios.delete(`${API}/settings/data`, { withCredentials: true });
       setShowWipeConfirm(false);
       setWipeInput('');
+      setMsgType('success');
       setMsg('All data wiped successfully');
       setTimeout(() => setMsg(''), 4000);
     } catch (e) { console.error(e); }
@@ -67,9 +113,14 @@ export default function SettingsPage() {
     try {
       await axios.put(`${API}/auth/role`, { role }, { withCredentials: true });
       setUser(prev => ({ ...prev, role }));
+      setMsgType('success');
       setMsg(`Role updated to ${role}`);
       setTimeout(() => setMsg(''), 3000);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      setMsgType('error');
+      setMsg(e.response?.data?.detail || 'Failed to update role');
+      setTimeout(() => setMsg(''), 3000);
+    }
   };
 
   if (loading) return <div className="p-8"><div className="h-48 bg-white rounded-xl animate-pulse border border-slate-200" /></div>;
@@ -87,9 +138,9 @@ export default function SettingsPage() {
       </div>
 
       {msg && (
-        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-6">
-          <CheckCircle size={16} className="text-emerald-600 shrink-0" />
-          <p className="text-sm text-emerald-700">{msg}</p>
+        <div className={`flex items-center gap-2 rounded-xl p-4 mb-6 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+          <CheckCircle size={16} className={msgType === 'error' ? 'text-rose-600 shrink-0' : 'text-emerald-600 shrink-0'} />
+          <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
         </div>
       )}
 
@@ -148,17 +199,31 @@ export default function SettingsPage() {
       {/* User Role */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 mb-5">
         <h2 className="font-semibold text-slate-900 mb-1" style={{fontFamily:'Manrope,sans-serif'}}>Your Role</h2>
-        <p className="text-sm text-slate-400 mb-4">Change your role to access different features of the platform.</p>
-        <div className="grid grid-cols-2 gap-3">
-          {ROLE_OPTIONS.map(opt => (
-            <button key={opt.value} onClick={() => updateRole(opt.value)}
-              data-testid={`role-btn-${opt.value}`}
-              className={`text-left p-4 rounded-xl border transition-all ${user?.role === opt.value ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'}`}>
-              <p className="text-sm font-semibold">{opt.label}</p>
-              <p className={`text-xs mt-0.5 ${user?.role === opt.value ? 'text-white/60' : 'text-slate-400'}`}>{opt.desc}</p>
-            </button>
-          ))}
-        </div>
+        {user?.role === 'admin' ? (
+          <>
+            <p className="text-sm text-slate-400 mb-4">As an administrator, you can switch your active role to test different permission levels.</p>
+            <div className="grid grid-cols-2 gap-3">
+              {ROLE_OPTIONS.map(opt => (
+                <button key={opt.value} onClick={() => updateRole(opt.value)}
+                  data-testid={`role-btn-${opt.value}`}
+                  className={`text-left p-4 rounded-xl border transition-all ${user?.role === opt.value ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'}`}>
+                  <p className="text-sm font-semibold">{opt.label}</p>
+                  <p className={`text-xs mt-0.5 ${user?.role === opt.value ? 'text-white/60' : 'text-slate-400'}`}>{opt.desc}</p>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-400 mb-2">Your current role determines what you can access in WellTrack.</p>
+              <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-sm font-semibold">
+                {ROLE_OPTIONS.find(r => r.value === user?.role)?.label || user?.role}
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 text-right max-w-48">Contact your administrator to change your role.</p>
+          </div>
+        )}
       </div>
 
       {/* Data Management */}
@@ -179,6 +244,46 @@ export default function SettingsPage() {
               {seeding ? 'Loading...' : 'Load Demo Data'}
             </button>
           </div>
+
+          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+            <div>
+              <p className="text-sm font-semibold text-slate-700">Export All Data</p>
+              <p className="text-xs text-slate-400 mt-0.5">Download a full JSON backup of all school data</p>
+            </div>
+            <button onClick={exportData} disabled={exporting} data-testid="export-data-btn"
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-60">
+              {exporting ? <Loader size={14} className="animate-spin" /> : <Download size={14} />}
+              {exporting ? 'Exporting...' : 'Export Backup'}
+            </button>
+          </div>
+
+          {user?.role === 'admin' && (
+            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-100">
+              <div>
+                <p className="text-sm font-semibold text-blue-700">Restore Data</p>
+                <p className="text-xs text-blue-400 mt-0.5">Upload a WellTrack JSON backup file to restore data</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json"
+                  onChange={handleRestoreFile}
+                  data-testid="restore-file-input"
+                  className="hidden"
+                  id="restore-file-input"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={restoring}
+                  data-testid="restore-data-btn"
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-60">
+                  {restoring ? <Loader size={14} className="animate-spin" /> : <Upload size={14} />}
+                  {restoring ? 'Restoring...' : 'Restore Backup'}
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center justify-between p-4 bg-rose-50 rounded-xl border border-rose-100">
             <div>

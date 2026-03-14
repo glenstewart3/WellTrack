@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, getRiskColors, INTERVENTION_TYPES, NOTE_TYPES } from '../utils/tierUtils';
 import { ArrowLeft, Plus, Sparkles, X, Loader } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar, ReferenceLine } from 'recharts';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -158,14 +158,17 @@ export default function StudentProfilePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* SAEBRS Trend */}
           <div className="bg-white border border-slate-200 rounded-xl p-6">
-            <h3 className="font-semibold text-slate-900 mb-4" style={{fontFamily:'Manrope,sans-serif'}}>SAEBRS Score Trend</h3>
+            <h3 className="font-semibold text-slate-900 mb-1" style={{fontFamily:'Manrope,sans-serif'}}>SAEBRS Score Trend</h3>
+            <p className="text-xs text-slate-400 mb-4">Green line = Low Risk threshold (37) · Amber line = High Risk threshold (24)</p>
             {screeningChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={screeningChartData}>
                   <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                   <YAxis domain={[0, 57]} tick={{ fontSize: 12 }} />
                   <Tooltip contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
-                  <Line type="monotone" dataKey="total" stroke="#0f172a" strokeWidth={2} dot={{ r: 4 }} name="Total" />
+                  <ReferenceLine y={37} stroke="#10b981" strokeDasharray="5 3" strokeWidth={1.5} label={{ value: "Low Risk ≥37", position: "insideTopRight", fontSize: 10, fill: "#10b981" }} />
+                  <ReferenceLine y={24} stroke="#f59e0b" strokeDasharray="5 3" strokeWidth={1.5} label={{ value: "High Risk <24", position: "insideBottomRight", fontSize: 10, fill: "#f59e0b" }} />
+                  <Line type="monotone" dataKey="total" stroke="#0f172a" strokeWidth={2.5} dot={{ r: 5 }} name="Total" />
                   <Line type="monotone" dataKey="social" stroke="#10b981" strokeWidth={1.5} strokeDasharray="4 2" dot={{ r: 3 }} name="Social" />
                   <Line type="monotone" dataKey="academic" stroke="#3b82f6" strokeWidth={1.5} strokeDasharray="4 2" dot={{ r: 3 }} name="Academic" />
                   <Line type="monotone" dataKey="emotional" stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="4 2" dot={{ r: 3 }} name="Emotional" />

@@ -16,20 +16,23 @@ export default function AnalyticsPage() {
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState('');
   const [loading, setLoading] = useState(true);
+  const [schoolSettings, setSchoolSettings] = useState(null);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [tdRes, swRes, clsRes, ioRes] = await Promise.all([
+        const [tdRes, swRes, clsRes, ioRes, settingsRes] = await Promise.all([
           axios.get(`${API}/analytics/tier-distribution`, { withCredentials: true }),
           axios.get(`${API}/analytics/school-wide`, { withCredentials: true }),
           axios.get(`${API}/classes`, { withCredentials: true }),
           axios.get(`${API}/analytics/intervention-outcomes`, { withCredentials: true }),
+          axios.get(`${API}/settings`, { withCredentials: true }),
         ]);
         setTierDist(tdRes.data);
         setSchoolWide(swRes.data);
         setClasses(clsRes.data);
         setIntOutcomes(ioRes.data);
+        setSchoolSettings(settingsRes.data);
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     };
@@ -49,13 +52,25 @@ export default function AnalyticsPage() {
     <div className="p-8 space-y-4">{[1,2,3].map(i => <div key={i} className="h-48 bg-white rounded-xl animate-pulse border border-slate-200" />)}</div>
   );
 
-  // Tier by year chart data
-  const tierByYearData = Object.entries(schoolWide?.tier_by_year || {}).map(([year, counts]) => ({
+  // Tier by year chart data — filtered by school context
+  const allTierByYearData = Object.entries(schoolWide?.tier_by_year || {}).map(([year, counts]) => ({
     year: year.replace('Year ', 'Yr '),
     Tier1: counts.tier1,
     Tier2: counts.tier2,
     Tier3: counts.tier3,
+    rawYear: year,
   })).sort((a, b) => a.year.localeCompare(b.year));
+
+  const filterBySchoolType = (data) => {
+    const type = schoolSettings?.school_type;
+    if (!type || type === 'both') return data;
+    return data.filter(item => {
+      const yr = parseInt(item.rawYear.replace(/\D/g, ''));
+      return type === 'primary' ? yr <= 6 : yr >= 7;
+    });
+  };
+
+  const tierByYearData = filterBySchoolType(allTierByYearData);
 
   // Class breakdown
   const classData = Object.entries(tierDist?.class_breakdown || {}).map(([cls, counts]) => ({
@@ -83,9 +98,17 @@ export default function AnalyticsPage() {
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8 fade-in">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>School Analytics</h1>
-        <p className="text-slate-500 mt-1">School-wide MTSS data overview</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>School Analytics</h1>
+          <p className="text-slate-500 mt-1">School-wide MTSS data overview</p>
+        </div>
+        {schoolSettings?.school_type && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-sm">
+            <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">Context:</span>
+            <span className="font-semibold text-slate-700 capitalize">{schoolSettings.school_type === 'both' ? 'K–12' : schoolSettings.school_type === 'primary' ? 'Primary (K–6)' : 'Secondary (7–12)'}</span>
+          </div>
+        )}
       </div>
 
       {/* Top stats */}

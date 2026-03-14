@@ -16,6 +16,7 @@ import AlertsPage from './pages/AlertsPage';
 import MeetingPrepPage from './pages/MeetingPrepPage';
 import SettingsPage from './pages/SettingsPage';
 import ReportsPage from './pages/ReportsPage';
+import UserManagementPage from './pages/UserManagementPage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -44,7 +45,10 @@ function AuthCallback() {
         setUser(res.data);
         navigate('/dashboard', { state: { user: res.data } });
       })
-      .catch(() => navigate('/login'));
+      .catch(err => {
+        const msg = err.response?.data?.detail || 'Sign in failed';
+        navigate('/login', { state: { error: msg } });
+      });
   }, [navigate, setUser]);
 
   return (
@@ -106,6 +110,7 @@ function AppRouter() {
         <Route path="meeting" element={<MeetingPrepPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="users" element={<UserManagementPage />} />
       </Route>
     </Routes>
   );
