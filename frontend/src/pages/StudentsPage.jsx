@@ -1,10 +1,238 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, getRiskColors } from '../utils/tierUtils';
-import { Search, Filter, ChevronRight, Users } from 'lucide-react';
+import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+const CSV_TEMPLATE = `first_name,last_name,year_level,class_name,teacher,gender,date_of_birth
+Emma,Smith,Year 3,Year 3A,Ms Thompson,Female,2014-03-15
+Liam,Johnson,Year 5,Year 5B,Mr Rodriguez,Male,2012-08-22
+Olivia,Williams,Year 7,Year 7C,Ms Chen,Female,2010-05-10`;
+
+const REQUIRED_COLS = ['first_name', 'last_name', 'year_level', 'class_name', 'teacher'];
+
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return { headers: [], rows: [] };
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  const rows = lines.slice(1).map((line, idx) => {
+    const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+    return headers.reduce((obj, h, i) => ({ ...obj, [h]: values[i] || '' }), { _row: idx + 2 });
+  });
+  return { headers, rows };
+}
+
+function ImportModal({ onClose, onSuccess }) {
+  const fileRef = useRef(null);
+  const [parsed, setParsed] = useState(null);
+  const [parseError, setParseError] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
+
+  const downloadTemplate = () => {
+    const blob = new Blob([CSV_TEMPLATE], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'welltrack_students_template.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const handleFile = (file) => {
+    if (!file || !file.name.endsWith('.csv')) {
+      setParseError('Please upload a .csv file');
+      return;
+    }
+    setParseError('');
+    setParsed(null);
+    setResult(null);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const { headers, rows } = parseCSV(e.target.result);
+      const missing = REQUIRED_COLS.filter(c => !headers.includes(c));
+      if (missing.length > 0) {
+        setParseError(`CSV missing required columns: ${missing.join(', ')}`);
+        return;
+      }
+      setParsed({ headers, rows, fileName: file.name });
+    };
+    reader.readAsText(file);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    handleFile(e.dataTransfer.files?.[0]);
+  };
+
+  const doImport = async () => {
+    if (!parsed) return;
+    setImporting(true);
+    try {
+      const res = await axios.post(`${API}/students/import`, { students: parsed.rows }, { withCredentials: true });
+      setResult(res.data);
+      if (res.data.imported > 0) onSuccess();
+    } catch (e) {
+      setParseError(e.response?.data?.detail || 'Import failed. Please try again.');
+    }
+    finally { setImporting(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0">
+          <div>
+            <h3 className="font-bold text-slate-900 text-lg" style={{fontFamily:'Manrope,sans-serif'}}>Import Students</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Upload a CSV file to add students in bulk</p>
+          </div>
+          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-700 transition-colors"><X size={18} /></button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+          {/* Template download */}
+          <div className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3 border border-slate-200">
+            <div>
+              <p className="text-sm font-semibold text-slate-700">CSV Template</p>
+              <p className="text-xs text-slate-400 mt-0.5">Required: first_name, last_name, year_level, class_name, teacher</p>
+            </div>
+            <button onClick={downloadTemplate} data-testid="download-template-btn"
+              className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors">
+              <Download size={14} /> Download Template
+            </button>
+          </div>
+
+          {/* Drop zone */}
+          {!result && (
+            <div
+              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              onClick={() => fileRef.current?.click()}
+              data-testid="csv-drop-zone"
+              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                dragOver ? 'border-slate-500 bg-slate-50' : 'border-slate-200 hover:border-slate-400 hover:bg-slate-50'
+              }`}
+            >
+              <Upload size={24} className="mx-auto mb-3 text-slate-400" />
+              <p className="text-sm font-medium text-slate-700">Drop your CSV file here or click to browse</p>
+              <p className="text-xs text-slate-400 mt-1">.csv files only</p>
+              <input ref={fileRef} type="file" accept=".csv" className="hidden"
+                data-testid="csv-file-input"
+                onChange={e => handleFile(e.target.files?.[0])} />
+            </div>
+          )}
+
+          {/* Parse error */}
+          {parseError && (
+            <div className="flex items-start gap-2 bg-rose-50 border border-rose-200 rounded-xl p-3">
+              <AlertTriangle size={15} className="text-rose-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-rose-700">{parseError}</p>
+            </div>
+          )}
+
+          {/* Preview */}
+          {parsed && !result && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-semibold text-slate-700">
+                  Preview — <span className="text-slate-500 font-normal">{parsed.fileName}</span>
+                </p>
+                <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{parsed.rows.length} rows</span>
+              </div>
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <div className="overflow-x-auto max-h-52">
+                  <table className="w-full text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
+                      <tr>
+                        {REQUIRED_COLS.map(h => (
+                          <th key={h} className="text-left py-2 px-3 font-semibold text-slate-500 whitespace-nowrap">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {parsed.rows.slice(0, 8).map((row, i) => (
+                        <tr key={i} className="border-b border-slate-50">
+                          {REQUIRED_COLS.map(h => (
+                            <td key={h} className={`py-2 px-3 ${row[h] ? 'text-slate-700' : 'text-rose-400 italic'}`}>
+                              {row[h] || 'missing'}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {parsed.rows.length > 8 && (
+                  <p className="text-xs text-slate-400 px-3 py-2 bg-slate-50">+{parsed.rows.length - 8} more rows not shown</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Results */}
+          {result && (
+            <div className="space-y-3">
+              <div className={`flex items-start gap-3 rounded-xl p-4 border ${result.imported > 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+                <CheckCircle size={18} className={result.imported > 0 ? 'text-emerald-600 mt-0.5 shrink-0' : 'text-amber-600 mt-0.5 shrink-0'} />
+                <div>
+                  <p className={`text-sm font-semibold ${result.imported > 0 ? 'text-emerald-800' : 'text-amber-800'}`}>
+                    {result.imported} of {result.total} students imported successfully
+                  </p>
+                  {result.errors.length > 0 && (
+                    <p className="text-xs text-amber-700 mt-0.5">{result.errors.length} rows skipped due to errors</p>
+                  )}
+                </div>
+              </div>
+              {result.errors.length > 0 && (
+                <div className="border border-rose-200 rounded-xl overflow-hidden">
+                  <div className="bg-rose-50 px-3 py-2 border-b border-rose-100">
+                    <p className="text-xs font-semibold text-rose-700">Import Errors</p>
+                  </div>
+                  <div className="max-h-36 overflow-y-auto">
+                    {result.errors.map((e, i) => (
+                      <div key={i} className="flex items-center gap-2 px-3 py-2 border-b border-slate-50 last:border-0">
+                        <span className="text-xs text-slate-400">Row {e.row}</span>
+                        <span className="text-xs font-medium text-slate-700">{e.name || '—'}</span>
+                        <span className="text-xs text-rose-600 ml-auto">{e.error}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-2 px-6 py-4 border-t border-slate-100 shrink-0">
+          {!result ? (
+            <>
+              <button onClick={doImport} disabled={!parsed || importing} data-testid="confirm-import-btn"
+                className="flex-1 bg-slate-900 text-white py-3 text-sm font-semibold rounded-xl hover:bg-slate-800 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+                {importing ? <Loader size={14} className="animate-spin" /> : <Upload size={14} />}
+                {importing ? 'Importing...' : `Import ${parsed ? parsed.rows.length : 0} Students`}
+              </button>
+              <button onClick={onClose}
+                className="flex-1 bg-slate-100 text-slate-700 py-3 text-sm font-medium rounded-xl hover:bg-slate-200 transition-colors">
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button onClick={onClose} data-testid="import-done-btn"
+              className="flex-1 bg-slate-900 text-white py-3 text-sm font-semibold rounded-xl hover:bg-slate-800 transition-colors">
+              Done
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function StudentsPage() {
   const navigate = useNavigate();
@@ -14,21 +242,21 @@ export default function StudentsPage() {
   const [search, setSearch] = useState('');
   const [filterClass, setFilterClass] = useState('');
   const [filterTier, setFilterTier] = useState('');
+  const [showImport, setShowImport] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [studRes, clsRes] = await Promise.all([
-          axios.get(`${API}/students/summary`, { withCredentials: true }),
-          axios.get(`${API}/classes`, { withCredentials: true }),
-        ]);
-        setStudents(studRes.data);
-        setClasses(clsRes.data);
-      } catch (e) { console.error(e); }
-      finally { setLoading(false); }
-    };
-    load();
-  }, []);
+  const loadStudents = async () => {
+    try {
+      const [studRes, clsRes] = await Promise.all([
+        axios.get(`${API}/students/summary`, { withCredentials: true }),
+        axios.get(`${API}/classes`, { withCredentials: true }),
+      ]);
+      setStudents(studRes.data);
+      setClasses(clsRes.data);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { loadStudents(); }, []);
 
   const filtered = students.filter(s => {
     const name = `${s.first_name} ${s.last_name}`.toLowerCase();
@@ -45,7 +273,21 @@ export default function StudentsPage() {
           <h1 className="text-3xl font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>Students</h1>
           <p className="text-slate-500 mt-1">{students.length} enrolled students</p>
         </div>
+        <button
+          onClick={() => setShowImport(true)}
+          data-testid="import-students-btn"
+          className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors"
+        >
+          <Upload size={15} /> Import Students
+        </button>
       </div>
+
+      {showImport && (
+        <ImportModal
+          onClose={() => setShowImport(false)}
+          onSuccess={() => { setLoading(true); loadStudents(); }}
+        />
+      )}
 
       {/* Filters */}
       <div className="bg-white border border-slate-200 rounded-xl p-4 mb-6 flex flex-wrap gap-3">

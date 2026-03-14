@@ -332,6 +332,33 @@ async def create_student(student: Student, user=Depends(get_current_user)):
     await db.students.insert_one({**d})
     return d
 
+@api_router.post("/students/import")
+async def import_students(data: dict, user=Depends(get_current_user)):
+    rows = data.get("students", [])
+    if not rows:
+        raise HTTPException(status_code=400, detail="No student data provided")
+    required = ["first_name", "last_name", "year_level", "class_name", "teacher"]
+    imported, errors = [], []
+    for i, row in enumerate(rows):
+        missing = [f for f in required if not str(row.get(f, "")).strip()]
+        if missing:
+            errors.append({"row": i + 1, "name": f"{row.get('first_name','')} {row.get('last_name','')}".strip(), "error": f"Missing: {', '.join(missing)}"})
+            continue
+        student = {
+            "student_id": f"stu_{uuid.uuid4().hex[:8]}",
+            "first_name": str(row["first_name"]).strip(),
+            "last_name": str(row["last_name"]).strip(),
+            "year_level": str(row["year_level"]).strip(),
+            "class_name": str(row["class_name"]).strip(),
+            "teacher": str(row["teacher"]).strip(),
+            "gender": str(row.get("gender", "")).strip(),
+            "date_of_birth": str(row.get("date_of_birth", "")).strip(),
+            "enrolment_status": "active"
+        }
+        await db.students.insert_one({**student})
+        imported.append(student)
+    return {"imported": len(imported), "errors": errors, "total": len(rows)}
+
 @api_router.get("/students/summary")
 async def get_students_summary(class_name: Optional[str] = None, year_level: Optional[str] = None, user=Depends(get_current_user)):
     query = {"enrolment_status": "active"}
