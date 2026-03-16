@@ -1,7 +1,9 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Response, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, RedirectResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
+from authlib.integrations.starlette_client import OAuth
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
@@ -16,7 +18,6 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional, Any
 from datetime import datetime, timezone, timedelta, date as date_type
-from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -28,6 +29,16 @@ db = client[os.environ['DB_NAME']]
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 logger = logging.getLogger(__name__)
+
+# Google OAuth
+oauth = OAuth()
+oauth.register(
+    name='google',
+    client_id=os.environ['GOOGLE_CLIENT_ID'],
+    client_secret=os.environ['GOOGLE_CLIENT_SECRET'],
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'},
+)
 
 # ==============================
 # MODELS
@@ -200,30 +211,43 @@ async def get_student_attendance_pct(student_id: str) -> float:
 # AUTH ROUTES
 # ==============================
 
-@api_router.post("/auth/session")
-async def process_session(req: SessionRequest, response: Response):
-    async with httpx.AsyncClient() as http:
-        r = await http.get(
-            "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
-            headers={"X-Session-ID": req.session_id}
-        )
-    if r.status_code != 200:
-        raise HTTPException(status_code=400, detail="Invalid session")
-    data = r.json()
-    email, name = data["email"], data["name"]
-    picture = data.get("picture", "")
-    session_token = data["session_token"]
+# ==============================
+# AUTH ROUTES
+# ==============================
+
+@api_router.get("/auth/google")
+async def google_login(request: Request):
+    # REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+    redirect_uri = os.environ['GOOGLE_REDIRECT_URI']
+    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+@api_router.get("/auth/callback")
+async def google_callback(request: Request):
+    # REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+    frontend_url = os.environ['FRONTEND_URL']
+    try:
+        token = await oauth.google.authorize_access_token(request)
+    except Exception as e:
+        logger.error(f"OAuth token exchange failed: {e}")
+        return RedirectResponse(url=f"{frontend_url}/login?error=auth_failed")
+
+    user_info = token.get('userinfo') or {}
+    email = user_info.get('email', '').lower().strip()
+    name = user_info.get('name', '')
+    picture = user_info.get('picture', '')
+
+    if not email:
+        return RedirectResponse(url=f"{frontend_url}/login?error=no_email")
 
     # WHITELIST CHECK: Only allow users that already exist in the database
     existing = await db.users.find_one({"email": email}, {"_id": 0})
     if not existing:
-        raise HTTPException(
-            status_code=403,
-            detail="Access denied. Your account has not been registered. Please contact your school administrator."
-        )
+        return RedirectResponse(url=f"{frontend_url}/login?error=access_denied")
+
     user_id = existing["user_id"]
     await db.users.update_one({"email": email}, {"$set": {"name": name, "picture": picture}})
 
+    session_token = f"sess_{uuid.uuid4().hex}"
     expires_at = datetime.now(timezone.utc) + timedelta(days=7)
     await db.user_sessions.insert_one({
         "user_id": user_id, "session_token": session_token,
@@ -231,10 +255,12 @@ async def process_session(req: SessionRequest, response: Response):
         "created_at": datetime.now(timezone.utc).isoformat()
     })
 
-    response.set_cookie(key="session_token", value=session_token, httponly=True,
-                        secure=True, samesite="none", path="/", max_age=7*24*3600)
-    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
-    return user_doc
+    redirect = RedirectResponse(url=f"{frontend_url}/dashboard")
+    redirect.set_cookie(
+        key="session_token", value=session_token,
+        httponly=True, secure=True, samesite="none", path="/", max_age=7*24*3600
+    )
+    return redirect
 
 @api_router.get("/auth/me")
 async def get_me(user=Depends(get_current_user)):
@@ -1162,6 +1188,7 @@ async def seed_database():
 app.include_router(api_router)
 
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(SessionMiddleware, secret_key=os.environ['SESSION_SECRET'])
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 

@@ -80,8 +80,18 @@ School MTSS (Multi-Tiered System of Supports) platform integrating SAEBRS behavi
 - ✅ Settings role section: admin users get role-switching buttons; non-admins get read-only view
 - ✅ User Management page fully integrated (route, nav link admin-only, CRUD)
 
-**P1 - Upcoming Features:**
-- ✅ Classroom Risk Radar — Sortable column headers (tier, SAEBRS, attendance, indicators, name)
+### 2026-03-16 — Custom Google OAuth + 4 Terms
+
+**Auth Migration:**
+- ✅ Replaced Emergent-managed auth with standard Google OAuth 2.0 (authlib + Starlette SessionMiddleware)
+- ✅ New flow: `/api/auth/google` → Google consent screen → `/api/auth/callback` → session cookie → dashboard
+- ✅ Backend reads GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, FRONTEND_URL, SESSION_SECRET from env
+- ✅ Error redirects: `?error=access_denied`, `?error=auth_failed` → login page shows friendly message
+- ✅ Whitelist check preserved: only users in DB can log in
+- ✅ Session cookie pattern unchanged (MongoDB user_sessions collection)
+
+**Screening:**
+- ✅ 4 terms per year (Term 1–4) in screening period selector
 - ✅ Analytics page — School Context filter badge (Primary K-6 / Secondary 7-12 / K-12)
 - ✅ Progress Monitoring — SAEBRS trend chart now shows risk threshold reference lines (y=37 Low Risk, y=24 High Risk)
 

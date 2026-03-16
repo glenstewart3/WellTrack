@@ -1,21 +1,25 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 import { Shield, AlertCircle } from 'lucide-react';
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-
 export default function LoginPage() {
-  const navigate = useNavigate();
   const location = useLocation();
-  const errorFromCallback = location.state?.error;
-  const [accessError, setAccessError] = useState(errorFromCallback || '');
+
+  const searchParams = new URLSearchParams(location.search);
+  const errorCode = searchParams.get('error');
+  const stateError = location.state?.error;
+
+  const ERROR_MESSAGES = {
+    access_denied: 'Access denied. Your account has not been registered. Please contact your school administrator.',
+    auth_failed: 'Authentication failed. Please try again.',
+    no_email: 'Could not retrieve your email from Google. Please try again.',
+  };
+
+  const [accessError] = useState((errorCode && ERROR_MESSAGES[errorCode]) || stateError || '');
 
   const handleGoogleLogin = () => {
     // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-    setAccessError('');
-    const redirectUrl = window.location.origin + '/dashboard';
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+    window.location.href = `${process.env.REACT_APP_BACKEND_URL}/api/auth/google`;
   };
 
   return (

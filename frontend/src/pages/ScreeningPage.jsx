@@ -89,7 +89,7 @@ export default function ScreeningPage() {
   const [step, setStep] = useState('setup'); // setup, saebrs, saebrs_plus, complete
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState('');
-  const [screeningPeriod, setScreeningPeriod] = useState('Term 2');
+  const [screeningPeriod, setScreeningPeriod] = useState('Term 1');
   const [students, setStudents] = useState([]);
   const [currentStudentIdx, setCurrentStudentIdx] = useState(0);
   const [screeningId, setScreeningId] = useState('');
@@ -220,10 +220,10 @@ export default function ScreeningPage() {
           </div>
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">Screening Period</label>
-            <div className="flex gap-3">
-              {['Term 1', 'Term 2', 'Term 3'].map(t => (
+            <div className="grid grid-cols-4 gap-2">
+              {['Term 1', 'Term 2', 'Term 3', 'Term 4'].map(t => (
                 <button key={t} onClick={() => setScreeningPeriod(t)}
-                  className={`flex-1 py-3 text-sm font-medium rounded-xl border transition-all ${screeningPeriod === t ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
+                  className={`py-3 text-sm font-medium rounded-xl border transition-all ${screeningPeriod === t ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
                   {t}
                 </button>
               ))}
