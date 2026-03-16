@@ -1,10 +1,11 @@
-import React, { useRef, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, Outlet } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import DashboardLayout from './components/DashboardLayout';
 import LoginPage from './pages/LoginPage';
+import OnboardingPage from './pages/OnboardingPage';
 import DashboardPage from './pages/DashboardPage';
 import ScreeningPage from './pages/ScreeningPage';
 import StudentsPage from './pages/StudentsPage';
@@ -20,78 +21,47 @@ import UserManagementPage from './pages/UserManagementPage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// AuthCallback: handles the session_id from OAuth redirect
-function AuthCallback() {
-  const navigate = useNavigate();
-  const { setUser } = useAuth();
-  const hasProcessed = useRef(false);
-
-  useEffect(() => {
-    // Use useRef to prevent double execution under React StrictMode
-    if (hasProcessed.current) return;
-    hasProcessed.current = true;
-
-    const hash = window.location.hash;
-    const params = new URLSearchParams(hash.replace('#', '?'));
-    const sessionId = params.get('session_id');
-
-    if (!sessionId) {
-      navigate('/login');
-      return;
-    }
-
-    axios.post(`${API}/auth/session`, { session_id: sessionId }, { withCredentials: true })
-      .then(res => {
-        setUser(res.data);
-        navigate('/dashboard', { state: { user: res.data } });
-      })
-      .catch(err => {
-        const msg = err.response?.data?.detail || 'Sign in failed';
-        navigate('/login', { state: { error: msg } });
-      });
-  }, [navigate, setUser]);
-
+function Spinner() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
       <div className="text-center">
         <div className="w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-slate-600 font-medium">Signing you in...</p>
+        <p className="text-slate-600 font-medium">Loading WellTrack…</p>
       </div>
     </div>
   );
 }
 
-// ProtectedRoute: checks auth and wraps with layout
 function ProtectedRoute() {
   const { user, loading } = useAuth();
   const location = useLocation();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-600 font-medium">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
+  if (loading) return <Spinner />;
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
   return <DashboardLayout />;
 }
 
-// AppRouter: synchronously checks for session_id BEFORE routing
 function AppRouter() {
-  const location = useLocation();
+  const { loading: authLoading } = useAuth();
+  const [onboardingDone, setOnboardingDone] = useState(null);
 
-  // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-  // Check URL fragment synchronously during render to handle OAuth callback
-  if (location.hash?.includes('session_id=')) {
-    return <AuthCallback />;
+  useEffect(() => {
+    axios.get(`${API}/onboarding/status`)
+      .then(r => setOnboardingDone(r.data.complete))
+      .catch(() => setOnboardingDone(true)); // fail-safe: assume complete
+  }, []);
+
+  if (authLoading || onboardingDone === null) return <Spinner />;
+
+  // Gate all navigation behind onboarding
+  if (!onboardingDone) {
+    return (
+      <Routes>
+        <Route
+          path="*"
+          element={<OnboardingPage onComplete={() => setOnboardingDone(true)} />}
+        />
+      </Routes>
+    );
   }
 
   return (

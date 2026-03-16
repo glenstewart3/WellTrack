@@ -80,7 +80,17 @@ School MTSS (Multi-Tiered System of Supports) platform integrating SAEBRS behavi
 - ✅ Settings role section: admin users get role-switching buttons; non-admins get read-only view
 - ✅ User Management page fully integrated (route, nav link admin-only, CRUD)
 
-### 2026-03-16 — Custom Google OAuth + 4 Terms
+### 2026-03-16 (2) — Onboarding Wizard + Custom Google Auth
+
+**Onboarding flow (first-time setup):**
+- ✅ No more auto-seeded demo data on startup — clean slate
+- ✅ First Google login auto-registers as school administrator (no whitelist needed for first user)
+- ✅ Multi-step wizard: Welcome → School Details → Data Setup → Complete
+- ✅ School Details: school name, type (Primary/Secondary/K-12), current term
+- ✅ Data Setup: Load Demo Data / Restore from Backup / Start from Scratch
+- ✅ After completion: `onboarding_complete: true` in school_settings → normal app loads
+- ✅ `/api/onboarding/status` (public) + `/api/onboarding/complete` (admin) endpoints
+- ✅ App.js gates all routes behind onboarding check
 
 **Auth Migration:**
 - ✅ Replaced Emergent-managed auth with standard Google OAuth 2.0 (authlib + Starlette SessionMiddleware)

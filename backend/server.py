@@ -239,14 +239,25 @@ async def google_callback(request: Request):
     if not email:
         return RedirectResponse(url=f"{frontend_url}/login?error=no_email")
 
-    # WHITELIST CHECK: Only allow users that already exist in the database
-    existing = await db.users.find_one({"email": email}, {"_id": 0})
-    if not existing:
+    # WHITELIST CHECK: Allow first-ever user to register as admin; otherwise whitelist-only
+    user_count = await db.users.count_documents({})
+    if user_count == 0:
+        # First user — auto-register as school administrator
+        user_id = f"user_{uuid.uuid4().hex[:12]}"
+        new_user = {
+            "user_id": user_id, "email": email, "name": name,
+            "picture": picture, "role": "admin",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.users.insert_one({**new_user})
+        existing = new_user
+    elif not existing:
         return RedirectResponse(url=f"{frontend_url}/login?error=access_denied")
+    else:
+        user_id = existing["user_id"]
+        await db.users.update_one({"email": email}, {"$set": {"name": name, "picture": picture}})
 
     user_id = existing["user_id"]
-    await db.users.update_one({"email": email}, {"$set": {"name": name, "picture": picture}})
-
     session_token = f"sess_{uuid.uuid4().hex}"
     expires_at = datetime.now(timezone.utc) + timedelta(days=7)
     await db.user_sessions.insert_one({
@@ -255,7 +266,12 @@ async def google_callback(request: Request):
         "created_at": datetime.now(timezone.utc).isoformat()
     })
 
-    redirect = RedirectResponse(url=f"{frontend_url}/dashboard")
+    # Redirect to onboarding if not yet complete, otherwise dashboard
+    settings_doc = await db.school_settings.find_one({}, {"_id": 0})
+    onboarding_complete = bool(settings_doc and settings_doc.get("onboarding_complete"))
+    redirect_target = "dashboard" if onboarding_complete else "onboarding"
+
+    redirect = RedirectResponse(url=f"{frontend_url}/{redirect_target}")
     redirect.set_cookie(
         key="session_token", value=session_token,
         httponly=True, secure=True, samesite="none", path="/", max_age=7*24*3600
@@ -265,6 +281,38 @@ async def google_callback(request: Request):
 @api_router.get("/auth/me")
 async def get_me(user=Depends(get_current_user)):
     return user
+
+# ==============================
+# ONBOARDING
+# ==============================
+
+@api_router.get("/onboarding/status")
+async def get_onboarding_status():
+    """Public endpoint — no auth required."""
+    settings = await db.school_settings.find_one({}, {"_id": 0})
+    user_count = await db.users.count_documents({})
+    return {
+        "complete": bool(settings and settings.get("onboarding_complete", False)),
+        "has_users": user_count > 0,
+        "school_name": settings.get("school_name", "") if settings else "",
+    }
+
+@api_router.post("/onboarding/complete")
+async def complete_onboarding(data: dict, user=Depends(get_current_user)):
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    await db.school_settings.update_one(
+        {},
+        {"$set": {
+            "school_name": data.get("school_name", "My School"),
+            "school_type": data.get("school_type", "both"),
+            "current_term": data.get("current_term", "Term 1"),
+            "current_year": data.get("current_year", 2025),
+            "onboarding_complete": True,
+        }},
+        upsert=True
+    )
+    return {"message": "Onboarding complete"}
 
 @api_router.post("/auth/logout")
 async def logout(request: Request, response: Response):
@@ -1194,23 +1242,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 
 @app.on_event("startup")
 async def startup():
-    count = await db.students.count_documents({})
-    if count == 0:
-        logger.info("Empty database — seeding demo data...")
-        await seed_database()
-        logger.info("Demo data seeded successfully")
-    # Ensure there's at least one admin user pre-registered
-    admin_count = await db.users.count_documents({"role": "admin"})
-    if admin_count == 0:
-        logger.info("No admin users found — creating default admin placeholder")
-        await db.users.insert_one({
-            "user_id": f"user_{uuid.uuid4().hex[:12]}",
-            "email": "admin@school.edu.au",
-            "name": "School Administrator",
-            "picture": "",
-            "role": "admin",
-            "created_at": datetime.now(timezone.utc).isoformat()
-        })
+    logger.info("WellTrack starting up — onboarding flow active, no auto-seeding.")
 
 @app.on_event("shutdown")
 async def shutdown():
