@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { ClipboardCheck, ChevronRight, ChevronLeft, CheckCircle, Loader, AlertTriangle } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 import { getRiskColors } from '../utils/tierUtils';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -96,7 +97,8 @@ export default function ScreeningPage() {
   const [saebrsData, setSaebrsData] = useState({});
   const [plusData, setPlusData] = useState({});
   const [saving, setSaving] = useState(false);
-  const [completedStudents, setCompletedStudents] = useState(new Set());
+  const { settings } = useSettings();
+  const saebrsPlus = settings.modules_enabled?.saebrs_plus !== false;
   const [mode, setMode] = useState('saebrs'); // saebrs or plus
   const [startError, setStartError] = useState('');
 
@@ -161,9 +163,24 @@ export default function ScreeningPage() {
         emotional_items: emotionalItems,
       }, { withCredentials: true });
       setSaebrsData(prev => ({ ...prev, [currentStudent.student_id]: true }));
-      setStep('saebrs_plus');
-      setSelfReportItems(new Array(7).fill(2));
-      setAttendancePct('95');
+      // Move to SAEBRS+ if module enabled, else go to next student
+      if (saebrsPlus) {
+        setStep('saebrs_plus');
+        setSelfReportItems(new Array(7).fill(2));
+        setAttendancePct('95');
+      } else {
+        // Skip SAEBRS+ — move to next student or complete
+        const nextIdx = currentStudentIdx + 1;
+        if (nextIdx < students.length) {
+          setCurrentStudentIdx(nextIdx);
+          setSocialItems(new Array(6).fill(2));
+          setAcademicItems(new Array(6).fill(2));
+          setEmotionalItems(new Array(7).fill(2));
+          setStep('saebrs');
+        } else {
+          setStep('complete');
+        }
+      }
     } catch (e) { console.error(e); }
     finally { setSaving(false); }
   };

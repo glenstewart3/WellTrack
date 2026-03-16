@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import {
   LayoutDashboard, ClipboardCheck, Users, Radar, BarChart3,
   Target, Users2, Bell, FileText, Settings, LogOut,
-  Menu, X, ChevronRight, Shield, UserCog
+  Menu, X, Shield, UserCog
 } from 'lucide-react';
 
 const navItems = [
@@ -26,8 +27,13 @@ const roleBadgeColors = { teacher: 'bg-blue-100 text-blue-700', wellbeing: 'bg-p
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
+  const { settings, loadFullSettings } = useSettings();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => { loadFullSettings(); }, [loadFullSettings]);
+
+  const accent = settings.accent_color || '#0f172a';
 
   const handleLogout = async () => {
     await logout();
@@ -36,15 +42,19 @@ export default function DashboardLayout() {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      {/* Logo */}
+      {/* Logo / Brand */}
       <div className="px-6 py-5 border-b border-slate-100">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
-            <Shield size={16} className="text-white" />
-          </div>
+          {settings.logo_base64 ? (
+            <img src={settings.logo_base64} alt="School logo" className="w-9 h-9 rounded-lg object-contain bg-slate-50 border border-slate-100" />
+          ) : (
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: accent }}>
+              <Shield size={17} className="text-white" />
+            </div>
+          )}
           <div>
-            <p className="text-sm font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>WellTrack</p>
-            <p className="text-xs text-slate-400">MTSS Wellbeing Platform</p>
+            <p className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{settings.platform_name || 'WellTrack'}</p>
+            <p className="text-xs text-slate-400">{settings.school_name || 'MTSS Wellbeing Platform'}</p>
           </div>
         </div>
       </div>
@@ -57,14 +67,13 @@ export default function DashboardLayout() {
               key={path}
               to={path}
               onClick={() => setMobileOpen(false)}
+              data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
+              style={({ isActive }) => isActive ? { backgroundColor: accent } : {}}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group ${
-                  isActive
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+                  isActive ? 'text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`
               }
-              data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
             >
               <Icon size={17} className="shrink-0" />
               <span>{label}</span>

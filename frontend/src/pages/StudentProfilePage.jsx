@@ -3,16 +3,21 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, getRiskColors, INTERVENTION_TYPES, NOTE_TYPES } from '../utils/tierUtils';
 import { ArrowLeft, Plus, Sparkles, X, Loader } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar, ReferenceLine } from 'recharts';
+import { useSettings } from '../context/SettingsContext';
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar, ReferenceLine } from 'recharts';
 
 function TierBadge({ tier }) {
   const c = getTierColors(tier);
   return <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${c.badge}`}>Tier {tier}</span>;
 }
 
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
 export default function StudentProfilePage() {
+  const { settings } = useSettings();
+  const customFields = settings.custom_student_fields || [];
+  const interventionTypes = settings.intervention_types?.length ? settings.intervention_types : INTERVENTION_TYPES;
   const { studentId } = useParams();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
@@ -246,6 +251,23 @@ export default function StudentProfilePage() {
                   <div key={a.alert_id} className="flex gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-2 shrink-0" />
                     <p className="text-sm text-rose-800">{a.message}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Custom Student Fields */}
+          {customFields.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-6 lg:col-span-2">
+              <h3 className="font-semibold text-slate-900 mb-4" style={{fontFamily:'Manrope,sans-serif'}}>Additional Information</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {customFields.map(f => (
+                  <div key={f.id}>
+                    <p className="text-xs text-slate-400 mb-0.5">{f.label}</p>
+                    <p className="text-sm font-medium text-slate-700">
+                      {profile?.student?.custom_fields?.[f.id] || <span className="text-slate-300 italic">Not set</span>}
+                    </p>
                   </div>
                 ))}
               </div>

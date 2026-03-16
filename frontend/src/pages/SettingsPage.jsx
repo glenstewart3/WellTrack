@@ -1,59 +1,597 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Settings, Trash2, Database, AlertTriangle, CheckCircle, Loader, School, Download, Upload, RefreshCw } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
+import {
+  Settings, Trash2, Database, AlertTriangle, CheckCircle, Loader, School,
+  Download, Upload, RefreshCw, Palette, Building2, Image, Plus, X,
+  Sliders, ToggleLeft, ToggleRight, Tag, User, Shield
+} from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const ROLE_OPTIONS = [
-  { value: 'teacher', label: 'Teacher', desc: 'Complete screenings, view class data' },
-  { value: 'wellbeing', label: 'Wellbeing Staff', desc: 'View all students, manage interventions' },
-  { value: 'leadership', label: 'Leadership', desc: 'View analytics and reports' },
-  { value: 'admin', label: 'Administrator', desc: 'Full access to all features' },
+  { value: 'teacher', label: 'Teacher', desc: 'Can complete screenings & view class data' },
+  { value: 'wellbeing', label: 'Wellbeing Staff', desc: 'Manages interventions & case notes' },
+  { value: 'leadership', label: 'Leadership', desc: 'Views analytics & meeting prep' },
+  { value: 'admin', label: 'Administrator', desc: 'Full access + user management' },
 ];
 
-export default function SettingsPage() {
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+const PRESET_COLOURS = ['#0f172a','#1e40af','#065f46','#7c2d12','#4a044e','#0c4a6e','#713f12','#164e63','#6b21a8','#be123c'];
+
+const FIELD_TYPES = ['text', 'select', 'boolean', 'number'];
+
+function TabNav({ tabs, active, onChange }) {
+  return (
+    <div className="flex border-b border-slate-200 mb-6 gap-0 overflow-x-auto">
+      {tabs.map(t => (
+        <button
+          key={t}
+          onClick={() => onChange(t)}
+          className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px ${
+            active === t ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          {t}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── BRANDING TAB ────────────────────────────────────────────────────────────
+function BrandingTab({ settings: s, onSave, saving, msg, msgType }) {
+  const [platformName, setPlatformName] = useState(s.platform_name || 'WellTrack');
+  const [welcomeMessage, setWelcomeMessage] = useState(s.welcome_message || '');
+  const [accentColor, setAccentColor] = useState(s.accent_color || '#0f172a');
+  const [logoBase64, setLogoBase64] = useState(s.logo_base64 || '');
+  const logoRef = useRef(null);
+  const { updateSettings } = useSettings();
+
+  const handleLogoFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { alert('Logo must be under 2 MB'); return; }
+    const reader = new FileReader();
+    reader.onload = ev => setLogoBase64(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleColorChange = (c) => {
+    setAccentColor(c);
+    document.documentElement.style.setProperty('--wt-accent', c);
+  };
+
+  const handleSave = () => {
+    const patch = { platform_name: platformName, welcome_message: welcomeMessage, accent_color: accentColor, logo_base64: logoBase64 };
+    updateSettings(patch);
+    onSave(patch);
+  };
+
+  return (
+    <div className="space-y-5">
+      {msg && (
+        <div className={`flex items-center gap-2 rounded-xl p-4 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+          <CheckCircle size={15} className={msgType === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
+          <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
+        </div>
+      )}
+
+      {/* Logo */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>School Logo</h3>
+        <p className="text-xs text-slate-400 mb-4">Shown in the sidebar, login screen, and report headers. PNG or SVG recommended.</p>
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center bg-slate-50 overflow-hidden">
+            {logoBase64 ? (
+              <img src={logoBase64} alt="Logo preview" className="w-full h-full object-contain" />
+            ) : (
+              <Image size={24} className="text-slate-300" />
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => logoRef.current?.click()} data-testid="upload-logo-btn"
+              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors">
+              <Upload size={14} /> Upload Logo
+            </button>
+            {logoBase64 && (
+              <button onClick={() => setLogoBase64('')}
+                className="px-3 py-2 text-rose-600 text-sm border border-rose-200 rounded-lg hover:bg-rose-50 transition-colors">
+                Remove
+              </button>
+            )}
+          </div>
+          <input ref={logoRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden"
+            data-testid="logo-file-input" onChange={handleLogoFile} />
+        </div>
+      </div>
+
+      {/* Platform name + welcome */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Platform Name</label>
+          <p className="text-xs text-slate-400 mb-2">Shown in the browser tab, sidebar header, and all screens.</p>
+          <input type="text" value={platformName} onChange={e => setPlatformName(e.target.value)}
+            data-testid="platform-name-input"
+            placeholder="WellTrack"
+            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Login Welcome Message</label>
+          <p className="text-xs text-slate-400 mb-2">Shown beneath "Welcome back" on the login screen.</p>
+          <textarea value={welcomeMessage} onChange={e => setWelcomeMessage(e.target.value)}
+            data-testid="welcome-message-input"
+            placeholder="Supporting every student at Riverside Community School."
+            rows={2}
+            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 resize-none" />
+        </div>
+      </div>
+
+      {/* Accent colour */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Accent Colour</h3>
+        <p className="text-xs text-slate-400 mb-4">Used for the sidebar, active navigation, and primary buttons across the app.</p>
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          {PRESET_COLOURS.map(c => (
+            <button key={c} onClick={() => handleColorChange(c)}
+              title={c}
+              style={{ backgroundColor: c }}
+              className={`w-8 h-8 rounded-lg border-2 transition-all ${accentColor === c ? 'border-slate-900 scale-110' : 'border-transparent hover:scale-105'}`}
+            />
+          ))}
+          <label className="flex items-center gap-2 cursor-pointer px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 text-xs text-slate-600">
+            <Palette size={13} /> Custom
+            <input type="color" value={accentColor} onChange={e => handleColorChange(e.target.value)}
+              data-testid="accent-color-picker"
+              className="w-0 h-0 opacity-0 absolute" />
+          </label>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl shadow-sm" style={{ backgroundColor: accentColor }} />
+          <input type="text" value={accentColor} onChange={e => handleColorChange(e.target.value)}
+            className="w-28 px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none" />
+          <span className="text-xs text-slate-400">Preview colour applied instantly</span>
+        </div>
+      </div>
+
+      <button onClick={handleSave} disabled={saving} data-testid="save-branding-btn"
+        className="w-full py-3.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 disabled:opacity-60 transition-colors flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
+        {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+        {saving ? 'Saving…' : 'Save Branding'}
+      </button>
+    </div>
+  );
+}
+
+// ── MTSS & SCREENING TAB ─────────────────────────────────────────────────────
+function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
+  const [thresholds, setThresholds] = useState({ saebrs_some_risk: 37, saebrs_high_risk: 24, attendance_some_risk: 90, attendance_high_risk: 80, ...s.tier_thresholds });
+  const [modules, setModules] = useState({ saebrs_plus: true, ...s.modules_enabled });
+  const [intTypes, setIntTypes] = useState(s.intervention_types || []);
+  const [newType, setNewType] = useState('');
+
+  const addType = () => {
+    const v = newType.trim();
+    if (v && !intTypes.includes(v)) { setIntTypes(prev => [...prev, v]); setNewType(''); }
+  };
+  const removeType = (t) => setIntTypes(prev => prev.filter(x => x !== t));
+
+  const handleSave = () => onSave({ tier_thresholds: thresholds, modules_enabled: modules, intervention_types: intTypes });
+
+  return (
+    <div className="space-y-5">
+      {msg && (
+        <div className={`flex items-center gap-2 rounded-xl p-4 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+          <CheckCircle size={15} className={msgType === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
+          <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
+        </div>
+      )}
+
+      {/* Tier thresholds */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Tier Classification Thresholds</h3>
+        <p className="text-xs text-slate-400 mb-5">Adjust the score cut-offs used to classify students into Tier 1, 2, and 3.</p>
+        <div className="space-y-5">
+          <div>
+            <p className="text-sm font-semibold text-slate-700 mb-3">SAEBRS Total Score (0–57)</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Amber (Some Risk) — below</label>
+                <div className="flex items-center gap-3">
+                  <input type="range" min={thresholds.saebrs_high_risk + 1} max={57} value={thresholds.saebrs_some_risk}
+                    onChange={e => setThresholds(p => ({ ...p, saebrs_some_risk: +e.target.value }))}
+                    data-testid="saebrs-some-risk-slider"
+                    className="flex-1 accent-amber-500" />
+                  <span className="w-8 text-sm font-bold text-amber-600">{thresholds.saebrs_some_risk}</span>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Red (High Risk) — below</label>
+                <div className="flex items-center gap-3">
+                  <input type="range" min={1} max={thresholds.saebrs_some_risk - 1} value={thresholds.saebrs_high_risk}
+                    onChange={e => setThresholds(p => ({ ...p, saebrs_high_risk: +e.target.value }))}
+                    data-testid="saebrs-high-risk-slider"
+                    className="flex-1 accent-rose-500" />
+                  <span className="w-8 text-sm font-bold text-rose-600">{thresholds.saebrs_high_risk}</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 h-2 rounded-full overflow-hidden flex">
+              <div style={{ width: `${(thresholds.saebrs_high_risk / 57) * 100}%` }} className="bg-rose-400" />
+              <div style={{ width: `${((thresholds.saebrs_some_risk - thresholds.saebrs_high_risk) / 57) * 100}%` }} className="bg-amber-400" />
+              <div className="flex-1 bg-emerald-400" />
+            </div>
+            <div className="flex justify-between text-xs text-slate-400 mt-1">
+              <span>0 — High Risk</span><span>{thresholds.saebrs_high_risk} — Some Risk</span><span>{thresholds.saebrs_some_risk} — Low Risk — 57</span>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold text-slate-700 mb-3">Attendance (%)</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Amber — below</label>
+                <div className="flex items-center gap-3">
+                  <input type="range" min={thresholds.attendance_high_risk + 1} max={100} value={thresholds.attendance_some_risk}
+                    onChange={e => setThresholds(p => ({ ...p, attendance_some_risk: +e.target.value }))}
+                    data-testid="attendance-some-risk-slider"
+                    className="flex-1 accent-amber-500" />
+                  <span className="w-10 text-sm font-bold text-amber-600">{thresholds.attendance_some_risk}%</span>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Red — below</label>
+                <div className="flex items-center gap-3">
+                  <input type="range" min={1} max={thresholds.attendance_some_risk - 1} value={thresholds.attendance_high_risk}
+                    onChange={e => setThresholds(p => ({ ...p, attendance_high_risk: +e.target.value }))}
+                    data-testid="attendance-high-risk-slider"
+                    className="flex-1 accent-rose-500" />
+                  <span className="w-10 text-sm font-bold text-rose-600">{thresholds.attendance_high_risk}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Modules */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Screening Modules</h3>
+        <p className="text-xs text-slate-400 mb-4">Enable or disable screening components for your school.</p>
+        <div className="space-y-3">
+          {[
+            { key: 'saebrs_plus', label: 'SAEBRS+ Wellbeing Self-Report', desc: '7-item student self-report for social, emotional, and school belonging' },
+          ].map(({ key, label, desc }) => (
+            <div key={key} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+              <div>
+                <p className="text-sm font-semibold text-slate-700">{label}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
+              </div>
+              <button onClick={() => setModules(p => ({ ...p, [key]: !p[key] }))}
+                data-testid={`module-toggle-${key}`}
+                className="text-slate-400 hover:text-slate-900 transition-colors">
+                {modules[key]
+                  ? <ToggleRight size={28} className="text-emerald-500" />
+                  : <ToggleLeft size={28} />}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Intervention library */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Intervention Library</h3>
+        <p className="text-xs text-slate-400 mb-4">The types of interventions available when creating or editing interventions.</p>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {intTypes.map(t => (
+            <span key={t} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-medium rounded-lg">
+              {t}
+              <button onClick={() => removeType(t)} className="text-slate-400 hover:text-rose-500 transition-colors"><X size={11} /></button>
+            </span>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input type="text" value={newType} onChange={e => setNewType(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addType()}
+            data-testid="new-intervention-type-input"
+            placeholder="Add intervention type…"
+            className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+          <button onClick={addType} data-testid="add-intervention-type-btn"
+            className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors">
+            <Plus size={16} />
+          </button>
+        </div>
+      </div>
+
+      <button onClick={handleSave} disabled={saving} data-testid="save-mtss-btn"
+        className="w-full py-3.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
+        {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+        {saving ? 'Saving…' : 'Save MTSS Settings'}
+      </button>
+    </div>
+  );
+}
+
+// ── STUDENT DATA TAB ─────────────────────────────────────────────────────────
+function StudentDataTab({ settings: s, onSave, saving, msg, msgType }) {
+  const [fields, setFields] = useState(s.custom_student_fields || []);
+  const [riskConfig, setRiskConfig] = useState({ consecutive_absence_days: 3, ...s.risk_config });
+  const [yearStartMonth, setYearStartMonth] = useState(s.year_start_month ?? 2);
+  const [addingField, setAddingField] = useState(false);
+  const [newField, setNewField] = useState({ label: '', type: 'text', options: '', required: false });
+
+  const confirmAddField = () => {
+    if (!newField.label.trim()) return;
+    const field = {
+      id: newField.label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
+      label: newField.label.trim(),
+      type: newField.type,
+      options: newField.type === 'select' ? newField.options.split(',').map(o => o.trim()).filter(Boolean) : [],
+      required: newField.required,
+    };
+    setFields(prev => [...prev, field]);
+    setNewField({ label: '', type: 'text', options: '', required: false });
+    setAddingField(false);
+  };
+
+  const handleSave = () => onSave({ custom_student_fields: fields, risk_config: riskConfig, year_start_month: yearStartMonth });
+
+  return (
+    <div className="space-y-5">
+      {msg && (
+        <div className={`flex items-center gap-2 rounded-xl p-4 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+          <CheckCircle size={15} className={msgType === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
+          <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
+        </div>
+      )}
+
+      {/* Academic year */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Academic Year</h3>
+        <p className="text-xs text-slate-400 mb-4">Used for year-based analytics and report grouping.</p>
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-2 block">Year Start Month</label>
+          <select value={yearStartMonth} onChange={e => setYearStartMonth(+e.target.value)}
+            data-testid="year-start-month-select"
+            className="w-full max-w-xs px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none">
+            {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* Risk config */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Risk Indicator Config</h3>
+        <p className="text-xs text-slate-400 mb-4">Control what triggers a risk flag in the Classroom Risk Radar.</p>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-semibold text-slate-700 mb-1 block">Consecutive Absence Days Flag</label>
+            <p className="text-xs text-slate-400 mb-2">Students with this many consecutive absences are flagged.</p>
+            <div className="flex items-center gap-3">
+              <input type="range" min={1} max={10} value={riskConfig.consecutive_absence_days}
+                onChange={e => setRiskConfig(p => ({ ...p, consecutive_absence_days: +e.target.value }))}
+                data-testid="consecutive-absence-slider"
+                className="flex-1 max-w-xs accent-rose-500" />
+              <span className="text-sm font-bold text-rose-600 w-16">{riskConfig.consecutive_absence_days} {riskConfig.consecutive_absence_days === 1 ? 'day' : 'days'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Custom student fields */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Custom Student Fields</h3>
+          <button onClick={() => setAddingField(true)} data-testid="add-student-field-btn"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg hover:bg-slate-800 transition-colors">
+            <Plus size={13} /> Add Field
+          </button>
+        </div>
+        <p className="text-xs text-slate-400 mb-4">Extra fields shown on every student's profile. Examples: Indigenous Status, EALD, NDIS, Year Advisor.</p>
+
+        {fields.length > 0 ? (
+          <div className="space-y-2 mb-4">
+            {fields.map((f, i) => (
+              <div key={f.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <User size={14} className="text-slate-400" />
+                  <div>
+                    <p className="text-sm font-medium text-slate-700">{f.label}</p>
+                    <p className="text-xs text-slate-400">{f.type}{f.required ? ' · required' : ''}{f.type === 'select' && f.options.length > 0 ? ` · ${f.options.join(', ')}` : ''}</p>
+                  </div>
+                </div>
+                <button onClick={() => setFields(prev => prev.filter((_, j) => j !== i))}
+                  className="text-slate-400 hover:text-rose-500 transition-colors p-1"><X size={14} /></button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400 italic mb-4">No custom fields defined yet.</p>
+        )}
+
+        {addingField && (
+          <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-3">
+            <p className="text-sm font-semibold text-slate-700">New Field</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Field Label</label>
+                <input type="text" value={newField.label} onChange={e => setNewField(p => ({ ...p, label: e.target.value }))}
+                  data-testid="new-field-label-input"
+                  placeholder="e.g. Indigenous Status"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Field Type</label>
+                <select value={newField.type} onChange={e => setNewField(p => ({ ...p, type: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none">
+                  {FIELD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            </div>
+            {newField.type === 'select' && (
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Options (comma-separated)</label>
+                <input type="text" value={newField.options} onChange={e => setNewField(p => ({ ...p, options: e.target.value }))}
+                  placeholder="Yes, No, Prefer not to say"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none" />
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="field-required" checked={newField.required} onChange={e => setNewField(p => ({ ...p, required: e.target.checked }))} />
+              <label htmlFor="field-required" className="text-xs text-slate-600">Required field</label>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={confirmAddField} data-testid="confirm-add-field-btn"
+                className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors">Add Field</button>
+              <button onClick={() => setAddingField(false)}
+                className="px-4 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors">Cancel</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <button onClick={handleSave} disabled={saving} data-testid="save-student-data-btn"
+        className="w-full py-3.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
+        {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+        {saving ? 'Saving…' : 'Save Student Data Settings'}
+      </button>
+    </div>
+  );
+}
+
+// ── GENERAL TAB ──────────────────────────────────────────────────────────────
+function GeneralTab({ settings: s, onSave, saving, msg, msgType }) {
+  const [schoolName, setSchoolName] = useState(s.school_name || '');
+  const [schoolType, setSchoolType] = useState(s.school_type || 'both');
+  const [currentTerm, setCurrentTerm] = useState(s.current_term || 'Term 1');
+  const [currentYear, setCurrentYear] = useState(s.current_year || new Date().getFullYear());
+
+  const handleSave = () => onSave({ school_name: schoolName, school_type: schoolType, current_term: currentTerm, current_year: currentYear });
+
+  return (
+    <div className="space-y-5">
+      {msg && (
+        <div className={`flex items-center gap-2 rounded-xl p-4 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+          <CheckCircle size={15} className={msgType === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
+          <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
+        </div>
+      )}
+      <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+        <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>School Context</h3>
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-1.5 block">School Name</label>
+          <input type="text" value={schoolName} onChange={e => setSchoolName(e.target.value)}
+            data-testid="general-school-name"
+            placeholder="e.g. Riverside Community School"
+            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+        </div>
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-2 block">School Type</label>
+          <div className="grid grid-cols-3 gap-2">
+            {[{ value: 'primary', label: 'Primary', sub: 'K–6' }, { value: 'secondary', label: 'Secondary', sub: '7–12' }, { value: 'both', label: 'K–12', sub: 'All levels' }].map(opt => (
+              <button key={opt.value} onClick={() => setSchoolType(opt.value)}
+                className={`p-3 rounded-xl border text-left transition-all ${schoolType === opt.value ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'}`}>
+                <p className="text-sm font-semibold">{opt.label}</p>
+                <p className={`text-xs mt-0.5 ${schoolType === opt.value ? 'text-white/60' : 'text-slate-400'}`}>{opt.sub}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-2 block">Current Term</label>
+          <div className="grid grid-cols-4 gap-2">
+            {['Term 1', 'Term 2', 'Term 3', 'Term 4'].map(t => (
+              <button key={t} onClick={() => setCurrentTerm(t)}
+                className={`py-2.5 text-sm font-medium rounded-xl border transition-all ${currentTerm === t ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>{t}</button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Current Year</label>
+          <input type="number" value={currentYear} onChange={e => setCurrentYear(+e.target.value)} min={2020} max={2040}
+            className="w-32 px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none" />
+        </div>
+      </div>
+
+      {/* Your Role */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <h3 className="font-semibold text-slate-900 mb-4" style={{ fontFamily: 'Manrope,sans-serif' }}>Your Role</h3>
+        <RoleSection />
+      </div>
+
+      <button onClick={handleSave} disabled={saving} data-testid="save-general-btn"
+        className="w-full py-3.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
+        {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+        {saving ? 'Saving…' : 'Save General Settings'}
+      </button>
+    </div>
+  );
+}
+
+function RoleSection() {
   const { user, setUser } = useAuth();
-  const [settings, setSettings] = useState({ school_name: '', school_type: 'both', current_term: 'Term 1', current_year: 2025 });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  const updateRole = async (role) => {
+    try {
+      await axios.put(`${API}/auth/role`, { role }, { withCredentials: true });
+      setUser(prev => ({ ...prev, role }));
+      setMsg(`Role updated to ${role}`);
+      setTimeout(() => setMsg(''), 3000);
+    } catch (e) {
+      setMsg(e.response?.data?.detail || 'Failed to update role');
+      setTimeout(() => setMsg(''), 3000);
+    }
+  };
+
+  if (user?.role !== 'admin') {
+    return (
+      <div className="flex items-center justify-between">
+        <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-sm font-semibold">
+          {ROLE_OPTIONS.find(r => r.value === user?.role)?.label || user?.role}
+        </span>
+        <p className="text-xs text-slate-400">Contact your administrator to change your role.</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {msg && <p className="text-sm text-emerald-600 mb-3">{msg}</p>}
+      <div className="grid grid-cols-2 gap-3">
+        {ROLE_OPTIONS.map(opt => (
+          <button key={opt.value} onClick={() => updateRole(opt.value)} data-testid={`role-btn-${opt.value}`}
+            className={`text-left p-3 rounded-xl border transition-all ${user?.role === opt.value ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'}`}>
+            <p className="text-sm font-semibold">{opt.label}</p>
+            <p className={`text-xs mt-0.5 ${user?.role === opt.value ? 'text-white/60' : 'text-slate-400'}`}>{opt.desc}</p>
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+// ── DATA TAB ──────────────────────────────────────────────────────────────────
+function DataTab({ msg, msgType, setMsg, setMsgType }) {
   const [seeding, setSeeding] = useState(false);
-  const [wiping, setWiping] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [restoring, setRestoring] = useState(false);
-  const [msg, setMsg] = useState('');
-  const [msgType, setMsgType] = useState('success');
+  const [wiping, setWiping] = useState(false);
   const [showWipeConfirm, setShowWipeConfirm] = useState(false);
   const [wipeInput, setWipeInput] = useState('');
   const fileInputRef = useRef(null);
-
-  useEffect(() => {
-    axios.get(`${API}/settings`, { withCredentials: true })
-      .then(r => setSettings(r.data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
-
-  const saveSettings = async () => {
-    setSaving(true);
-    try {
-      await axios.put(`${API}/settings`, settings, { withCredentials: true });
-      setMsgType('success');
-      setMsg('Settings saved successfully');
-      setTimeout(() => setMsg(''), 3000);
-    } catch (e) { console.error(e); }
-    finally { setSaving(false); }
-  };
+  const { user } = useAuth();
 
   const seedData = async () => {
     setSeeding(true);
     try {
       const res = await axios.post(`${API}/settings/seed`, {}, { withCredentials: true });
-      setMsgType('success');
-      setMsg(`Demo data loaded: ${res.data.students} students, ${res.data.interventions} interventions`);
+      setMsgType('success'); setMsg(`Demo data loaded: ${res.data.students} students, ${res.data.interventions} interventions`);
       setTimeout(() => setMsg(''), 5000);
-    } catch (e) { console.error(e); }
-    finally { setSeeding(false); }
+    } catch (e) { console.error(e); } finally { setSeeding(false); }
   };
 
   const exportData = async () => {
@@ -61,38 +599,25 @@ export default function SettingsPage() {
     try {
       const res = await axios.get(`${API}/settings/export-all`, { withCredentials: true, responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/json' }));
-      const a = document.createElement('a');
-      a.href = url;
+      const a = document.createElement('a'); a.href = url;
       a.download = `welltrack_backup_${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      setMsgType('success');
-      setMsg('Data exported successfully');
-      setTimeout(() => setMsg(''), 3000);
-    } catch (e) { console.error(e); }
-    finally { setExporting(false); }
+      setMsgType('success'); setMsg('Data exported successfully'); setTimeout(() => setMsg(''), 3000);
+    } catch (e) { console.error(e); } finally { setExporting(false); }
   };
 
   const handleRestoreFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const file = e.target.files?.[0]; if (!file) return;
     setRestoring(true);
     try {
-      const text = await file.text();
-      const data = JSON.parse(text);
+      const text = await file.text(); const data = JSON.parse(text);
       const res = await axios.post(`${API}/settings/restore`, data, { withCredentials: true });
       const counts = Object.entries(res.data.restored || {}).map(([k, v]) => `${v} ${k}`).join(', ');
-      setMsgType('success');
-      setMsg(`Data restored successfully: ${counts}`);
-      setTimeout(() => setMsg(''), 5000);
+      setMsgType('success'); setMsg(`Restored: ${counts}`); setTimeout(() => setMsg(''), 5000);
     } catch (e) {
-      setMsgType('error');
-      setMsg(e.response?.data?.detail || 'Failed to restore data. Ensure the file is a valid WellTrack backup.');
-      setTimeout(() => setMsg(''), 5000);
-    }
-    finally { setRestoring(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
+      setMsgType('error'); setMsg(e.response?.data?.detail || 'Restore failed'); setTimeout(() => setMsg(''), 5000);
+    } finally { setRestoring(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
   };
 
   const wipeData = async () => {
@@ -100,235 +625,130 @@ export default function SettingsPage() {
     setWiping(true);
     try {
       await axios.delete(`${API}/settings/data`, { withCredentials: true });
-      setShowWipeConfirm(false);
-      setWipeInput('');
-      setMsgType('success');
-      setMsg('All data wiped successfully');
-      setTimeout(() => setMsg(''), 4000);
-    } catch (e) { console.error(e); }
-    finally { setWiping(false); }
+      setShowWipeConfirm(false); setWipeInput('');
+      setMsgType('success'); setMsg('All data wiped'); setTimeout(() => setMsg(''), 4000);
+    } catch (e) { console.error(e); } finally { setWiping(false); }
   };
-
-  const updateRole = async (role) => {
-    try {
-      await axios.put(`${API}/auth/role`, { role }, { withCredentials: true });
-      setUser(prev => ({ ...prev, role }));
-      setMsgType('success');
-      setMsg(`Role updated to ${role}`);
-      setTimeout(() => setMsg(''), 3000);
-    } catch (e) {
-      setMsgType('error');
-      setMsg(e.response?.data?.detail || 'Failed to update role');
-      setTimeout(() => setMsg(''), 3000);
-    }
-  };
-
-  if (loading) return <div className="p-8"><div className="h-48 bg-white rounded-xl animate-pulse border border-slate-200" /></div>;
 
   return (
-    <div className="p-6 lg:p-8 max-w-3xl mx-auto fade-in">
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center">
-          <Settings size={20} className="text-white" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>Settings</h1>
-          <p className="text-sm text-slate-500">School configuration and data management</p>
-        </div>
-      </div>
-
+    <div className="space-y-3">
       {msg && (
-        <div className={`flex items-center gap-2 rounded-xl p-4 mb-6 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
-          <CheckCircle size={16} className={msgType === 'error' ? 'text-rose-600 shrink-0' : 'text-emerald-600 shrink-0'} />
+        <div className={`flex items-center gap-2 rounded-xl p-4 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+          <CheckCircle size={15} className={msgType === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
           <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
         </div>
       )}
-
-      {/* School Settings */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6 mb-5">
-        <div className="flex items-center gap-2 mb-5">
-          <School size={18} className="text-slate-600" />
-          <h2 className="font-semibold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>School Configuration</h2>
-        </div>
-        <div className="space-y-4">
+      {[
+        { label: 'Load Demo Data', desc: 'Reload sample students, screenings, interventions and alerts', action: seedData, loading: seeding, icon: <Database size={14} />, text: 'Load Demo Data', variant: 'default' },
+        { label: 'Export All Data', desc: 'Download a full JSON backup of all school data', action: exportData, loading: exporting, icon: <Download size={14} />, text: 'Export Backup', variant: 'default' },
+      ].map(item => (
+        <div key={item.label} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">School Name</label>
-            <input value={settings.school_name} onChange={e => setSettings(p => ({...p, school_name: e.target.value}))}
-              data-testid="school-name-input"
-              className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+            <p className="text-sm font-semibold text-slate-700">{item.label}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{item.desc}</p>
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">School Context</label>
-            <div className="grid grid-cols-3 gap-3">
-              {[['primary', 'Primary', 'Years K-6'], ['secondary', 'Secondary', 'Years 7-12'], ['both', 'Both', 'Years K-12']].map(([val, label, desc]) => (
-                <button key={val} onClick={() => setSettings(p => ({...p, school_type: val}))}
-                  data-testid={`school-type-${val}`}
-                  className={`py-3 px-3 text-left rounded-xl border transition-all ${settings.school_type === val ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
-                  <p className="text-sm font-semibold">{label}</p>
-                  <p className={`text-xs mt-0.5 ${settings.school_type === val ? 'text-white/60' : 'text-slate-400'}`}>{desc}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Current Term</label>
-              <div className="flex gap-2">
-                {['Term 1', 'Term 2', 'Term 3'].map(t => (
-                  <button key={t} onClick={() => setSettings(p => ({...p, current_term: t}))}
-                    className={`flex-1 py-2.5 text-sm font-medium rounded-xl border transition-all ${settings.current_term === t ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Current Year</label>
-              <input type="number" value={settings.current_year} onChange={e => setSettings(p => ({...p, current_year: parseInt(e.target.value)}))}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none" />
-            </div>
-          </div>
-          <button onClick={saveSettings} disabled={saving} data-testid="save-settings-btn"
-            className="w-full bg-slate-900 text-white py-3 rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
-            {saving ? <Loader size={15} className="animate-spin" /> : null}
-            Save Settings
+          <button onClick={item.action} disabled={item.loading} data-testid={`${item.label.toLowerCase().replace(/\s+/g, '-')}-btn`}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-60">
+            {item.loading ? <Loader size={14} className="animate-spin" /> : item.icon} {item.loading ? '…' : item.text}
           </button>
         </div>
-      </div>
+      ))}
 
-      {/* User Role */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6 mb-5">
-        <h2 className="font-semibold text-slate-900 mb-1" style={{fontFamily:'Manrope,sans-serif'}}>Your Role</h2>
-        {user?.role === 'admin' ? (
-          <>
-            <p className="text-sm text-slate-400 mb-4">As an administrator, you can switch your active role to test different permission levels.</p>
-            <div className="grid grid-cols-2 gap-3">
-              {ROLE_OPTIONS.map(opt => (
-                <button key={opt.value} onClick={() => updateRole(opt.value)}
-                  data-testid={`role-btn-${opt.value}`}
-                  className={`text-left p-4 rounded-xl border transition-all ${user?.role === opt.value ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'}`}>
-                  <p className="text-sm font-semibold">{opt.label}</p>
-                  <p className={`text-xs mt-0.5 ${user?.role === opt.value ? 'text-white/60' : 'text-slate-400'}`}>{opt.desc}</p>
-                </button>
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-400 mb-2">Your current role determines what you can access in WellTrack.</p>
-              <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-sm font-semibold">
-                {ROLE_OPTIONS.find(r => r.value === user?.role)?.label || user?.role}
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 text-right max-w-48">Contact your administrator to change your role.</p>
+      {user?.role === 'admin' && (
+        <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-100">
+          <div>
+            <p className="text-sm font-semibold text-blue-700">Restore Data</p>
+            <p className="text-xs text-blue-400 mt-0.5">Upload a WellTrack JSON backup file</p>
           </div>
-        )}
-      </div>
-
-      {/* Data Management */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-5">
-          <Database size={18} className="text-slate-600" />
-          <h2 className="font-semibold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>Data Management</h2>
-        </div>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
-            <div>
-              <p className="text-sm font-semibold text-slate-700">Load Demo Data</p>
-              <p className="text-xs text-slate-400 mt-0.5">Reload sample students, screenings, interventions and alerts</p>
-            </div>
-            <button onClick={seedData} disabled={seeding} data-testid="seed-data-btn"
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-60">
-              {seeding ? <Loader size={14} className="animate-spin" /> : <Database size={14} />}
-              {seeding ? 'Loading...' : 'Load Demo Data'}
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
-            <div>
-              <p className="text-sm font-semibold text-slate-700">Export All Data</p>
-              <p className="text-xs text-slate-400 mt-0.5">Download a full JSON backup of all school data</p>
-            </div>
-            <button onClick={exportData} disabled={exporting} data-testid="export-data-btn"
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-60">
-              {exporting ? <Loader size={14} className="animate-spin" /> : <Download size={14} />}
-              {exporting ? 'Exporting...' : 'Export Backup'}
-            </button>
-          </div>
-
-          {user?.role === 'admin' && (
-            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-100">
-              <div>
-                <p className="text-sm font-semibold text-blue-700">Restore Data</p>
-                <p className="text-xs text-blue-400 mt-0.5">Upload a WellTrack JSON backup file to restore data</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".json"
-                  onChange={handleRestoreFile}
-                  data-testid="restore-file-input"
-                  className="hidden"
-                  id="restore-file-input"
-                />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={restoring}
-                  data-testid="restore-data-btn"
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-60">
-                  {restoring ? <Loader size={14} className="animate-spin" /> : <Upload size={14} />}
-                  {restoring ? 'Restoring...' : 'Restore Backup'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between p-4 bg-rose-50 rounded-xl border border-rose-100">
-            <div>
-              <p className="text-sm font-semibold text-rose-700">Delete All Data</p>
-              <p className="text-xs text-rose-400 mt-0.5">Permanently removes all students, screenings, and interventions</p>
-            </div>
-            <button onClick={() => setShowWipeConfirm(true)} data-testid="wipe-data-btn"
-              className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-lg text-sm font-medium hover:bg-rose-700 transition-colors">
-              <Trash2 size={14} /> Wipe All Data
+          <div>
+            <input ref={fileInputRef} type="file" accept=".json" onChange={handleRestoreFile} className="hidden" data-testid="restore-file-input" />
+            <button onClick={() => fileInputRef.current?.click()} disabled={restoring} data-testid="restore-data-btn"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-60">
+              {restoring ? <Loader size={14} className="animate-spin" /> : <Upload size={14} />} {restoring ? 'Restoring…' : 'Restore Backup'}
             </button>
           </div>
         </div>
+      )}
+
+      <div className="flex items-center justify-between p-4 bg-rose-50 rounded-xl border border-rose-100">
+        <div>
+          <p className="text-sm font-semibold text-rose-700">Delete All Data</p>
+          <p className="text-xs text-rose-400 mt-0.5">Permanently removes all students, screenings, and interventions</p>
+        </div>
+        <button onClick={() => setShowWipeConfirm(true)} data-testid="wipe-data-btn"
+          className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-lg text-sm font-medium hover:bg-rose-700 transition-colors">
+          <Trash2 size={14} /> Wipe All Data
+        </button>
       </div>
 
-      {/* Wipe Confirm Modal */}
       {showWipeConfirm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-rose-100 rounded-xl flex items-center justify-center">
-                <AlertTriangle size={20} className="text-rose-600" />
-              </div>
-              <div>
-                <h3 className="font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>Wipe All Data?</h3>
-                <p className="text-sm text-slate-500">This cannot be undone</p>
-              </div>
+              <div className="w-10 h-10 bg-rose-100 rounded-xl flex items-center justify-center"><AlertTriangle size={18} className="text-rose-600" /></div>
+              <h3 className="font-bold text-slate-900">Wipe All Data?</h3>
             </div>
-            <p className="text-sm text-slate-600 mb-4">This will permanently delete all students, screenings, interventions, case notes, and alerts. Type <strong>DELETE</strong> to confirm.</p>
-            <input value={wipeInput} onChange={e => setWipeInput(e.target.value)}
-              placeholder="Type DELETE to confirm"
-              data-testid="wipe-confirm-input"
-              className="w-full px-4 py-3 border border-rose-200 rounded-xl text-sm focus:outline-none mb-4" />
+            <p className="text-sm text-slate-600 mb-4">This will permanently delete all students, screenings, interventions, and case notes. Type <strong>DELETE</strong> to confirm.</p>
+            <input value={wipeInput} onChange={e => setWipeInput(e.target.value)} placeholder="Type DELETE"
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm mb-4 focus:outline-none" />
             <div className="flex gap-2">
-              <button onClick={wipeData} disabled={wipeInput !== 'DELETE' || wiping} data-testid="confirm-wipe-btn"
-                className="flex-1 bg-rose-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-rose-700 disabled:opacity-40 transition-colors">
-                {wiping ? 'Wiping...' : 'Confirm Delete'}
+              <button onClick={wipeData} disabled={wipeInput !== 'DELETE' || wiping}
+                className="flex-1 bg-rose-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-rose-700 disabled:opacity-50 transition-colors">
+                {wiping ? 'Wiping…' : 'Confirm Delete'}
               </button>
               <button onClick={() => { setShowWipeConfirm(false); setWipeInput(''); }}
-                className="flex-1 bg-slate-100 text-slate-700 py-3 rounded-xl text-sm font-medium hover:bg-slate-200 transition-colors">
-                Cancel
-              </button>
+                className="flex-1 bg-slate-100 text-slate-700 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-200 transition-colors">Cancel</button>
             </div>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── MAIN SETTINGS PAGE ────────────────────────────────────────────────────────
+export default function SettingsPage() {
+  const { settings, loadFullSettings } = useSettings();
+  const [activeTab, setActiveTab] = useState('Branding');
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [msgType, setMsgType] = useState('success');
+
+  useEffect(() => { loadFullSettings(); }, [loadFullSettings]);
+
+  const saveSettings = async (patch) => {
+    setSaving(true);
+    try {
+      await axios.put(`${API}/settings`, { ...settings, ...patch }, { withCredentials: true });
+      await loadFullSettings();
+      setMsgType('success'); setMsg('Saved successfully');
+      setTimeout(() => setMsg(''), 3000);
+    } catch (e) {
+      setMsgType('error'); setMsg(e.response?.data?.detail || 'Failed to save');
+      setTimeout(() => setMsg(''), 3000);
+    } finally { setSaving(false); }
+  };
+
+  const tabProps = { settings, onSave: saveSettings, saving, msg, msgType };
+
+  return (
+    <div className="p-6 lg:p-8 max-w-3xl mx-auto fade-in">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Settings</h1>
+        <p className="text-slate-500 mt-1">Customise WellTrack for your school</p>
+      </div>
+
+      <TabNav
+        tabs={['General', 'Branding', 'MTSS & Screening', 'Student Data', 'Data']}
+        active={activeTab}
+        onChange={setActiveTab}
+      />
+
+      {activeTab === 'General' && <GeneralTab {...tabProps} />}
+      {activeTab === 'Branding' && <BrandingTab {...tabProps} />}
+      {activeTab === 'MTSS & Screening' && <MTSSTab {...tabProps} />}
+      {activeTab === 'Student Data' && <StudentDataTab {...tabProps} />}
+      {activeTab === 'Data' && <DataTab msg={msg} msgType={msgType} setMsg={setMsg} setMsgType={setMsgType} />}
     </div>
   );
 }

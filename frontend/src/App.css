@@ -1,9 +1,12 @@
 /* MTSS Platform - Minimal global styles */
 * { box-sizing: border-box; }
 
+:root { --wt-accent: #0f172a; }
+
 .sidebar-scroll::-webkit-scrollbar { width: 4px; }
 .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
 .sidebar-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }

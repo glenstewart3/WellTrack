@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Shield, AlertCircle } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 
 export default function LoginPage() {
   const location = useLocation();
+  const { settings } = useSettings();
 
   const searchParams = new URLSearchParams(location.search);
   const errorCode = searchParams.get('error');
@@ -16,6 +18,7 @@ export default function LoginPage() {
   };
 
   const [accessError] = useState((errorCode && ERROR_MESSAGES[errorCode]) || stateError || '');
+  const accent = settings.accent_color || '#0f172a';
 
   const handleGoogleLogin = () => {
     // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
@@ -29,21 +32,25 @@ export default function LoginPage() {
         <div className="max-w-md w-full mx-auto">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-10">
-            <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center shadow-sm">
-              <Shield size={20} className="text-white" />
-            </div>
+            {settings.logo_base64 ? (
+              <img src={settings.logo_base64} alt="School logo" className="w-10 h-10 rounded-xl object-contain bg-white border border-slate-100 shadow-sm" />
+            ) : (
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm" style={{ backgroundColor: accent }}>
+                <Shield size={20} className="text-white" />
+              </div>
+            )}
             <div>
-              <p className="text-lg font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>WellTrack</p>
-              <p className="text-xs text-slate-400 font-medium">MTSS Student Wellbeing Platform</p>
+              <p className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{settings.platform_name || 'WellTrack'}</p>
+              <p className="text-xs text-slate-400 font-medium">{settings.school_name || 'MTSS Student Wellbeing Platform'}</p>
             </div>
           </div>
 
           {/* Heading */}
-          <h1 className="text-4xl font-bold text-slate-900 mb-3" style={{fontFamily:'Manrope,sans-serif'}}>
+          <h1 className="text-4xl font-bold text-slate-900 mb-3" style={{ fontFamily: 'Manrope,sans-serif' }}>
             Welcome back
           </h1>
           <p className="text-slate-500 mb-8 text-base leading-relaxed">
-            Sign in to access your school's MTSS wellbeing platform. Supporting every student, every tier.
+            {settings.welcome_message || 'Sign in to access your school\'s MTSS wellbeing platform. Supporting every student, every tier.'}
           </p>
 
           {/* Error */}

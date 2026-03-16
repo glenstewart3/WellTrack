@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import {
   Shield, CheckCircle, Loader, AlertTriangle,
   Upload, Database, FileJson, ArrowRight, Building2
@@ -37,6 +38,8 @@ function StepProgress({ stepIndex }) {
 
 export default function OnboardingPage({ onComplete }) {
   const { user } = useAuth();
+  const { settings } = useSettings();
+  const accent = settings.accent_color || '#0f172a';
   const [step, setStep] = useState('welcome');
   const [schoolName, setSchoolName] = useState('');
   const [schoolType, setSchoolType] = useState('both');

@@ -140,8 +140,11 @@ class SchoolSettings(BaseModel):
 # HELPER FUNCTIONS
 # ==============================
 
-def compute_saebrs_risk(total: int, social: int, academic: int, emotional: int):
-    total_risk = "Low Risk" if total >= 37 else ("Some Risk" if total >= 24 else "High Risk")
+def compute_saebrs_risk(total: int, social: int, academic: int, emotional: int, thresholds: dict = None):
+    t = thresholds or {}
+    t_some = t.get("saebrs_some_risk", 37)
+    t_high = t.get("saebrs_high_risk", 24)
+    total_risk = "Low Risk" if total >= t_some else ("Some Risk" if total >= t_high else "High Risk")
     social_risk = "Low Risk" if social >= 13 else ("Some Risk" if social >= 8 else "High Risk")
     academic_risk = "Low Risk" if academic >= 10 else ("Some Risk" if academic >= 6 else "High Risk")
     emotional_risk = "Low Risk" if emotional >= 16 else ("Some Risk" if emotional >= 12 else "High Risk")
@@ -158,12 +161,30 @@ def compute_attendance_score(pct: float) -> int:
     elif pct >= 80: return 1
     return 0
 
-def compute_mtss_tier(saebrs_risk: str, wellbeing_tier: int, attendance_pct: float) -> int:
-    if saebrs_risk == "High Risk" or wellbeing_tier == 3 or attendance_pct < 80:
+def compute_mtss_tier(saebrs_risk: str, wellbeing_tier: int, attendance_pct: float, thresholds: dict = None) -> int:
+    t = thresholds or {}
+    att_high = t.get("attendance_high_risk", 80.0)
+    att_some = t.get("attendance_some_risk", 90.0)
+    if saebrs_risk == "High Risk" or wellbeing_tier == 3 or attendance_pct < att_high:
         return 3
-    elif saebrs_risk == "Some Risk" or wellbeing_tier == 2 or attendance_pct < 90:
+    elif saebrs_risk == "Some Risk" or wellbeing_tier == 2 or attendance_pct < att_some:
         return 2
     return 1
+
+async def get_school_settings_doc():
+    s = await db.school_settings.find_one({}, {"_id": 0})
+    return s or {}
+
+SETTINGS_DEFAULTS = {
+    "school_name": "", "school_type": "both", "current_term": "Term 1", "current_year": 2025,
+    "platform_name": "WellTrack", "logo_base64": "", "accent_color": "#0f172a", "welcome_message": "",
+    "tier_thresholds": {"saebrs_some_risk": 37, "saebrs_high_risk": 24, "attendance_some_risk": 90.0, "attendance_high_risk": 80.0},
+    "modules_enabled": {"saebrs_plus": True},
+    "intervention_types": ["Counselling", "Behaviour Support", "Social Skills Groups", "Mentoring", "Academic Support", "Attendance Intervention", "Check-In/Check-Out", "Parent Consultation", "Peer Mentoring", "Referral – External Services"],
+    "year_start_month": 2,
+    "custom_student_fields": [],
+    "risk_config": {"consecutive_absence_days": 3},
+}
 
 async def get_current_user(request: Request):
     session_token = request.cookies.get("session_token")
@@ -559,7 +580,9 @@ async def submit_saebrs(result: SAEBRSResult, user=Depends(get_current_user)):
     a = sum(result.academic_items) if result.academic_items else result.academic_score
     e = sum(result.emotional_items) if result.emotional_items else result.emotional_score
     t = s + a + e
-    r, sr, ar, er = compute_saebrs_risk(t, s, a, e)
+    school_s = await get_school_settings_doc()
+    thresholds = school_s.get("tier_thresholds", {})
+    r, sr, ar, er = compute_saebrs_risk(t, s, a, e, thresholds)
     d = result.model_dump()
     d.update({"social_score": s, "academic_score": a, "emotional_score": e,
                "total_score": t, "risk_level": r, "social_risk": sr, "academic_risk": ar, "emotional_risk": er})
@@ -912,10 +935,23 @@ async def meeting_prep(user=Depends(get_current_user)):
 # SETTINGS & DATA MANAGEMENT
 # ==============================
 
+@api_router.get("/public-settings")
+async def public_settings():
+    """No auth required — returns only branding fields for login/onboarding."""
+    s = await db.school_settings.find_one({}, {"_id": 0})
+    base = {k: SETTINGS_DEFAULTS[k] for k in ("platform_name", "accent_color", "logo_base64", "welcome_message", "school_name")}
+    if s:
+        for k in base:
+            if s.get(k) is not None:
+                base[k] = s[k]
+    return base
+
 @api_router.get("/settings")
 async def get_settings(user=Depends(get_current_user)):
     s = await db.school_settings.find_one({}, {"_id": 0})
-    return s or {"school_name": "Demo School", "school_type": "both", "current_term": "Term 1", "current_year": 2025}
+    if s:
+        return {**SETTINGS_DEFAULTS, **s}
+    return SETTINGS_DEFAULTS
 
 @api_router.put("/settings")
 async def update_settings(settings: SchoolSettings, user=Depends(get_current_user)):

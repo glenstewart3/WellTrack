@@ -80,7 +80,29 @@ School MTSS (Multi-Tiered System of Supports) platform integrating SAEBRS behavi
 - ✅ Settings role section: admin users get role-switching buttons; non-admins get read-only view
 - ✅ User Management page fully integrated (route, nav link admin-only, CRUD)
 
-### 2026-03-16 (2) — Onboarding Wizard + Custom Google Auth
+### 2026-03-16 (3) — School Customisation (Items 1-11)
+
+**Branding (1–4):**
+- ✅ School logo upload (base64, PNG/JPG/SVG, shown in sidebar + login)
+- ✅ Accent colour picker (preset palette + custom hex) applied via CSS `--wt-accent` variable to sidebar, nav items
+- ✅ Custom platform name (shown in sidebar, page title, login)
+- ✅ Login welcome message (custom tagline)
+
+**MTSS Config (5–8):**
+- ✅ Custom tier thresholds — SAEBRS some/high risk score sliders, attendance % sliders, visual colour bar preview
+- ✅ SAEBRS+ module toggle — enable/disable wellbeing self-report step in screening
+- ✅ Custom intervention library — add/remove types; used in InterventionsPage + StudentProfilePage dropdowns
+- ✅ Academic year start month selector
+
+**Student Data (9–11):**
+- ✅ Custom student fields builder (text/select/boolean/number types, required flag, options)
+- ✅ Custom risk config (consecutive absence days threshold slider)
+- ✅ Custom fields displayed in student profile "Additional Information" section
+
+**Architecture:**
+- `SettingsContext.jsx` — global settings provider, loads `/api/public-settings` (no auth) on mount; applies accent colour CSS variable
+- `SettingsPage.jsx` — tabbed layout: General · Branding · MTSS & Screening · Student Data · Data
+- `SETTINGS_DEFAULTS` dict in server.py — single source of defaults for all new fields
 
 **Onboarding flow (first-time setup):**
 - ✅ No more auto-seeded demo data on startup — clean slate

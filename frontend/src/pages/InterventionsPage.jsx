@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, INTERVENTION_TYPES } from '../utils/tierUtils';
+import { useSettings } from '../context/SettingsContext';
 import { Plus, X, Target, Loader, Sparkles, ChevronRight } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -9,6 +10,8 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 export default function InterventionsPage() {
   const navigate = useNavigate();
   const [interventions, setInterventions] = useState([]);
+  const { settings } = useSettings();
+  const interventionTypes = (settings.intervention_types?.length ? settings.intervention_types : INTERVENTION_TYPES);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('active');
@@ -256,7 +259,7 @@ export default function InterventionsPage() {
                 <select value={form.intervention_type} onChange={e => setForm(p => ({...p, intervention_type: e.target.value}))}
                   className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 bg-white">
                   <option value="">Select Type</option>
-                  {INTERVENTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  {interventionTypes.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <input placeholder="Assigned Staff" value={form.assigned_staff} onChange={e => setForm(p => ({...p, assigned_staff: e.target.value}))}
