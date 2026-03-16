@@ -3,8 +3,8 @@
 ## Project Overview
 School MTSS (Multi-Tiered System of Supports) platform integrating SAEBRS behavioural screening and WellTrack wellbeing system. Supports screening, risk identification, intervention tracking, and wellbeing analytics.
 
-**Last Updated:** 2026-03-14  
-**Status:** Feature Complete (MVP + P0 fixes + P1 features)
+**Last Updated:** 2026-03-16  
+**Status:** Active Development — Auth P0 fixed
 
 ---
 
@@ -121,6 +121,11 @@ School MTSS (Multi-Tiered System of Supports) platform integrating SAEBRS behavi
 - ✅ Error redirects: `?error=access_denied`, `?error=auth_failed` → login page shows friendly message
 - ✅ Whitelist check preserved: only users in DB can log in
 - ✅ Session cookie pattern unchanged (MongoDB user_sessions collection)
+
+**Auth P0 Fix (2026-03-16):**
+- ✅ Fixed `mismatching_state` CSRF error — replaced `authlib` session-based state with MongoDB-backed state (oauth_states collection, 10-min TTL, consumed on use)
+- ✅ Fixed `UnboundLocalError` — `existing` user lookup now happens before the if/elif/else block
+- ✅ Token exchange and userinfo now done manually via `httpx` directly against Google APIs (no Starlette session dependency)
 
 **Screening:**
 - ✅ 4 terms per year (Term 1–4) in screening period selector

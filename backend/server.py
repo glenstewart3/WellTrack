@@ -238,21 +238,83 @@ async def get_student_attendance_pct(student_id: str) -> float:
 
 @api_router.get("/auth/google")
 async def google_login(request: Request):
-    # REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-    redirect_uri = os.environ['GOOGLE_REDIRECT_URI']
-    return await oauth.google.authorize_redirect(request, redirect_uri)
+    from urllib.parse import urlencode
+    state = uuid.uuid4().hex
+    # Store state in MongoDB — avoids Starlette session-cookie issues in proxied/K8s environments
+    await db.oauth_states.insert_one({
+        "state": state,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat(),
+    })
+    params = urlencode({
+        "response_type": "code",
+        "client_id": os.environ['GOOGLE_CLIENT_ID'],
+        "redirect_uri": os.environ['GOOGLE_REDIRECT_URI'],
+        "scope": "openid email profile",
+        "state": state,
+        "prompt": "select_account",
+    })
+    return RedirectResponse(url=f"https://accounts.google.com/o/oauth2/v2/auth?{params}")
 
 @api_router.get("/auth/callback")
 async def google_callback(request: Request):
-    # REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
     frontend_url = os.environ['FRONTEND_URL']
-    try:
-        token = await oauth.google.authorize_access_token(request)
-    except Exception as e:
-        logger.error(f"OAuth token exchange failed: {e}")
+    code = request.query_params.get("code")
+    state = request.query_params.get("state")
+    error = request.query_params.get("error")
+
+    if error:
+        logger.error(f"Google OAuth error: {error}")
+        return RedirectResponse(url=f"{frontend_url}/login?error=access_denied")
+
+    if not code or not state:
         return RedirectResponse(url=f"{frontend_url}/login?error=auth_failed")
 
-    user_info = token.get('userinfo') or {}
+    # Verify + consume state from DB (no session cookies needed)
+    state_doc = await db.oauth_states.find_one_and_delete({"state": state})
+    if not state_doc:
+        logger.error(f"OAuth state not found or already used: {state}")
+        return RedirectResponse(url=f"{frontend_url}/login?error=auth_failed")
+
+    expires_at_str = state_doc.get("expires_at", "")
+    if expires_at_str:
+        exp = datetime.fromisoformat(expires_at_str).replace(tzinfo=timezone.utc)
+        if exp < datetime.now(timezone.utc):
+            return RedirectResponse(url=f"{frontend_url}/login?error=auth_failed")
+
+    # Exchange code for tokens via Google's token endpoint
+    try:
+        async with httpx.AsyncClient() as hc:
+            tok_resp = await hc.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "code": code,
+                    "client_id": os.environ['GOOGLE_CLIENT_ID'],
+                    "client_secret": os.environ['GOOGLE_CLIENT_SECRET'],
+                    "redirect_uri": os.environ['GOOGLE_REDIRECT_URI'],
+                    "grant_type": "authorization_code",
+                },
+            )
+        if tok_resp.status_code != 200:
+            logger.error(f"Token exchange failed: {tok_resp.text}")
+            return RedirectResponse(url=f"{frontend_url}/login?error=auth_failed")
+
+        access_token = tok_resp.json().get("access_token")
+
+        async with httpx.AsyncClient() as hc:
+            ui_resp = await hc.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+        if ui_resp.status_code != 200:
+            logger.error(f"Userinfo request failed: {ui_resp.text}")
+            return RedirectResponse(url=f"{frontend_url}/login?error=auth_failed")
+
+        user_info = ui_resp.json()
+    except Exception as e:
+        logger.error(f"OAuth flow error: {e}")
+        return RedirectResponse(url=f"{frontend_url}/login?error=auth_failed")
+
     email = user_info.get('email', '').lower().strip()
     name = user_info.get('name', '')
     picture = user_info.get('picture', '')
@@ -260,23 +322,25 @@ async def google_callback(request: Request):
     if not email:
         return RedirectResponse(url=f"{frontend_url}/login?error=no_email")
 
-    # WHITELIST CHECK: Allow first-ever user to register as admin; otherwise whitelist-only
+    # Look up user first, then decide whether to create or deny
+    existing = await db.users.find_one({"email": email}, {"_id": 0})
     user_count = await db.users.count_documents({})
+
     if user_count == 0:
-        # First user — auto-register as school administrator
+        # First-ever user — auto-register as school administrator
         user_id = f"user_{uuid.uuid4().hex[:12]}"
         new_user = {
             "user_id": user_id, "email": email, "name": name,
             "picture": picture, "role": "admin",
-            "created_at": datetime.now(timezone.utc).isoformat()
+            "created_at": datetime.now(timezone.utc).isoformat(),
         }
         await db.users.insert_one({**new_user})
         existing = new_user
     elif not existing:
         return RedirectResponse(url=f"{frontend_url}/login?error=access_denied")
     else:
-        user_id = existing["user_id"]
         await db.users.update_one({"email": email}, {"$set": {"name": name, "picture": picture}})
+        existing = {**existing, "name": name, "picture": picture}
 
     user_id = existing["user_id"]
     session_token = f"sess_{uuid.uuid4().hex}"
@@ -284,7 +348,7 @@ async def google_callback(request: Request):
     await db.user_sessions.insert_one({
         "user_id": user_id, "session_token": session_token,
         "expires_at": expires_at.isoformat(),
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
     })
 
     # Redirect to onboarding if not yet complete, otherwise dashboard
@@ -295,7 +359,7 @@ async def google_callback(request: Request):
     redirect = RedirectResponse(url=f"{frontend_url}/{redirect_target}")
     redirect.set_cookie(
         key="session_token", value=session_token,
-        httponly=True, secure=True, samesite="none", path="/", max_age=7*24*3600
+        httponly=True, secure=True, samesite="none", path="/", max_age=7*24*3600,
     )
     return redirect
 
