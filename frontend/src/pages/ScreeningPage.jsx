@@ -101,6 +101,7 @@ export default function ScreeningPage() {
   const saebrsPlus = settings.modules_enabled?.saebrs_plus !== false;
   const [mode, setMode] = useState('saebrs'); // saebrs or plus
   const [startError, setStartError] = useState('');
+  const [completedStudents, setCompletedStudents] = useState(new Set());
 
   const [socialItems, setSocialItems] = useState(new Array(6).fill(-1));
   const [academicItems, setAcademicItems] = useState(new Array(6).fill(-1));
