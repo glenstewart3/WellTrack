@@ -226,7 +226,7 @@ export default function StudentProfilePage() {
     { domain: 'Academic', score: latestPlus.academic_domain, max: 18 },
     { domain: 'Emotional', score: latestPlus.emotional_domain, max: 9 },
     { domain: 'Belonging', score: latestPlus.belonging_domain, max: 12 },
-    { domain: 'Attendance', score: Math.round((attendance_pct || 0) / 100 * 15), max: 15 },
+    { domain: 'Attendance', score: Math.round(attendance_pct || 0), max: 100 },
   ].map(d => ({ ...d, pct: Math.round((d.score / d.max) * 100) })) : [];
 
   // Display name with optional preferred name
