@@ -12,6 +12,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const COLORS = ['#22c55e', '#f59e0b', '#ef4444'];
 const TIER_LABELS = { 1: 'Tier 1', 2: 'Tier 2', 3: 'Tier 3' };
 const RISK_COLORS = { 'Low Risk': '#22c55e', 'Some Risk': '#f59e0b', 'High Risk': '#ef4444' };
+const DOMAIN_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#3b82f6', '#ec4899'];
 
 function statCard(label, value, sub, color = 'text-slate-900') {
   return (
@@ -200,7 +201,9 @@ export default function AnalyticsPage() {
                   <XAxis dataKey="domain" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Bar dataKey="score" fill="#0f172a" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="score" radius={[6, 6, 0, 0]}>
+                    {domainData.map((_, i) => <Cell key={i} fill={DOMAIN_COLORS[i % DOMAIN_COLORS.length]} />)}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>

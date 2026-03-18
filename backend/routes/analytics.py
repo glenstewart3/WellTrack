@@ -80,16 +80,23 @@ async def classroom_radar(class_name: str, user=Depends(get_current_user)):
 
 
 @router.get("/analytics/school-wide")
-async def school_wide(year_level: Optional[str] = None, user=Depends(get_current_user)):
+async def school_wide(year_level: Optional[str] = None, class_name: Optional[str] = None, user=Depends(get_current_user)):
     query = {"enrolment_status": "active"}
     if year_level:
         query["year_level"] = year_level
+    if class_name:
+        query["class_name"] = class_name
     students = await db.students.find(query, {"_id": 0}).to_list(500)
     domain_totals = {"social": 0, "academic": 0, "emotional": 0, "belonging": 0, "attendance": 0}
     domain_counts = 0
     tier_by_year = {}
     tier_distribution = {1: 0, 2: 0, 3: 0}
     risk_distribution = {"low": 0, "some": 0, "high": 0}
+    domain_risk = {
+        "social": {"low": 0, "some": 0, "high": 0},
+        "academic": {"low": 0, "some": 0, "high": 0},
+        "emotional": {"low": 0, "some": 0, "high": 0},
+    }
     class_breakdown = {}
     screened_count = 0
 
@@ -113,6 +120,14 @@ async def school_wide(year_level: Optional[str] = None, user=Depends(get_current
                 risk_distribution["some"] += 1
             else:
                 risk_distribution["low"] += 1
+            for dim in ["social", "academic", "emotional"]:
+                rk = saebrs.get(f"{dim}_risk", "Low Risk")
+                if rk == "High Risk":
+                    domain_risk[dim]["high"] += 1
+                elif rk == "Some Risk":
+                    domain_risk[dim]["some"] += 1
+                else:
+                    domain_risk[dim]["low"] += 1
         if saebrs and plus:
             t = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
             tier_by_year[yr][f"tier{t}"] += 1
@@ -129,7 +144,8 @@ async def school_wide(year_level: Optional[str] = None, user=Depends(get_current
     total = len(students)
     return {
         "tier_by_year": tier_by_year, "tier_distribution": tier_distribution,
-        "risk_distribution": risk_distribution, "class_breakdown": class_breakdown,
+        "risk_distribution": risk_distribution, "domain_risk": domain_risk,
+        "class_breakdown": class_breakdown,
         "domain_averages": domain_avgs, "total_students": total,
         "screened_students": screened_count,
         "screening_rate": round(screened_count / total * 100) if total > 0 else 0,
@@ -182,8 +198,18 @@ async def cohort_comparison(group_by: str = "year_level", user=Depends(get_curre
 
 
 @router.get("/analytics/intervention-outcomes")
-async def intervention_outcomes(user=Depends(get_current_user)):
-    interventions = await db.interventions.find({}, {"_id": 0}).to_list(500)
+async def intervention_outcomes(year_level: Optional[str] = None, class_name: Optional[str] = None, user=Depends(get_current_user)):
+    if year_level or class_name:
+        sq = {"enrolment_status": "active"}
+        if year_level:
+            sq["year_level"] = year_level
+        if class_name:
+            sq["class_name"] = class_name
+        ss = await db.students.find(sq, {"_id": 0, "student_id": 1}).to_list(500)
+        sids = [s["student_id"] for s in ss]
+        interventions = await db.interventions.find({"student_id": {"$in": sids}}, {"_id": 0}).to_list(500)
+    else:
+        interventions = await db.interventions.find({}, {"_id": 0}).to_list(500)
     by_type = {}
     for i in interventions:
         t = i["intervention_type"]
@@ -203,11 +229,16 @@ async def intervention_outcomes(user=Depends(get_current_user)):
 
 
 @router.get("/analytics/attendance-trends")
-async def attendance_trends(user=Depends(get_current_user)):
+async def attendance_trends(year_level: Optional[str] = None, class_name: Optional[str] = None, user=Depends(get_current_user)):
     from collections import defaultdict
     from datetime import date as date_obj
 
-    students = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
+    student_query = {"enrolment_status": "active"}
+    if year_level:
+        student_query["year_level"] = year_level
+    if class_name:
+        student_query["class_name"] = class_name
+    students = await db.students.find(student_query, {"_id": 0}).to_list(500)
     settings_doc = await get_school_settings_doc()
     excluded_types = set(settings_doc.get("excluded_absence_types", []))
     school_days_list = await db.school_days.distinct("date")
