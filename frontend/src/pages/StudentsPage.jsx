@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, getRiskColors } from '../utils/tierUtils';
-import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight } from 'lucide-react';
+import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight, UserPlus } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -243,6 +243,10 @@ export default function StudentsPage() {
   const [filterClass, setFilterClass] = useState('');
   const [filterTier, setFilterTier] = useState('');
   const [showImport, setShowImport] = useState(false);
+  const [showAddStudent, setShowAddStudent] = useState(false);
+  const [addStudentForm, setAddStudentForm] = useState({ first_name: '', last_name: '', year_level: '', class_name: '', teacher: '', gender: '', date_of_birth: '' });
+  const [addStudentSaving, setAddStudentSaving] = useState(false);
+  const [addStudentError, setAddStudentError] = useState('');
 
   const loadStudents = async () => {
     try {
@@ -266,6 +270,20 @@ export default function StudentsPage() {
     return matchSearch && matchClass && matchTier;
   }).sort((a, b) => (b.mtss_tier || 0) - (a.mtss_tier || 0));
 
+  const addSingleStudent = async () => {
+    if (!addStudentForm.first_name || !addStudentForm.last_name || !addStudentForm.year_level || !addStudentForm.class_name || !addStudentForm.teacher) {
+      setAddStudentError('Please fill all required fields (*)'); return;
+    }
+    setAddStudentSaving(true); setAddStudentError('');
+    try {
+      await axios.post(`${API}/students`, addStudentForm, { withCredentials: true });
+      setShowAddStudent(false);
+      setAddStudentForm({ first_name: '', last_name: '', year_level: '', class_name: '', teacher: '', gender: '', date_of_birth: '' });
+      loadStudents();
+    } catch (e) { setAddStudentError(e.response?.data?.detail || 'Failed to add student'); }
+    finally { setAddStudentSaving(false); }
+  };
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto fade-in">
       <div className="flex items-center justify-between mb-6">
@@ -273,13 +291,16 @@ export default function StudentsPage() {
           <h1 className="text-3xl font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>Students</h1>
           <p className="text-slate-500 mt-1">{students.length} enrolled students</p>
         </div>
-        <button
-          onClick={() => setShowImport(true)}
-          data-testid="import-students-btn"
-          className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors"
-        >
-          <Upload size={15} /> Import Students
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowAddStudent(true)} data-testid="add-student-btn"
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors">
+            <UserPlus size={15} /> Add Student
+          </button>
+          <button onClick={() => setShowImport(true)} data-testid="import-students-btn"
+            className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors">
+            <Upload size={15} /> Import Students
+          </button>
+        </div>
       </div>
 
       {showImport && (
@@ -287,6 +308,79 @@ export default function StudentsPage() {
           onClose={() => setShowImport(false)}
           onSuccess={() => { setLoading(true); loadStudents(); }}
         />
+      )}
+
+      {/* Add Student Modal */}
+      {showAddStudent && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-bold text-slate-900 text-lg" style={{fontFamily:'Manrope,sans-serif'}}>Add Student</h3>
+              <button onClick={() => setShowAddStudent(false)}><X size={18} className="text-slate-400" /></button>
+            </div>
+            {addStudentError && <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl px-4 py-3 mb-4">{addStudentError}</div>}
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">First Name *</label>
+                  <input value={addStudentForm.first_name} onChange={e => setAddStudentForm(p => ({...p, first_name: e.target.value}))}
+                    data-testid="add-student-first-name" placeholder="Emma"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Last Name *</label>
+                  <input value={addStudentForm.last_name} onChange={e => setAddStudentForm(p => ({...p, last_name: e.target.value}))}
+                    data-testid="add-student-last-name" placeholder="Smith"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Year Level *</label>
+                  <input value={addStudentForm.year_level} onChange={e => setAddStudentForm(p => ({...p, year_level: e.target.value}))}
+                    placeholder="Year 5"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Class *</label>
+                  <input value={addStudentForm.class_name} onChange={e => setAddStudentForm(p => ({...p, class_name: e.target.value}))}
+                    placeholder="5A"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">Teacher *</label>
+                <input value={addStudentForm.teacher} onChange={e => setAddStudentForm(p => ({...p, teacher: e.target.value}))}
+                  placeholder="Ms Thompson"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Gender</label>
+                  <select value={addStudentForm.gender} onChange={e => setAddStudentForm(p => ({...p, gender: e.target.value}))}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none">
+                    <option value="">Not specified</option>
+                    <option>Male</option><option>Female</option><option>Non-binary</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Date of Birth</label>
+                  <input type="date" value={addStudentForm.date_of_birth} onChange={e => setAddStudentForm(p => ({...p, date_of_birth: e.target.value}))}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none" />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button onClick={addSingleStudent} disabled={addStudentSaving} data-testid="confirm-add-student-btn"
+                className="flex-1 bg-slate-900 text-white py-2.5 text-sm font-semibold rounded-xl hover:bg-slate-800 disabled:opacity-60 transition-colors flex items-center justify-center gap-2">
+                {addStudentSaving ? <Loader size={14} className="animate-spin" /> : <UserPlus size={14} />}
+                {addStudentSaving ? 'Adding…' : 'Add Student'}
+              </button>
+              <button onClick={() => setShowAddStudent(false)}
+                className="flex-1 bg-slate-100 text-slate-700 py-2.5 text-sm font-medium rounded-xl hover:bg-slate-200 transition-colors">Cancel</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Filters */}

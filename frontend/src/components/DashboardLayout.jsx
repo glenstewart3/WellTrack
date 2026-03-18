@@ -5,16 +5,17 @@ import { useSettings } from '../context/SettingsContext';
 import {
   LayoutDashboard, ClipboardCheck, Users, Radar, BarChart3,
   Target, Users2, Bell, FileText, Settings, LogOut,
-  Menu, X, Shield, UserCog
+  Menu, X, Shield, UserCog, CalendarDays
 } from 'lucide-react';
 
 const navItems = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { path: '/screening', icon: ClipboardCheck, label: 'Screening' },
+  { path: '/screening', icon: ClipboardCheck, label: 'Screening', roles: ['teacher', 'screener', 'wellbeing', 'leadership', 'admin'] },
   { path: '/students', icon: Users, label: 'Students' },
   { path: '/radar', icon: Radar, label: 'Class Risk Radar' },
   { path: '/analytics', icon: BarChart3, label: 'Analytics' },
   { path: '/interventions', icon: Target, label: 'Interventions' },
+  { path: '/attendance', icon: CalendarDays, label: 'Attendance', roles: ['leadership', 'admin'] },
   { path: '/meeting', icon: Users2, label: 'MTSS Meeting' },
   { path: '/alerts', icon: Bell, label: 'Alerts' },
   { path: '/reports', icon: FileText, label: 'Reports' },
@@ -22,8 +23,8 @@ const navItems = [
   { path: '/users', icon: UserCog, label: 'User Management', adminOnly: true },
 ];
 
-const roleLabels = { teacher: 'Teacher', wellbeing: 'Wellbeing Staff', leadership: 'Leadership', admin: 'Administrator' };
-const roleBadgeColors = { teacher: 'bg-blue-100 text-blue-700', wellbeing: 'bg-purple-100 text-purple-700', leadership: 'bg-emerald-100 text-emerald-700', admin: 'bg-slate-100 text-slate-700' };
+const roleLabels = { teacher: 'Teacher', screener: 'Screener', wellbeing: 'Wellbeing Staff', leadership: 'Leadership', admin: 'Administrator' };
+const roleBadgeColors = { teacher: 'bg-blue-100 text-blue-700', screener: 'bg-indigo-100 text-indigo-700', wellbeing: 'bg-purple-100 text-purple-700', leadership: 'bg-emerald-100 text-emerald-700', admin: 'bg-slate-100 text-slate-700' };
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
@@ -62,7 +63,11 @@ export default function DashboardLayout() {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 sidebar-scroll overflow-y-auto">
         <div className="space-y-0.5">
-          {navItems.filter(item => !item.adminOnly || user?.role === 'admin').map(({ path, icon: Icon, label }) => (
+          {navItems.filter(item => {
+            if (item.adminOnly && user?.role !== 'admin') return false;
+            if (item.roles && !item.roles.includes(user?.role)) return false;
+            return true;
+          }).map(({ path, icon: Icon, label }) => (
             <NavLink
               key={path}
               to={path}

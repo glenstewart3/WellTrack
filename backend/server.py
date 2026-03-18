@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Response, Request
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Response, Request, UploadFile, File
 from fastapi.responses import StreamingResponse, RedirectResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -14,10 +14,12 @@ import json
 import random
 import httpx
 import re
+import openpyxl
 from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional, Any
 from datetime import datetime, timezone, timedelta, date as date_type
+from collections import defaultdict
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -57,6 +59,7 @@ class Student(BaseModel):
     date_of_birth: Optional[str] = None
     gender: str = ""
     enrolment_status: str = "active"
+    external_id: Optional[str] = None  # School system student code for attendance matching
 
 class AttendanceRecord(BaseModel):
     attendance_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -97,12 +100,11 @@ class SAEBRSPlusResult(BaseModel):
     student_id: str
     screening_id: str
     self_report_items: List[int] = []
-    attendance_pct: float = 100.0
+    attendance_pct: float = 100.0  # kept for backward compat, no longer collected at screening
     social_domain: int = 0
     academic_domain: int = 0
     emotional_domain: int = 0
     belonging_domain: int = 0
-    attendance_domain: int = 0
     wellbeing_total: int = 0
     wellbeing_tier: int = 1
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -220,13 +222,31 @@ async def create_alert(student_id: str, student_name: str, class_name: str, aler
         "created_at": datetime.now(timezone.utc).isoformat(), "is_read": False, "resolved": False
     })
 
+PRESENT_STATUSES = {
+    "Present", "Late arrival, approved", "Late arrival at School",
+    "Early departure, approved", "Early departure from School",
+}
+
 async def get_student_attendance_pct(student_id: str) -> float:
-    records = await db.attendance.find({"student_id": student_id}, {"_id": 0}).to_list(2000)
+    records = await db.attendance_records.find({"student_id": student_id}, {"_id": 0}).to_list(5000)
     if not records:
         return 100.0
-    total = len(records)
-    present = sum(1 for r in records if r["attendance_status"] in ["present", "late"])
-    return (present / total) * 100
+    total_sessions = 0
+    absent_sessions = 0
+    for r in records:
+        am = (r.get("am_status") or "").strip()
+        pm = (r.get("pm_status") or "").strip()
+        if am:
+            total_sessions += 1
+            if am not in PRESENT_STATUSES:
+                absent_sessions += 1
+        if pm:
+            total_sessions += 1
+            if pm not in PRESENT_STATUSES:
+                absent_sessions += 1
+    if total_sessions == 0:
+        return 100.0
+    return ((total_sessions - absent_sessions) / total_sessions) * 100
 
 # ==============================
 # AUTH ROUTES
@@ -456,7 +476,7 @@ async def update_user_role(user_id: str, data: dict, user=Depends(get_current_us
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     role = data.get("role")
-    if role not in ["teacher", "wellbeing", "leadership", "admin"]:
+    if role not in ["teacher", "wellbeing", "leadership", "admin", "screener"]:
         raise HTTPException(status_code=400, detail="Invalid role")
     await db.users.update_one({"user_id": user_id}, {"$set": {"role": role}})
     return {"message": "Role updated"}
@@ -650,6 +670,31 @@ async def submit_saebrs(result: SAEBRSResult, user=Depends(get_current_user)):
     d = result.model_dump()
     d.update({"social_score": s, "academic_score": a, "emotional_score": e,
                "total_score": t, "risk_level": r, "social_risk": sr, "academic_risk": ar, "emotional_risk": er})
+
+    # Tier change alert: compare with previous screening
+    prev_saebrs = await db.saebrs_results.find_one({"student_id": result.student_id}, {"_id": 0}, sort=[("created_at", -1)])
+    prev_plus = await db.saebrs_plus_results.find_one({"student_id": result.student_id}, {"_id": 0}, sort=[("created_at", -1)])
+    att_pct = await get_student_attendance_pct(result.student_id)
+
+    if prev_saebrs:
+        old_tier = compute_mtss_tier(prev_saebrs["risk_level"], prev_plus["wellbeing_tier"] if prev_plus else 1, att_pct, thresholds)
+        new_tier = compute_mtss_tier(r, prev_plus["wellbeing_tier"] if prev_plus else 1, att_pct, thresholds)
+        if old_tier != new_tier:
+            student = await db.students.find_one({"student_id": result.student_id}, {"_id": 0})
+            if student:
+                name = f"{student['first_name']} {student['last_name']}"
+                severity = "high" if new_tier == 3 else "medium"
+                await db.alerts.insert_one({
+                    "alert_id": f"alrt_{uuid.uuid4().hex[:8]}",
+                    "student_id": result.student_id, "student_name": name, "class_name": student["class_name"],
+                    "alert_type": "tier_change",
+                    "severity": severity,
+                    "message": f"{name} moved from Tier {old_tier} to Tier {new_tier} — pending approval",
+                    "previous_tier": old_tier, "new_tier": new_tier,
+                    "pending_approval": True,
+                    "created_at": datetime.now(timezone.utc).isoformat(), "is_read": False, "resolved": False
+                })
+
     await db.saebrs_results.insert_one({**d})
     student = await db.students.find_one({"student_id": result.student_id}, {"_id": 0})
     if student and r == "High Risk":
@@ -677,13 +722,12 @@ async def submit_saebrs_plus(result: SAEBRSPlusResult, user=Depends(get_current_
     else:
         emo = result.emotional_domain
         bel = result.belonging_domain
-    att_score = compute_attendance_score(result.attendance_pct)
-    att_dom = att_score * 3
-    total = soc + aca + emo + bel + att_dom
+    # Attendance no longer included in wellbeing total — tracked separately
+    total = soc + aca + emo + bel
     tier = compute_wellbeing_tier(total)
     d = result.model_dump()
     d.update({"social_domain": soc, "academic_domain": aca, "emotional_domain": emo,
-               "belonging_domain": bel, "attendance_domain": att_dom, "wellbeing_total": total, "wellbeing_tier": tier})
+               "belonging_domain": bel, "wellbeing_total": total, "wellbeing_tier": tier})
     await db.saebrs_plus_results.insert_one({**d})
     return d
 
@@ -723,52 +767,6 @@ async def delete_intervention(iid: str, user=Depends(get_current_user)):
     await db.interventions.delete_one({"intervention_id": iid})
     return {"message": "Deleted"}
 
-@api_router.post("/interventions/ai-suggest/{student_id}")
-async def ai_suggest(student_id: str, user=Depends(get_current_user)):
-    student = await db.students.find_one({"student_id": student_id}, {"_id": 0})
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-    saebrs = await db.saebrs_results.find({"student_id": student_id}, {"_id": 0}, sort=[("created_at", -1)]).to_list(1)
-    plus = await db.saebrs_plus_results.find({"student_id": student_id}, {"_id": 0}, sort=[("created_at", -1)]).to_list(1)
-    att_pct = await get_student_attendance_pct(student_id)
-    active_ints = await db.interventions.find({"student_id": student_id, "status": "active"}, {"_id": 0}).to_list(5)
-
-    ls = saebrs[0] if saebrs else None
-    lp = plus[0] if plus else None
-
-    prompt = f"""You are an expert MTSS specialist. Provide exactly 3 targeted intervention recommendations as JSON.
-
-Student: {student['first_name']} {student['last_name']}, Year {student['year_level']}, Class {student['class_name']}
-Attendance: {att_pct:.0f}%
-{"SAEBRS: Total " + str(ls['total_score']) + "/57 (" + ls['risk_level'] + "), Social " + str(ls['social_score']) + "/18 (" + ls['social_risk'] + "), Academic " + str(ls['academic_score']) + "/18 (" + ls['academic_risk'] + "), Emotional " + str(ls['emotional_score']) + "/21 (" + ls['emotional_risk'] + ")" if ls else "SAEBRS: Not screened"}
-{"Wellbeing: " + str(lp['wellbeing_total']) + "/66 (Tier " + str(lp['wellbeing_tier']) + "), Social " + str(lp['social_domain']) + "/18, Academic " + str(lp['academic_domain']) + "/18, Emotional " + str(lp['emotional_domain']) + "/9, Belonging " + str(lp['belonging_domain']) + "/12" if lp else "Wellbeing: Not assessed"}
-{"Active interventions: " + ", ".join([i['intervention_type'] for i in active_ints]) if active_ints else "No current interventions"}
-
-Respond ONLY with this JSON:
-{{"recommendations": [{{"type": "string", "priority": "high|medium|low", "rationale": "string", "goals": "string", "strategies": ["s1","s2","s3"], "frequency": "string", "timeline": "string", "staff": "string"}}]}}"""
-
-    try:
-        chat = LlmChat(
-            api_key=os.environ.get('EMERGENT_LLM_KEY'),
-            session_id=f"mtss-{student_id}-{uuid.uuid4().hex[:6]}",
-            system_message="You are an expert MTSS specialist. Always respond with valid JSON only."
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-        response = await chat.send_message(UserMessage(text=prompt))
-        match = re.search(r'\{.*\}', response, re.DOTALL)
-        return json.loads(match.group()) if match else {"recommendations": []}
-    except Exception as e:
-        logger.error(f"AI error: {e}")
-        return {"recommendations": [
-            {"type": "Check-In Check-Out (CICO)", "priority": "high", "rationale": "Emerging risk pattern detected",
-             "goals": "Daily engagement monitoring and goal setting", "strategies": ["Morning check-in", "Goal card", "Afternoon reflection"],
-             "frequency": "Daily", "timeline": "6 weeks", "staff": "Wellbeing Coordinator"},
-            {"type": "Mentoring", "priority": "medium", "rationale": "Protective relationship needed",
-             "goals": "Build trusted adult relationship", "strategies": ["Weekly 1:1 sessions", "Interest-based activities", "Regular feedback"],
-             "frequency": "Weekly", "timeline": "8 weeks", "staff": "Year Level Coordinator"},
-            {"type": "Academic Support", "priority": "medium", "rationale": "Academic engagement concerns",
-             "goals": "Improve task completion and confidence", "strategies": ["Scaffolded tasks", "Small group support", "Frequent praise"],
-             "frequency": "3x weekly", "timeline": "Term", "staff": "Learning Support Teacher"}
-        ]}
 
 # ==============================
 # CASE NOTES
@@ -1018,14 +1016,18 @@ async def get_settings(user=Depends(get_current_user)):
     return SETTINGS_DEFAULTS
 
 @api_router.put("/settings")
-async def update_settings(settings: SchoolSettings, user=Depends(get_current_user)):
-    d = settings.model_dump()
-    await db.school_settings.update_one({}, {"$set": d}, upsert=True)
-    return d
+async def update_settings(data: dict, user=Depends(get_current_user)):
+    """Accept full settings dict — never overwrite onboarding_complete."""
+    data.pop("_id", None)
+    data.pop("onboarding_complete", None)
+    await db.school_settings.update_one({}, {"$set": data}, upsert=True)
+    result = await db.school_settings.find_one({}, {"_id": 0})
+    return {**SETTINGS_DEFAULTS, **(result or {})}
 
 @api_router.delete("/settings/data")
 async def wipe_data(user=Depends(get_current_user)):
-    for col in ["students", "attendance", "screening_sessions", "saebrs_results", "saebrs_plus_results", "interventions", "case_notes", "alerts"]:
+    for col in ["students", "attendance", "attendance_records", "screening_sessions",
+                "saebrs_results", "saebrs_plus_results", "interventions", "case_notes", "alerts"]:
         await db[col].delete_many({})
     return {"message": "All data wiped"}
 
@@ -1041,6 +1043,214 @@ async def get_classes(user=Depends(get_current_user)):
         s = await db.students.find_one({"class_name": cls}, {"_id": 0})
         result.append({"class_name": cls, "teacher": s["teacher"] if s else ""})
     return result
+
+# ==============================
+# ATTENDANCE MODULE
+# ==============================
+
+DEFAULT_ABSENCE_TYPES = [
+    "Present", "Medical/Illness", "Unexplained", "Family Holiday",
+    "Parent Choice School Approved", "Healthcare Appoint, Offsite",
+    "Late arrival, approved", "Late arrival at School",
+    "Early departure, approved", "Early departure from School",
+    "School refusal or school can't", "Social services or justice",
+    "Suspension - External", "Suspension - Internal",
+]
+
+@api_router.post("/attendance/upload")
+async def upload_attendance(file: UploadFile = File(...), user=Depends(get_current_user)):
+    if user.get("role") not in ["admin", "leadership"]:
+        raise HTTPException(403, "Admin or leadership access required")
+    content = await file.read()
+    fname = (file.filename or "").lower()
+    records = []
+
+    if fname.endswith('.xlsx') or fname.endswith('.xls'):
+        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+        ws = wb.active
+        headers = [str(cell.value or '').strip().upper() for cell in ws[1]]
+        def col(names):
+            for n in names:
+                for i, h in enumerate(headers):
+                    if h == n.upper() or h.startswith(n.upper()):
+                        return i
+            return None
+        id_c = col(['ID', 'STUDENT ID', 'STUDENTID', 'STUDENT CODE'])
+        dt_c = col(['DATE'])
+        am_c = col(['AM'])
+        pm_c = col(['PM'])
+        if id_c is None or dt_c is None:
+            raise HTTPException(400, "Could not find ID or Date column")
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            ext_id = str(row[id_c] or '').strip() if id_c is not None else ''
+            dv = row[dt_c] if dt_c is not None else ''
+            am_v = str(row[am_c] or '').strip() if am_c is not None else ''
+            pm_v = str(row[pm_c] or '').strip() if pm_c is not None else ''
+            if not ext_id or not dv:
+                continue
+            if hasattr(dv, 'strftime'):
+                date_str = dv.strftime('%Y-%m-%d')
+            else:
+                ds = str(dv).strip()
+                for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%d-%m-%Y'):
+                    try:
+                        date_str = datetime.strptime(ds, fmt).strftime('%Y-%m-%d'); break
+                    except: pass
+                else:
+                    continue
+            records.append({'external_id': ext_id.upper(), 'date': date_str, 'am_status': am_v, 'pm_status': pm_v})
+    elif fname.endswith('.csv'):
+        text = content.decode('utf-8-sig')
+        reader = csv.DictReader(io.StringIO(text))
+        for row in reader:
+            ext_id = (row.get('ID') or row.get('Student ID') or row.get('student_id') or '').strip().upper()
+            date_str = (row.get('Date') or row.get('date') or '').strip()
+            am_v = (row.get('AM') or row.get('am') or '').strip()
+            pm_v = (row.get('PM') or row.get('pm') or '').strip()
+            if not ext_id or not date_str:
+                continue
+            for fmt in ('%d/%m/%Y', '%Y-%m-%d'):
+                try:
+                    date_str = datetime.strptime(date_str, fmt).strftime('%Y-%m-%d'); break
+                except: pass
+            records.append({'external_id': ext_id, 'date': date_str, 'am_status': am_v, 'pm_status': pm_v})
+    else:
+        raise HTTPException(400, "Unsupported file format. Use XLSX or CSV.")
+
+    if not records:
+        raise HTTPException(400, "No valid records found in file")
+
+    students_list = await db.students.find({}, {"_id": 0, "student_id": 1, "external_id": 1}).to_list(1000)
+    ext_to_student = {s["external_id"].upper(): s["student_id"] for s in students_list if s.get("external_id")}
+
+    by_ext = defaultdict(list)
+    for r in records:
+        by_ext[r['external_id']].append(r)
+
+    matched, unmatched = [], []
+    stored_count = 0
+    for ext_id, recs in by_ext.items():
+        student_id = ext_to_student.get(ext_id)
+        if student_id:
+            await db.attendance_records.delete_many({"student_id": student_id})
+            docs = [{"student_id": student_id, "external_id": ext_id, "date": r['date'],
+                     "am_status": r['am_status'], "pm_status": r['pm_status']} for r in recs]
+            if docs:
+                await db.attendance_records.insert_many(docs)
+                stored_count += len(docs)
+            matched.append(ext_id)
+        else:
+            unmatched.append(ext_id)
+
+    # Also store new absence types found in this upload
+    found_types = set()
+    for r in records:
+        for v in [r['am_status'], r['pm_status']]:
+            if v:
+                found_types.add(v)
+    school_s = await db.school_settings.find_one({}, {"_id": 0})
+    existing_types = set(school_s.get("absence_types") or DEFAULT_ABSENCE_TYPES)
+    new_types = list(existing_types | found_types)
+    await db.school_settings.update_one({}, {"$set": {"absence_types": sorted(new_types)}}, upsert=True)
+
+    return {
+        "processed": len(records),
+        "matched_students": len(matched),
+        "unmatched_students": len(unmatched),
+        "stored_records": stored_count,
+        "unmatched_ids": unmatched[:30],
+    }
+
+@api_router.get("/attendance/summary")
+async def get_attendance_summary(user=Depends(get_current_user)):
+    students_list = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
+    result = []
+    for s in students_list:
+        records = await db.attendance_records.find({"student_id": s["student_id"]}, {"_id": 0}).to_list(3000)
+        if not records:
+            result.append({**s, "attendance_pct": None, "total_sessions": 0, "absent_sessions": 0, "has_data": False, "attendance_tier": None})
+            continue
+        total_sessions, absent_sessions = 0, 0
+        for r in records:
+            for sess in [r.get("am_status", ""), r.get("pm_status", "")]:
+                sess = (sess or "").strip()
+                if sess:
+                    total_sessions += 1
+                    if sess not in PRESENT_STATUSES:
+                        absent_sessions += 1
+        att_pct = ((total_sessions - absent_sessions) / total_sessions * 100) if total_sessions > 0 else 100.0
+        tier = 1 if att_pct >= 95 else (2 if att_pct >= 90 else 3)
+        result.append({**s, "attendance_pct": round(att_pct, 1), "total_sessions": total_sessions,
+                        "absent_sessions": absent_sessions, "has_data": True, "attendance_tier": tier})
+    return result
+
+@api_router.get("/attendance/student/{student_id}")
+async def get_student_attendance_detail(student_id: str, user=Depends(get_current_user)):
+    records = await db.attendance_records.find({"student_id": student_id}, {"_id": 0}).sort("date", 1).to_list(3000)
+    total_sessions, absent_sessions = 0, 0
+    absence_types: dict = {}
+    monthly_data: dict = {}
+    for r in records:
+        for sess_key, sess_v in [("am_status", r.get("am_status", "")), ("pm_status", r.get("pm_status", ""))]:
+            v = (sess_v or "").strip()
+            month = r.get("date", "")[:7]
+            if v:
+                total_sessions += 1
+                if month not in monthly_data:
+                    monthly_data[month] = {"sessions": 0, "absent": 0}
+                monthly_data[month]["sessions"] += 1
+                if v not in PRESENT_STATUSES:
+                    absent_sessions += 1
+                    absence_types[v] = absence_types.get(v, 0) + 1
+                    monthly_data[month]["absent"] += 1
+    att_pct = ((total_sessions - absent_sessions) / total_sessions * 100) if total_sessions > 0 else 100.0
+    monthly_trend = [
+        {"month": k, "attendance_pct": round(((v["sessions"] - v["absent"]) / v["sessions"] * 100) if v["sessions"] > 0 else 100, 1)}
+        for k, v in sorted(monthly_data.items())
+    ]
+    return {
+        "student_id": student_id, "attendance_pct": round(att_pct, 1),
+        "total_sessions": total_sessions, "absent_sessions": absent_sessions,
+        "absence_types": absence_types, "monthly_trend": monthly_trend,
+        "records": records[:300],
+    }
+
+@api_router.get("/attendance/types")
+async def get_absence_types(user=Depends(get_current_user)):
+    s = await db.school_settings.find_one({}, {"_id": 0})
+    return {"types": (s.get("absence_types") if s else None) or DEFAULT_ABSENCE_TYPES}
+
+@api_router.put("/attendance/types")
+async def update_absence_types(data: dict, user=Depends(get_current_user)):
+    if user.get("role") != "admin":
+        raise HTTPException(403, "Admin access required")
+    await db.school_settings.update_one({}, {"$set": {"absence_types": data.get("types", [])}}, upsert=True)
+    return {"types": data.get("types", [])}
+
+@api_router.put("/students/{student_id}/external-id")
+async def set_student_external_id(student_id: str, data: dict, user=Depends(get_current_user)):
+    if user.get("role") not in ["admin", "leadership"]:
+        raise HTTPException(403, "Access denied")
+    ext_id = data.get("external_id", "").strip().upper()
+    await db.students.update_one({"student_id": student_id}, {"$set": {"external_id": ext_id}})
+    return {"message": "External ID updated", "external_id": ext_id}
+
+@api_router.put("/alerts/{alert_id}/approve")
+async def approve_tier_change(alert_id: str, user=Depends(get_current_user)):
+    if user.get("role") not in ["admin", "leadership", "wellbeing"]:
+        raise HTTPException(403, "Access denied")
+    await db.alerts.update_one({"alert_id": alert_id},
+                                {"$set": {"pending_approval": False, "resolved": True, "is_read": True,
+                                          "approved_by": user.get("user_id"), "approved_at": datetime.now(timezone.utc).isoformat()}})
+    return {"message": "Tier change approved"}
+
+@api_router.put("/alerts/{alert_id}/reject")
+async def reject_tier_change(alert_id: str, user=Depends(get_current_user)):
+    if user.get("role") not in ["admin", "leadership", "wellbeing"]:
+        raise HTTPException(403, "Access denied")
+    await db.alerts.update_one({"alert_id": alert_id},
+                                {"$set": {"pending_approval": False, "rejected": True, "is_read": True}})
+    return {"message": "Tier change rejected"}
 
 # ==============================
 # CSV REPORTS

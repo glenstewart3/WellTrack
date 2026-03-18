@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, getRiskColors, INTERVENTION_TYPES, NOTE_TYPES } from '../utils/tierUtils';
-import { ArrowLeft, Plus, Sparkles, X, Loader } from 'lucide-react';
+import { ArrowLeft, Plus, X, Loader } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar, ReferenceLine } from 'recharts';
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  RadarChart, PolarGrid, PolarAngleAxis, Radar, ReferenceArea, Legend
+} from 'recharts';
 
 function TierBadge({ tier }) {
   const c = getTierColors(tier);
@@ -25,8 +28,7 @@ export default function StudentProfilePage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [showAddIntervention, setShowAddIntervention] = useState(false);
   const [showAddNote, setShowAddNote] = useState(false);
-  const [aiSuggestions, setAiSuggestions] = useState(null);
-  const [aiLoading, setAiLoading] = useState(false);
+  const [saebrsView, setSaebrsView] = useState('total'); // 'total' or 'domains'
   const [newIntervention, setNewIntervention] = useState({ intervention_type: '', assigned_staff: '', start_date: '', review_date: '', goals: '', frequency: '', status: 'active' });
   const [newNote, setNewNote] = useState({ note_type: 'General', notes: '', staff_member: '', date: new Date().toISOString().split('T')[0] });
 
@@ -41,14 +43,7 @@ export default function StudentProfilePage() {
     load();
   }, [studentId]);
 
-  const getAiSuggestions = async () => {
-    setAiLoading(true);
-    try {
-      const res = await axios.post(`${API}/interventions/ai-suggest/${studentId}`, {}, { withCredentials: true });
-      setAiSuggestions(res.data.recommendations || []);
-    } catch (e) { console.error(e); setAiSuggestions([]); }
-    finally { setAiLoading(false); }
-  };
+  const getAiSuggestions = null; // AI suggestions removed
 
   const addIntervention = async () => {
     if (!newIntervention.intervention_type || !newIntervention.assigned_staff) return;
@@ -94,7 +89,6 @@ export default function StudentProfilePage() {
     { domain: 'Academic', score: latestPlus.academic_domain, max: 18 },
     { domain: 'Emotional', score: latestPlus.emotional_domain, max: 9 },
     { domain: 'Belonging', score: latestPlus.belonging_domain, max: 12 },
-    { domain: 'Attendance', score: latestPlus.attendance_domain, max: 9 },
   ].map(d => ({ ...d, pct: Math.round((d.score / d.max) * 100) })) : [];
 
   return (
@@ -163,21 +157,42 @@ export default function StudentProfilePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* SAEBRS Trend */}
           <div className="bg-white border border-slate-200 rounded-xl p-6">
-            <h3 className="font-semibold text-slate-900 mb-1" style={{fontFamily:'Manrope,sans-serif'}}>SAEBRS Score Trend</h3>
-            <p className="text-xs text-slate-400 mb-4">Green line = Low Risk threshold (37) · Amber line = High Risk threshold (24)</p>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>SAEBRS Score Trend</h3>
+              <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5">
+                <button onClick={() => setSaebrsView('total')}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${saebrsView === 'total' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>
+                  Total
+                </button>
+                <button onClick={() => setSaebrsView('domains')}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${saebrsView === 'domains' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>
+                  Domains
+                </button>
+              </div>
+            </div>
             {screeningChartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={screeningChartData}>
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                  <YAxis domain={[0, 57]} tick={{ fontSize: 12 }} />
-                  <Tooltip contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
-                  <ReferenceLine y={37} stroke="#10b981" strokeDasharray="5 3" strokeWidth={1.5} label={{ value: "Low Risk ≥37", position: "insideTopRight", fontSize: 10, fill: "#10b981" }} />
-                  <ReferenceLine y={24} stroke="#f59e0b" strokeDasharray="5 3" strokeWidth={1.5} label={{ value: "High Risk <24", position: "insideBottomRight", fontSize: 10, fill: "#f59e0b" }} />
-                  <Line type="monotone" dataKey="total" stroke="#0f172a" strokeWidth={2.5} dot={{ r: 5 }} name="Total" />
-                  <Line type="monotone" dataKey="social" stroke="#10b981" strokeWidth={1.5} strokeDasharray="4 2" dot={{ r: 3 }} name="Social" />
-                  <Line type="monotone" dataKey="academic" stroke="#3b82f6" strokeWidth={1.5} strokeDasharray="4 2" dot={{ r: 3 }} name="Academic" />
-                  <Line type="monotone" dataKey="emotional" stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="4 2" dot={{ r: 3 }} name="Emotional" />
-                </LineChart>
+                {saebrsView === 'total' ? (
+                  <LineChart data={screeningChartData}>
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis domain={[0, 57]} tick={{ fontSize: 11 }} />
+                    <Tooltip contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
+                    <ReferenceArea y1={37} y2={57} fill="#10b981" fillOpacity={0.12} label={{ value: "Tier 1", position: "insideTopRight", fontSize: 9, fill: "#10b981" }} />
+                    <ReferenceArea y1={24} y2={37} fill="#f59e0b" fillOpacity={0.12} label={{ value: "Tier 2", position: "insideTopRight", fontSize: 9, fill: "#f59e0b" }} />
+                    <ReferenceArea y1={0} y2={24} fill="#ef4444" fillOpacity={0.12} label={{ value: "Tier 3", position: "insideTopRight", fontSize: 9, fill: "#ef4444" }} />
+                    <Line type="monotone" dataKey="total" stroke="#0f172a" strokeWidth={2.5} dot={{ r: 5 }} name="Total (0–57)" />
+                  </LineChart>
+                ) : (
+                  <LineChart data={screeningChartData}>
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
+                    <Legend wrapperStyle={{ fontSize: '11px' }} />
+                    <Line type="monotone" dataKey="social" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} name="Social (0–18)" />
+                    <Line type="monotone" dataKey="academic" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} name="Academic (0–18)" />
+                    <Line type="monotone" dataKey="emotional" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} name="Emotional (0–21)" />
+                  </LineChart>
+                )}
               </ResponsiveContainer>
             ) : <p className="text-sm text-slate-400 py-8 text-center">No screening data available</p>}
           </div>
@@ -296,10 +311,10 @@ export default function StudentProfilePage() {
                   <div><p className="font-bold text-slate-900">{r.academic_score}/18</p><p className="text-slate-400 text-xs">Academic</p></div>
                   <div><p className="font-bold text-slate-900">{r.emotional_score}/21</p><p className="text-slate-400 text-xs">Emotional</p></div>
                   {plus && <>
-                    <div><p className="font-bold text-indigo-700">{plus.wellbeing_total}/66</p><p className="text-slate-400 text-xs">Wellbeing</p></div>
+                    <div><p className="font-bold text-indigo-700">{plus.wellbeing_total}/66</p><p className="text-slate-400 text-xs">Wellbeing Total</p></div>
+                    <div><p className="font-bold text-slate-900">{plus.social_domain}/18</p><p className="text-slate-400 text-xs">Social</p></div>
                     <div><p className="font-bold text-slate-900">{plus.belonging_domain}/12</p><p className="text-slate-400 text-xs">Belonging</p></div>
                     <div><p className="font-bold text-slate-900">{plus.emotional_domain}/9</p><p className="text-slate-400 text-xs">Emotional WB</p></div>
-                    <div><p className="font-bold text-slate-900">{plus.attendance_pct?.toFixed(0)}%</p><p className="text-slate-400 text-xs">Attendance</p></div>
                   </>}
                 </div>
               </div>
@@ -313,51 +328,12 @@ export default function StudentProfilePage() {
           <div className="flex justify-between items-center">
             <p className="text-sm text-slate-500">{interventions?.length || 0} intervention{interventions?.length !== 1 ? 's' : ''} recorded</p>
             <div className="flex gap-2">
-              <button onClick={getAiSuggestions} disabled={aiLoading} data-testid="ai-suggest-btn"
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50">
-                {aiLoading ? <Loader size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                AI Suggestions
-              </button>
               <button onClick={() => setShowAddIntervention(true)} data-testid="add-intervention-btn"
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors">
                 <Plus size={14} /> Add Intervention
               </button>
             </div>
           </div>
-
-          {/* AI Suggestions */}
-          {aiSuggestions && (
-            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-semibold text-indigo-900 flex items-center gap-2" style={{fontFamily:'Manrope,sans-serif'}}>
-                  <Sparkles size={16} /> AI Intervention Recommendations
-                </h3>
-                <button onClick={() => setAiSuggestions(null)} className="text-indigo-400 hover:text-indigo-700"><X size={16} /></button>
-              </div>
-              <div className="grid gap-3">
-                {aiSuggestions.map((rec, i) => (
-                  <div key={i} className="bg-white rounded-lg p-4 border border-indigo-100">
-                    <div className="flex justify-between items-start gap-2 mb-2">
-                      <h4 className="font-semibold text-slate-900 text-sm">{rec.type}</h4>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${rec.priority === 'high' ? 'bg-rose-100 text-rose-700' : rec.priority === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                        {rec.priority} priority
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600 mb-2">{rec.rationale}</p>
-                    <p className="text-xs font-medium text-slate-700 mb-1">Goals: <span className="font-normal text-slate-600">{rec.goals}</span></p>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {rec.strategies?.map((s, si) => (
-                        <span key={si} className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">{s}</span>
-                      ))}
-                    </div>
-                    <div className="flex gap-4 mt-2 text-xs text-slate-400">
-                      <span>{rec.frequency}</span><span>{rec.timeline}</span><span>{rec.staff}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {interventions?.map(intv => (
             <div key={intv.intervention_id} className={`bg-white border rounded-xl p-5 ${intv.status === 'active' ? 'border-slate-200' : 'border-slate-100 opacity-70'}`}>

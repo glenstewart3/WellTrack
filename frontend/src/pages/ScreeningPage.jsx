@@ -1,433 +1,491 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ClipboardCheck, ChevronRight, ChevronLeft, CheckCircle, Loader, AlertTriangle } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
-import { getRiskColors } from '../utils/tierUtils';
+import { ClipboardCheck, User, Users, ChevronRight, CheckCircle, ArrowLeft, X } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+// ─── SAEBRS question banks ───────────────────────────────────────────────────
 const SOCIAL_ITEMS = [
-  'Interacts positively with peers',
-  'Gets along well with others',
-  'Accepts correction or feedback without becoming upset',
-  'Follows classroom rules and directions',
-  'Shows respect for feelings and property of others',
-  'Manages conflict with peers appropriately',
+  'Interacts appropriately with peers',
+  'Follows school rules',
+  'Shows appropriate classroom behaviour',
+  'Handles frustration appropriately',
+  'Maintains appropriate peer relationships',
+  'Respects personal space of others',
 ];
 const ACADEMIC_ITEMS = [
-  'Completes assigned class work',
-  'Stays on task during lessons',
-  'Is organised and prepared for learning',
-  'Comes to class prepared with materials',
-  'Shows motivation and interest in learning',
-  'Works independently without adult support',
+  'Completes assigned tasks',
+  'Organises materials and assignments',
+  'Manages time effectively',
+  'Follows directions',
+  'Remains on task',
+  'Participates in class activities',
 ];
 const EMOTIONAL_ITEMS = [
-  'Controls emotional responses (e.g. anger, frustration)',
-  'Does not appear sad or depressed',
-  'Does not appear anxious or worried',
-  'Does not appear socially withdrawn',
-  'Handles frustration in an appropriate manner',
-  'Does not overreact to situations',
-  'Does not display excessive or persistent worrying',
+  'Manages emotions appropriately',
+  'Demonstrates positive self-concept',
+  'Handles transitions effectively',
+  'Shows persistence when challenged',
+  'Displays appropriate affect',
+  'Demonstrates emotional resilience',
+  'Shows self-regulation skills',
 ];
+
 const SELF_REPORT_ITEMS = [
-  { text: 'I feel worried or stressed at school', reverse: true },
-  { text: 'I feel confident doing schoolwork', reverse: false },
-  { text: 'I feel safe at school', reverse: false },
-  { text: 'I feel like I belong in my class', reverse: false },
-  { text: 'I have friends at school', reverse: false },
-  { text: 'There is an adult at school I trust', reverse: false },
-  { text: 'Teachers care about me', reverse: false },
+  { q: 'I feel sad or unhappy at school', reverse: true },
+  { q: 'I feel nervous or worried at school', reverse: false },
+  { q: 'I feel angry or upset at school', reverse: false },
+  { q: 'I feel like I belong at this school', reverse: false },
+  { q: 'I have friends at school', reverse: false },
+  { q: 'My teachers care about me', reverse: false },
+  { q: 'I feel safe at school', reverse: false },
 ];
 
-const TEACHER_SCALE = ['Never', 'Rarely', 'Sometimes', 'Often'];
-const STUDENT_SCALE = ['Not true for me', 'A little true', 'Mostly true', 'Very true'];
+const RESPONSE_LABELS = ['Never', 'Sometimes', 'Often', 'Almost Always'];
 
-function ScaleSelector({ items, scale, values, onChange, colorKey }) {
+// ─── Score bar helper ─────────────────────────────────────────────────────────
+function ScoreBar({ score, max, risk }) {
+  const pct = Math.round((score / max) * 100);
+  const col = risk === 'High Risk' ? 'bg-rose-500' : risk === 'Some Risk' ? 'bg-amber-400' : 'bg-emerald-500';
   return (
-    <div className="space-y-4">
-      {items.map((item, idx) => (
-        <div key={idx} className="bg-slate-50 rounded-xl p-4">
-          <p className="text-sm font-medium text-slate-800 mb-3">
-            {typeof item === 'string' ? item : item.text}
-            {typeof item === 'object' && item.reverse && (
-              <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">Reverse Scored</span>
-            )}
-          </p>
-          <div className="flex gap-2 flex-wrap">
-            {scale.map((label, val) => (
-              <button
-                key={val}
-                onClick={() => onChange(idx, val)}
-                data-testid={`scale-item-${idx}-val-${val}`}
-                className={`flex-1 min-w-16 py-2 px-2 text-xs font-medium rounded-lg border transition-all ${
-                  values[idx] === val
-                    ? 'bg-slate-900 text-white border-slate-900'
-                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
-                }`}
-              >
-                <span className="block font-bold text-base mb-0.5">{val}</span>
-                {label}
+    <div>
+      <div className="flex justify-between text-xs text-slate-500 mb-1">
+        <span>{score}/{max}</span>
+        <span className={`font-medium ${risk === 'High Risk' ? 'text-rose-600' : risk === 'Some Risk' ? 'text-amber-600' : 'text-emerald-600'}`}>{risk}</span>
+      </div>
+      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${col}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Mode selection ───────────────────────────────────────────────────────────
+function ModeSelect({ onSelect }) {
+  return (
+    <div className="p-6 lg:p-8 max-w-3xl mx-auto fade-in">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Screening</h1>
+        <p className="text-slate-500 mt-1">Choose what you'd like to complete today</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <button onClick={() => onSelect('saebrs')} data-testid="mode-saebrs-btn"
+          className="bg-white border-2 border-slate-200 rounded-2xl p-7 text-left hover:border-slate-900 hover:shadow-md transition-all group">
+          <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+            <ClipboardCheck size={22} className="text-white" />
+          </div>
+          <h2 className="text-lg font-bold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>SAEBRS Screener</h2>
+          <p className="text-sm text-slate-500">Teacher or ES staff completes SAEBRS for each student in a class. Process the whole class in one session.</p>
+        </button>
+        <button onClick={() => onSelect('self-report')} data-testid="mode-self-report-btn"
+          className="bg-white border-2 border-slate-200 rounded-2xl p-7 text-left hover:border-indigo-500 hover:shadow-md transition-all group">
+          <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+            <User size={22} className="text-white" />
+          </div>
+          <h2 className="text-lg font-bold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Student Self-Report</h2>
+          <p className="text-sm text-slate-500">Sit with an individual student and complete the 7-item self-report together. Select a class, then pick a student.</p>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Class + term selector (shared) ──────────────────────────────────────────
+function ClassSelect({ mode, onNext, onBack }) {
+  const { settings } = useSettings();
+  const [classes, setClasses] = useState([]);
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedTerm, setSelectedTerm] = useState(settings.current_term || 'Term 1');
+  const [loadingClasses, setLoadingClasses] = useState(true);
+
+  useEffect(() => {
+    axios.get(`${API}/classes`, { withCredentials: true })
+      .then(r => setClasses(r.data))
+      .catch(e => console.error(e))
+      .finally(() => setLoadingClasses(false));
+  }, []);
+
+  return (
+    <div className="p-6 lg:p-8 max-w-xl mx-auto fade-in">
+      <button onClick={onBack} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-6 transition-colors">
+        <ArrowLeft size={16} /> Back
+      </button>
+      <div className="bg-white border border-slate-200 rounded-2xl p-7 space-y-5">
+        <div>
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${mode === 'saebrs' ? 'bg-slate-900' : 'bg-indigo-600'}`}>
+            {mode === 'saebrs' ? <ClipboardCheck size={18} className="text-white" /> : <User size={18} className="text-white" />}
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>
+            {mode === 'saebrs' ? 'SAEBRS Screener' : 'Student Self-Report'}
+          </h2>
+          <p className="text-sm text-slate-500">Select class and term</p>
+        </div>
+
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-2 block">Select Class</label>
+          {loadingClasses ? <p className="text-sm text-slate-400">Loading classes…</p> : (
+            <div className="grid grid-cols-2 gap-2">
+              {classes.map(c => (
+                <button key={c.class_name} onClick={() => setSelectedClass(c.class_name)}
+                  data-testid={`class-btn-${c.class_name}`}
+                  className={`p-3 rounded-xl border text-left transition-all ${selectedClass === c.class_name ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'}`}>
+                  <p className="text-sm font-semibold">{c.class_name}</p>
+                  <p className={`text-xs mt-0.5 ${selectedClass === c.class_name ? 'text-white/60' : 'text-slate-400'}`}>{c.teacher}</p>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-2 block">Screening Term</label>
+          <div className="grid grid-cols-4 gap-2">
+            {['Term 1', 'Term 2', 'Term 3', 'Term 4'].map(t => (
+              <button key={t} onClick={() => setSelectedTerm(t)}
+                className={`py-2.5 text-sm font-medium rounded-xl border transition-all ${selectedTerm === t ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
+                {t}
               </button>
             ))}
           </div>
         </div>
-      ))}
+
+        <button
+          onClick={() => selectedClass && onNext(selectedClass, selectedTerm)}
+          disabled={!selectedClass}
+          data-testid="begin-screening-btn"
+          className="w-full py-3.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+          Continue <ChevronRight size={16} />
+        </button>
+      </div>
     </div>
   );
 }
 
-function computeSaebrsRisk(total, social, academic, emotional) {
-  const totalRisk = total >= 37 ? 'Low Risk' : total >= 24 ? 'Some Risk' : 'High Risk';
-  const socialRisk = social >= 13 ? 'Low Risk' : social >= 8 ? 'Some Risk' : 'High Risk';
-  const academicRisk = academic >= 10 ? 'Low Risk' : academic >= 6 ? 'Some Risk' : 'High Risk';
-  const emotionalRisk = emotional >= 16 ? 'Low Risk' : emotional >= 12 ? 'Some Risk' : 'High Risk';
-  return { totalRisk, socialRisk, academicRisk, emotionalRisk };
-}
-
-export default function ScreeningPage() {
-  const [step, setStep] = useState('setup'); // setup, saebrs, saebrs_plus, complete
-  const [classes, setClasses] = useState([]);
-  const [selectedClass, setSelectedClass] = useState('');
-  const [screeningPeriod, setScreeningPeriod] = useState('Term 1');
+// ─── SAEBRS: student list + sequential screening ──────────────────────────────
+function SAEBRSFlow({ className, term, onDone }) {
   const [students, setStudents] = useState([]);
-  const [currentStudentIdx, setCurrentStudentIdx] = useState(0);
-  const [screeningId, setScreeningId] = useState('');
-  const [saebrsData, setSaebrsData] = useState({});
-  const [plusData, setPlusData] = useState({});
-  const [saving, setSaving] = useState(false);
-  const { settings } = useSettings();
-  const saebrsPlus = settings.modules_enabled?.saebrs_plus !== false;
-  const [mode, setMode] = useState('saebrs'); // saebrs or plus
-  const [startError, setStartError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [current, setCurrent] = useState(null);      // index
+  const [screeningId] = useState(`scr_${Date.now()}`);
   const [completedStudents, setCompletedStudents] = useState(new Set());
-
-  const [socialItems, setSocialItems] = useState(new Array(6).fill(-1));
-  const [academicItems, setAcademicItems] = useState(new Array(6).fill(-1));
-  const [emotionalItems, setEmotionalItems] = useState(new Array(7).fill(-1));
-  const [selfReportItems, setSelfReportItems] = useState(new Array(7).fill(-1));
-  const [attendancePct, setAttendancePct] = useState('');
+  const [scores, setScores] = useState({ social: Array(6).fill(2), academic: Array(6).fill(2), emotional: Array(7).fill(2) });
+  const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState(null);
+  const [startError, setStartError] = useState('');
 
   useEffect(() => {
-    axios.get(`${API}/classes`, { withCredentials: true })
-      .then(r => { setClasses(r.data); if (r.data.length > 0) setSelectedClass(r.data[0].class_name); })
-      .catch(console.error);
-  }, []);
+    axios.get(`${API}/students?class_name=${encodeURIComponent(className)}&enrolment_status=active`, { withCredentials: true })
+      .then(r => setStudents(r.data))
+      .catch(e => console.error(e))
+      .finally(() => setLoading(false));
+  }, [className]);
 
-  const startScreening = async () => {
-    if (!selectedClass) return;
-    setStartError('');
-    try {
-      // Create screening session
-      const sessionRes = await axios.post(`${API}/screening/sessions`, {
-        screening_period: screeningPeriod,
-        year: 2025,
-        date: new Date().toISOString().split('T')[0],
-        teacher_id: 'current_teacher',
-        class_name: selectedClass,
-        status: 'active',
-      }, { withCredentials: true });
-      setScreeningId(sessionRes.data.screening_id);
+  const totalScore = scores.social.reduce((a, b) => a + b, 0) + scores.academic.reduce((a, b) => a + b, 0) + scores.emotional.reduce((a, b) => a + b, 0);
+  const student = current !== null ? students[current] : null;
 
-      // Get students
-      const studRes = await axios.get(`${API}/students?class_name=${encodeURIComponent(selectedClass)}`, { withCredentials: true });
-      setStudents(studRes.data);
-      setCurrentStudentIdx(0);
-      setSocialItems(new Array(6).fill(2));
-      setAcademicItems(new Array(6).fill(2));
-      setEmotionalItems(new Array(7).fill(2));
-      setStep('saebrs');
-    } catch (e) {
-      console.error(e);
-      setStartError(e.response?.data?.detail || 'Failed to start screening. Please try again.');
-    }
-  };
-
-  const currentStudent = students[currentStudentIdx];
-
-  const socialScore = socialItems.filter(v => v >= 0).reduce((a, b) => a + b, 0);
-  const academicScore = academicItems.filter(v => v >= 0).reduce((a, b) => a + b, 0);
-  const emotionalScore = emotionalItems.filter(v => v >= 0).reduce((a, b) => a + b, 0);
-  const totalScore = socialScore + academicScore + emotionalScore;
-  const risks = computeSaebrsRisk(totalScore, socialScore, academicScore, emotionalScore);
-
-  const saveSaebrs = async () => {
-    if (!currentStudent) return;
-    setSaving(true);
+  const saveCurrentStudent = async () => {
+    if (!student) return;
+    setSaving(true); setStartError('');
     try {
       await axios.post(`${API}/screening/saebrs`, {
-        student_id: currentStudent.student_id,
+        student_id: student.student_id,
         screening_id: screeningId,
-        social_items: socialItems,
-        academic_items: academicItems,
-        emotional_items: emotionalItems,
+        screening_period: term,
+        social_items: scores.social,
+        academic_items: scores.academic,
+        emotional_items: scores.emotional,
+        social_score: 0, academic_score: 0, emotional_score: 0, total_score: 0,
       }, { withCredentials: true });
-      setSaebrsData(prev => ({ ...prev, [currentStudent.student_id]: true }));
-      // Move to SAEBRS+ if module enabled, else go to next student
-      if (saebrsPlus) {
-        setStep('saebrs_plus');
-        setSelfReportItems(new Array(7).fill(2));
-        setAttendancePct('95');
+      setCompletedStudents(prev => new Set([...prev, student.student_id]));
+      setResult({ saved: true });
+      setScores({ social: Array(6).fill(2), academic: Array(6).fill(2), emotional: Array(7).fill(2) });
+      const next = current + 1;
+      if (next < students.length) {
+        setCurrent(next); setResult(null);
       } else {
-        // Skip SAEBRS+ — move to next student or complete
-        const nextIdx = currentStudentIdx + 1;
-        if (nextIdx < students.length) {
-          setCurrentStudentIdx(nextIdx);
-          setSocialItems(new Array(6).fill(2));
-          setAcademicItems(new Array(6).fill(2));
-          setEmotionalItems(new Array(7).fill(2));
-          setStep('saebrs');
-        } else {
-          setStep('complete');
-        }
+        setCurrent(null); // back to list (all done)
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      setStartError(e.response?.data?.detail || 'Failed to save');
+    }
     finally { setSaving(false); }
   };
 
-  const savePlus = async () => {
-    if (!currentStudent) return;
-    setSaving(true);
-    try {
-      await axios.post(`${API}/screening/saebrs-plus`, {
-        student_id: currentStudent.student_id,
-        screening_id: screeningId,
-        self_report_items: selfReportItems,
-        attendance_pct: parseFloat(attendancePct) || 95,
-      }, { withCredentials: true });
-      setPlusData(prev => ({ ...prev, [currentStudent.student_id]: true }));
-      setCompletedStudents(prev => new Set([...prev, currentStudent.student_id]));
+  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full" /></div>;
 
-      if (currentStudentIdx < students.length - 1) {
-        setCurrentStudentIdx(prev => prev + 1);
-        setSocialItems(new Array(6).fill(2));
-        setAcademicItems(new Array(6).fill(2));
-        setEmotionalItems(new Array(7).fill(2));
-        setSelfReportItems(new Array(7).fill(2));
-        setAttendancePct('95');
-        setStep('saebrs');
-      } else {
-        setStep('complete');
-      }
-    } catch (e) { console.error(e); }
-    finally { setSaving(false); }
-  };
-
-  if (step === 'setup') {
+  // Student list view
+  if (current === null) {
     return (
       <div className="p-6 lg:p-8 max-w-2xl mx-auto fade-in">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center">
-            <ClipboardCheck size={20} className="text-white" />
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>SAEBRS — {className}</h2>
+            <p className="text-slate-500 text-sm mt-0.5">{term} · {completedStudents.size} of {students.length} screened</p>
+          </div>
+          {completedStudents.size === students.length && students.length > 0 && (
+            <button onClick={onDone} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors">
+              <CheckCircle size={15} /> Done
+            </button>
+          )}
+        </div>
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+          {students.map((s, i) => {
+            const done = completedStudents.has(s.student_id);
+            return (
+              <div key={s.student_id}
+                className={`flex items-center justify-between px-5 py-4 border-b border-slate-50 last:border-0 ${done ? 'opacity-60' : 'hover:bg-slate-50 cursor-pointer'} transition-colors`}
+                onClick={() => !done && (setCurrent(i), setScores({ social: Array(6).fill(2), academic: Array(6).fill(2), emotional: Array(7).fill(2) }))}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${done ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}>
+                    {done ? <CheckCircle size={16} /> : s.first_name[0]}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{s.first_name} {s.last_name}</p>
+                    <p className="text-xs text-slate-400">{s.year_level}</p>
+                  </div>
+                </div>
+                {!done && <ChevronRight size={16} className="text-slate-300" />}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // SAEBRS form for current student
+  const setItem = (domain, idx, val) =>
+    setScores(p => ({ ...p, [domain]: p[domain].map((v, i) => (i === idx ? val : v)) }));
+
+  const sections = [
+    { key: 'social', label: 'Social Behavior', items: SOCIAL_ITEMS, max: 18 },
+    { key: 'academic', label: 'Academic Behavior', items: ACADEMIC_ITEMS, max: 18 },
+    { key: 'emotional', label: 'Emotional Behavior', items: EMOTIONAL_ITEMS, max: 21 },
+  ];
+
+  return (
+    <div className="p-6 lg:p-8 max-w-3xl mx-auto fade-in">
+      <div className="flex items-center gap-3 mb-6">
+        <button onClick={() => setCurrent(null)} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">
+          <ArrowLeft size={16} /> Back to class
+        </button>
+        <span className="text-slate-300">·</span>
+        <span className="text-sm text-slate-500">{current + 1} / {students.length}</span>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-2xl p-7 mb-5">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center">
+            <span className="text-lg font-bold text-white">{student.first_name[0]}{student.last_name[0]}</span>
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>New Screening Session</h1>
-            <p className="text-sm text-slate-500">SAEBRS + SAEBRS+ Universal Screening</p>
+            <h2 className="text-xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{student.first_name} {student.last_name}</h2>
+            <p className="text-sm text-slate-500">{student.year_level} · {student.class_name} · {term}</p>
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-5">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Class</label>
-            <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)}
-              data-testid="screening-class-select"
-              className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 bg-white">
-              {classes.map(c => <option key={c.class_name} value={c.class_name}>{c.class_name} — {c.teacher}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Screening Period</label>
-            <div className="grid grid-cols-4 gap-2">
-              {['Term 1', 'Term 2', 'Term 3', 'Term 4'].map(t => (
-                <button key={t} onClick={() => setScreeningPeriod(t)}
-                  className={`py-3 text-sm font-medium rounded-xl border transition-all ${screeningPeriod === t ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
-                  {t}
-                </button>
+        <p className="text-xs text-slate-400 mb-6">Rate each behaviour: 0 = Never, 1 = Sometimes, 2 = Often, 3 = Almost Always</p>
+
+        {sections.map(sec => (
+          <div key={sec.key} className="mb-6">
+            <p className="text-sm font-semibold text-slate-700 mb-3">{sec.label}</p>
+            <div className="space-y-3">
+              {sec.items.map((item, idx) => (
+                <div key={idx} className="flex items-center gap-3">
+                  <span className="text-xs text-slate-600 flex-1 min-w-0">{item}</span>
+                  <div className="flex gap-1 shrink-0">
+                    {[0, 1, 2, 3].map(v => (
+                      <button key={v} onClick={() => setItem(sec.key, idx, v)}
+                        className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all ${scores[sec.key][idx] === v ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
+        ))}
 
-          <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-600 space-y-1.5">
-            <p className="font-semibold text-slate-700 mb-2">What to expect:</p>
-            <p>1. For each student, complete the 19-item SAEBRS teacher rating scale</p>
-            <p>2. Record student self-report responses (7 items) and attendance</p>
-            <p>3. Scores are computed automatically with risk classifications</p>
+        <div className="border-t border-slate-100 pt-4 mt-2">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-semibold text-slate-700">Total Score</span>
+            <span className="text-xl font-bold text-slate-900">{totalScore}/57</span>
           </div>
-
-          <button onClick={startScreening} disabled={!selectedClass} data-testid="start-screening-btn"
-            className="w-full bg-slate-900 text-white py-3.5 rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
-            <ClipboardCheck size={16} /> Begin Screening
-          </button>
-
-          {startError && (
-            <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-xl p-3">
-              <AlertTriangle size={15} className="text-rose-600 shrink-0" />
-              <p className="text-sm text-rose-700">{startError}</p>
-            </div>
-          )}
+          <div className="mt-3 h-2 rounded-full overflow-hidden flex">
+            <div style={{ width: `${(Math.min(24, totalScore) / 57) * 100}%` }} className="bg-rose-400" />
+            <div style={{ width: `${(Math.max(0, Math.min(37, totalScore) - 24) / 57) * 100}%` }} className="bg-amber-400" />
+            <div style={{ width: `${(Math.max(0, totalScore - 37) / 57) * 100}%` }} className="bg-emerald-400" />
+          </div>
+          <div className="flex justify-between text-xs text-slate-400 mt-1">
+            <span>0</span><span className="text-rose-400">24</span><span className="text-amber-400">37</span><span>57</span>
+          </div>
         </div>
-      </div>
-    );
-  }
 
-  if (step === 'complete') {
+        {startError && <p className="text-sm text-rose-600 mt-3">{startError}</p>}
+      </div>
+
+      <div className="flex gap-3">
+        <button onClick={saveCurrentStudent} disabled={saving} data-testid="save-saebrs-btn"
+          className="flex-1 py-3.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 disabled:opacity-60 transition-colors flex items-center justify-center gap-2">
+          {saving ? <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <CheckCircle size={16} />}
+          {saving ? 'Saving…' : current + 1 < students.length ? 'Save & Next Student' : 'Save & Finish'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Self-Report: pick individual student ─────────────────────────────────────
+function SelfReportFlow({ className, term, onDone }) {
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [current, setCurrent] = useState(null);
+  const [screeningId] = useState(`scr_sr_${Date.now()}`);
+  const [completedStudents, setCompletedStudents] = useState(new Set());
+  const [items, setItems] = useState(Array(7).fill(1));
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+
+  useEffect(() => {
+    axios.get(`${API}/students?class_name=${encodeURIComponent(className)}&enrolment_status=active`, { withCredentials: true })
+      .then(r => setStudents(r.data))
+      .catch(e => console.error(e))
+      .finally(() => setLoading(false));
+  }, [className]);
+
+  const student = current !== null ? students[current] : null;
+
+  const save = async () => {
+    if (!student) return;
+    setSaving(true); setSaveError('');
+    try {
+      await axios.post(`${API}/screening/saebrs-plus`, {
+        student_id: student.student_id,
+        screening_id: screeningId,
+        self_report_items: items,
+        attendance_pct: 100,
+        social_domain: 0, academic_domain: 0, emotional_domain: 0, belonging_domain: 0,
+        wellbeing_total: 0, wellbeing_tier: 1,
+      }, { withCredentials: true });
+      setCompletedStudents(prev => new Set([...prev, student.student_id]));
+      setItems(Array(7).fill(1));
+      setCurrent(null);
+    } catch (e) {
+      setSaveError(e.response?.data?.detail || 'Failed to save');
+    }
+    finally { setSaving(false); }
+  };
+
+  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full" /></div>;
+
+  // Student picker
+  if (current === null) {
     return (
-      <div className="p-6 lg:p-8 max-w-xl mx-auto fade-in text-center">
-        <div className="bg-white border border-emerald-200 rounded-2xl p-10">
-          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle size={32} className="text-emerald-600" />
+      <div className="p-6 lg:p-8 max-w-2xl mx-auto fade-in">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Self-Report — {className}</h2>
+            <p className="text-slate-500 text-sm mt-0.5">{term} · Select a student to begin</p>
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2" style={{fontFamily:'Manrope,sans-serif'}}>Screening Complete!</h2>
-          <p className="text-slate-500 mb-6">{completedStudents.size} students screened in {screeningPeriod}</p>
-          <div className="flex flex-col gap-3">
-            <button onClick={() => { setStep('setup'); setCompletedStudents(new Set()); }}
-              className="bg-slate-900 text-white py-3 rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors">
-              Start New Screening
-            </button>
-            <a href="/students" className="text-sm text-slate-500 hover:text-slate-900 py-2">View Student Results →</a>
-          </div>
+          <button onClick={onDone} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors">
+            <X size={14} /> Finish
+          </button>
+        </div>
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+          {students.map((s, i) => {
+            const done = completedStudents.has(s.student_id);
+            return (
+              <div key={s.student_id}
+                onClick={() => !done && (setCurrent(i), setItems(Array(7).fill(1)))}
+                data-testid={`select-student-${s.student_id}`}
+                className={`flex items-center justify-between px-5 py-4 border-b border-slate-50 last:border-0 transition-colors ${done ? 'opacity-50' : 'hover:bg-indigo-50 cursor-pointer'}`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${done ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-100 text-indigo-600'}`}>
+                    {done ? <CheckCircle size={16} /> : s.first_name[0]}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{s.first_name} {s.last_name}</p>
+                    <p className="text-xs text-slate-400">{s.year_level}</p>
+                  </div>
+                </div>
+                {!done && <ChevronRight size={16} className="text-slate-300" />}
+                {done && <span className="text-xs text-emerald-600 font-medium">Completed</span>}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
   }
 
-  const totalItems = SOCIAL_ITEMS.length + ACADEMIC_ITEMS.length + EMOTIONAL_ITEMS.length;
-  const filledItems = [...socialItems, ...academicItems, ...emotionalItems].filter(v => v >= 0).length;
-  const progress = Math.round((filledItems / totalItems) * 100);
-
+  // Self-report form
   return (
-    <div className="p-4 lg:p-6 max-w-3xl mx-auto fade-in">
-      {/* Progress Header */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 mb-5">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{screeningPeriod} · {selectedClass}</p>
-            <h2 className="text-lg font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>
-              {currentStudent?.first_name} {currentStudent?.last_name}
-            </h2>
+    <div className="p-6 lg:p-8 max-w-2xl mx-auto fade-in">
+      <button onClick={() => setCurrent(null)} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-6 transition-colors">
+        <ArrowLeft size={16} /> Back to student list
+      </button>
+
+      <div className="bg-white border border-slate-200 rounded-2xl p-7">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center">
+            <span className="text-lg font-bold text-white">{student.first_name[0]}{student.last_name[0]}</span>
           </div>
-          <span className="text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full font-medium">
-            {currentStudentIdx + 1} / {students.length}
-          </span>
+          <div>
+            <h2 className="text-xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{student.first_name} {student.last_name}</h2>
+            <p className="text-sm text-slate-500">Student Self-Report · {term}</p>
+          </div>
         </div>
-        <div className="flex gap-1 flex-wrap">
-          {students.map((s, i) => (
-            <div key={s.student_id} className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
-              completedStudents.has(s.student_id) ? 'bg-emerald-500 text-white' :
-              i === currentStudentIdx ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400'
-            }`} title={`${s.first_name} ${s.last_name}`}>
-              {i + 1}
+
+        <p className="text-xs text-slate-400 mb-6 bg-indigo-50 rounded-xl p-3 border border-indigo-100">
+          Read each question aloud. Ask the student: "How often do you feel this way?"
+          0 = Never, 1 = Sometimes, 2 = Often, 3 = Almost Always
+        </p>
+
+        <div className="space-y-5">
+          {SELF_REPORT_ITEMS.map((item, idx) => (
+            <div key={idx}>
+              <p className="text-sm text-slate-700 mb-2 font-medium">{idx + 1}. {item.q}</p>
+              <div className="flex gap-2">
+                {[0, 1, 2, 3].map(v => (
+                  <button key={v} onClick={() => setItems(p => p.map((x, i) => i === idx ? v : x))}
+                    className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition-all ${items[idx] === v ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}>
+                    <span className="block">{v}</span>
+                    <span className="block text-xs opacity-60">{RESPONSE_LABELS[v]}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           ))}
         </div>
+
+        {saveError && <p className="text-sm text-rose-600 mt-4">{saveError}</p>}
+
+        <button onClick={save} disabled={saving} data-testid="save-self-report-btn"
+          className="w-full mt-6 py-3.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-2">
+          {saving ? <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <CheckCircle size={16} />}
+          {saving ? 'Saving…' : 'Save Self-Report'}
+        </button>
       </div>
-
-      {/* SAEBRS Form */}
-      {step === 'saebrs' && (
-        <div className="space-y-6">
-          {/* Live score preview */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-            <div className="grid grid-cols-4 gap-3 text-center text-sm">
-              <div>
-                <p className="text-lg font-bold text-slate-900">{socialScore}/18</p>
-                <p className="text-xs text-slate-400">Social</p>
-                <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${getRiskColors(risks.socialRisk)}`}>{risks.socialRisk}</span>
-              </div>
-              <div>
-                <p className="text-lg font-bold text-slate-900">{academicScore}/18</p>
-                <p className="text-xs text-slate-400">Academic</p>
-                <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${getRiskColors(risks.academicRisk)}`}>{risks.academicRisk}</span>
-              </div>
-              <div>
-                <p className="text-lg font-bold text-slate-900">{emotionalScore}/21</p>
-                <p className="text-xs text-slate-400">Emotional</p>
-                <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${getRiskColors(risks.emotionalRisk)}`}>{risks.emotionalRisk}</span>
-              </div>
-              <div>
-                <p className="text-lg font-bold text-slate-900">{totalScore}/57</p>
-                <p className="text-xs text-slate-400">Total</p>
-                <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${getRiskColors(risks.totalRisk)}`}>{risks.totalRisk}</span>
-              </div>
-            </div>
-          </div>
-
-          <p className="text-xs text-slate-400 font-medium">Scale: 0=Never · 1=Rarely · 2=Sometimes · 3=Often</p>
-
-          <div className="bg-white border border-slate-200 rounded-xl p-5">
-            <h3 className="font-semibold text-slate-700 mb-4 text-sm uppercase tracking-wider">Social Behaviour (6 items)</h3>
-            <ScaleSelector items={SOCIAL_ITEMS} scale={TEACHER_SCALE} values={socialItems}
-              onChange={(i, v) => setSocialItems(prev => { const n = [...prev]; n[i] = v; return n; })} />
-          </div>
-          <div className="bg-white border border-slate-200 rounded-xl p-5">
-            <h3 className="font-semibold text-slate-700 mb-4 text-sm uppercase tracking-wider">Academic Behaviour (6 items)</h3>
-            <ScaleSelector items={ACADEMIC_ITEMS} scale={TEACHER_SCALE} values={academicItems}
-              onChange={(i, v) => setAcademicItems(prev => { const n = [...prev]; n[i] = v; return n; })} />
-          </div>
-          <div className="bg-white border border-slate-200 rounded-xl p-5">
-            <h3 className="font-semibold text-slate-700 mb-4 text-sm uppercase tracking-wider">Emotional Behaviour (7 items)</h3>
-            <ScaleSelector items={EMOTIONAL_ITEMS} scale={TEACHER_SCALE} values={emotionalItems}
-              onChange={(i, v) => setEmotionalItems(prev => { const n = [...prev]; n[i] = v; return n; })} />
-          </div>
-
-          <div className="sticky bottom-4">
-            <button onClick={saveSaebrs} disabled={saving} data-testid="save-saebrs-btn"
-              className="w-full bg-slate-900 text-white py-4 rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg">
-              {saving ? <Loader size={16} className="animate-spin" /> : null}
-              Save SAEBRS & Continue to Wellbeing Self-Report
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* SAEBRS+ Form */}
-      {step === 'saebrs_plus' && (
-        <div className="space-y-6">
-          <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
-            <p className="text-sm font-semibold text-indigo-900">SAEBRS+ Student Self-Report</p>
-            <p className="text-xs text-indigo-600 mt-1">Record the student's own responses below. Scale: 0=Not true · 1=A little true · 2=Mostly true · 3=Very true</p>
-          </div>
-
-          <div className="bg-white border border-slate-200 rounded-xl p-5">
-            <h3 className="font-semibold text-slate-700 mb-4 text-sm uppercase tracking-wider">Student Self-Report (7 items)</h3>
-            <ScaleSelector items={SELF_REPORT_ITEMS} scale={STUDENT_SCALE} values={selfReportItems}
-              onChange={(i, v) => setSelfReportItems(prev => { const n = [...prev]; n[i] = v; return n; })} />
-          </div>
-
-          <div className="bg-white border border-slate-200 rounded-xl p-5">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Attendance Percentage (%)</label>
-            <p className="text-xs text-slate-400 mb-3">Enter this student's attendance rate for the current term</p>
-            <div className="flex items-center gap-3">
-              <input type="number" min="0" max="100" value={attendancePct}
-                onChange={e => setAttendancePct(e.target.value)}
-                data-testid="attendance-pct-input"
-                className="w-32 px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 text-center font-bold" />
-              <span className="text-slate-500 text-sm">%</span>
-              <span className={`text-sm font-medium px-3 py-1.5 rounded-full ${
-                parseFloat(attendancePct) >= 95 ? 'bg-emerald-100 text-emerald-700' :
-                parseFloat(attendancePct) >= 90 ? 'bg-amber-100 text-amber-700' :
-                parseFloat(attendancePct) >= 80 ? 'bg-orange-100 text-orange-700' : 'bg-rose-100 text-rose-700'}`}>
-                {parseFloat(attendancePct) >= 95 ? 'Excellent' : parseFloat(attendancePct) >= 90 ? 'Satisfactory' :
-                parseFloat(attendancePct) >= 80 ? 'Below Target' : 'Critical'}
-              </span>
-            </div>
-          </div>
-
-          <div className="sticky bottom-4 flex gap-3">
-            <button onClick={() => setStep('saebrs')}
-              className="flex items-center gap-2 px-5 py-4 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors">
-              <ChevronLeft size={16} /> Back
-            </button>
-            <button onClick={savePlus} disabled={saving} data-testid="save-plus-btn"
-              className="flex-1 bg-slate-900 text-white py-4 rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg">
-              {saving ? <Loader size={16} className="animate-spin" /> : null}
-              {currentStudentIdx < students.length - 1 ? 'Save & Next Student' : 'Save & Complete Screening'}
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
+}
+
+// ─── Main Screening Page ──────────────────────────────────────────────────────
+export default function ScreeningPage() {
+  const [step, setStep] = useState('mode');  // 'mode' | 'class' | 'screen'
+  const [mode, setMode] = useState(null);    // 'saebrs' | 'self-report'
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedTerm, setSelectedTerm] = useState('');
+
+  const handleModeSelect = (m) => { setMode(m); setStep('class'); };
+  const handleClassSelect = (cls, term) => { setSelectedClass(cls); setSelectedTerm(term); setStep('screen'); };
+  const handleDone = () => { setStep('mode'); setMode(null); setSelectedClass(''); setSelectedTerm(''); };
+
+  if (step === 'mode') return <ModeSelect onSelect={handleModeSelect} />;
+  if (step === 'class') return <ClassSelect mode={mode} onNext={handleClassSelect} onBack={() => setStep('mode')} />;
+  if (step === 'screen' && mode === 'saebrs') return <SAEBRSFlow className={selectedClass} term={selectedTerm} onDone={handleDone} />;
+  if (step === 'screen' && mode === 'self-report') return <SelfReportFlow className={selectedClass} term={selectedTerm} onDone={handleDone} />;
+  return null;
 }

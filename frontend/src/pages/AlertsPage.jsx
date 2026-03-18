@@ -1,28 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Bell, CheckCircle, AlertTriangle, Filter } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Bell, CheckCircle, AlertTriangle, Filter, ThumbsUp, ThumbsDown } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const ALERT_TYPE_LABELS = {
   high_risk_saebrs: 'High Risk SAEBRS',
-  low_attendance_80: 'Critical Attendance (<80%)',
-  low_attendance_90: 'Low Attendance (<90%)',
+  tier_change: 'Tier Change',
   emotional_distress: 'Emotional Distress',
   rapid_decline: 'Rapid Score Decline',
 };
 
 const ALERT_TYPE_COLORS = {
   high_risk_saebrs: 'bg-rose-100 text-rose-700 border-rose-200',
-  low_attendance_80: 'bg-rose-100 text-rose-700 border-rose-200',
-  low_attendance_90: 'bg-amber-100 text-amber-700 border-amber-200',
+  tier_change: 'bg-indigo-100 text-indigo-700 border-indigo-200',
   emotional_distress: 'bg-purple-100 text-purple-700 border-purple-200',
   rapid_decline: 'bg-orange-100 text-orange-700 border-orange-200',
 };
 
 export default function AlertsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const role = user?.role || '';
+  const canApprove = ['admin', 'leadership', 'wellbeing'].includes(role);
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showResolved, setShowResolved] = useState(false);
@@ -46,6 +48,16 @@ export default function AlertsPage() {
 
   const resolve = async (id) => {
     await axios.put(`${API}/alerts/${id}/resolve`, {}, { withCredentials: true });
+    setAlerts(prev => prev.filter(a => a.alert_id !== id));
+  };
+
+  const approveAlert = async (id) => {
+    await axios.put(`${API}/alerts/${id}/approve`, {}, { withCredentials: true });
+    setAlerts(prev => prev.filter(a => a.alert_id !== id));
+  };
+
+  const rejectAlert = async (id) => {
+    await axios.put(`${API}/alerts/${id}/reject`, {}, { withCredentials: true });
     setAlerts(prev => prev.filter(a => a.alert_id !== id));
   };
 
@@ -157,18 +169,32 @@ export default function AlertsPage() {
                       {ALERT_TYPE_LABELS[alert.alert_type] || alert.alert_type}
                     </span>
                     {!alert.is_read && <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />}
+                    {alert.pending_approval && <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 font-medium">Pending Approval</span>}
                   </div>
                   <p className="text-sm text-slate-600">{alert.message}</p>
                   <p className="text-xs text-slate-400 mt-1">{alert.created_at?.split('T')[0]}</p>
                 </div>
-                <div className="flex gap-1.5 shrink-0">
+                <div className="flex gap-1.5 shrink-0 flex-wrap justify-end">
+                  {/* Tier change pending approval buttons */}
+                  {alert.alert_type === 'tier_change' && alert.pending_approval && canApprove && (
+                    <>
+                      <button onClick={() => approveAlert(alert.alert_id)} data-testid={`approve-tier-${alert.alert_id}`}
+                        className="text-xs px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center gap-1">
+                        <ThumbsUp size={11} /> Approve
+                      </button>
+                      <button onClick={() => rejectAlert(alert.alert_id)} data-testid={`reject-tier-${alert.alert_id}`}
+                        className="text-xs px-2.5 py-1 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 hover:bg-rose-100 transition-colors flex items-center gap-1">
+                        <ThumbsDown size={11} /> Reject
+                      </button>
+                    </>
+                  )}
                   {!alert.is_read && (
                     <button onClick={() => markRead(alert.alert_id)}
                       className="text-xs px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors">
                       Mark Read
                     </button>
                   )}
-                  {!showResolved && (
+                  {!showResolved && !alert.pending_approval && (
                     <button onClick={() => resolve(alert.alert_id)}
                       className="text-xs px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-600 hover:bg-emerald-100 transition-colors">
                       Resolve

@@ -5,13 +5,14 @@ import { useSettings } from '../context/SettingsContext';
 import {
   Settings, Trash2, Database, AlertTriangle, CheckCircle, Loader, School,
   Download, Upload, RefreshCw, Palette, Building2, Image, Plus, X,
-  Sliders, ToggleLeft, ToggleRight, Tag, User, Shield
+  Sliders, ToggleLeft, ToggleRight, Tag, User, Shield, RotateCcw
 } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const ROLE_OPTIONS = [
   { value: 'teacher', label: 'Teacher', desc: 'Can complete screenings & view class data' },
+  { value: 'screener', label: 'Screener', desc: 'Can process SAEBRS & Student Self-Report screenings' },
   { value: 'wellbeing', label: 'Wellbeing Staff', desc: 'Manages interventions & case notes' },
   { value: 'leadership', label: 'Leadership', desc: 'Views analytics & meeting prep' },
   { value: 'admin', label: 'Administrator', desc: 'Full access + user management' },
@@ -25,7 +26,7 @@ const FIELD_TYPES = ['text', 'select', 'boolean', 'number'];
 
 function TabNav({ tabs, active, onChange }) {
   return (
-    <div className="flex border-b border-slate-200 mb-6 gap-0 overflow-x-auto">
+    <div className="flex border-b border-slate-200 mb-6 gap-0 flex-wrap">
       {tabs.map(t => (
         <button
           key={t}
@@ -167,7 +168,8 @@ function BrandingTab({ settings: s, onSave, saving, msg, msgType }) {
 
 // ── MTSS & SCREENING TAB ─────────────────────────────────────────────────────
 function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
-  const [thresholds, setThresholds] = useState({ saebrs_some_risk: 37, saebrs_high_risk: 24, attendance_some_risk: 90, attendance_high_risk: 80, ...s.tier_thresholds });
+  const DEFAULT_THRESHOLDS = { saebrs_some_risk: 37, saebrs_high_risk: 24, attendance_some_risk: 95, attendance_high_risk: 90 };
+  const [thresholds, setThresholds] = useState({ ...DEFAULT_THRESHOLDS, ...s.tier_thresholds });
   const [modules, setModules] = useState({ saebrs_plus: true, ...s.modules_enabled });
   const [intTypes, setIntTypes] = useState(s.intervention_types || []);
   const [newType, setNewType] = useState('');
@@ -177,6 +179,7 @@ function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
     if (v && !intTypes.includes(v)) { setIntTypes(prev => [...prev, v]); setNewType(''); }
   };
   const removeType = (t) => setIntTypes(prev => prev.filter(x => x !== t));
+  const resetThresholds = () => setThresholds({ ...DEFAULT_THRESHOLDS });
 
   const handleSave = () => onSave({ tier_thresholds: thresholds, modules_enabled: modules, intervention_types: intTypes });
 
@@ -191,7 +194,13 @@ function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
 
       {/* Tier thresholds */}
       <div className="bg-white border border-slate-200 rounded-xl p-6">
-        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Tier Classification Thresholds</h3>
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Tier Classification Thresholds</h3>
+          <button onClick={resetThresholds} data-testid="reset-thresholds-btn"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+            <RotateCcw size={11} /> Reset to Defaults
+          </button>
+        </div>
         <p className="text-xs text-slate-400 mb-5">Adjust the score cut-offs used to classify students into Tier 1, 2, and 3.</p>
         <div className="space-y-5">
           <div>
@@ -262,7 +271,7 @@ function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
         <p className="text-xs text-slate-400 mb-4">Enable or disable screening components for your school.</p>
         <div className="space-y-3">
           {[
-            { key: 'saebrs_plus', label: 'SAEBRS+ Wellbeing Self-Report', desc: '7-item student self-report for social, emotional, and school belonging' },
+            { key: 'saebrs_plus', label: 'Student Self-Report', desc: '7-item student self-report for social, emotional, and school belonging (completed individually with student)' },
           ].map(({ key, label, desc }) => (
             <div key={key} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
               <div>
@@ -516,11 +525,7 @@ function GeneralTab({ settings: s, onSave, saving, msg, msgType }) {
         </div>
       </div>
 
-      {/* Your Role */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6">
-        <h3 className="font-semibold text-slate-900 mb-4" style={{ fontFamily: 'Manrope,sans-serif' }}>Your Role</h3>
-        <RoleSection />
-      </div>
+      {/* Your Role block removed — use User Management to change roles */}
 
       <button onClick={handleSave} disabled={saving} data-testid="save-general-btn"
         className="w-full py-3.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
