@@ -86,7 +86,10 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 
 ## What's Been Implemented (Chronological)
 
-### Session 5 (Cohort Analytics + Auto Alerts + Seed Fix)
+### Session 5b (Attendance Bug Fix)
+- **Root cause fixed**: Old stale `/api/attendance/{student_id}` route (using obsolete `db.attendance` collection) was shadowing all new attendance endpoints (`/attendance/summary`, `/attendance/student/{student_id}`, `/attendance/types`). Removed the two dead routes.
+- **Enhanced summary**: Added `absent_sessions` and `total_sessions` to the attendance summary response (was missing, showed `—` in UI). Refactored `get_student_attendance_pct` into `get_student_attendance_stats` returning all three metrics in one pass.
+- **Alert count in UI**: Attendance upload result panel now shows "N alerts auto-generated" when attendance alerts are created.
 - **Cohort Comparison Analytics**: New "Cohort Comparison" tab on Analytics page with year_level/class dropdown; shows tier distribution, avg attendance, and SAEBRS risk charts per cohort. Backend `/api/analytics/cohort-comparison?group_by=year_level|class_name`.
 - **Automated Attendance Alerts**: Attendance upload now auto-generates early_warning alerts for students below 80% (high severity) or 90% (medium severity). Resolves existing alerts if attendance recovers.
 - **Seed Data Overhaul**: Removed 200+ lines of dead code; seed now generates 55 school days (Feb–May 2025), Camp/Excursion excluded absences, half-day records, completed interventions, and tier-change alerts.

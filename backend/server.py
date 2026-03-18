@@ -239,7 +239,11 @@ FULL_PRESENT_STATUSES = {
 }
 
 async def get_student_attendance_pct(student_id: str) -> float:
-    # New exception-based approach: school_days tracks uploaded dates
+    stats = await get_student_attendance_stats(student_id)
+    return stats["pct"]
+
+async def get_student_attendance_stats(student_id: str) -> dict:
+    """Returns {pct, total_sessions, absent_sessions} for a student."""
     school_days_list = await db.school_days.distinct("date")
 
     if school_days_list:
@@ -250,6 +254,7 @@ async def get_student_attendance_pct(student_id: str) -> float:
 
         total_sessions = 0
         present_sessions = 0.0
+        absent_sessions = 0
 
         for day in school_days_list:
             if day not in exc_by_date:
@@ -263,25 +268,28 @@ async def get_student_attendance_pct(student_id: str) -> float:
                         total_sessions += 1
                         present_sessions += 1.0
                     elif s in excluded_types:
-                        pass  # excluded — neutral, don't count either way
+                        pass  # excluded — neutral
                     elif s == "Present":
                         total_sessions += 1
-                        present_sessions += 0.5  # half-day attendance
+                        present_sessions += 0.5
+                        absent_sessions += 1
                     elif s in FULL_PRESENT_STATUSES:
                         total_sessions += 1
                         present_sessions += 1.0
                     else:
                         total_sessions += 1
-                        present_sessions += 0.0  # absent
+                        present_sessions += 0.0
+                        absent_sessions += 1
 
         if total_sessions == 0:
-            return 100.0
-        return (present_sessions / total_sessions) * 100.0
+            return {"pct": 100.0, "total_sessions": 0, "absent_sessions": 0}
+        pct = (present_sessions / total_sessions) * 100.0
+        return {"pct": pct, "total_sessions": total_sessions, "absent_sessions": absent_sessions}
     else:
-        # Fallback: old calculation from attendance_records (used for demo data)
+        # Fallback: calculate from raw attendance_records
         records = await db.attendance_records.find({"student_id": student_id}, {"_id": 0}).to_list(5000)
         if not records:
-            return 100.0
+            return {"pct": 100.0, "total_sessions": 0, "absent_sessions": 0}
         total_sessions = 0
         absent_sessions = 0
         for r in records:
@@ -296,8 +304,9 @@ async def get_student_attendance_pct(student_id: str) -> float:
                 if pm not in PRESENT_STATUSES:
                     absent_sessions += 1
         if total_sessions == 0:
-            return 100.0
-        return ((total_sessions - absent_sessions) / total_sessions) * 100
+            return {"pct": 100.0, "total_sessions": 0, "absent_sessions": 0}
+        pct = ((total_sessions - absent_sessions) / total_sessions) * 100
+        return {"pct": pct, "total_sessions": total_sessions, "absent_sessions": absent_sessions}
 
 # ==============================
 # AUTH ROUTES
@@ -706,26 +715,6 @@ async def get_student_profile(student_id: str, user=Depends(get_current_user)):
 # ATTENDANCE ROUTES
 # ==============================
 
-@api_router.get("/attendance/{student_id}")
-async def get_attendance(student_id: str, user=Depends(get_current_user)):
-    records = await db.attendance.find({"student_id": student_id}, {"_id": 0}).sort("date", -1).to_list(365)
-    return records
-
-@api_router.post("/attendance")
-async def add_attendance(record: AttendanceRecord, user=Depends(get_current_user)):
-    d = record.model_dump()
-    await db.attendance.insert_one({**d})
-    student = await db.students.find_one({"student_id": record.student_id}, {"_id": 0})
-    if student:
-        pct = await get_student_attendance_pct(record.student_id)
-        name = f"{student['first_name']} {student['last_name']}"
-        if pct < 80:
-            await create_alert(record.student_id, name, student["class_name"], "low_attendance_80", "high",
-                               f"{name} has critically low attendance ({pct:.0f}%)")
-        elif pct < 90:
-            await create_alert(record.student_id, name, student["class_name"], "low_attendance_90", "medium",
-                               f"{name} attendance is below 90% ({pct:.0f}%)")
-    return d
 
 # ==============================
 # SCREENING ROUTES
@@ -1558,17 +1547,17 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
 async def get_attendance_summary(user=Depends(get_current_user)):
     students_list = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
     school_days_list = await db.school_days.distinct("date")
-    settings_doc = await get_school_settings_doc()
-    excluded_types = set(settings_doc.get("excluded_absence_types", []))
     result = []
     for s in students_list:
-        att_pct = await get_student_attendance_pct(s["student_id"])
-        has_data = len(school_days_list) > 0 or await db.attendance_records.count_documents({"student_id": s["student_id"]}) > 0
+        stats = await get_student_attendance_stats(s["student_id"])
+        att_pct = stats["pct"]
+        has_data = len(school_days_list) > 0 or stats["total_sessions"] > 0
         if not has_data:
             result.append({**s, "attendance_pct": None, "total_sessions": 0, "absent_sessions": 0, "has_data": False, "attendance_tier": None})
             continue
         tier = 1 if att_pct >= 95 else (2 if att_pct >= 90 else 3)
-        result.append({**s, "attendance_pct": round(att_pct, 1), "has_data": True, "attendance_tier": tier})
+        result.append({**s, "attendance_pct": round(att_pct, 1), "total_sessions": stats["total_sessions"],
+                       "absent_sessions": stats["absent_sessions"], "has_data": True, "attendance_tier": tier})
     return result
 
 @api_router.get("/attendance/student/{student_id}")

@@ -850,6 +850,9 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
           <div className="mt-3 p-3 bg-slate-50 rounded-xl text-xs text-slate-600 space-y-1">
             <p><strong>School days registered:</strong> {attResult.school_days_registered}</p>
             <p><strong>Exception records:</strong> {attResult.processed} &nbsp; <strong>Students matched:</strong> {attResult.matched_students}</p>
+            {attResult.alerts_generated > 0 && (
+              <p className="text-amber-700"><strong>{attResult.alerts_generated}</strong> attendance alert{attResult.alerts_generated !== 1 ? 's' : ''} auto-generated — check the Alerts page.</p>
+            )}
             {attResult.unmatched_students > 0 && (
               <p className="text-amber-600">⚠ {attResult.unmatched_students} student IDs not matched. Check SussiId values.</p>
             )}
