@@ -263,7 +263,7 @@ export default function StudentsPage() {
   useEffect(() => { loadStudents(); }, []);
 
   const filtered = students.filter(s => {
-    const name = `${s.first_name} ${s.last_name}`.toLowerCase();
+    const name = `${s.first_name} ${s.preferred_name || ''} ${s.last_name}`.toLowerCase();
     const matchSearch = !search || name.includes(search.toLowerCase());
     const matchClass = !filterClass || s.class_name === filterClass;
     const matchTier = !filterTier || String(s.mtss_tier) === filterTier;
@@ -446,7 +446,7 @@ export default function StudentsPage() {
                           <div className="w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center shrink-0">
                             <span className="text-xs font-semibold text-slate-600">{s.first_name[0]}{s.last_name[0]}</span>
                           </div>
-                          <span className="font-medium text-slate-900">{s.first_name} {s.last_name}</span>
+                          <span className="font-medium text-slate-900">{s.first_name}{s.preferred_name ? ` (${s.preferred_name})` : ''} {s.last_name}</span>
                         </div>
                       </td>
                       <td className="py-3.5 px-4 text-slate-600">{s.class_name}</td>

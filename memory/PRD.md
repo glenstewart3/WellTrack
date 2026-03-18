@@ -1,151 +1,162 @@
-# WellTrack — MTSS Wellbeing Platform PRD
+# WellTrack — MTSS Platform PRD
 
-**Last Updated:** 2026-03-18
-**Status:** Active Development — Large batch of features completed
-
----
-
-## Problem Statement
-A school MTSS platform for screening, risk identification, intervention tracking and analytics. Supports SAEBRS screening, Student Self-Report, attendance tracking, tiering logic, and wellbeing analytics.
-
----
-
-## User Roles
-| Role | Access |
-|------|--------|
-| Teacher | Screening (SAEBRS + Self-Report), own class data |
-| Screener | SAEBRS + Self-Report screening only |
-| Wellbeing Staff | Interventions, case notes, alerts, tier change approval |
-| Leadership | Analytics, attendance upload, meeting prep, tier change approval |
-| Administrator | Full access + user management, settings, attendance types |
+## Original Problem Statement
+Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack** that integrates:
+- A behavioral screener (SAEBRS) completed by teachers
+- A student self-report wellbeing system (SAEBRS+)
+- Attendance tracking with tiering
+- Intervention management
+- Analytics and reporting
 
 ---
 
-## Core Modules / Pages
-- **Dashboard** — overview with tier distribution
-- **Screening** — SAEBRS and Student Self-Report (separate workflows)
-- **Students** — list, search, filter, Add Student, Import Students
-- **Student Profile** — SAEBRS trend (tier bands + domain toggle), Self-Report, interventions, case notes
-- **Class Risk Radar** — class-level overview
-- **Analytics** — school-wide analytics
-- **Attendance** — XLSX/CSV upload, per-student % with tier bands, absence patterns (admin/leadership only)
-- **Interventions** — active/completed interventions
-- **Alerts** — early warning, tier change (with Approve/Reject), emotional distress
-- **MTSS Meeting** — meeting prep
-- **Reports** — downloadable reports
-- **Settings** — branding, MTSS logic, users, intervention types
-- **User Management** — admin only
-
----
-
-## What's Been Implemented
-
-### MVP (2026-03)
-- Full auth with custom Google OAuth (Authlib → then replaced with manual httpx flow)
-- MongoDB-backed OAuth state (fixes CSRF issue in K8s proxy)
-- Onboarding wizard for first admin
-- All core pages and navigation
-
-### Auth P0 Fix (2026-03-16)
-- Fixed `mismatching_state` CSRF error via MongoDB-backed state store
-- Fixed `UnboundLocalError` in callback
-
-### Large Feature Batch (2026-03-18)
-- **Removed**: Made with Emergent badge, AI Intervention Suggestions, Your Role from Settings, attendance field from SAEBRS screener
-- **Fixed**: Accent color not persisting (`PUT /api/settings` now accepts full dict, no longer strips branding fields), Settings tab scrollbar
-- **New Screening Workflow**: Mode selection (SAEBRS vs Self-Report) → Class/Term → individual student form
-  - SAEBRS: Teacher screens whole class sequentially (no attendance field)
-  - Self-Report: Teacher picks individual student from class list
-- **Student Profile**: SAEBRS Score Trend now has colour-coded Tier 1/2/3 background bands + Total/Domains toggle
-- **Wellbeing Domain Profile**: Attendance domain removed (4 domains: Social, Academic, Emotional, Belonging)
-- **Attendance Module**: New page (admin/leadership only), XLSX/CSV upload (parses ID, Date, AM, PM columns), per-student % with tier badges, monthly trend chart, absence pattern breakdown, auto-discovers new absence types from uploads
-- **Tier Change Alerts**: Auto-generated when SAEBRS result changes student's tier; visible in Alerts page with Approve/Reject buttons for wellbeing/leadership/admin
-- **Add Student**: Single student add modal alongside Import Students button
-- **Screener Role**: New role for staff whose only job is screening
-- **Reset to Defaults**: Button in Settings MTSS tab for tier thresholds
-- **Intervention Types**: Add/remove from Settings (already existed, confirmed working)
+## Core User Personas
+- **Admin**: Full access — settings, imports, data management
+- **Leadership**: Reports, meeting prep, alerts approval
+- **Wellbeing Staff**: Interventions, case notes, AI suggestions
+- **Screener/Teacher**: Complete screenings for their class
 
 ---
 
 ## Architecture
-
 ```
 /app/
-├── backend/
-│   ├── .env              # MONGO_URL, DB_NAME, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, FRONTEND_URL, SESSION_SECRET
-│   ├── requirements.txt  # includes openpyxl==3.1.5
-│   └── server.py         # Monolithic FastAPI (~1400 lines)
-├── frontend/
-│   ├── .env              # REACT_APP_BACKEND_URL
-│   └── src/
-│       ├── App.js
-│       ├── components/DashboardLayout.jsx
-│       ├── context/AuthContext.jsx, SettingsContext.jsx
-│       └── pages/
-│           ├── AttendancePage.jsx  (NEW)
-│           ├── ScreeningPage.jsx   (rewritten)
-│           ├── StudentProfilePage.jsx
-│           ├── StudentsPage.jsx
-│           ├── AlertsPage.jsx
-│           ├── SettingsPage.jsx
-│           └── ...
+├── backend/server.py       # Monolithic FastAPI + MongoDB (Motor async)
+├── frontend/src/
+│   ├── App.js
+│   ├── context/
+│   │   ├── AuthContext.jsx
+│   │   └── SettingsContext.jsx
+│   ├── pages/
+│   │   ├── AlertsPage.jsx        ✅ Two tabs: Early Warning / Tier Change
+│   │   ├── AnalyticsPage.jsx     ✅ Three tabs: Overview / Attendance / Interventions
+│   │   ├── AttendancePage.jsx    ✅ View only (upload moved to Settings > Imports)
+│   │   ├── InterventionsPage.jsx ✅ Row-click detail modal, AI suggestions (Ollama)
+│   │   ├── LoginPage.jsx
+│   │   ├── MeetingPrepPage.jsx   ✅ Two tabs: Students / Tier Changes
+│   │   ├── OnboardingPage.jsx
+│   │   ├── ScreeningPage.jsx
+│   │   ├── SettingsPage.jsx      ✅ Tabs: General/Branding/MTSS/Student Data/Imports/Integrations/Data
+│   │   ├── StudentProfilePage.jsx ✅ Editable interventions/notes, attendance radar, PDF export
+│   │   └── StudentsPage.jsx
+│   └── utils/
+│       ├── tierUtils.js
+│       └── pdfExport.js          ✅ jsPDF-based exports
 └── memory/PRD.md
 ```
 
 ---
 
+## 3rd Party Integrations
+- **Custom Google OAuth2** (authlib + SessionMiddleware)
+- **openpyxl** — XLSX file parsing
+- **httpx** — Ollama API calls (AI suggestions)
+- **jsPDF + jspdf-autotable** — PDF generation
+
+---
+
 ## Key DB Collections
-- `users` — email, name, picture, role
-- `school_settings` — platform_name, accent_color, logo_base64, tier_thresholds, modules_enabled, intervention_types, absence_types
-- `students` — student_id, first_name, last_name, year_level, class_name, teacher, external_id (for attendance matching)
-- `saebrs_results` — per-student screening results
-- `saebrs_plus_results` — per-student self-report results
-- `interventions` — active/completed interventions
-- `case_notes` — case notes per student
-- `alerts` — early warning + tier change alerts (pending_approval field)
-- `attendance_records` — parsed from uploaded XLSX/CSV (student_id, date, am_status, pm_status)
-- `oauth_states` — short-lived OAuth state for CSRF protection
-- `user_sessions` — session tokens
+- `students` — {student_id, first_name, preferred_name, last_name, sussi_id, external_id, class_name, year_level, teacher, ...}
+- `school_settings` — {accent_color, platform_name, tier_thresholds, ollama_url, ollama_model, ai_suggestions_enabled, excluded_absence_types, ...}
+- `saebrs_results` — Teacher-led SAEBRS screening results
+- `saebrs_plus_results` — Student self-report results
+- `attendance_records` — Exception-based records (absence/exception students only)
+- `school_days` — Set of dates that were uploaded as school days
+- `interventions` — {intervention_id, student_id, type, staff, status, goals, progress_notes, ...}
+- `case_notes` — {case_id, student_id, note_type, notes, staff_member, date, ...}
+- `alerts` — {alert_id, type: 'early_warning'|'tier_change', status: 'pending'|'approved'|'rejected', ...}
+- `users` — {email, name, picture, role}
 
 ---
 
 ## Key API Endpoints
-- `GET/POST /api/auth/google` — OAuth login redirect
-- `GET /api/auth/callback` — OAuth callback (no Starlette sessions; uses MongoDB state)
-- `GET /api/onboarding/status`
-- `POST /api/onboarding/complete`
-- `GET /api/public-settings`
-- `GET/PUT /api/settings` — full school settings (PUT now accepts raw dict)
-- `GET /api/students` — list with filters
-- `POST /api/students` — create single student
-- `POST /api/students/import` — bulk CSV import
-- `PUT /api/students/{id}/external-id` — link to attendance system ID
-- `POST /api/attendance/upload` — XLSX/CSV upload
-- `GET /api/attendance/summary` — per-student attendance % and tier
-- `GET /api/attendance/student/{id}` — detailed attendance with monthly trend
-- `GET/PUT /api/attendance/types` — manage absence type list
-- `POST /api/screening/saebrs` — submit SAEBRS result
-- `POST /api/screening/saebrs-plus` — submit Self-Report result
-- `PUT /api/alerts/{id}/approve` — approve tier change
-- `PUT /api/alerts/{id}/reject` — reject tier change
+- `GET /api/public-settings` — No auth, branding fields only
+- `GET /api/settings` / `PUT /api/settings` — Full settings
+- `POST /api/students/import` — Import from school system CSV (SussiId-based)
+- `POST /api/attendance/upload` — Exception-based attendance upload
+- `GET /api/school-days` — List of uploaded school days
+- `GET /api/analytics/school-wide` — Overview with tier_distribution, risk_distribution, class_breakdown
+- `GET /api/analytics/attendance-trends` — Monthly trend, day-of-week, chronic absentees
+- `POST /api/interventions/ai-suggest/{student_id}` — Ollama AI suggestions
+- `PUT /api/case-notes/{id}` — Edit a case note
+- `GET /api/meeting-prep` — Returns {students, tier_changes}
+- `POST /api/settings/seed` — Load demo data
 
 ---
 
-## P0/P1/P2 Backlog
+## What's Been Implemented (Chronological)
 
-### P0 — Resolved
-- Auth CSRF fix ✅
-- Accent color save bug ✅
-- Screening page runtime error ✅
+### Session 1–2 (Initial Build)
+- Google OAuth authentication
+- Onboarding wizard
+- Student management (add, import basic CSV)
+- SAEBRS screening workflow (class-based → student-by-student)
+- SAEBRS+ self-report
+- Settings page (branding, MTSS thresholds, intervention types)
+- Screener role with limited permissions
 
-### P1 — In Progress / Remaining
-- [ ] Progress monitoring graphs in Student Profile (not yet implemented)
-- [ ] Cohort comparison in Analytics
-- [ ] Classroom Risk Radar — advanced sorting/filtering
+### Session 3 (Attendance + Alerts)
+- Attendance upload module (XLSX/CSV)
+- Automatic tiering based on attendance %
+- Alert system: tier changes + early warnings
+- Alert approval/rejection flow
+- Renamed SAEBRS+ to "Student Self-Report"
 
-### P2 — Future
-- [ ] PDF export for reports
-- [ ] MTSS Meeting Support page with export
-- [ ] Email notifications for non-whitelisted login attempts
-- [ ] External ID bulk assignment (e.g., map CSV with name→external_id)
-- [ ] NAPLAN / external data integration
+### Session 4 (Large Feature Batch)
+- **P0 Fix**: Accent color stale-init bug in BrandingTab (useEffect sync)
+- **Student Import Rework**: New CSV format with SussiId, PreferredName, Surname, FormGroup
+  - Display: `FirstName (PreferredName) LastName` throughout the app
+  - Moved to Settings > Imports tab
+- **Attendance Rework**:
+  - Exception-based upload (unlisted students = present)
+  - `school_days` collection tracks uploaded dates
+  - "Present" status = half-day attendance
+  - Excluded absence types (configurable in Settings > Imports)
+  - Attendance domain restored to student radar chart
+  - Moved to Settings > Imports tab
+- **Ollama AI Suggestions**:
+  - `POST /api/interventions/ai-suggest/{student_id}` via Ollama
+  - Settings > Integrations tab: URL, model, enable/disable toggle
+- **Interventions Page**:
+  - Row-click → detail modal (view + update progress/status)
+  - Removed "Pause" button
+  - AI suggestions panel with Ollama note
+  - PDF export button
+- **Alerts Page**: Two tabs — Early Warnings / Tier Changes
+- **MTSS Meeting Page**: Added Tier Changes tab (students who moved tiers)
+- **Analytics**: Three tabs — Overview (with tier_distribution, risk_distribution, class_breakdown), Attendance (monthly trend, day-of-week, chronic absentees), Interventions (by type, completion rates)
+- **Student Profile**:
+  - Inline editable interventions (click Edit button)
+  - Inline editable case notes (click Edit button)
+  - Preferred name display
+  - PDF export button
+- **PDF Exports**: `pdfExport.js` with exportStudentProfile, exportInterventionsReport, exportMeetingReport using jsPDF
+- **Demo Data**: Updated seed with sussi_id, preferred_name, exception-based attendance, tier_change alerts
+
+---
+
+## Prioritized Backlog
+
+### P0 — None
+
+### P1 — High Priority
+- None outstanding
+
+### P2 — Medium Priority
+- **Wellbeing Check-in**: Simple daily wellbeing check-in for students (on hold by user)
+- **server.py Refactoring**: Split into APIRouter modules (auth, students, settings, interventions, analytics, attendance) - now 1800+ lines
+- **Cohort Comparison**: Analytics page > expand cohort comparison section (endpoint exists at /api/analytics/cohort-comparison)
+
+### P3 — Nice to Have
+- Edit student modal (currently can only edit via add)
+- Bulk archive/deactivate students
+- Email notifications for alerts
+- Screening history comparison charts on student profile
+- Export all student data as CSV
+
+---
+
+## Known Issues / Notes
+- Ollama AI suggestions require Ollama to be running locally (returns 503 if not available)
+- PDF export uses browser-side jsPDF (no server dependency)
+- The `school_days` collection is separate from `attendance_records` - both must be seeded correctly for the new attendance % calculation to work

@@ -1054,25 +1054,59 @@ async def school_wide(year_level: Optional[str] = None, user=Depends(get_current
     domain_totals = {"social": 0, "academic": 0, "emotional": 0, "belonging": 0, "attendance": 0}
     domain_counts = 0
     tier_by_year = {}
+    tier_distribution = {1: 0, 2: 0, 3: 0}
+    risk_distribution = {"low": 0, "some": 0, "high": 0}
+    class_breakdown = {}
+    screened_count = 0
+
     for s in students:
         sid = s["student_id"]
         yr = s["year_level"]
+        cls = s["class_name"]
+
         if yr not in tier_by_year:
             tier_by_year[yr] = {"tier1": 0, "tier2": 0, "tier3": 0}
+        if cls not in class_breakdown:
+            class_breakdown[cls] = {"tier1": 0, "tier2": 0, "tier3": 0}
+
         saebrs = await db.saebrs_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
         plus = await db.saebrs_plus_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
         att_pct = await get_student_attendance_pct(sid)
+
+        if saebrs:
+            screened_count += 1
+            rl = saebrs.get("risk_level", "Low Risk")
+            if rl == "High Risk":
+                risk_distribution["high"] += 1
+            elif rl == "Some Risk":
+                risk_distribution["some"] += 1
+            else:
+                risk_distribution["low"] += 1
+
         if saebrs and plus:
             t = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
             tier_by_year[yr][f"tier{t}"] += 1
+            class_breakdown[cls][f"tier{t}"] += 1
+            tier_distribution[t] = tier_distribution.get(t, 0) + 1
             domain_totals["social"] += plus["social_domain"]
             domain_totals["academic"] += plus["academic_domain"]
             domain_totals["emotional"] += plus["emotional_domain"]
             domain_totals["belonging"] += plus["belonging_domain"]
             domain_totals["attendance"] += plus["attendance_domain"]
             domain_counts += 1
+
     domain_avgs = {k: round(v / domain_counts, 1) if domain_counts > 0 else 0 for k, v in domain_totals.items()}
-    return {"tier_by_year": tier_by_year, "domain_averages": domain_avgs, "total_students": len(students)}
+    total = len(students)
+    return {
+        "tier_by_year": tier_by_year,
+        "tier_distribution": tier_distribution,
+        "risk_distribution": risk_distribution,
+        "class_breakdown": class_breakdown,
+        "domain_averages": domain_avgs,
+        "total_students": total,
+        "screened_students": screened_count,
+        "screening_rate": round(screened_count / total * 100) if total > 0 else 0,
+    }
 
 @api_router.get("/analytics/cohort-comparison")
 async def cohort_comparison(class_name: Optional[str] = None, user=Depends(get_current_user)):
