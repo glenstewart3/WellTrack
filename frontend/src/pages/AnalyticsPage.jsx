@@ -234,18 +234,20 @@ export default function AnalyticsPage() {
             {statCard('Critical Absentees', attTrends?.chronic_absentees?.filter(a => a.attendance_pct < 80).length ?? 0, 'Below 80% attendance', 'text-rose-600')}
           </div>
 
-          {/* Monthly Absence Rate Trend */}
+          {/* Monthly Attendance Rate Trend */}
           {attTrends?.monthly_trend?.length > 0 && (
             <div className="bg-white border border-slate-200 rounded-xl p-6">
-              <SectionHeader icon={TrendingDown} title="Monthly Absence Rate Trend" />
-              <p className="text-xs text-slate-400 mb-4">Percentage of sessions with an absence code per month.</p>
+              <SectionHeader icon={TrendingDown} title="Monthly Attendance Rate Trend" />
+              <p className="text-xs text-slate-400 mb-4">Percentage of sessions attended each month across all students.</p>
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={attTrends.monthly_trend}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis unit="%" tick={{ fontSize: 11 }} domain={[0, 'auto']} />
-                  <Tooltip formatter={(v) => [`${v}%`, 'Absence Rate']} />
-                  <Line type="monotone" dataKey="absence_rate" stroke="#ef4444" strokeWidth={2} dot={{ r: 4 }} />
+                  <YAxis unit="%" tick={{ fontSize: 11 }} domain={[80, 100]} />
+                  <Tooltip formatter={(v) => [`${v}%`, 'Attendance Rate']} />
+                  <ReferenceLine y={95} stroke="#22c55e" strokeDasharray="4 2" label={{ value: "Tier 1 (95%)", position: "right", fontSize: 10, fill: "#22c55e" }} />
+                  <ReferenceLine y={90} stroke="#f59e0b" strokeDasharray="4 2" label={{ value: "Tier 2 (90%)", position: "right", fontSize: 10, fill: "#f59e0b" }} />
+                  <Line type="monotone" dataKey="attendance_rate" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -254,15 +256,19 @@ export default function AnalyticsPage() {
           {/* Day of Week Pattern */}
           {attTrends?.day_of_week?.length > 0 && (
             <div className="bg-white border border-slate-200 rounded-xl p-6">
-              <SectionHeader icon={Calendar} title="Absence Rate by Day of Week" />
-              <p className="text-xs text-slate-400 mb-4">Which days have the most absences.</p>
+              <SectionHeader icon={Calendar} title="Attendance Rate by Day of Week" />
+              <p className="text-xs text-slate-400 mb-4">Which days have the lowest attendance.</p>
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={attTrends.day_of_week} barSize={40}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-                  <YAxis unit="%" tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v) => [`${v}%`, 'Absence Rate']} />
-                  <Bar dataKey="absence_rate" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                  <YAxis unit="%" tick={{ fontSize: 11 }} domain={[85, 100]} />
+                  <Tooltip formatter={(v) => [`${v}%`, 'Attendance Rate']} />
+                  <Bar dataKey="attendance_rate" radius={[6, 6, 0, 0]}>
+                    {attTrends.day_of_week.map((d, i) => (
+                      <Cell key={i} fill={d.attendance_rate >= 95 ? '#22c55e' : d.attendance_rate >= 90 ? '#f59e0b' : '#ef4444'} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>

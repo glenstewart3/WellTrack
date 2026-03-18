@@ -204,56 +204,81 @@ async def intervention_outcomes(user=Depends(get_current_user)):
 
 @router.get("/analytics/attendance-trends")
 async def attendance_trends(user=Depends(get_current_user)):
+    from collections import defaultdict
+    from datetime import date as date_obj
+
     students = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
     settings_doc = await get_school_settings_doc()
     excluded_types = set(settings_doc.get("excluded_absence_types", []))
     school_days_list = await db.school_days.distinct("date")
+    num_students = len(students)
 
-    monthly: dict = {}
+    # Pre-group school days so we know the correct total sessions per month / day-of-week
+    days_by_month: dict = defaultdict(int)
+    days_by_dow: dict = defaultdict(int)
+    for day in school_days_list:
+        days_by_month[day[:7]] += 1
+        try:
+            days_by_dow[date_obj.fromisoformat(day).weekday()] += 1
+        except Exception:
+            pass
+
+    # Count exception (absent) sessions from exception records
+    monthly_absent: dict = defaultdict(int)
+    monthly_excluded: dict = defaultdict(int)   # excluded types don't count in denominator
+    dow_absent: dict = defaultdict(int)
+    dow_excluded: dict = defaultdict(int)
     chronic_absentees = []
-    day_of_week: dict = {i: {"sessions": 0, "absent": 0} for i in range(5)}
 
     for s in students:
         sid = s["student_id"]
         att_pct = await get_student_attendance_pct(sid)
         if att_pct < 90:
             chronic_absentees.append({"student": s, "attendance_pct": round(att_pct, 1),
-                                       "tier": 3 if att_pct < 80 else 2})
+                                      "tier": 3 if att_pct < 80 else 2})
 
         records = await db.attendance_records.find({"student_id": sid}, {"_id": 0}).to_list(3000)
         for r in records:
             month = r.get("date", "")[:7]
-            if month:
-                if month not in monthly:
-                    monthly[month] = {"absent": 0, "total": 0}
-                for sess in [r.get("am_status", ""), r.get("pm_status", "")]:
-                    sv = (sess or "").strip()
-                    if sv and sv not in excluded_types:
-                        monthly[month]["total"] += 1
-                        if sv not in PRESENT_STATUSES:
-                            monthly[month]["absent"] += 1
             try:
-                from datetime import date as date_obj
-                d = date_obj.fromisoformat(r.get("date", ""))
-                dow = d.weekday()
-                for sess in [r.get("am_status", ""), r.get("pm_status", "")]:
-                    sv = (sess or "").strip()
-                    if sv and sv not in excluded_types:
-                        day_of_week[dow]["total"] = day_of_week[dow].get("total", 0) + 1
-                        if sv not in PRESENT_STATUSES:
-                            day_of_week[dow]["absent"] = day_of_week[dow].get("absent", 0) + 1
+                dow = date_obj.fromisoformat(r.get("date", "")).weekday()
             except Exception:
-                pass
+                dow = None
 
-    monthly_trend = [
-        {"month": k, "absence_rate": round(v["absent"] / v["total"] * 100, 1) if v.get("total", 0) > 0 else 0}
-        for k, v in sorted(monthly.items())
-    ]
+            for sv in [r.get("am_status", ""), r.get("pm_status", "")]:
+                sv = (sv or "").strip()
+                if not sv:
+                    continue
+                if sv in excluded_types:
+                    if month:
+                        monthly_excluded[month] += 1
+                    if dow is not None:
+                        dow_excluded[dow] += 1
+                elif sv not in PRESENT_STATUSES:
+                    if month:
+                        monthly_absent[month] += 1
+                    if dow is not None:
+                        dow_absent[dow] += 1
+
+    # Build monthly attendance rate using correct denominator
+    monthly_trend = []
+    for month in sorted(days_by_month.keys()):
+        total = days_by_month[month] * 2 * num_students - monthly_excluded.get(month, 0)
+        absent = monthly_absent.get(month, 0)
+        att_rate = round((total - absent) / total * 100, 1) if total > 0 else 100.0
+        monthly_trend.append({"month": month, "attendance_rate": att_rate})
+
+    # Build day-of-week attendance rate
     DOW_NAMES = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday", 4: "Friday"}
-    dow_trend = [
-        {"day": DOW_NAMES[k], "absence_rate": round(v.get("absent", 0) / v.get("total", 1) * 100, 1)}
-        for k, v in sorted(day_of_week.items()) if v.get("total", 0) > 0
-    ]
+    dow_trend = []
+    for dow in range(5):
+        if days_by_dow.get(dow, 0) == 0:
+            continue
+        total = days_by_dow[dow] * 2 * num_students - dow_excluded.get(dow, 0)
+        absent = dow_absent.get(dow, 0)
+        att_rate = round((total - absent) / total * 100, 1) if total > 0 else 100.0
+        dow_trend.append({"day": DOW_NAMES[dow], "attendance_rate": att_rate})
+
     chronic_absentees.sort(key=lambda x: x["attendance_pct"])
     return {
         "monthly_trend": monthly_trend, "day_of_week": dow_trend,
