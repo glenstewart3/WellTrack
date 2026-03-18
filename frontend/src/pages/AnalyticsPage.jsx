@@ -122,16 +122,18 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 mb-6">
+      <div className="flex overflow-x-auto border-b border-slate-200 mb-6 -mx-6 px-6 sm:mx-0 sm:px-0">
         {[
-          { key: 'overview', label: 'Overview', Icon: BarChart2 },
-          { key: 'attendance', label: 'Attendance', Icon: Calendar },
-          { key: 'interventions', label: 'Interventions', Icon: Target },
-          { key: 'cohort', label: 'Cohort Comparison', Icon: Users },
-        ].map(({ key, label, Icon }) => (
+          { key: 'overview',       label: 'Overview',          short: 'Overview', Icon: BarChart2 },
+          { key: 'attendance',     label: 'Attendance',        short: 'Attend.',  Icon: Calendar },
+          { key: 'interventions',  label: 'Interventions',     short: 'Interv.',  Icon: Target },
+          { key: 'cohort',         label: 'Cohort Comparison', short: 'Cohort',   Icon: Users },
+        ].map(({ key, label, short, Icon }) => (
           <button key={key} onClick={() => setActiveTab(key)} data-testid={`analytics-tab-${key}`}
-            className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === key ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-            <Icon size={14} />{label}
+            className={`flex items-center gap-1.5 px-3 sm:px-5 py-3 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 ${activeTab === key ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            <Icon size={13} />
+            <span className="hidden sm:inline">{label}</span>
+            <span className="sm:hidden">{short}</span>
           </button>
         ))}
       </div>

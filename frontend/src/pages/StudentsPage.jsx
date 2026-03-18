@@ -426,9 +426,15 @@ export default function StudentsPage() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  {['Student', 'Class', 'Year', 'MTSS Tier', 'SAEBRS Risk', 'Wellbeing', 'Attendance', 'Interventions', ''].map(h => (
-                    <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                  ))}
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Student</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden sm:table-cell">Class</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden md:table-cell">Year</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Tier</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden md:table-cell">SAEBRS</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden lg:table-cell">Wellbeing</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Attend.</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden sm:table-cell">Interventions</th>
+                  <th className="w-8"></th>
                 </tr>
               </thead>
               <tbody>
@@ -441,47 +447,49 @@ export default function StudentsPage() {
                       className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors"
                       data-testid={`student-row-${s.student_id}`}
                     >
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2.5">
                           <div className="w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center shrink-0">
                             <span className="text-xs font-semibold text-slate-600">{s.first_name[0]}{s.last_name[0]}</span>
                           </div>
-                          <span className="font-medium text-slate-900">{s.first_name}{s.preferred_name ? ` (${s.preferred_name})` : ''} {s.last_name}</span>
+                          <span className="font-medium text-slate-900 text-xs sm:text-sm leading-tight">
+                            {s.first_name}{s.preferred_name ? ` (${s.preferred_name})` : ''} {s.last_name}
+                          </span>
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 text-slate-600">{s.class_name}</td>
-                      <td className="py-3.5 px-4 text-slate-600">{s.year_level}</td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3 px-4 text-slate-600 text-sm hidden sm:table-cell">{s.class_name}</td>
+                      <td className="py-3 px-4 text-slate-600 text-sm hidden md:table-cell">{s.year_level}</td>
+                      <td className="py-3 px-4">
                         {s.mtss_tier ? (
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors.badge}`}>
-                            Tier {s.mtss_tier}
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${colors.badge}`}>
+                            T{s.mtss_tier}
                           </span>
-                        ) : <span className="text-xs text-slate-400">Not screened</span>}
+                        ) : <span className="text-xs text-slate-400">—</span>}
                       </td>
-                      <td className="py-3.5 px-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRiskColors(s.saebrs_risk)}`}>
-                          {s.saebrs_risk || 'Not screened'}
+                      <td className="py-3 px-4 hidden md:table-cell">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getRiskColors(s.saebrs_risk)}`}>
+                          {s.saebrs_risk === 'Not Screened' ? '—' : s.saebrs_risk || '—'}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3 px-4 hidden lg:table-cell">
                         {s.wellbeing_tier ? (
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTierColors(s.wellbeing_tier).badge}`}>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getTierColors(s.wellbeing_tier).badge}`}>
                             T{s.wellbeing_tier} ({s.wellbeing_total}/66)
                           </span>
                         ) : <span className="text-xs text-slate-400">—</span>}
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3 px-4">
                         <span className={`text-sm font-medium ${s.attendance_pct < 80 ? 'text-rose-600' : s.attendance_pct < 90 ? 'text-amber-600' : 'text-emerald-600'}`}>
                           {s.attendance_pct}%
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-slate-600">
+                      <td className="py-3 px-4 hidden sm:table-cell">
                         {s.active_interventions > 0 ? (
-                          <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-medium">{s.active_interventions} active</span>
-                        ) : <span className="text-slate-400 text-xs">None</span>}
+                          <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-medium">{s.active_interventions}</span>
+                        ) : <span className="text-slate-400 text-xs">—</span>}
                       </td>
-                      <td className="py-3.5 px-4">
-                        <ChevronRight size={16} className="text-slate-400" />
+                      <td className="py-3 px-3">
+                        <ChevronRight size={15} className="text-slate-400" />
                       </td>
                     </tr>
                   );
