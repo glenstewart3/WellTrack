@@ -86,6 +86,13 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 
 ## What's Been Implemented (Chronological)
 
+### Session 5 (Cohort Analytics + Auto Alerts + Seed Fix)
+- **Cohort Comparison Analytics**: New "Cohort Comparison" tab on Analytics page with year_level/class dropdown; shows tier distribution, avg attendance, and SAEBRS risk charts per cohort. Backend `/api/analytics/cohort-comparison?group_by=year_level|class_name`.
+- **Automated Attendance Alerts**: Attendance upload now auto-generates early_warning alerts for students below 80% (high severity) or 90% (medium severity). Resolves existing alerts if attendance recovers.
+- **Seed Data Overhaul**: Removed 200+ lines of dead code; seed now generates 55 school days (Feb–May 2025), Camp/Excursion excluded absences, half-day records, completed interventions, and tier-change alerts.
+- **Analytics Overview Fix**: Re-seeded DB ensures tier_distribution shows real data (Tier1:11, Tier2:9, Tier3:12).
+- **server.py cleanup**: Reduced from 2244 → 2115 lines by removing dead unreachable code block.
+
 ### Session 1–2 (Initial Build)
 - Google OAuth authentication
 - Onboarding wizard
@@ -144,8 +151,8 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 
 ### P2 — Medium Priority
 - **Wellbeing Check-in**: Simple daily wellbeing check-in for students (on hold by user)
-- **server.py Refactoring**: Split into APIRouter modules (auth, students, settings, interventions, analytics, attendance) - now 1800+ lines
-- **Cohort Comparison**: Analytics page > expand cohort comparison section (endpoint exists at /api/analytics/cohort-comparison)
+- **server.py Refactoring**: Split into APIRouter modules (auth, students, settings, interventions, analytics, attendance) - now 2115 lines
+- **Automated Attendance Alerts - Upload Confirmation UI**: The `alerts_generated` field is now returned in the upload response but not shown in the UI toast message. Show it in the result summary.
 
 ### P3 — Nice to Have
 - Edit student modal (currently can only edit via add)
