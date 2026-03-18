@@ -578,7 +578,7 @@ export default function ReportsPage() {
         </div>
       )}
 
-      <div className="flex overflow-x-auto border-b border-slate-200 mb-6">
+      <div className="flex overflow-x-auto overflow-y-hidden border-b border-slate-200 mb-6">
         {TABS.map(({ key, label, short, Icon }) => (
           <button key={key} onClick={() => setActiveTab(key)} data-testid={`reports-tab-${key}`}
             className={`flex items-center gap-1.5 px-4 sm:px-5 py-3 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 ${activeTab === key ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
