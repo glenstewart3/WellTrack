@@ -131,8 +131,7 @@ async def get_student_attendance_stats(student_id: str) -> dict:
                         pass  # excluded — neutral
                     elif s == "Present":
                         total_sessions += 1
-                        present_sessions += 0.5
-                        absent_sessions += 1
+                        present_sessions += 1.0  # "Present" in an exception file = fully present for this session
                     elif s in FULL_PRESENT_STATUSES:
                         total_sessions += 1
                         present_sessions += 1.0
