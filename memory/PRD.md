@@ -86,6 +86,19 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 
 ## What's Been Implemented (Chronological)
 
+### Session 8 (Reports & Insights Overhaul + Analytics Fixes)
+- **Analytics chart color fix**: "Average Domain Scores" bar chart now uses per-domain colors (purple, green, amber, blue, pink) via Recharts `Cell` components instead of all-black bars
+- **Analytics scrollbar fix**: Removed negative margins on tab container that caused slight vertical overflow
+- **Reports page complete overhaul** (`ReportsPage.jsx`): Transformed from simple CSV export list into a full data visualization dashboard
+  - **Global filter bar**: Whole School / Year Level / Class — applies to ALL tabs
+  - **Attendance tab**: Day-of-week pattern (color-coded by tier), monthly trend line, absence type breakdown, chronic absentees list
+  - **Wellbeing & SEL tab**: Domain scores (colored), SAEBRS risk donut, at-risk students by domain, screening coverage by class
+  - **Support & Gaps tab**: Tier 2/3 students with no intervention (actionable gap list), intervention types, staff workload bars
+  - **Data Exports tab**: Existing 4 CSV download cards preserved
+- **5 new backend endpoints** (all filterable by year_level/class_name):
+  - `GET /api/reports/filter-options`, `GET /api/reports/absence-types`, `GET /api/reports/screening-coverage`, `GET /api/reports/support-gaps`, `GET /api/reports/staff-load`
+- **Updated analytics endpoints**: `attendance-trends`, `school-wide` (+ `domain_risk` field), `intervention-outcomes` all now accept `year_level` + `class_name` filter params
+
 ### Session 7 (Mobile Responsiveness + Student Management)
 - **Fixed critical compilation error**: Orphaned JSX in `MeetingPrepPage.jsx` (caused app to crash on load)
 - **AlertsPage mobile fixes**:
@@ -165,18 +178,17 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 ### P0 — None
 
 ### P1 — High Priority
-- None outstanding
+- **Student Reactivation**: Allow unarchiving/reactivating archived students (filter on Students page)
 
 ### P2 — Medium Priority
 - **Wellbeing Check-in**: Simple daily wellbeing check-in for students (on hold by user)
 - **Automated Weekly Backups**: Email a weekly data backup to the admin
-- **pytest test suite**: Backend test coverage for refactored routes
+- **pytest test suite**: Full backend test coverage (partial coverage added in iteration 8)
 
 ### P3 — Nice to Have
-- Bulk deactivate students (archive is done; true deactivation/re-activation UI)
 - Email notifications for alerts
 - Screening history comparison charts on student profile
-- Export all student data as CSV
+- Export all student data as CSV filtered by cohort
 
 ---
 
