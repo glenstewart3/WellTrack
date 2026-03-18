@@ -52,14 +52,16 @@ class SessionRequest(BaseModel):
 class Student(BaseModel):
     student_id: str = Field(default_factory=lambda: f"stu_{uuid.uuid4().hex[:8]}")
     first_name: str
+    preferred_name: Optional[str] = None
     last_name: str
     year_level: str
     class_name: str
-    teacher: str
+    teacher: str = ""
     date_of_birth: Optional[str] = None
     gender: str = ""
     enrolment_status: str = "active"
     external_id: Optional[str] = None  # School system student code for attendance matching
+    sussi_id: Optional[str] = None  # SUSSI ID from school system (used for attendance matching)
 
 class AttendanceRecord(BaseModel):
     attendance_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -186,6 +188,10 @@ SETTINGS_DEFAULTS = {
     "year_start_month": 2,
     "custom_student_fields": [],
     "risk_config": {"consecutive_absence_days": 3},
+    "ollama_url": "http://localhost:11434",
+    "ollama_model": "llama3.2",
+    "ai_suggestions_enabled": True,
+    "excluded_absence_types": [],
 }
 
 async def get_current_user(request: Request):
@@ -227,26 +233,71 @@ PRESENT_STATUSES = {
     "Early departure, approved", "Early departure from School",
 }
 
+FULL_PRESENT_STATUSES = {
+    "Late arrival, approved", "Late arrival at School",
+    "Early departure, approved", "Early departure from School",
+}
+
 async def get_student_attendance_pct(student_id: str) -> float:
-    records = await db.attendance_records.find({"student_id": student_id}, {"_id": 0}).to_list(5000)
-    if not records:
-        return 100.0
-    total_sessions = 0
-    absent_sessions = 0
-    for r in records:
-        am = (r.get("am_status") or "").strip()
-        pm = (r.get("pm_status") or "").strip()
-        if am:
-            total_sessions += 1
-            if am not in PRESENT_STATUSES:
-                absent_sessions += 1
-        if pm:
-            total_sessions += 1
-            if pm not in PRESENT_STATUSES:
-                absent_sessions += 1
-    if total_sessions == 0:
-        return 100.0
-    return ((total_sessions - absent_sessions) / total_sessions) * 100
+    # New exception-based approach: school_days tracks uploaded dates
+    school_days_list = await db.school_days.distinct("date")
+
+    if school_days_list:
+        exc_records = await db.attendance_records.find({"student_id": student_id}, {"_id": 0}).to_list(5000)
+        exc_by_date = {r["date"]: r for r in exc_records}
+        settings_doc = await get_school_settings_doc()
+        excluded_types = set(settings_doc.get("excluded_absence_types", []))
+
+        total_sessions = 0
+        present_sessions = 0.0
+
+        for day in school_days_list:
+            if day not in exc_by_date:
+                total_sessions += 2
+                present_sessions += 2.0
+            else:
+                rec = exc_by_date[day]
+                for sess in [rec.get("am_status", ""), rec.get("pm_status", "")]:
+                    s = (sess or "").strip()
+                    if not s:
+                        total_sessions += 1
+                        present_sessions += 1.0
+                    elif s in excluded_types:
+                        pass  # excluded — neutral, don't count either way
+                    elif s == "Present":
+                        total_sessions += 1
+                        present_sessions += 0.5  # half-day attendance
+                    elif s in FULL_PRESENT_STATUSES:
+                        total_sessions += 1
+                        present_sessions += 1.0
+                    else:
+                        total_sessions += 1
+                        present_sessions += 0.0  # absent
+
+        if total_sessions == 0:
+            return 100.0
+        return (present_sessions / total_sessions) * 100.0
+    else:
+        # Fallback: old calculation from attendance_records (used for demo data)
+        records = await db.attendance_records.find({"student_id": student_id}, {"_id": 0}).to_list(5000)
+        if not records:
+            return 100.0
+        total_sessions = 0
+        absent_sessions = 0
+        for r in records:
+            am = (r.get("am_status") or "").strip()
+            pm = (r.get("pm_status") or "").strip()
+            if am:
+                total_sessions += 1
+                if am not in PRESENT_STATUSES:
+                    absent_sessions += 1
+            if pm:
+                total_sessions += 1
+                if pm not in PRESENT_STATUSES:
+                    absent_sessions += 1
+        if total_sessions == 0:
+            return 100.0
+        return ((total_sessions - absent_sessions) / total_sessions) * 100
 
 # ==============================
 # AUTH ROUTES
@@ -513,30 +564,66 @@ async def create_student(student: Student, user=Depends(get_current_user)):
 
 @api_router.post("/students/import")
 async def import_students(data: dict, user=Depends(get_current_user)):
+    """Import students from new school system export format (SussiId-based CSV).
+    Upserts by sussi_id to avoid duplicates. Also handles legacy format.
+    """
     rows = data.get("students", [])
     if not rows:
         raise HTTPException(status_code=400, detail="No student data provided")
-    required = ["first_name", "last_name", "year_level", "class_name", "teacher"]
-    imported, errors = [], []
+
+    imported, updated, errors = [], [], []
     for i, row in enumerate(rows):
-        missing = [f for f in required if not str(row.get(f, "")).strip()]
-        if missing:
-            errors.append({"row": i + 1, "name": f"{row.get('first_name','')} {row.get('last_name','')}".strip(), "error": f"Missing: {', '.join(missing)}"})
+        # Skip non-student or inactive rows
+        base_role = str(row.get("Base Role") or row.get("base_role") or "Student").strip()
+        user_status = str(row.get("User Status") or row.get("user_status") or "Active").strip()
+        if base_role.lower() not in ("student", "") or user_status.lower() == "inactive":
             continue
-        student = {
-            "student_id": f"stu_{uuid.uuid4().hex[:8]}",
-            "first_name": str(row["first_name"]).strip(),
-            "last_name": str(row["last_name"]).strip(),
-            "year_level": str(row["year_level"]).strip(),
-            "class_name": str(row["class_name"]).strip(),
-            "teacher": str(row["teacher"]).strip(),
-            "gender": str(row.get("gender", "")).strip(),
-            "date_of_birth": str(row.get("date_of_birth", "")).strip(),
-            "enrolment_status": "active"
+
+        # Map new format columns
+        sussi_id = str(row.get("SussiId") or row.get("sussi_id") or row.get("Import Identifier") or "").strip()
+        first_name = str(row.get("First Name") or row.get("first_name") or "").strip()
+        preferred_name = str(row.get("Preferred Name") or row.get("preferred_name") or "").strip()
+        last_name = str(row.get("Surname") or row.get("last_name") or "").strip()
+        class_name = str(row.get("Form Group") or row.get("class_name") or "").strip()
+        year_level = str(row.get("Year Level") or row.get("year_level") or "").strip()
+        teacher = str(row.get("teacher") or "").strip()
+        gender = str(row.get("gender") or "").strip()
+        dob = str(row.get("date_of_birth") or "").strip()
+
+        if not sussi_id and not first_name and not last_name:
+            errors.append({"row": i + 1, "error": "Missing student identifier (SussiId, First Name, or Surname)"})
+            continue
+
+        student_doc = {
+            "first_name": first_name or sussi_id,
+            "preferred_name": preferred_name or None,
+            "last_name": last_name,
+            "year_level": year_level,
+            "class_name": class_name,
+            "teacher": teacher,
+            "gender": gender,
+            "date_of_birth": dob,
+            "enrolment_status": "active",
+            "sussi_id": sussi_id,
+            "external_id": sussi_id,  # Use SussiId for attendance matching
         }
-        await db.students.insert_one({**student})
-        imported.append(student)
-    return {"imported": len(imported), "errors": errors, "total": len(rows)}
+
+        # Upsert by sussi_id if available, otherwise insert
+        if sussi_id:
+            existing = await db.students.find_one({"sussi_id": sussi_id})
+            if existing:
+                await db.students.update_one({"sussi_id": sussi_id}, {"$set": student_doc})
+                updated.append(sussi_id)
+            else:
+                student_doc["student_id"] = f"stu_{uuid.uuid4().hex[:8]}"
+                await db.students.insert_one({**student_doc})
+                imported.append(student_doc)
+        else:
+            student_doc["student_id"] = f"stu_{uuid.uuid4().hex[:8]}"
+            await db.students.insert_one({**student_doc})
+            imported.append(student_doc)
+
+    return {"imported": len(imported), "updated": len(updated), "errors": errors, "total": len(rows)}
 
 @api_router.get("/students/summary")
 async def get_students_summary(class_name: Optional[str] = None, year_level: Optional[str] = None, user=Depends(get_current_user)):
@@ -767,6 +854,70 @@ async def delete_intervention(iid: str, user=Depends(get_current_user)):
     await db.interventions.delete_one({"intervention_id": iid})
     return {"message": "Deleted"}
 
+@api_router.post("/interventions/ai-suggest/{student_id}")
+async def get_ai_suggestions(student_id: str, user=Depends(get_current_user)):
+    """Get AI-powered intervention suggestions via Ollama local LLM."""
+    settings_doc = await get_school_settings_doc()
+    if not settings_doc.get("ai_suggestions_enabled", True):
+        raise HTTPException(403, "AI suggestions are disabled. Enable in Settings > Integrations.")
+
+    ollama_url = settings_doc.get("ollama_url", "http://localhost:11434")
+    ollama_model = settings_doc.get("ollama_model", "llama3.2")
+
+    student = await db.students.find_one({"student_id": student_id}, {"_id": 0})
+    if not student:
+        raise HTTPException(404, "Student not found")
+
+    latest_saebrs = await db.saebrs_results.find_one({"student_id": student_id}, {"_id": 0}, sort=[("created_at", -1)])
+    att_pct = await get_student_attendance_pct(student_id)
+    active_ints = await db.interventions.find({"student_id": student_id, "status": "active"}, {"_id": 0}).to_list(10)
+
+    display_name = student.get('first_name', '')
+    if student.get('preferred_name'):
+        display_name += f" ({student['preferred_name']})"
+    display_name += f" {student.get('last_name', '')}"
+
+    context = f"Student: {display_name.strip()}, Year Level: {student.get('year_level', 'Unknown')}\n"
+    if latest_saebrs:
+        context += f"SAEBRS: {latest_saebrs['total_score']}/57 ({latest_saebrs['risk_level']}) - Social: {latest_saebrs.get('social_score', 0)}, Academic: {latest_saebrs.get('academic_score', 0)}, Emotional: {latest_saebrs.get('emotional_score', 0)}\n"
+    else:
+        context += "SAEBRS: Not screened\n"
+    context += f"Attendance: {att_pct:.1f}%\n"
+    context += f"Current interventions: {[i['intervention_type'] for i in active_ints] or ['None']}\n"
+
+    prompt = f"""You are an MTSS (Multi-Tiered System of Supports) specialist. Based on this student's data, suggest 3 evidence-based interventions.
+
+{context}
+
+Respond with ONLY a valid JSON array of exactly 3 objects, each with these keys:
+- "type": intervention name (string)
+- "priority": "high", "medium", or "low"
+- "rationale": brief explanation (1-2 sentences)
+- "goals": measurable goal (1 sentence)
+- "frequency": how often (e.g. "Weekly", "3x per week")
+- "timeline": duration (e.g. "8 weeks", "1 term")
+
+Example format: [{{"type": "Counselling", "priority": "high", "rationale": "...", "goals": "...", "frequency": "Weekly", "timeline": "8 weeks"}}]"""
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                f"{ollama_url}/api/generate",
+                json={"model": ollama_model, "prompt": prompt, "stream": False}
+            )
+            resp.raise_for_status()
+            result = resp.json()
+            content = result.get("response", "")
+            json_match = re.search(r'\[.*\]', content, re.DOTALL)
+            if json_match:
+                recs = json.loads(json_match.group())
+                return {"recommendations": recs[:3]}
+            return {"recommendations": []}
+    except httpx.ConnectError:
+        raise HTTPException(503, f"Cannot connect to Ollama at {ollama_url}. Ensure Ollama is running and accessible.")
+    except Exception as e:
+        raise HTTPException(500, f"AI service error: {str(e)}")
+
 
 # ==============================
 # CASE NOTES
@@ -789,6 +940,13 @@ async def add_case_note(note: CaseNote, user=Depends(get_current_user)):
 async def delete_case_note(case_id: str, user=Depends(get_current_user)):
     await db.case_notes.delete_one({"case_id": case_id})
     return {"message": "Deleted"}
+
+@api_router.put("/case-notes/{case_id}")
+async def update_case_note(case_id: str, data: dict, user=Depends(get_current_user)):
+    data.pop("_id", None)
+    data.pop("case_id", None)
+    await db.case_notes.update_one({"case_id": case_id}, {"$set": data})
+    return await db.case_notes.find_one({"case_id": case_id}, {"_id": 0})
 
 # ==============================
 # ALERTS
@@ -963,6 +1121,87 @@ async def intervention_outcomes(user=Depends(get_current_user)):
              "avg_rating": round(sum(d["ratings"]) / len(d["ratings"]), 1) if d["ratings"] else None}
             for t, d in by_type.items()]
 
+@api_router.get("/analytics/attendance-trends")
+async def attendance_trends(user=Depends(get_current_user)):
+    """Returns attendance trend data: monthly averages, chronic absentees, day-of-week patterns."""
+    students = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
+    settings_doc = await get_school_settings_doc()
+    excluded_types = set(settings_doc.get("excluded_absence_types", []))
+    school_days_list = await db.school_days.distinct("date")
+
+    monthly: dict = {}
+    chronic_absentees = []
+    day_of_week: dict = {0: {"sessions": 0, "absent": 0}, 1: {"sessions": 0, "absent": 0},
+                         2: {"sessions": 0, "absent": 0}, 3: {"sessions": 0, "absent": 0},
+                         4: {"sessions": 0, "absent": 0}}
+
+    for s in students:
+        sid = s["student_id"]
+        att_pct = await get_student_attendance_pct(sid)
+
+        if att_pct < 90:
+            chronic_absentees.append({
+                "student": s, "attendance_pct": round(att_pct, 1),
+                "tier": 3 if att_pct < 80 else 2
+            })
+
+        # Monthly data from exception records
+        records = await db.attendance_records.find({"student_id": sid}, {"_id": 0}).to_list(3000)
+        for r in records:
+            month = r.get("date", "")[:7]
+            if month:
+                if month not in monthly:
+                    monthly[month] = {"absent": 0, "total": 0}
+                for sess in [r.get("am_status", ""), r.get("pm_status", "")]:
+                    s_v = (sess or "").strip()
+                    if s_v and s_v not in excluded_types:
+                        monthly[month]["total"] += 1
+                        if s_v not in PRESENT_STATUSES:
+                            monthly[month]["absent"] += 1
+
+            # Day of week pattern from exception records
+            try:
+                from datetime import date as date_obj
+                d = date_obj.fromisoformat(r.get("date", ""))
+                dow = d.weekday()  # 0=Mon, 4=Fri
+                for sess in [r.get("am_status", ""), r.get("pm_status", "")]:
+                    s_v = (sess or "").strip()
+                    if s_v and s_v not in excluded_types:
+                        day_of_week[dow]["total"] = day_of_week[dow].get("total", 0) + 1
+                        if s_v not in PRESENT_STATUSES:
+                            day_of_week[dow]["absent"] = day_of_week[dow].get("absent", 0) + 1
+            except Exception:
+                pass
+
+    # For school_days-based data, supplement monthly with "present" sessions
+    if school_days_list:
+        for day in school_days_list:
+            month = day[:7]
+            if month not in monthly:
+                monthly[month] = {"absent": 0, "total": 0}
+            # Each school day = 2 sessions × students total (approx)
+            # This gives a baseline for % calculation
+
+    monthly_trend = [
+        {"month": k, "absence_rate": round(v["absent"] / v["total"] * 100, 1) if v.get("total", 0) > 0 else 0}
+        for k, v in sorted(monthly.items())
+    ]
+
+    DOW_NAMES = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday", 4: "Friday"}
+    dow_trend = [
+        {"day": DOW_NAMES[k], "absence_rate": round(v.get("absent", 0) / v.get("total", 1) * 100, 1)}
+        for k, v in sorted(day_of_week.items()) if v.get("total", 0) > 0
+    ]
+
+    chronic_absentees.sort(key=lambda x: x["attendance_pct"])
+
+    return {
+        "monthly_trend": monthly_trend,
+        "day_of_week": dow_trend,
+        "chronic_absentees": chronic_absentees[:20],
+        "total_school_days": len(school_days_list),
+    }
+
 # ==============================
 # MEETING PREP
 # ==============================
@@ -971,17 +1210,37 @@ async def intervention_outcomes(user=Depends(get_current_user)):
 async def meeting_prep(user=Depends(get_current_user)):
     students = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
     result = []
+    tier_changes = []
+
     for s in students:
         sid = s["student_id"]
-        saebrs = await db.saebrs_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
+        all_saebrs = await db.saebrs_results.find({"student_id": sid}, {"_id": 0}).sort("created_at", 1).to_list(10)
+        saebrs = all_saebrs[-1] if all_saebrs else None
+        prev_saebrs = all_saebrs[-2] if len(all_saebrs) >= 2 else None
         plus = await db.saebrs_plus_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
         att_pct = await get_student_attendance_pct(sid)
+
         if saebrs and plus:
             tier = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
         elif saebrs:
             tier = 3 if saebrs["risk_level"] == "High Risk" else (2 if saebrs["risk_level"] == "Some Risk" else 1)
         else:
             continue
+
+        # Detect tier change between last two screenings
+        if prev_saebrs:
+            prev_tier = 3 if prev_saebrs["risk_level"] == "High Risk" else (2 if prev_saebrs["risk_level"] == "Some Risk" else 1)
+            if prev_tier != tier:
+                tier_changes.append({
+                    "student": s,
+                    "previous_tier": prev_tier,
+                    "current_tier": tier,
+                    "direction": "improved" if tier < prev_tier else "declined",
+                    "previous_screening": prev_saebrs.get("created_at", ""),
+                    "current_screening": saebrs.get("created_at", ""),
+                    "saebrs": saebrs,
+                })
+
         if tier >= 2:
             interventions = await db.interventions.find({"student_id": sid, "status": "active"}, {"_id": 0}).to_list(5)
             result.append({
@@ -990,8 +1249,9 @@ async def meeting_prep(user=Depends(get_current_user)):
                 "active_interventions": interventions,
                 "attendance_pct": round(att_pct, 1)
             })
+
     result.sort(key=lambda x: -x["mtss_tier"])
-    return result
+    return {"students": result, "tier_changes": tier_changes}
 
 # ==============================
 # SETTINGS & DATA MANAGEMENT
@@ -1007,6 +1267,12 @@ async def public_settings():
             if s.get(k) is not None:
                 base[k] = s[k]
     return base
+
+@api_router.get("/school-days")
+async def get_school_days(user=Depends(get_current_user)):
+    """Returns list of registered school days (uploaded attendance dates)."""
+    days = await db.school_days.distinct("date")
+    return {"school_days": sorted(days), "total": len(days)}
 
 @api_router.get("/settings")
 async def get_settings(user=Depends(get_current_user)):
@@ -1026,7 +1292,7 @@ async def update_settings(data: dict, user=Depends(get_current_user)):
 
 @api_router.delete("/settings/data")
 async def wipe_data(user=Depends(get_current_user)):
-    for col in ["students", "attendance", "attendance_records", "screening_sessions",
+    for col in ["students", "attendance", "attendance_records", "school_days", "screening_sessions",
                 "saebrs_results", "saebrs_plus_results", "interventions", "case_notes", "alerts"]:
         await db[col].delete_many({})
     return {"message": "All data wiped"}
@@ -1059,6 +1325,10 @@ DEFAULT_ABSENCE_TYPES = [
 
 @api_router.post("/attendance/upload")
 async def upload_attendance(file: UploadFile = File(...), user=Depends(get_current_user)):
+    """Exception-based upload: file contains only absences/exceptions.
+    Students not in file for a given date are assumed fully present.
+    'Present' status in the file = half-day attendance.
+    """
     if user.get("role") not in ["admin", "leadership"]:
         raise HTTPException(403, "Admin or leadership access required")
     content = await file.read()
@@ -1075,7 +1345,7 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
                     if h == n.upper() or h.startswith(n.upper()):
                         return i
             return None
-        id_c = col(['ID', 'STUDENT ID', 'STUDENTID', 'STUDENT CODE'])
+        id_c = col(['SUSSIID', 'SUSSI ID', 'ID', 'STUDENT ID', 'STUDENTID', 'STUDENT CODE'])
         dt_c = col(['DATE'])
         am_c = col(['AM'])
         pm_c = col(['PM'])
@@ -1103,7 +1373,7 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
         text = content.decode('utf-8-sig')
         reader = csv.DictReader(io.StringIO(text))
         for row in reader:
-            ext_id = (row.get('ID') or row.get('Student ID') or row.get('student_id') or '').strip().upper()
+            ext_id = (row.get('SussiId') or row.get('SUSSIID') or row.get('ID') or row.get('Student ID') or row.get('student_id') or '').strip().upper()
             date_str = (row.get('Date') or row.get('date') or '').strip()
             am_v = (row.get('AM') or row.get('am') or '').strip()
             pm_v = (row.get('PM') or row.get('pm') or '').strip()
@@ -1120,8 +1390,19 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
     if not records:
         raise HTTPException(400, "No valid records found in file")
 
-    students_list = await db.students.find({}, {"_id": 0, "student_id": 1, "external_id": 1}).to_list(1000)
-    ext_to_student = {s["external_id"].upper(): s["student_id"] for s in students_list if s.get("external_id")}
+    # Register school days (unique dates in this upload)
+    unique_dates = list({r['date'] for r in records})
+    for d in unique_dates:
+        await db.school_days.update_one({"date": d}, {"$set": {"date": d}}, upsert=True)
+
+    # Match students by sussi_id / external_id
+    students_list = await db.students.find({}, {"_id": 0, "student_id": 1, "external_id": 1, "sussi_id": 1}).to_list(1000)
+    ext_to_student = {}
+    for s in students_list:
+        if s.get("sussi_id"):
+            ext_to_student[s["sussi_id"].upper()] = s["student_id"]
+        if s.get("external_id"):
+            ext_to_student[s["external_id"].upper()] = s["student_id"]
 
     by_ext = defaultdict(list)
     for r in records:
@@ -1132,7 +1413,9 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
     for ext_id, recs in by_ext.items():
         student_id = ext_to_student.get(ext_id)
         if student_id:
-            await db.attendance_records.delete_many({"student_id": student_id})
+            # Delete old records for matching dates only (allow additive uploads)
+            for r in recs:
+                await db.attendance_records.delete_one({"student_id": student_id, "date": r['date']})
             docs = [{"student_id": student_id, "external_id": ext_id, "date": r['date'],
                      "am_status": r['am_status'], "pm_status": r['pm_status']} for r in recs]
             if docs:
@@ -1142,7 +1425,7 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
         else:
             unmatched.append(ext_id)
 
-    # Also store new absence types found in this upload
+    # Discover new absence types from this upload
     found_types = set()
     for r in records:
         for v in [r['am_status'], r['pm_status']]:
@@ -1155,6 +1438,7 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
 
     return {
         "processed": len(records),
+        "school_days_registered": len(unique_dates),
         "matched_students": len(matched),
         "unmatched_students": len(unmatched),
         "stored_records": stored_count,
@@ -1164,24 +1448,18 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
 @api_router.get("/attendance/summary")
 async def get_attendance_summary(user=Depends(get_current_user)):
     students_list = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
+    school_days_list = await db.school_days.distinct("date")
+    settings_doc = await get_school_settings_doc()
+    excluded_types = set(settings_doc.get("excluded_absence_types", []))
     result = []
     for s in students_list:
-        records = await db.attendance_records.find({"student_id": s["student_id"]}, {"_id": 0}).to_list(3000)
-        if not records:
+        att_pct = await get_student_attendance_pct(s["student_id"])
+        has_data = len(school_days_list) > 0 or await db.attendance_records.count_documents({"student_id": s["student_id"]}) > 0
+        if not has_data:
             result.append({**s, "attendance_pct": None, "total_sessions": 0, "absent_sessions": 0, "has_data": False, "attendance_tier": None})
             continue
-        total_sessions, absent_sessions = 0, 0
-        for r in records:
-            for sess in [r.get("am_status", ""), r.get("pm_status", "")]:
-                sess = (sess or "").strip()
-                if sess:
-                    total_sessions += 1
-                    if sess not in PRESENT_STATUSES:
-                        absent_sessions += 1
-        att_pct = ((total_sessions - absent_sessions) / total_sessions * 100) if total_sessions > 0 else 100.0
         tier = 1 if att_pct >= 95 else (2 if att_pct >= 90 else 3)
-        result.append({**s, "attendance_pct": round(att_pct, 1), "total_sessions": total_sessions,
-                        "absent_sessions": absent_sessions, "has_data": True, "attendance_tier": tier})
+        result.append({**s, "attendance_pct": round(att_pct, 1), "has_data": True, "attendance_tier": tier})
     return result
 
 @api_router.get("/attendance/student/{student_id}")
@@ -1356,19 +1634,24 @@ async def restore_all_data(request: Request, user=Depends(get_current_user)):
 # SEED FUNCTION
 # ==============================
 
+
 async def seed_database():
-    for col in ["students", "attendance", "screening_sessions", "saebrs_results", "saebrs_plus_results", "interventions", "case_notes", "alerts"]:
+    for col in ["students", "attendance", "attendance_records", "school_days", "screening_sessions",
+                "saebrs_results", "saebrs_plus_results", "interventions", "case_notes", "alerts"]:
         await db[col].delete_many({})
 
-    await db.school_settings.update_one({}, {"$set": {"school_name": "Riverside Community School", "school_type": "both", "current_term": "Term 2", "current_year": 2025}}, upsert=True)
+    await db.school_settings.update_one({}, {"$set": {
+        "school_name": "Riverside Community School", "school_type": "both",
+        "current_term": "Term 2", "current_year": 2025
+    }}, upsert=True)
 
     rng = random.Random(42)
 
     classes_data = [
-        {"class": "Year 3A", "teacher": "Ms Thompson", "year": "Year 3"},
-        {"class": "Year 5B", "teacher": "Mr Rodriguez", "year": "Year 5"},
-        {"class": "Year 7C", "teacher": "Ms Chen", "year": "Year 7"},
-        {"class": "Year 9A", "teacher": "Mr Williams", "year": "Year 9"},
+        {"class": "3A", "teacher": "Ms Thompson", "year": "Year 3"},
+        {"class": "5B", "teacher": "Mr Rodriguez", "year": "Year 5"},
+        {"class": "7C", "teacher": "Ms Chen", "year": "Year 7"},
+        {"class": "9A", "teacher": "Mr Williams", "year": "Year 9"},
     ]
 
     first_names = ["Emma", "Liam", "Olivia", "Noah", "Ava", "Ethan", "Sophia", "Mason",
@@ -1376,6 +1659,11 @@ async def seed_database():
                    "Benjamin", "Evelyn", "Lucas", "Abigail", "Henry", "Emily", "Sebastian",
                    "Elizabeth", "Jack", "Sofia", "Owen", "Avery", "Theodore", "Ella", "Carter",
                    "Scarlett", "Jayden"]
+    preferred_names = [None, None, None, "Ollie", None, None, None, None,
+                       "Izzy", None, None, "Alex", None, "Will", None,
+                       "Ben", None, None, "Abby", "Hank", None, "Seb",
+                       "Liz", None, None, None, None, "Theo", None, None,
+                       None, "Jay"]
     last_names = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
                   "Wilson", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin",
                   "Thompson", "Moore", "Young", "Lee", "Walker", "Allen", "Hall", "Nguyen",
@@ -1386,14 +1674,17 @@ async def seed_database():
     for cls_data in classes_data:
         for i in range(8):
             fname = first_names[name_idx % len(first_names)]
+            pname = preferred_names[name_idx % len(preferred_names)]
             lname = last_names[(name_idx + 7) % len(last_names)]
+            sussi = f"YUS{name_idx+1:04d}"
             students.append({
                 "student_id": f"stu_{uuid.uuid4().hex[:8]}",
-                "first_name": fname, "last_name": lname,
+                "first_name": fname, "preferred_name": pname, "last_name": lname,
                 "year_level": cls_data["year"], "class_name": cls_data["class"],
                 "teacher": cls_data["teacher"],
                 "date_of_birth": "2014-01-01", "gender": "Male" if name_idx % 2 == 0 else "Female",
-                "enrolment_status": "active"
+                "enrolment_status": "active",
+                "sussi_id": sussi, "external_id": sussi,
             })
             name_idx += 1
 
@@ -1407,7 +1698,6 @@ async def seed_database():
     low_s = [3,3,3,2,3,3]; low_a = [3,3,2,3,2,3]; low_e = [3,3,3,3,2,3,3]
     some_s = [2,2,2,2,1,2]; some_a = [2,2,1,2,1,2]; some_e = [2,2,2,1,2,2,2]
     high_s = [1,0,1,1,0,1]; high_a = [0,1,0,1,0,0]; high_e = [1,0,0,1,0,1,0]
-
     sr_low = [0,3,3,3,3,3,3]; sr_some = [2,2,2,2,2,2,2]; sr_high = [3,0,1,0,1,0,1]
 
     risk_cycle = ["low","low","low","some","some","some","high","high"]
@@ -1416,12 +1706,15 @@ async def seed_database():
     def vary(items, delta=1):
         return [max(0, min(3, x + rng.randint(-delta, delta))) for x in items]
 
-    all_s1, all_s2, all_p1, all_p2, all_att, all_int, all_notes, all_alerts = [], [], [], [], [], [], [], []
+    all_s1, all_s2, all_p1, all_p2, all_att_recs, all_int, all_notes, all_alerts = [], [], [], [], [], [], [], []
+    school_days_set = set()
 
     for idx, student in enumerate(students):
         sid = student["student_id"]
         risk = risk_cycle[idx % len(risk_cycle)]
-        att_pct = rng.choice(att_map[risk]) / 100.0
+        att_frac = rng.choice(att_map[risk]) / 100.0
+        pref = student.get('preferred_name')
+        display = f"{student['first_name']}{(' (' + pref + ')') if pref else ''} {student['last_name']}"
 
         if risk == "low":
             s_prof, a_prof, e_prof, sr_prof = low_s, low_a, low_e, sr_low
@@ -1456,50 +1749,64 @@ async def seed_database():
         s2 = make_saebrs(vary(s_prof, 2), vary(a_prof, 2), vary(e_prof, 2), "scr_term2_2025", "2025-05-10T09:00:00")
         all_s1.append(s1); all_s2.append(s2)
 
-        p1 = make_plus(s1, vary(sr_prof), "scr_term1_2025", att_pct, "2025-02-15T10:00:00")
-        p2 = make_plus(s2, vary(sr_prof, 2), "scr_term2_2025", att_pct, "2025-05-10T10:00:00")
+        p1 = make_plus(s1, vary(sr_prof), "scr_term1_2025", att_frac, "2025-02-15T10:00:00")
+        p2 = make_plus(s2, vary(sr_prof, 2), "scr_term2_2025", att_frac, "2025-05-10T10:00:00")
         all_p1.append(p1); all_p2.append(p2)
 
+        # Exception-based attendance: only store absences
         days = 40
-        present_days = int(days * att_pct)
+        absent_days = int(days * (1 - att_frac))
         base_date = date_type(2025, 4, 1)
+        absent_types = ["Medical/Illness", "Unexplained", "Family Holiday", "School refusal or school can't"]
         for day_num in range(days):
             rec_date = (base_date + timedelta(days=day_num)).isoformat()
-            status = "present" if day_num < present_days else "absent"
-            late = rng.random() < 0.06 and status == "present"
-            all_att.append({"attendance_id": str(uuid.uuid4()), "student_id": sid, "date": rec_date,
-                             "attendance_status": "late" if late else status,
-                             "late_arrival": late, "early_departure": False})
+            school_days_set.add(rec_date)
+            if day_num < absent_days:
+                abs_type = rng.choice(absent_types)
+                all_att_recs.append({
+                    "student_id": sid, "external_id": student.get("sussi_id", ""),
+                    "date": rec_date, "am_status": abs_type, "pm_status": abs_type
+                })
 
-        final_tier = compute_mtss_tier(s2["risk_level"], p2["wellbeing_tier"], att_pct * 100)
+        final_tier = compute_mtss_tier(s2["risk_level"], p2["wellbeing_tier"], att_frac * 100)
+        prev_tier = compute_mtss_tier(s1["risk_level"], p1["wellbeing_tier"], att_frac * 100)
 
         if s2["risk_level"] == "High Risk":
-            all_alerts.append({"alert_id": f"alrt_{uuid.uuid4().hex[:8]}", "student_id": sid,
-                "student_name": f"{student['first_name']} {student['last_name']}", "class_name": student["class_name"],
-                "alert_type": "high_risk_saebrs", "severity": "high",
-                "message": f"{student['first_name']} {student['last_name']} screened High Risk (SAEBRS: {s2['total_score']}/57)",
-                "created_at": "2025-05-10T09:30:00", "is_read": False, "resolved": False})
+            all_alerts.append({
+                "alert_id": f"alrt_{uuid.uuid4().hex[:8]}", "student_id": sid,
+                "student_name": display, "class_name": student["class_name"],
+                "type": "early_warning", "alert_type": "high_risk_saebrs", "severity": "high",
+                "message": f"{display} screened High Risk (SAEBRS: {s2['total_score']}/57)",
+                "created_at": "2025-05-10T09:30:00", "is_read": False, "resolved": False, "status": "pending"
+            })
 
-        if att_pct * 100 < 80:
-            all_alerts.append({"alert_id": f"alrt_{uuid.uuid4().hex[:8]}", "student_id": sid,
-                "student_name": f"{student['first_name']} {student['last_name']}", "class_name": student["class_name"],
-                "alert_type": "low_attendance_80", "severity": "high",
-                "message": f"{student['first_name']} {student['last_name']} critically low attendance ({att_pct*100:.0f}%)",
-                "created_at": "2025-05-01T08:00:00", "is_read": False, "resolved": False})
-        elif att_pct * 100 < 90:
-            all_alerts.append({"alert_id": f"alrt_{uuid.uuid4().hex[:8]}", "student_id": sid,
-                "student_name": f"{student['first_name']} {student['last_name']}", "class_name": student["class_name"],
-                "alert_type": "low_attendance_90", "severity": "medium",
-                "message": f"{student['first_name']} {student['last_name']} attendance below 90% ({att_pct*100:.0f}%)",
-                "created_at": "2025-05-01T08:00:00", "is_read": False, "resolved": False})
+        if att_frac * 100 < 80:
+            all_alerts.append({
+                "alert_id": f"alrt_{uuid.uuid4().hex[:8]}", "student_id": sid,
+                "student_name": display, "class_name": student["class_name"],
+                "type": "early_warning", "alert_type": "low_attendance_80", "severity": "high",
+                "message": f"{display} critically low attendance ({att_frac*100:.0f}%)",
+                "created_at": "2025-05-01T08:00:00", "is_read": False, "resolved": False, "status": "pending"
+            })
+        elif att_frac * 100 < 90:
+            all_alerts.append({
+                "alert_id": f"alrt_{uuid.uuid4().hex[:8]}", "student_id": sid,
+                "student_name": display, "class_name": student["class_name"],
+                "type": "early_warning", "alert_type": "low_attendance_90", "severity": "medium",
+                "message": f"{display} attendance below 90% ({att_frac*100:.0f}%)",
+                "created_at": "2025-05-01T08:00:00", "is_read": False, "resolved": False, "status": "pending"
+            })
 
-        sr_items2 = vary(sr_prof, 2)
-        if len(sr_items2) > 0 and sr_items2[0] >= 2:
-            all_alerts.append({"alert_id": f"alrt_{uuid.uuid4().hex[:8]}", "student_id": sid,
-                "student_name": f"{student['first_name']} {student['last_name']}", "class_name": student["class_name"],
-                "alert_type": "emotional_distress", "severity": "high",
-                "message": f"{student['first_name']} {student['last_name']} reported high emotional distress",
-                "created_at": "2025-05-10T10:30:00", "is_read": False, "resolved": False})
+        if prev_tier != final_tier:
+            all_alerts.append({
+                "alert_id": f"alrt_{uuid.uuid4().hex[:8]}", "student_id": sid,
+                "student_name": display, "class_name": student["class_name"],
+                "type": "tier_change", "alert_type": "tier_change",
+                "from_tier": prev_tier, "to_tier": final_tier,
+                "severity": "high" if final_tier > prev_tier else "medium",
+                "message": f"{display} moved from Tier {prev_tier} to Tier {final_tier}",
+                "created_at": "2025-05-10T09:30:00", "is_read": False, "resolved": False, "status": "pending"
+            })
 
         staff_options = ["Ms Parker (Wellbeing)", "Mr Lewis (Counsellor)", "Ms Ahmed (SENCO)", student["teacher"]]
         int_types = {"3": ["Counselling", "Behaviour Support", "Social Skills Groups"], "2": ["Mentoring", "Academic Support", "Attendance Intervention"]}
@@ -1509,12 +1816,11 @@ async def seed_database():
                 "start_date": "2025-04-28", "review_date": "2025-06-09", "status": "active",
                 "goals": "Reduce risk indicators and improve school connectedness",
                 "progress_notes": "Initial engagement established. Monitoring weekly.",
-                "frequency": "3x weekly", "outcome_rating": None,
-                "created_at": "2025-04-28T09:00:00"})
+                "frequency": "3x weekly", "outcome_rating": None, "created_at": "2025-04-28T09:00:00"})
             all_notes.append({"case_id": f"case_{uuid.uuid4().hex[:8]}", "student_id": sid,
                 "staff_member": rng.choice(["Ms Parker", student["teacher"]]),
                 "date": "2025-05-12", "note_type": "wellbeing",
-                "notes": f"Wellbeing check-in with {student['first_name']}. Student reported feeling stressed and overwhelmed with workload. Discussed coping strategies. Will refer to counsellor for ongoing support.",
+                "notes": f"Wellbeing check-in with {student['first_name']}. Student reported feeling stressed. Discussed coping strategies. Will refer to counsellor.",
                 "created_at": "2025-05-12T11:00:00"})
         elif final_tier == 2:
             all_int.append({"intervention_id": f"int_{uuid.uuid4().hex[:8]}", "student_id": sid,
@@ -1522,22 +1828,25 @@ async def seed_database():
                 "start_date": "2025-04-28", "review_date": "2025-06-09", "status": "active",
                 "goals": "Monitor emerging risk factors and build protective factors",
                 "progress_notes": "Weekly check-ins established. Student receptive to support.",
-                "frequency": "Weekly", "outcome_rating": None,
-                "created_at": "2025-04-28T09:00:00"})
+                "frequency": "Weekly", "outcome_rating": None, "created_at": "2025-04-28T09:00:00"})
             all_notes.append({"case_id": f"case_{uuid.uuid4().hex[:8]}", "student_id": sid,
                 "staff_member": student["teacher"],
                 "date": "2025-05-08", "note_type": "general",
-                "notes": f"Regular wellbeing check with {student['first_name']}. Student appears to be managing but showing some signs of stress. Monitoring closely and checking in weekly.",
+                "notes": f"Regular wellbeing check with {student['first_name']}. Monitoring closely.",
                 "created_at": "2025-05-08T09:30:00"})
 
+    if school_days_set:
+        await db.school_days.insert_many([{"date": d} for d in sorted(school_days_set)])
+
     for col_data, col_name in [(all_s1 + all_s2, "saebrs_results"), (all_p1 + all_p2, "saebrs_plus_results"),
-                                (all_att, "attendance"), (all_int, "interventions"),
+                                (all_att_recs, "attendance_records"), (all_int, "interventions"),
                                 (all_notes, "case_notes"), (all_alerts, "alerts")]:
         if col_data:
             await db[col_name].insert_many(col_data)
 
     return {"message": "Demo data seeded", "students": len(students), "interventions": len(all_int),
-            "alerts": len(all_alerts), "attendance_records": len(all_att)}
+            "alerts": len(all_alerts), "attendance_records": len(all_att_recs),
+            "school_days": len(school_days_set)}
 
 # ==============================
 # APP SETUP

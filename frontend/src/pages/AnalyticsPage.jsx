@@ -1,272 +1,344 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { getTierColors } from '../utils/tierUtils';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar, Legend } from 'recharts';
+import { useNavigate } from 'react-router-dom';
+import { BarChart2, TrendingDown, Users, Target, Download, Calendar, AlertTriangle, Activity } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, LineChart, Line, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
+} from 'recharts';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const COLORS = ['#22c55e', '#f59e0b', '#ef4444'];
+const TIER_LABELS = { 1: 'Tier 1', 2: 'Tier 2', 3: 'Tier 3' };
+const RISK_COLORS = { 'Low Risk': '#22c55e', 'Some Risk': '#f59e0b', 'High Risk': '#ef4444' };
 
-const DOMAIN_MAXES = { social: 18, academic: 18, emotional: 9, belonging: 12, attendance: 9 };
-const DOMAIN_LABELS = { social: 'Social Behaviour', academic: 'Academic Engagement', emotional: 'Emotional Wellbeing', belonging: 'School Belonging', attendance: 'Attendance' };
+function statCard(label, value, sub, color = 'text-slate-900') {
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-5">
+      <p className={`text-3xl font-bold ${color}`} style={{fontFamily:'Manrope,sans-serif'}}>{value}</p>
+      <p className="text-sm font-medium text-slate-700 mt-0.5">{label}</p>
+      {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+    </div>
+  );
+}
+
+function SectionHeader({ icon: Icon, title }) {
+  return (
+    <div className="flex items-center gap-2 mb-4">
+      <Icon size={18} className="text-slate-500" />
+      <h2 className="text-lg font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>{title}</h2>
+    </div>
+  );
+}
 
 export default function AnalyticsPage() {
-  const [tierDist, setTierDist] = useState(null);
-  const [schoolWide, setSchoolWide] = useState(null);
-  const [cohort, setCohort] = useState(null);
+  const navigate = useNavigate();
+  const [schoolData, setSchoolData] = useState(null);
+  const [attTrends, setAttTrends] = useState(null);
   const [intOutcomes, setIntOutcomes] = useState([]);
-  const [classes, setClasses] = useState([]);
-  const [selectedClass, setSelectedClass] = useState('');
   const [loading, setLoading] = useState(true);
-  const [schoolSettings, setSchoolSettings] = useState(null);
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [tdRes, swRes, clsRes, ioRes, settingsRes] = await Promise.all([
-          axios.get(`${API}/analytics/tier-distribution`, { withCredentials: true }),
+        const [sw, at, io] = await Promise.all([
           axios.get(`${API}/analytics/school-wide`, { withCredentials: true }),
-          axios.get(`${API}/classes`, { withCredentials: true }),
+          axios.get(`${API}/analytics/attendance-trends`, { withCredentials: true }),
           axios.get(`${API}/analytics/intervention-outcomes`, { withCredentials: true }),
-          axios.get(`${API}/settings`, { withCredentials: true }),
         ]);
-        setTierDist(tdRes.data);
-        setSchoolWide(swRes.data);
-        setClasses(clsRes.data);
-        setIntOutcomes(ioRes.data);
-        setSchoolSettings(settingsRes.data);
+        setSchoolData(sw.data);
+        setAttTrends(at.data);
+        setIntOutcomes(io.data);
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     };
     load();
   }, []);
 
-  useEffect(() => {
-    const url = selectedClass
-      ? `${API}/analytics/cohort-comparison?class_name=${encodeURIComponent(selectedClass)}`
-      : `${API}/analytics/cohort-comparison`;
-    axios.get(url, { withCredentials: true })
-      .then(r => setCohort(r.data))
-      .catch(console.error);
-  }, [selectedClass]);
+  if (loading) {
+    return (
+      <div className="p-6 lg:p-8 max-w-6xl mx-auto">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-slate-200 rounded w-1/3" />
+          <div className="grid grid-cols-4 gap-4">{[1,2,3,4].map(i => <div key={i} className="h-24 bg-slate-100 rounded-xl" />)}</div>
+          <div className="h-64 bg-slate-100 rounded-xl" />
+        </div>
+      </div>
+    );
+  }
 
-  if (loading) return (
-    <div className="p-8 space-y-4">{[1,2,3].map(i => <div key={i} className="h-48 bg-white rounded-xl animate-pulse border border-slate-200" />)}</div>
-  );
+  const sd = schoolData;
+  if (!sd) return <div className="p-8 text-slate-400">No analytics data available. Load demo data to get started.</div>;
 
-  // Tier by year chart data — filtered by school context
-  const allTierByYearData = Object.entries(schoolWide?.tier_by_year || {}).map(([year, counts]) => ({
-    year: year.replace('Year ', 'Yr '),
-    Tier1: counts.tier1,
-    Tier2: counts.tier2,
-    Tier3: counts.tier3,
-    rawYear: year,
-  })).sort((a, b) => a.year.localeCompare(b.year));
+  const tierPieData = [
+    { name: 'Tier 1', value: sd.tier_distribution?.[1] || 0 },
+    { name: 'Tier 2', value: sd.tier_distribution?.[2] || 0 },
+    { name: 'Tier 3', value: sd.tier_distribution?.[3] || 0 },
+  ];
 
-  const filterBySchoolType = (data) => {
-    const type = schoolSettings?.school_type;
-    if (!type || type === 'both') return data;
-    return data.filter(item => {
-      const yr = parseInt(item.rawYear.replace(/\D/g, ''));
-      return type === 'primary' ? yr <= 6 : yr >= 7;
-    });
-  };
+  const riskBarData = [
+    { risk: 'Low Risk', count: sd.risk_distribution?.low || 0 },
+    { risk: 'Some Risk', count: sd.risk_distribution?.some || 0 },
+    { risk: 'High Risk', count: sd.risk_distribution?.high || 0 },
+  ];
 
-  const tierByYearData = filterBySchoolType(allTierByYearData);
-
-  // Class breakdown
-  const classData = Object.entries(tierDist?.class_breakdown || {}).map(([cls, counts]) => ({
-    class: cls.replace('Year ', 'Yr '),
-    Tier1: counts.tier1,
-    Tier2: counts.tier2,
-    Tier3: counts.tier3,
-  }));
-
-  // Domain averages radar
-  const domainAvgData = Object.entries(schoolWide?.domain_averages || {}).map(([key, val]) => ({
-    domain: DOMAIN_LABELS[key] || key,
-    school: val,
-    max: DOMAIN_MAXES[key] || 18,
-    pct: Math.round((val / (DOMAIN_MAXES[key] || 18)) * 100),
-  }));
-
-  // Cohort comparison
-  const cohortCompData = cohort ? Object.keys(DOMAIN_MAXES).map(key => ({
-    domain: DOMAIN_LABELS[key],
-    School: cohort.school_averages?.[key] || 0,
-    Class: cohort.cohort_averages?.[key] || 0,
-    Max: DOMAIN_MAXES[key],
+  const domainData = sd.domain_averages ? Object.entries(sd.domain_averages).map(([k, v]) => ({
+    domain: k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' '),
+    score: typeof v === 'number' ? Math.round(v * 10) / 10 : 0,
   })) : [];
 
+  const classTierData = Object.entries(sd.class_breakdown || {}).map(([cls, d]) => ({
+    class: cls,
+    tier1: d.tier1 || 0, tier2: d.tier2 || 0, tier3: d.tier3 || 0,
+  }));
+
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8 fade-in">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="p-6 lg:p-8 max-w-6xl mx-auto fade-in">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>School Analytics</h1>
-          <p className="text-slate-500 mt-1">School-wide MTSS data overview</p>
+          <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3" style={{fontFamily:'Manrope,sans-serif'}}>
+            <BarChart2 size={28} className="text-slate-600" /> Analytics
+          </h1>
+          <p className="text-slate-500 mt-1">{sd.total_students} students · {sd.screened_students} screened</p>
         </div>
-        {schoolSettings?.school_type && (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-sm">
-            <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">Context:</span>
-            <span className="font-semibold text-slate-700 capitalize">{schoolSettings.school_type === 'both' ? 'K–12' : schoolSettings.school_type === 'primary' ? 'Primary (K–6)' : 'Secondary (7–12)'}</span>
-          </div>
-        )}
       </div>
 
-      {/* Top stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Tabs */}
+      <div className="flex border-b border-slate-200 mb-6">
         {[
-          { label: 'Total Students', value: tierDist?.total_students || 0, color: 'text-slate-900' },
-          { label: 'Tier 1 (Low Risk)', value: tierDist?.tier_distribution?.tier1 || 0, color: 'text-emerald-700', bg: 'bg-emerald-50' },
-          { label: 'Tier 2 (Emerging)', value: tierDist?.tier_distribution?.tier2 || 0, color: 'text-amber-700', bg: 'bg-amber-50' },
-          { label: 'Tier 3 (High Risk)', value: tierDist?.tier_distribution?.tier3 || 0, color: 'text-rose-700', bg: 'bg-rose-50' },
-        ].map(card => (
-          <div key={card.label} className={`bg-white border border-slate-200 rounded-xl p-5`}>
-            <p className={`text-3xl font-bold ${card.color}`} style={{fontFamily:'Manrope,sans-serif'}}>{card.value}</p>
-            <p className="text-xs text-slate-500 mt-1 font-medium">{card.label}</p>
-            {tierDist?.total_students > 0 && (
-              <div className="mt-2 w-full bg-slate-100 rounded-full h-1">
-                <div className="h-1 rounded-full bg-current opacity-40" style={{ width: `${(card.value / tierDist.total_students) * 100}%` }} />
-              </div>
-            )}
-          </div>
+          { key: 'overview', label: 'Overview', Icon: BarChart2 },
+          { key: 'attendance', label: 'Attendance', Icon: Calendar },
+          { key: 'interventions', label: 'Interventions', Icon: Target },
+        ].map(({ key, label, Icon }) => (
+          <button key={key} onClick={() => setActiveTab(key)} data-testid={`analytics-tab-${key}`}
+            className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === key ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            <Icon size={14} />{label}
+          </button>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Tier by Year Level */}
-        <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <h2 className="text-base font-semibold text-slate-900 mb-4" style={{fontFamily:'Manrope,sans-serif'}}>MTSS Tiers by Year Level</h2>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={tierByYearData} barSize={14}>
-              <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
-              <Legend wrapperStyle={{ fontSize: '12px' }} />
-              <Bar dataKey="Tier1" fill="#10b981" name="Tier 1" />
-              <Bar dataKey="Tier2" fill="#f59e0b" name="Tier 2" />
-              <Bar dataKey="Tier3" fill="#f43f5e" name="Tier 3" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      {/* OVERVIEW TAB */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          {/* Key Metrics */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {statCard('Total Students', sd.total_students, 'All enrolled')}
+            {statCard('Screened', sd.screened_students, `${sd.screening_rate}% of total`)}
+            {statCard('Tier 2 & 3', (sd.tier_distribution?.[2] || 0) + (sd.tier_distribution?.[3] || 0), 'Require support', 'text-amber-600')}
+            {statCard('High Risk', sd.risk_distribution?.high || 0, 'SAEBRS High Risk', 'text-rose-600')}
+          </div>
 
-        {/* Class Risk Heatmap */}
-        <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <h2 className="text-base font-semibold text-slate-900 mb-4" style={{fontFamily:'Manrope,sans-serif'}}>Class Risk Distribution</h2>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={classData} barSize={14}>
-              <XAxis dataKey="class" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
-              <Legend wrapperStyle={{ fontSize: '12px' }} />
-              <Bar dataKey="Tier1" fill="#10b981" name="Tier 1" />
-              <Bar dataKey="Tier2" fill="#f59e0b" name="Tier 2" />
-              <Bar dataKey="Tier3" fill="#f43f5e" name="Tier 3" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Domain Averages */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6">
-        <h2 className="text-base font-semibold text-slate-900 mb-4" style={{fontFamily:'Manrope,sans-serif'}}>School-Wide Wellbeing Domain Averages</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          {domainAvgData.map(d => (
-            <div key={d.domain} className="text-center">
-              <div className="relative w-16 h-16 mx-auto mb-2">
-                <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                  <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f1f5f9" strokeWidth="3.5" />
-                  <circle cx="18" cy="18" r="15.9" fill="none"
-                    stroke={d.pct >= 70 ? '#10b981' : d.pct >= 50 ? '#f59e0b' : '#f43f5e'}
-                    strokeWidth="3.5" strokeDasharray={`${d.pct} ${100 - d.pct}`} strokeLinecap="round" />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xs font-bold text-slate-900">{d.pct}%</span>
+          {/* Tier Distribution + Risk */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white border border-slate-200 rounded-xl p-6">
+              <SectionHeader icon={Users} title="MTSS Tier Distribution" />
+              <div className="flex gap-6 items-center justify-center">
+                <ResponsiveContainer width={160} height={160}>
+                  <PieChart>
+                    <Pie data={tierPieData} cx="50%" cy="50%" innerRadius={45} outerRadius={75} dataKey="value" paddingAngle={3}>
+                      {COLORS.map((color, i) => <Cell key={i} fill={color} />)}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="space-y-2">
+                  {tierPieData.map((d, i) => (
+                    <div key={d.name} className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i] }} />
+                      <span className="text-sm text-slate-600">{d.name}</span>
+                      <span className="text-sm font-bold text-slate-900 ml-auto pl-4">{d.value}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <p className="text-xs font-medium text-slate-700">{d.domain}</p>
-              <p className="text-xs text-slate-400">{d.school}/{d.max} avg</p>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Cohort Comparison */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-          <h2 className="text-base font-semibold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>Cohort Comparison</h2>
-          <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)}
-            data-testid="cohort-class-selector"
-            className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20 bg-white">
-            <option value="">School Average Only</option>
-            {classes.map(c => <option key={c.class_name} value={c.class_name}>{c.class_name}</option>)}
-          </select>
-        </div>
-        {cohortCompData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={cohortCompData} barSize={18}>
-              <XAxis dataKey="domain" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
-              <Legend wrapperStyle={{ fontSize: '12px' }} />
-              <Bar dataKey="School" fill="#64748b" name="School Average" />
-              {selectedClass && <Bar dataKey="Class" fill="#6366f1" name={`${selectedClass} Average`} />}
-            </BarChart>
-          </ResponsiveContainer>
-        ) : <p className="text-sm text-slate-400 py-8 text-center">No data available</p>}
-        {cohort && (
-          <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {Object.entries(cohort.school_averages || {}).map(([key, val]) => {
-              const classVal = cohort.cohort_averages?.[key];
-              const diff = classVal !== undefined ? classVal - val : null;
-              return (
-                <div key={key} className="bg-slate-50 rounded-lg p-3 text-center">
-                  <p className="text-xs font-semibold text-slate-600 mb-1">{DOMAIN_LABELS[key]}</p>
-                  <p className="text-sm font-bold text-slate-900">{val} <span className="text-xs text-slate-400">school</span></p>
-                  {diff !== null && (
-                    <p className={`text-xs font-semibold mt-0.5 ${diff > 0 ? 'text-emerald-600' : diff < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
-                      {diff > 0 ? '+' : ''}{diff.toFixed(1)} class
-                    </p>
-                  )}
-                </div>
-              );
-            })}
+            <div className="bg-white border border-slate-200 rounded-xl p-6">
+              <SectionHeader icon={Activity} title="SAEBRS Risk Distribution" />
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={riskBarData} barSize={36}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="risk" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                    {riskBarData.map((d, i) => <Cell key={i} fill={Object.values(RISK_COLORS)[i]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* Intervention Outcomes */}
-      {intOutcomes.length > 0 && (
-        <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <h2 className="text-base font-semibold text-slate-900 mb-4" style={{fontFamily:'Manrope,sans-serif'}}>Intervention Outcomes</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  {['Intervention Type', 'Total', 'Active', 'Completed', 'Completion Rate', 'Avg Rating'].map(h => (
-                    <th key={h} className="text-left py-2.5 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {intOutcomes.map(io => (
-                  <tr key={io.type} className="border-b border-slate-50">
-                    <td className="py-3 px-4 font-medium text-slate-900">{io.type}</td>
-                    <td className="py-3 px-4 text-slate-600">{io.total}</td>
-                    <td className="py-3 px-4"><span className="text-emerald-600 font-medium">{io.active}</span></td>
-                    <td className="py-3 px-4 text-slate-600">{io.completed}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 bg-slate-100 rounded-full h-1.5">
-                          <div className="h-1.5 rounded-full bg-indigo-500" style={{ width: `${io.completion_rate}%` }} />
-                        </div>
-                        <span className="text-xs text-slate-600">{io.completion_rate}%</span>
+          {/* Domain Averages */}
+          {domainData.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-6">
+              <SectionHeader icon={BarChart2} title="Average Domain Scores" />
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={domainData} barSize={40}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="domain" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="score" fill="#0f172a" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Class Breakdown */}
+          {classTierData.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-6">
+              <SectionHeader icon={Users} title="Tier Distribution by Class" />
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={classTierData} barSize={24}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="class" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="tier1" name="Tier 1" fill="#22c55e" stackId="a" />
+                  <Bar dataKey="tier2" name="Tier 2" fill="#f59e0b" stackId="a" />
+                  <Bar dataKey="tier3" name="Tier 3" fill="#ef4444" stackId="a" radius={[4,4,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ATTENDANCE TAB */}
+      {activeTab === 'attendance' && (
+        <div className="space-y-6">
+          {/* Attendance summary */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {statCard('School Days', attTrends?.total_school_days ?? '—', 'Days with attendance data')}
+            {statCard('Chronic Absentees', attTrends?.chronic_absentees?.length ?? 0, 'Below 90% attendance', 'text-amber-600')}
+            {statCard('Critical Absentees', attTrends?.chronic_absentees?.filter(a => a.attendance_pct < 80).length ?? 0, 'Below 80% attendance', 'text-rose-600')}
+          </div>
+
+          {/* Monthly Absence Rate Trend */}
+          {attTrends?.monthly_trend?.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-6">
+              <SectionHeader icon={TrendingDown} title="Monthly Absence Rate Trend" />
+              <p className="text-xs text-slate-400 mb-4">Percentage of sessions with an absence code per month.</p>
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={attTrends.monthly_trend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <YAxis unit="%" tick={{ fontSize: 11 }} domain={[0, 'auto']} />
+                  <Tooltip formatter={(v) => [`${v}%`, 'Absence Rate']} />
+                  <Line type="monotone" dataKey="absence_rate" stroke="#ef4444" strokeWidth={2} dot={{ r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Day of Week Pattern */}
+          {attTrends?.day_of_week?.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-6">
+              <SectionHeader icon={Calendar} title="Absence Rate by Day of Week" />
+              <p className="text-xs text-slate-400 mb-4">Which days have the most absences.</p>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={attTrends.day_of_week} barSize={40}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+                  <YAxis unit="%" tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v) => [`${v}%`, 'Absence Rate']} />
+                  <Bar dataKey="absence_rate" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Chronic Absentees List */}
+          {attTrends?.chronic_absentees?.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-6">
+              <SectionHeader icon={AlertTriangle} title="Chronic Absentees" />
+              <p className="text-xs text-slate-400 mb-4">Students with attendance below 90%.</p>
+              <div className="space-y-2">
+                {attTrends.chronic_absentees.map((ca, i) => {
+                  const pct = ca.attendance_pct;
+                  const color = pct < 80 ? 'text-rose-600' : 'text-amber-600';
+                  const bg = pct < 80 ? 'bg-rose-50 border-rose-200' : 'bg-amber-50 border-amber-200';
+                  const name = ca.student ? `${ca.student.first_name}${ca.student.preferred_name ? ` (${ca.student.preferred_name})` : ''} ${ca.student.last_name}` : '—';
+                  return (
+                    <div key={i} className={`flex items-center justify-between p-3 rounded-xl border ${bg} cursor-pointer hover:opacity-90`}
+                      onClick={() => navigate(`/students/${ca.student?.student_id}`)}>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{name}</p>
+                        <p className="text-xs text-slate-500">{ca.student?.class_name}</p>
                       </div>
-                    </td>
-                    <td className="py-3 px-4 text-slate-600">{io.avg_rating ? `${io.avg_rating}/5` : '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <div className="text-right">
+                        <p className={`text-lg font-bold ${color}`}>{pct}%</p>
+                        <p className="text-xs text-slate-400">attendance</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {(!attTrends?.monthly_trend?.length && !attTrends?.chronic_absentees?.length) && (
+            <div className="bg-white border border-slate-200 rounded-xl p-16 text-center text-slate-400">
+              <Calendar size={40} className="mx-auto mb-3 opacity-30" />
+              <p>No attendance data yet</p>
+              <p className="text-sm mt-1">Upload attendance files in Settings → Imports</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* INTERVENTIONS TAB */}
+      {activeTab === 'interventions' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {statCard('Total Interventions', intOutcomes.reduce((a, b) => a + b.total, 0), 'All time')}
+            {statCard('Active', intOutcomes.reduce((a, b) => a + b.active, 0), 'Currently running', 'text-emerald-600')}
+            {statCard('Completed', intOutcomes.reduce((a, b) => a + b.completed, 0), 'Finished', 'text-blue-600')}
           </div>
+
+          {intOutcomes.length > 0 ? (
+            <div className="bg-white border border-slate-200 rounded-xl p-6">
+              <SectionHeader icon={Target} title="Interventions by Type" />
+              <ResponsiveContainer width="100%" height={Math.max(200, intOutcomes.length * 40)}>
+                <BarChart data={intOutcomes} layout="vertical" barSize={20}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis type="number" tick={{ fontSize: 11 }} />
+                  <YAxis dataKey="type" type="category" tick={{ fontSize: 11 }} width={150} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="active" name="Active" fill="#22c55e" stackId="a" />
+                  <Bar dataKey="completed" name="Completed" fill="#3b82f6" stackId="a" radius={[0,4,4,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="bg-white border border-slate-200 rounded-xl p-16 text-center text-slate-400">
+              <Target size={40} className="mx-auto mb-3 opacity-30" />
+              <p>No intervention data yet</p>
+            </div>
+          )}
+
+          {/* Completion rates */}
+          {intOutcomes.filter(i => i.total > 0).length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-6">
+              <SectionHeader icon={Activity} title="Completion Rate by Type" />
+              <div className="space-y-3">
+                {intOutcomes.sort((a, b) => b.total - a.total).map(i => (
+                  <div key={i.type} className="flex items-center gap-3">
+                    <span className="text-sm text-slate-600 w-40 truncate">{i.type}</span>
+                    <div className="flex-1 bg-slate-100 rounded-full h-2">
+                      <div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${i.completion_rate}%` }} />
+                    </div>
+                    <span className="text-xs text-slate-500 w-12 text-right">{i.completion_rate}%</span>
+                    <span className="text-xs text-slate-400 w-16 text-right">{i.total} total</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

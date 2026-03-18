@@ -296,19 +296,10 @@ export default function StudentsPage() {
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors">
             <UserPlus size={15} /> Add Student
           </button>
-          <button onClick={() => setShowImport(true)} data-testid="import-students-btn"
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors">
-            <Upload size={15} /> Import Students
-          </button>
         </div>
       </div>
 
-      {showImport && (
-        <ImportModal
-          onClose={() => setShowImport(false)}
-          onSuccess={() => { setLoading(true); loadStudents(); }}
-        />
-      )}
+      {/* Import moved to Settings > Imports */}
 
       {/* Add Student Modal */}
       {showAddStudent && (

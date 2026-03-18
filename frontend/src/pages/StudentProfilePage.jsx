@@ -2,17 +2,138 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, getRiskColors, INTERVENTION_TYPES, NOTE_TYPES } from '../utils/tierUtils';
-import { ArrowLeft, Plus, X, Loader } from 'lucide-react';
+import { ArrowLeft, Plus, X, Loader, Edit2, Check } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
-
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  RadarChart, PolarGrid, PolarAngleAxis, Radar, ReferenceArea, Legend
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceArea
 } from 'recharts';
+import { exportStudentProfile } from '../utils/pdfExport';
 
 function TierBadge({ tier }) {
   const c = getTierColors(tier);
   return <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${c.badge}`}>Tier {tier}</span>;
+}
+
+// Inline editable intervention card
+function InlineEditIntervention({ intv, interventionTypes, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ ...intv });
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(intv.intervention_id, { progress_notes: form.progress_notes, status: form.status, goals: form.goals });
+    setSaving(false);
+    setEditing(false);
+  };
+
+  return (
+    <div className={`bg-white border rounded-xl p-5 transition-all ${editing ? 'border-indigo-300 ring-2 ring-indigo-100' : intv.status === 'active' ? 'border-slate-200' : 'border-slate-100 opacity-70'}`}>
+      <div className="flex justify-between items-start mb-2">
+        <h3 className="font-semibold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>{intv.intervention_type}</h3>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${intv.status === 'active' ? 'bg-emerald-100 text-emerald-700' : intv.status === 'completed' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+            {form.status}
+          </span>
+          {!editing && (
+            <button onClick={() => setEditing(true)} data-testid={`edit-intervention-${intv.intervention_id}`}
+              className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+              <Edit2 size={14} />
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-slate-600 mb-3">
+        <div><span className="text-slate-400">Staff:</span> {intv.assigned_staff}</div>
+        <div><span className="text-slate-400">Frequency:</span> {intv.frequency || '—'}</div>
+        <div><span className="text-slate-400">Review:</span> {intv.review_date}</div>
+      </div>
+      {editing ? (
+        <div className="space-y-3 mt-3">
+          <textarea rows={3} value={form.goals} onChange={e => setForm(p => ({...p, goals: e.target.value}))}
+            placeholder="Goals..." className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none resize-none" />
+          <textarea rows={3} value={form.progress_notes} onChange={e => setForm(p => ({...p, progress_notes: e.target.value}))}
+            placeholder="Progress notes..." className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none resize-none" />
+          <div className="flex gap-2">
+            {['active', 'completed', 'discontinued'].map(s => (
+              <button key={s} onClick={() => setForm(p => ({...p, status: s}))}
+                className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${form.status === s ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                {s}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <button onClick={handleSave} disabled={saving}
+              className="flex-1 flex items-center justify-center gap-1 py-2 text-white text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-60" style={{ backgroundColor: 'var(--wt-accent)' }}>
+              {saving ? <Loader size={13} className="animate-spin" /> : <Check size={13} />} Save
+            </button>
+            <button onClick={() => { setEditing(false); setForm({...intv}); }}
+              className="flex-1 py-2 text-sm text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200">Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {form.goals && <p className="text-sm text-slate-600 mb-1"><span className="font-medium">Goals:</span> {form.goals}</p>}
+          {form.progress_notes && <p className="text-sm text-slate-500 italic">{form.progress_notes}</p>}
+          <p className="text-xs text-slate-300 mt-2">Click edit to update notes or status</p>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Inline editable case note card
+function InlineEditNote({ note, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [notes, setNotes] = useState(note.notes || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(note.case_id, { notes });
+    setSaving(false);
+    setEditing(false);
+  };
+
+  return (
+    <div className={`bg-white border rounded-xl p-5 transition-all ${editing ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-slate-200'}`}>
+      <div className="flex justify-between items-center mb-2">
+        <div className="flex items-center gap-2">
+          <span className="bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded-full font-medium">{note.note_type}</span>
+          <span className="text-sm font-medium text-slate-900">{note.staff_member}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-400">{note.date}</span>
+          {!editing && (
+            <button onClick={() => setEditing(true)} data-testid={`edit-note-${note.case_id}`}
+              className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+              <Edit2 size={14} />
+            </button>
+          )}
+        </div>
+      </div>
+      {editing ? (
+        <div className="space-y-2">
+          <textarea rows={4} value={notes} onChange={e => setNotes(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none resize-none" />
+          <div className="flex gap-2">
+            <button onClick={handleSave} disabled={saving}
+              className="flex-1 flex items-center justify-center gap-1 py-2 text-white text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-60" style={{ backgroundColor: 'var(--wt-accent)' }}>
+              {saving ? <Loader size={13} className="animate-spin" /> : <Check size={13} />} Save
+            </button>
+            <button onClick={() => { setEditing(false); setNotes(note.notes || ''); }}
+              className="flex-1 py-2 text-sm text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200">Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <p className="text-sm text-slate-700 leading-relaxed">{notes}</p>
+          <p className="text-xs text-slate-300 mt-2">Click edit to update this note</p>
+        </>
+      )}
+    </div>
+  );
 }
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -31,7 +152,6 @@ export default function StudentProfilePage() {
   const [saebrsView, setSaebrsView] = useState('total'); // 'total' or 'domains'
   const [newIntervention, setNewIntervention] = useState({ intervention_type: '', assigned_staff: '', start_date: '', review_date: '', goals: '', frequency: '', status: 'active' });
   const [newNote, setNewNote] = useState({ note_type: 'General', notes: '', staff_member: '', date: new Date().toISOString().split('T')[0] });
-
   useEffect(() => {
     const load = async () => {
       try {
@@ -43,7 +163,23 @@ export default function StudentProfilePage() {
     load();
   }, [studentId]);
 
-  const getAiSuggestions = null; // AI suggestions removed
+  const getAiSuggestions = null; // AI suggestions available on the Interventions page
+
+  const editIntervention = async (id, patch) => {
+    try {
+      await axios.put(`${API}/interventions/${id}`, patch, { withCredentials: true });
+      const res = await axios.get(`${API}/students/${studentId}/profile`, { withCredentials: true });
+      setProfile(res.data);
+    } catch (e) { console.error(e); }
+  };
+
+  const editCaseNote = async (id, patch) => {
+    try {
+      await axios.put(`${API}/case-notes/${id}`, patch, { withCredentials: true });
+      const res = await axios.get(`${API}/students/${studentId}/profile`, { withCredentials: true });
+      setProfile(res.data);
+    } catch (e) { console.error(e); }
+  };
 
   const addIntervention = async () => {
     if (!newIntervention.intervention_type || !newIntervention.assigned_staff) return;
@@ -84,12 +220,17 @@ export default function StudentProfilePage() {
     name: `Term ${i + 1}`, total: r.wellbeing_total, social: r.social_domain, academic: r.academic_domain
   })) || [];
 
+  // Radar: include attendance domain
   const radarData = latestPlus ? [
     { domain: 'Social', score: latestPlus.social_domain, max: 18 },
     { domain: 'Academic', score: latestPlus.academic_domain, max: 18 },
     { domain: 'Emotional', score: latestPlus.emotional_domain, max: 9 },
     { domain: 'Belonging', score: latestPlus.belonging_domain, max: 12 },
+    { domain: 'Attendance', score: Math.round((attendance_pct || 0) / 100 * 15), max: 15 },
   ].map(d => ({ ...d, pct: Math.round((d.score / d.max) * 100) })) : [];
+
+  // Display name with optional preferred name
+  const displayName = `${student.first_name}${student.preferred_name ? ` (${student.preferred_name})` : ''} ${student.last_name}`;
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto fade-in">
@@ -105,7 +246,7 @@ export default function StudentProfilePage() {
               <span className={`text-xl font-bold ${tierColors.text}`}>{student.first_name[0]}{student.last_name[0]}</span>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>{student.first_name} {student.last_name}</h1>
+              <h1 className="text-2xl font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>{displayName}</h1>
               <p className="text-slate-500 text-sm">{student.year_level} · {student.class_name} · {student.teacher}</p>
               {alerts?.length > 0 && (
                 <p className="text-xs text-rose-600 font-medium mt-1">{alerts.length} active alert{alerts.length > 1 ? 's' : ''}</p>
@@ -118,6 +259,10 @@ export default function StudentProfilePage() {
               <p className={`text-lg font-bold ${attendance_pct < 80 ? 'text-rose-600' : attendance_pct < 90 ? 'text-amber-600' : 'text-emerald-600'}`}>{attendance_pct}%</p>
               <p className="text-xs text-slate-400">Attendance</p>
             </div>
+            <button onClick={() => exportStudentProfile(profile)} data-testid="export-profile-pdf-btn"
+              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-medium hover:bg-slate-50 transition-colors">
+              Export PDF
+            </button>
           </div>
         </div>
 
@@ -336,21 +481,7 @@ export default function StudentProfilePage() {
           </div>
 
           {interventions?.map(intv => (
-            <div key={intv.intervention_id} className={`bg-white border rounded-xl p-5 ${intv.status === 'active' ? 'border-slate-200' : 'border-slate-100 opacity-70'}`}>
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="font-semibold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>{intv.intervention_type}</h3>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${intv.status === 'active' ? 'bg-emerald-100 text-emerald-700' : intv.status === 'completed' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
-                  {intv.status}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-slate-600 mb-3">
-                <div><span className="text-slate-400">Staff:</span> {intv.assigned_staff}</div>
-                <div><span className="text-slate-400">Frequency:</span> {intv.frequency || '—'}</div>
-                <div><span className="text-slate-400">Review:</span> {intv.review_date}</div>
-              </div>
-              {intv.goals && <p className="text-sm text-slate-600 mb-2"><span className="font-medium">Goals:</span> {intv.goals}</p>}
-              {intv.progress_notes && <p className="text-sm text-slate-500 italic">{intv.progress_notes}</p>}
-            </div>
+            <InlineEditIntervention key={intv.intervention_id} intv={intv} interventionTypes={interventionTypes} onSave={editIntervention} />
           ))}
         </div>
       )}
@@ -364,16 +495,7 @@ export default function StudentProfilePage() {
             </button>
           </div>
           {case_notes?.map(note => (
-            <div key={note.case_id} className="bg-white border border-slate-200 rounded-xl p-5">
-              <div className="flex justify-between items-center mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded-full font-medium">{note.note_type}</span>
-                  <span className="text-sm font-medium text-slate-900">{note.staff_member}</span>
-                </div>
-                <span className="text-xs text-slate-400">{note.date}</span>
-              </div>
-              <p className="text-sm text-slate-700 leading-relaxed">{note.notes}</p>
-            </div>
+            <InlineEditNote key={note.case_id} note={note} onSave={editCaseNote} />
           ))}
           {case_notes?.length === 0 && <div className="bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-400">No case notes recorded</div>}
         </div>

@@ -5,7 +5,7 @@ import { useSettings } from '../context/SettingsContext';
 import {
   Settings, Trash2, Database, AlertTriangle, CheckCircle, Loader, School,
   Download, Upload, RefreshCw, Palette, Building2, Image, Plus, X,
-  Sliders, ToggleLeft, ToggleRight, Tag, User, Shield, RotateCcw
+  Sliders, ToggleLeft, ToggleRight, Tag, User, Shield, RotateCcw, Bot, Wifi, FileUp
 } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -50,6 +50,14 @@ function BrandingTab({ settings: s, onSave, saving, msg, msgType }) {
   const [logoBase64, setLogoBase64] = useState(s.logo_base64 || '');
   const logoRef = useRef(null);
   const { updateSettings } = useSettings();
+
+  // Sync local state when settings load from server (fixes stale-init bug)
+  useEffect(() => {
+    setPlatformName(s.platform_name || 'WellTrack');
+    setWelcomeMessage(s.welcome_message || '');
+    setAccentColor(s.accent_color || '#0f172a');
+    setLogoBase64(s.logo_base64 || '');
+  }, [s.accent_color, s.platform_name, s.welcome_message, s.logo_base64]);
 
   const handleLogoFile = (e) => {
     const file = e.target.files?.[0];
@@ -711,6 +719,268 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
   );
 }
 
+// ── IMPORTS TAB ──────────────────────────────────────────────────────────────
+function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
+  const [importFile, setImportFile] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const [attFile, setAttFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [attResult, setAttResult] = useState(null);
+  const [excludedTypes, setExcludedTypes] = useState(settings.excluded_absence_types || []);
+  const [newExclude, setNewExclude] = useState('');
+  const importRef = useRef(null);
+  const attRef = useRef(null);
+
+  // Sync excluded_types when settings load
+  useEffect(() => {
+    setExcludedTypes(settings.excluded_absence_types || []);
+  }, [settings.excluded_absence_types]);
+
+  const parseAndImport = async () => {
+    if (!importFile) return;
+    setImporting(true);
+    try {
+      const text = await importFile.text();
+      let rows = [];
+      const lname = importFile.name.toLowerCase();
+      if (lname.endsWith('.csv')) {
+        const lines = text.split('\n').filter(l => l.trim());
+        if (lines.length < 2) throw new Error('File appears empty');
+        const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+        rows = lines.slice(1).map(line => {
+          const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+          return Object.fromEntries(headers.map((h, i) => [h, vals[i] || '']));
+        }).filter(r => Object.values(r).some(v => v));
+      } else {
+        throw new Error('Please upload a CSV file');
+      }
+      const res = await axios.post(`${API}/students/import`, { students: rows }, { withCredentials: true });
+      setImportResult(res.data);
+      setImportFile(null);
+      if (importRef.current) importRef.current.value = '';
+      setMsgType('success');
+      setMsg(`Import complete: ${res.data.imported} new, ${res.data.updated || 0} updated, ${res.data.errors?.length || 0} errors`);
+      setTimeout(() => setMsg(''), 6000);
+    } catch (e) {
+      setMsgType('error');
+      setMsg(e.response?.data?.detail || e.message || 'Import failed');
+      setTimeout(() => setMsg(''), 5000);
+    } finally { setImporting(false); }
+  };
+
+  const uploadAttendance = async () => {
+    if (!attFile) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', attFile);
+      const res = await axios.post(`${API}/attendance/upload`, fd, { withCredentials: true });
+      setAttResult(res.data);
+      setAttFile(null);
+      if (attRef.current) attRef.current.value = '';
+      setMsgType('success');
+      setMsg(`Attendance uploaded: ${res.data.school_days_registered} school days, ${res.data.matched_students} students matched`);
+      setTimeout(() => setMsg(''), 6000);
+    } catch (e) {
+      setMsgType('error');
+      setMsg(e.response?.data?.detail || 'Upload failed');
+      setTimeout(() => setMsg(''), 5000);
+    } finally { setUploading(false); }
+  };
+
+  const saveExcludedTypes = () => onSave({ excluded_absence_types: excludedTypes });
+
+  return (
+    <div className="space-y-5">
+      {msg && (
+        <div className={`flex items-center gap-2 rounded-xl p-4 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+          <CheckCircle size={15} className={msgType === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
+          <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
+        </div>
+      )}
+
+      {/* Student Import */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Import Students</h3>
+        <p className="text-xs text-slate-400 mb-1">Upload a CSV exported from your school system. Supports columns: <code className="bg-slate-100 px-1 rounded">SussiId, First Name, Preferred Name, Surname, Form Group, Year Level, User Status, Base Role</code></p>
+        <p className="text-xs text-slate-400 mb-4">Students are matched by SussiId and updated if they already exist.</p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={e => setImportFile(e.target.files?.[0] || null)} data-testid="import-students-file" />
+          <button onClick={() => importRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">
+            <FileUp size={14} /> {importFile ? importFile.name : 'Choose CSV file'}
+          </button>
+          {importFile && (
+            <button onClick={parseAndImport} disabled={importing} data-testid="run-import-btn"
+              className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity" style={{ backgroundColor: 'var(--wt-accent)' }}>
+              {importing ? <Loader size={14} className="animate-spin" /> : <Upload size={14} />}
+              {importing ? 'Importing…' : 'Import'}
+            </button>
+          )}
+        </div>
+        {importResult && (
+          <div className="mt-3 p-3 bg-slate-50 rounded-xl text-xs text-slate-600 space-y-1">
+            <p><strong>New:</strong> {importResult.imported} &nbsp; <strong>Updated:</strong> {importResult.updated || 0} &nbsp; <strong>Errors:</strong> {importResult.errors?.length || 0}</p>
+            {importResult.errors?.length > 0 && (
+              <ul className="text-rose-600 space-y-0.5">{importResult.errors.slice(0, 5).map((e, i) => <li key={i}>Row {e.row}: {e.error}</li>)}</ul>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Attendance Upload */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Upload Attendance</h3>
+        <p className="text-xs text-slate-400 mb-1">Upload an exception-based attendance file. Only students with absences or exceptions need to be in the file — unlisted students are automatically marked as present.</p>
+        <p className="text-xs text-slate-400 mb-4">Supports XLSX and CSV with columns: <code className="bg-slate-100 px-1 rounded">SussiId/ID, Date, AM, PM</code>. "Present" status = half-day.</p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <input ref={attRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => setAttFile(e.target.files?.[0] || null)} data-testid="attendance-file-input" />
+          <button onClick={() => attRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">
+            <FileUp size={14} /> {attFile ? attFile.name : 'Choose XLSX or CSV'}
+          </button>
+          {attFile && (
+            <button onClick={uploadAttendance} disabled={uploading} data-testid="upload-attendance-btn"
+              className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity" style={{ backgroundColor: 'var(--wt-accent)' }}>
+              {uploading ? <Loader size={14} className="animate-spin" /> : <Upload size={14} />}
+              {uploading ? 'Uploading…' : 'Upload'}
+            </button>
+          )}
+        </div>
+        {attResult && (
+          <div className="mt-3 p-3 bg-slate-50 rounded-xl text-xs text-slate-600 space-y-1">
+            <p><strong>School days registered:</strong> {attResult.school_days_registered}</p>
+            <p><strong>Exception records:</strong> {attResult.processed} &nbsp; <strong>Students matched:</strong> {attResult.matched_students}</p>
+            {attResult.unmatched_students > 0 && (
+              <p className="text-amber-600">⚠ {attResult.unmatched_students} student IDs not matched. Check SussiId values.</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Excluded Absence Types */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Excluded Absence Types</h3>
+        <p className="text-xs text-slate-400 mb-4">Absence types that should NOT count against a student's attendance percentage (e.g. "Camp", "Excursion").</p>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {excludedTypes.map(t => (
+            <span key={t} className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium rounded-lg">
+              {t}
+              <button onClick={() => setExcludedTypes(prev => prev.filter(x => x !== t))} className="text-amber-400 hover:text-rose-500 transition-colors"><X size={11} /></button>
+            </span>
+          ))}
+          {excludedTypes.length === 0 && <p className="text-xs text-slate-400 italic">No excluded types yet.</p>}
+        </div>
+        <div className="flex gap-2 mb-4">
+          <input type="text" value={newExclude} onChange={e => setNewExclude(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && newExclude.trim()) { setExcludedTypes(p => [...p, newExclude.trim()]); setNewExclude(''); } }}
+            placeholder="e.g. Camp, Excursion, Approved"
+            className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none" />
+          <button onClick={() => { if (newExclude.trim()) { setExcludedTypes(p => [...p, newExclude.trim()]); setNewExclude(''); } }}
+            className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors">
+            <Plus size={16} />
+          </button>
+        </div>
+        <button onClick={saveExcludedTypes} className="px-4 py-2 text-white rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity" style={{ backgroundColor: 'var(--wt-accent)' }}>
+          Save Excluded Types
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── INTEGRATIONS TAB ──────────────────────────────────────────────────────────
+function IntegrationsTab({ settings: s, onSave, saving, msg, msgType }) {
+  const [ollamaUrl, setOllamaUrl] = useState(s.ollama_url || 'http://localhost:11434');
+  const [ollamaModel, setOllamaModel] = useState(s.ollama_model || 'llama3.2');
+  const [aiEnabled, setAiEnabled] = useState(s.ai_suggestions_enabled !== false);
+  const [testResult, setTestResult] = useState(null);
+  const [testing, setTesting] = useState(false);
+
+  useEffect(() => {
+    setOllamaUrl(s.ollama_url || 'http://localhost:11434');
+    setOllamaModel(s.ollama_model || 'llama3.2');
+    setAiEnabled(s.ai_suggestions_enabled !== false);
+  }, [s.ollama_url, s.ollama_model, s.ai_suggestions_enabled]);
+
+  const handleSave = () => onSave({ ollama_url: ollamaUrl, ollama_model: ollamaModel, ai_suggestions_enabled: aiEnabled });
+
+  const testConnection = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      // Try to list models from Ollama to test connectivity
+      const res = await axios.get(`${ollamaUrl}/api/tags`, { timeout: 5000 });
+      const models = res.data?.models?.map(m => m.name) || [];
+      setTestResult({ ok: true, msg: `Connected! Available models: ${models.slice(0, 5).join(', ') || 'none found'}` });
+    } catch (e) {
+      setTestResult({ ok: false, msg: `Cannot connect to Ollama at ${ollamaUrl}. Is it running?` });
+    } finally { setTesting(false); }
+  };
+
+  return (
+    <div className="space-y-5">
+      {msg && (
+        <div className={`flex items-center gap-2 rounded-xl p-4 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+          <CheckCircle size={15} className={msgType === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
+          <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
+        </div>
+      )}
+
+      {/* AI Suggestions toggle */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>AI Intervention Suggestions</h3>
+            <p className="text-xs text-slate-400 mt-0.5">When enabled, staff can request AI-generated intervention recommendations on student profiles via your local Ollama instance.</p>
+          </div>
+          <button onClick={() => setAiEnabled(p => !p)} data-testid="ai-suggestions-toggle">
+            {aiEnabled ? <ToggleRight size={32} className="text-emerald-500" /> : <ToggleLeft size={32} className="text-slate-400" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Ollama config */}
+      <div className={`bg-white border border-slate-200 rounded-xl p-6 space-y-4 ${!aiEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+        <div className="flex items-center gap-2 mb-2">
+          <Bot size={16} className="text-slate-500" />
+          <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Ollama Configuration</h3>
+        </div>
+        <p className="text-xs text-slate-400">WellTrack connects to your local <a href="https://ollama.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-700">Ollama</a> instance to generate intervention suggestions. Ollama must be running on the server that hosts WellTrack's backend.</p>
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Ollama API URL</label>
+          <p className="text-xs text-slate-400 mb-2">The URL where Ollama is running. Default: <code className="bg-slate-100 px-1 rounded">http://localhost:11434</code></p>
+          <input type="text" value={ollamaUrl} onChange={e => setOllamaUrl(e.target.value)} data-testid="ollama-url-input"
+            placeholder="http://localhost:11434"
+            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+        </div>
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Model Name</label>
+          <p className="text-xs text-slate-400 mb-2">The Ollama model to use for suggestions. Must be pulled first with <code className="bg-slate-100 px-1 rounded">ollama pull {ollamaModel}</code></p>
+          <input type="text" value={ollamaModel} onChange={e => setOllamaModel(e.target.value)} data-testid="ollama-model-input"
+            placeholder="llama3.2"
+            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={testConnection} disabled={testing} data-testid="test-ollama-btn"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors disabled:opacity-60">
+            {testing ? <Loader size={14} className="animate-spin" /> : <Wifi size={14} />}
+            {testing ? 'Testing…' : 'Test Connection'}
+          </button>
+          {testResult && (
+            <span className={`text-xs ${testResult.ok ? 'text-emerald-600' : 'text-rose-600'}`}>{testResult.msg}</span>
+          )}
+        </div>
+      </div>
+
+      <button onClick={handleSave} disabled={saving} data-testid="save-integrations-btn"
+        className="w-full py-3.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
+        {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+        {saving ? 'Saving…' : 'Save Integration Settings'}
+      </button>
+    </div>
+  );
+}
+
 // ── MAIN SETTINGS PAGE ────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const { settings, loadFullSettings } = useSettings();
@@ -744,7 +1014,7 @@ export default function SettingsPage() {
       </div>
 
       <TabNav
-        tabs={['General', 'Branding', 'MTSS & Screening', 'Student Data', 'Data']}
+        tabs={['General', 'Branding', 'MTSS & Screening', 'Student Data', 'Imports', 'Integrations', 'Data']}
         active={activeTab}
         onChange={setActiveTab}
       />
@@ -753,6 +1023,8 @@ export default function SettingsPage() {
       {activeTab === 'Branding' && <BrandingTab {...tabProps} />}
       {activeTab === 'MTSS & Screening' && <MTSSTab {...tabProps} />}
       {activeTab === 'Student Data' && <StudentDataTab {...tabProps} />}
+      {activeTab === 'Imports' && <ImportsTab msg={msg} msgType={msgType} setMsg={setMsg} setMsgType={setMsgType} settings={settings} onSave={saveSettings} />}
+      {activeTab === 'Integrations' && <IntegrationsTab {...tabProps} />}
       {activeTab === 'Data' && <DataTab msg={msg} msgType={msgType} setMsg={setMsg} setMsgType={setMsgType} />}
     </div>
   );

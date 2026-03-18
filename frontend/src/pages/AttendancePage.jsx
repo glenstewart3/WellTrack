@@ -119,7 +119,7 @@ export default function AttendancePage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Attendance</h1>
-          <p className="text-slate-500 mt-1">Upload and track student attendance from your school's system</p>
+          <p className="text-slate-500 mt-1">Student attendance tracking — upload files in <strong>Settings → Imports</strong></p>
         </div>
         <div className="flex gap-2">
           {role === 'admin' && (
@@ -128,51 +128,8 @@ export default function AttendancePage() {
               <Settings2 size={15} /> Absence Types
             </button>
           )}
-          {canUpload && (
-            <>
-              <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
-                onChange={e => handleUpload(e.target.files?.[0])} />
-              <button onClick={() => fileRef.current?.click()} disabled={uploading} data-testid="upload-attendance-btn"
-                className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 disabled:opacity-60 transition-colors">
-                {uploading ? <Loader size={15} className="animate-spin" /> : <Upload size={15} />}
-                {uploading ? 'Processing…' : 'Upload Attendance'}
-              </button>
-            </>
-          )}
         </div>
       </div>
-
-      {/* Upload result banner */}
-      {uploadResult && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-5 flex items-start gap-3">
-          <CheckCircle size={16} className="text-emerald-600 mt-0.5 shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-emerald-800">Upload successful</p>
-            <p className="text-xs text-emerald-700 mt-0.5">
-              {uploadResult.processed} records processed · {uploadResult.matched_students} students matched · {uploadResult.stored_records} entries stored
-            </p>
-            {uploadResult.unmatched_students > 0 && (
-              <button onClick={() => setShowUnmatched(p => !p)} className="text-xs text-amber-700 underline mt-1">
-                {uploadResult.unmatched_students} unmatched IDs (click to view)
-              </button>
-            )}
-            {showUnmatched && (
-              <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <p className="text-xs font-medium text-amber-800 mb-1">Unmatched student IDs — link them via Student Profile &gt; External ID:</p>
-                <p className="text-xs text-amber-700 font-mono">{unmatchedIds.join(', ')}</p>
-              </div>
-            )}
-          </div>
-          <button onClick={() => setUploadResult(null)}><X size={14} className="text-emerald-400" /></button>
-        </div>
-      )}
-      {uploadError && (
-        <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 mb-5 flex items-center gap-3">
-          <AlertTriangle size={16} className="text-rose-600 shrink-0" />
-          <p className="text-sm text-rose-700">{uploadError}</p>
-          <button onClick={() => setUploadError('')} className="ml-auto"><X size={14} className="text-rose-400" /></button>
-        </div>
-      )}
 
       {/* Summary tiles */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -228,7 +185,7 @@ export default function AttendancePage() {
               {filtered.map(s => (
                 <tr key={s.student_id} onClick={() => viewStudent(s)}
                   className="hover:bg-slate-50 cursor-pointer transition-colors">
-                  <td className="px-5 py-3.5 font-medium text-slate-900">{s.first_name} {s.last_name}</td>
+                  <td className="px-5 py-3.5 font-medium text-slate-900">{s.first_name}{s.preferred_name ? ` (${s.preferred_name})` : ''} {s.last_name}</td>
                   <td className="px-5 py-3.5 text-slate-500">{s.class_name}</td>
                   <td className="px-5 py-3.5">
                     {s.has_data ? <AttendancePctBar pct={s.attendance_pct} /> : <span className="text-slate-300 text-xs">No data</span>}
@@ -249,7 +206,7 @@ export default function AttendancePage() {
             <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0">
               <div>
                 <h3 className="font-bold text-slate-900 text-lg" style={{ fontFamily: 'Manrope,sans-serif' }}>
-                  {selectedStudent.first_name} {selectedStudent.last_name}
+                  {selectedStudent.first_name}{selectedStudent.preferred_name ? ` (${selectedStudent.preferred_name})` : ''} {selectedStudent.last_name}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">{selectedStudent.class_name} · {selectedStudent.year_level}</p>
               </div>
