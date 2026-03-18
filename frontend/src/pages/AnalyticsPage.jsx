@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart2, TrendingDown, Users, Target, Download, Calendar, AlertTriangle, Activity } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
+  PieChart, Pie, Cell, LineChart, Line, Legend, ReferenceLine,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
