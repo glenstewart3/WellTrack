@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, getRiskColors } from '../utils/tierUtils';
-import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight, UserPlus } from 'lucide-react';
+import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight, UserPlus, Pencil, Archive } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -247,6 +247,12 @@ export default function StudentsPage() {
   const [addStudentForm, setAddStudentForm] = useState({ first_name: '', last_name: '', year_level: '', class_name: '', teacher: '', gender: '', date_of_birth: '' });
   const [addStudentSaving, setAddStudentSaving] = useState(false);
   const [addStudentError, setAddStudentError] = useState('');
+  const [editStudent, setEditStudent] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [archiving, setArchiving] = useState(false);
 
   const loadStudents = async () => {
     try {
@@ -282,6 +288,44 @@ export default function StudentsPage() {
       loadStudents();
     } catch (e) { setAddStudentError(e.response?.data?.detail || 'Failed to add student'); }
     finally { setAddStudentSaving(false); }
+  };
+
+  const openEdit = (s, e) => {
+    e.stopPropagation();
+    setEditStudent(s);
+    setEditForm({ first_name: s.first_name || '', preferred_name: s.preferred_name || '', last_name: s.last_name || '', year_level: s.year_level || '', class_name: s.class_name || '', teacher: s.teacher || '', gender: s.gender || '', date_of_birth: s.date_of_birth || '' });
+    setEditError('');
+  };
+
+  const saveEdit = async () => {
+    if (!editForm.first_name || !editForm.last_name) { setEditError('First and last name are required'); return; }
+    setEditSaving(true); setEditError('');
+    try {
+      await axios.put(`${API}/students/${editStudent.student_id}`, editForm, { withCredentials: true });
+      setEditStudent(null);
+      loadStudents();
+    } catch (e) { setEditError(e.response?.data?.detail || 'Update failed'); }
+    finally { setEditSaving(false); }
+  };
+
+  const toggleSelect = (id, e) => {
+    e.stopPropagation();
+    setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds(selectedIds.size === filtered.length ? new Set() : new Set(filtered.map(s => s.student_id)));
+  };
+
+  const archiveSelected = async () => {
+    if (!window.confirm(`Archive ${selectedIds.size} student(s)? They will be hidden from the active list.`)) return;
+    setArchiving(true);
+    try {
+      await axios.put(`${API}/students/bulk-archive`, { student_ids: [...selectedIds] }, { withCredentials: true });
+      setSelectedIds(new Set());
+      loadStudents();
+    } catch (e) { console.error(e); }
+    finally { setArchiving(false); }
   };
 
   return (
@@ -426,6 +470,11 @@ export default function StudentsPage() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
+                  <th className="py-3 px-3 w-8">
+                    <input type="checkbox" checked={selectedIds.size === filtered.length && filtered.length > 0}
+                      onChange={toggleSelectAll}
+                      className="rounded border-slate-300 cursor-pointer" />
+                  </th>
                   <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Student</th>
                   <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden sm:table-cell">Class</th>
                   <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden md:table-cell">Year</th>
@@ -434,7 +483,7 @@ export default function StudentsPage() {
                   <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden lg:table-cell">Wellbeing</th>
                   <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Attend.</th>
                   <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden sm:table-cell">Interventions</th>
-                  <th className="w-8"></th>
+                  <th className="w-14"></th>
                 </tr>
               </thead>
               <tbody>
@@ -444,9 +493,14 @@ export default function StudentsPage() {
                     <tr
                       key={s.student_id}
                       onClick={() => navigate(`/students/${s.student_id}`)}
-                      className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors"
+                      className={`border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors ${selectedIds.has(s.student_id) ? 'bg-indigo-50/50' : ''}`}
                       data-testid={`student-row-${s.student_id}`}
                     >
+                      <td className="py-3 px-3 w-8" onClick={e => e.stopPropagation()}>
+                        <input type="checkbox" checked={selectedIds.has(s.student_id)}
+                          onChange={e => toggleSelect(s.student_id, e)}
+                          className="rounded border-slate-300 cursor-pointer" />
+                      </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2.5">
                           <div className="w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center shrink-0">
@@ -489,7 +543,13 @@ export default function StudentsPage() {
                         ) : <span className="text-slate-400 text-xs">—</span>}
                       </td>
                       <td className="py-3 px-3">
-                        <ChevronRight size={15} className="text-slate-400" />
+                        <div className="flex items-center gap-1">
+                          <button onClick={e => openEdit(s, e)} data-testid={`edit-student-${s.student_id}`}
+                            className="p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition-colors">
+                            <Pencil size={13} />
+                          </button>
+                          <ChevronRight size={15} className="text-slate-400" />
+                        </div>
                       </td>
                     </tr>
                   );
@@ -499,6 +559,97 @@ export default function StudentsPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Student Modal */}
+      {editStudent && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-bold text-slate-900 text-lg" style={{fontFamily:'Manrope,sans-serif'}}>Edit Student</h3>
+              <button onClick={() => setEditStudent(null)}><X size={18} className="text-slate-400" /></button>
+            </div>
+            {editError && <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl px-4 py-3 mb-4">{editError}</div>}
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">First Name *</label>
+                  <input value={editForm.first_name} onChange={e => setEditForm(p => ({...p, first_name: e.target.value}))}
+                    data-testid="edit-first-name"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Last Name *</label>
+                  <input value={editForm.last_name} onChange={e => setEditForm(p => ({...p, last_name: e.target.value}))}
+                    data-testid="edit-last-name"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">Preferred Name</label>
+                <input value={editForm.preferred_name} onChange={e => setEditForm(p => ({...p, preferred_name: e.target.value}))}
+                  placeholder="Optional"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Year Level *</label>
+                  <input value={editForm.year_level} onChange={e => setEditForm(p => ({...p, year_level: e.target.value}))}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Class *</label>
+                  <input value={editForm.class_name} onChange={e => setEditForm(p => ({...p, class_name: e.target.value}))}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">Teacher *</label>
+                <input value={editForm.teacher} onChange={e => setEditForm(p => ({...p, teacher: e.target.value}))}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Gender</label>
+                  <select value={editForm.gender} onChange={e => setEditForm(p => ({...p, gender: e.target.value}))}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none">
+                    <option value="">Not specified</option>
+                    <option>Male</option><option>Female</option><option>Non-binary</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Date of Birth</label>
+                  <input type="date" value={editForm.date_of_birth} onChange={e => setEditForm(p => ({...p, date_of_birth: e.target.value}))}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none" />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button onClick={saveEdit} disabled={editSaving} data-testid="confirm-edit-student-btn"
+                className="flex-1 bg-slate-900 text-white py-2.5 text-sm font-semibold rounded-xl hover:bg-slate-800 disabled:opacity-60 transition-colors flex items-center justify-center gap-2">
+                {editSaving && <Loader size={14} className="animate-spin" />}
+                {editSaving ? 'Saving…' : 'Save Changes'}
+              </button>
+              <button onClick={() => setEditStudent(null)}
+                className="flex-1 bg-slate-100 text-slate-700 py-2.5 text-sm font-medium rounded-xl hover:bg-slate-200 transition-colors">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Archive bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white rounded-2xl px-5 py-3 flex items-center gap-4 shadow-xl">
+          <span className="text-sm font-medium">{selectedIds.size} selected</span>
+          <button onClick={archiveSelected} disabled={archiving} data-testid="bulk-archive-btn"
+            className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-60">
+            {archiving ? <Loader size={13} className="animate-spin" /> : <Archive size={13} />}
+            {archiving ? 'Archiving…' : 'Archive'}
+          </button>
+          <button onClick={() => setSelectedIds(new Set())} className="text-slate-400 hover:text-white transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

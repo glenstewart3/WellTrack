@@ -153,32 +153,32 @@ export default function MeetingPrepPage() {
               return (
                 <div key={idx} className={`bg-white border rounded-xl p-4 ${improved ? 'border-emerald-200' : 'border-rose-200'}`}
                   data-testid={`tier-change-${tc.student?.student_id}`}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-xl ${improved ? 'bg-emerald-100' : 'bg-rose-100'}`}>
-                        {improved ? <TrendingUp size={16} className="text-emerald-600" /> : <TrendingDown size={16} className="text-rose-600" />}
-                      </div>
-                      <div>
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2 rounded-xl shrink-0 ${improved ? 'bg-emerald-100' : 'bg-rose-100'}`}>
+                      {improved ? <TrendingUp size={16} className="text-emerald-600" /> : <TrendingDown size={16} className="text-rose-600" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
                         <button onClick={() => navigate(`/students/${tc.student?.student_id}`)}
                           className="font-semibold text-slate-900 hover:text-indigo-600 transition-colors">
                           {studentDisplayName(tc.student)}
                         </button>
-                        <p className="text-xs text-slate-400">{tc.student?.class_name}</p>
+                        <span className="text-xs text-slate-400">{tc.student?.class_name}</span>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1.5 text-sm">
-                        <span className={`px-2.5 py-1 rounded-full font-semibold text-xs ${getTierColors(tc.previous_tier).badge}`}>Tier {tc.previous_tier}</span>
-                        <ArrowRight size={14} className="text-slate-400" />
-                        <span className={`px-2.5 py-1 rounded-full font-semibold text-xs ${getTierColors(tc.current_tier).badge}`}>Tier {tc.current_tier}</span>
+                      <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                        <div className="flex items-center gap-1.5 text-sm">
+                          <span className={`px-2.5 py-1 rounded-full font-semibold text-xs ${getTierColors(tc.previous_tier).badge}`}>Tier {tc.previous_tier}</span>
+                          <ArrowRight size={14} className="text-slate-400" />
+                          <span className={`px-2.5 py-1 rounded-full font-semibold text-xs ${getTierColors(tc.current_tier).badge}`}>Tier {tc.current_tier}</span>
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${improved ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                          {improved ? 'Improved' : 'Declined'}
+                        </span>
+                        <button onClick={() => navigate(`/students/${tc.student?.student_id}`)}
+                          className="text-xs text-slate-400 hover:text-indigo-600 transition-colors flex items-center gap-0.5">
+                          Profile <ChevronRight size={12} />
+                        </button>
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${improved ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                        {improved ? 'Improved' : 'Declined'}
-                      </span>
-                      <button onClick={() => navigate(`/students/${tc.student?.student_id}`)}
-                        className="text-xs text-slate-400 hover:text-indigo-600 transition-colors flex items-center gap-0.5">
-                        Profile <ChevronRight size={12} />
-                      </button>
                     </div>
                   </div>
                   {tc.saebrs && (

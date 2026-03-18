@@ -167,3 +167,30 @@ async def set_student_external_id(student_id: str, data: dict, user=Depends(get_
     ext_id = data.get("external_id", "").strip().upper()
     await db.students.update_one({"student_id": student_id}, {"$set": {"external_id": ext_id}})
     return {"message": "External ID updated", "external_id": ext_id}
+
+
+@router.put("/students/bulk-archive")
+async def bulk_archive_students(data: dict, user=Depends(get_current_user)):
+    if user.get("role") not in ["admin", "leadership"]:
+        raise HTTPException(403, "Access denied")
+    ids = data.get("student_ids", [])
+    if not ids:
+        raise HTTPException(400, "No student IDs provided")
+    result = await db.students.update_many(
+        {"student_id": {"$in": ids}},
+        {"$set": {"enrolment_status": "archived"}}
+    )
+    return {"archived": result.modified_count}
+
+
+@router.put("/students/{student_id}")
+async def update_student(student_id: str, data: dict, user=Depends(get_current_user)):
+    if user.get("role") not in ["admin", "leadership"]:
+        raise HTTPException(403, "Access denied")
+    allowed = ["first_name", "last_name", "preferred_name", "year_level", "class_name", "teacher", "gender", "date_of_birth"]
+    update_data = {k: v for k, v in data.items() if k in allowed}
+    if not update_data:
+        raise HTTPException(400, "No valid fields to update")
+    await db.students.update_one({"student_id": student_id}, {"$set": update_data})
+    updated = await db.students.find_one({"student_id": student_id}, {"_id": 0})
+    return updated

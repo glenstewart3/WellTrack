@@ -24,6 +24,10 @@ const ALERT_TYPE_COLORS = {
 };
 
 function AlertCard({ alert, canApprove, showResolved, onMarkRead, onResolve, onApprove, onReject, onClick }) {
+  const showApprove = alert.alert_type === 'tier_change' && alert.status === 'pending' && canApprove;
+  const showMarkRead = !alert.is_read;
+  const showResolve = !showResolved && alert.status !== 'pending';
+  const hasActions = showApprove || showMarkRead || showResolve;
   return (
     <div
       data-testid={`alert-card-${alert.alert_id}`}
@@ -47,31 +51,33 @@ function AlertCard({ alert, canApprove, showResolved, onMarkRead, onResolve, onA
           </div>
           <p className="text-sm text-slate-600">{alert.message}</p>
           <p className="text-xs text-slate-400 mt-1">{alert.created_at?.split('T')[0]}</p>
-        </div>
-        <div className="flex gap-1.5 shrink-0 flex-wrap justify-end" onClick={e => e.stopPropagation()}>
-          {alert.alert_type === 'tier_change' && alert.status === 'pending' && canApprove && (
-            <>
-              <button onClick={() => onApprove(alert.alert_id)} data-testid={`approve-tier-${alert.alert_id}`}
-                className="text-xs px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center gap-1">
-                <ThumbsUp size={11} /> Approve
-              </button>
-              <button onClick={() => onReject(alert.alert_id)} data-testid={`reject-tier-${alert.alert_id}`}
-                className="text-xs px-2.5 py-1 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 hover:bg-rose-100 transition-colors flex items-center gap-1">
-                <ThumbsDown size={11} /> Reject
-              </button>
-            </>
-          )}
-          {!alert.is_read && (
-            <button onClick={() => onMarkRead(alert.alert_id)}
-              className="text-xs px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors">
-              Mark Read
-            </button>
-          )}
-          {!showResolved && alert.status !== 'pending' && (
-            <button onClick={() => onResolve(alert.alert_id)}
-              className="text-xs px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-600 hover:bg-emerald-100 transition-colors">
-              Resolve
-            </button>
+          {hasActions && (
+            <div className="flex flex-wrap gap-1.5 mt-2" onClick={e => e.stopPropagation()}>
+              {showApprove && (
+                <>
+                  <button onClick={() => onApprove(alert.alert_id)} data-testid={`approve-tier-${alert.alert_id}`}
+                    className="text-xs px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center gap-1">
+                    <ThumbsUp size={11} /> Approve
+                  </button>
+                  <button onClick={() => onReject(alert.alert_id)} data-testid={`reject-tier-${alert.alert_id}`}
+                    className="text-xs px-2.5 py-1 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 hover:bg-rose-100 transition-colors flex items-center gap-1">
+                    <ThumbsDown size={11} /> Reject
+                  </button>
+                </>
+              )}
+              {showMarkRead && (
+                <button onClick={() => onMarkRead(alert.alert_id)}
+                  className="text-xs px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors">
+                  Mark Read
+                </button>
+              )}
+              {showResolve && (
+                <button onClick={() => onResolve(alert.alert_id)}
+                  className="text-xs px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-600 hover:bg-emerald-100 transition-colors">
+                  Resolve
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -169,29 +175,31 @@ export default function AlertsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 mb-5">
+      <div className="flex overflow-x-auto border-b border-slate-200 mb-0 -mx-6 px-6 sm:mx-0 sm:px-0">
         {[
-          { key: 'early_warning', label: 'Early Warnings', count: unreadEW, Icon: AlertTriangle },
-          { key: 'tier_change', label: 'Tier Changes', count: unreadTC, Icon: TrendingUp },
-        ].map(({ key, label, count, Icon }) => (
+          { key: 'early_warning', label: 'Early Warnings', short: 'Warnings', count: unreadEW, Icon: AlertTriangle },
+          { key: 'tier_change', label: 'Tier Changes', short: 'Tier Chg', count: unreadTC, Icon: TrendingUp },
+        ].map(({ key, label, short, count, Icon }) => (
           <button key={key} onClick={() => setActiveTab(key)} data-testid={`alerts-tab-${key}`}
-            className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === key ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            className={`flex items-center gap-2 px-4 sm:px-5 py-3 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 ${activeTab === key ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
             <Icon size={14} />
-            {label}
-            {count > 0 && <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-xs flex items-center justify-center font-bold">{count}</span>}
+            <span className="hidden sm:inline">{label}</span>
+            <span className="sm:hidden">{short}</span>
+            {count > 0 && <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-xs flex items-center justify-center font-bold shrink-0">{count}</span>}
           </button>
         ))}
-        <div className="ml-auto flex items-center gap-2 pb-2">
-          <div className="flex rounded-lg border border-slate-200 overflow-hidden">
-            <button onClick={() => setShowResolved(false)}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${!showResolved ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>
-              Active
-            </button>
-            <button onClick={() => setShowResolved(true)}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${showResolved ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>
-              Resolved
-            </button>
-          </div>
+      </div>
+      {/* Active/Resolved toggle */}
+      <div className="flex items-center justify-end mb-5 mt-3">
+        <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+          <button onClick={() => setShowResolved(false)}
+            className={`px-3 py-1.5 text-xs font-medium transition-colors ${!showResolved ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>
+            Active
+          </button>
+          <button onClick={() => setShowResolved(true)}
+            className={`px-3 py-1.5 text-xs font-medium transition-colors ${showResolved ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>
+            Resolved
+          </button>
         </div>
       </div>
 
@@ -235,25 +243,27 @@ export default function AlertsPage() {
                     </div>
                     <p className="text-sm text-slate-600">{alert.message}</p>
                     <p className="text-xs text-slate-400 mt-1">{alert.created_at?.split('T')[0]}</p>
-                  </div>
-                  <div className="flex gap-1.5 shrink-0 flex-wrap justify-end">
-                    {alert.status === 'pending' && canApprove && (
-                      <>
-                        <button onClick={() => approveAlert(alert.alert_id)} data-testid={`approve-tier-${alert.alert_id}`}
-                          className="text-xs px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center gap-1">
-                          <ThumbsUp size={11} /> Approve
-                        </button>
-                        <button onClick={() => rejectAlert(alert.alert_id)} data-testid={`reject-tier-${alert.alert_id}`}
-                          className="text-xs px-2.5 py-1 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 hover:bg-rose-100 transition-colors flex items-center gap-1">
-                          <ThumbsDown size={11} /> Reject
-                        </button>
-                      </>
-                    )}
-                    {!alert.is_read && (
-                      <button onClick={() => markRead(alert.alert_id)}
-                        className="text-xs px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors">
-                        Mark Read
-                      </button>
+                    {(alert.status === 'pending' && canApprove || !alert.is_read) && (
+                      <div className="flex flex-wrap gap-1.5 mt-2" onClick={e => e.stopPropagation()}>
+                        {alert.status === 'pending' && canApprove && (
+                          <>
+                            <button onClick={() => approveAlert(alert.alert_id)} data-testid={`approve-tier-${alert.alert_id}`}
+                              className="text-xs px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center gap-1">
+                              <ThumbsUp size={11} /> Approve
+                            </button>
+                            <button onClick={() => rejectAlert(alert.alert_id)} data-testid={`reject-tier-${alert.alert_id}`}
+                              className="text-xs px-2.5 py-1 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 hover:bg-rose-100 transition-colors flex items-center gap-1">
+                              <ThumbsDown size={11} /> Reject
+                            </button>
+                          </>
+                        )}
+                        {!alert.is_read && (
+                          <button onClick={() => markRead(alert.alert_id)}
+                            className="text-xs px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors">
+                            Mark Read
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
