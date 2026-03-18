@@ -1,179 +1,151 @@
 # WellTrack — MTSS Wellbeing Platform PRD
 
-## Project Overview
-School MTSS (Multi-Tiered System of Supports) platform integrating SAEBRS behavioural screening and WellTrack wellbeing system. Supports screening, risk identification, intervention tracking, and wellbeing analytics.
-
-**Last Updated:** 2026-03-16  
-**Status:** Active Development — Auth P0 fixed
+**Last Updated:** 2026-03-18
+**Status:** Active Development — Large batch of features completed
 
 ---
 
-## Architecture
-
-### Backend (FastAPI + MongoDB)
-- **server.py** — Monolithic FastAPI backend with all routes
-- **Database:** MongoDB
-- **Auth:** Emergent-managed Google OAuth (whitelist-only login)
-- **Key fix:** All `insert_one()` calls use `{**d}` spread pattern to avoid ObjectId serialization bug
-
-### Frontend (React + TailwindCSS)
-- **App.js** — Main routing with AuthProvider
-- **context/AuthContext.jsx** — Auth state management
-- **components/DashboardLayout.jsx** — Sidebar layout (admin-only User Management link)
-- **utils/tierUtils.js** — Tier color/label utilities, school year constants
+## Problem Statement
+A school MTSS platform for screening, risk identification, intervention tracking and analytics. Supports SAEBRS screening, Student Self-Report, attendance tracking, tiering logic, and wellbeing analytics.
 
 ---
 
-## User Personas
-1. **Teacher** — Completes SAEBRS screenings, views Class Risk Radar
-2. **Wellbeing Staff** — Manages interventions, writes case notes, views all students
-3. **Leadership** — Views school-wide analytics, meeting prep, reports
-4. **Administrator** — Full access + user management + data backup/restore
+## User Roles
+| Role | Access |
+|------|--------|
+| Teacher | Screening (SAEBRS + Self-Report), own class data |
+| Screener | SAEBRS + Self-Report screening only |
+| Wellbeing Staff | Interventions, case notes, alerts, tier change approval |
+| Leadership | Analytics, attendance upload, meeting prep, tier change approval |
+| Administrator | Full access + user management, settings, attendance types |
 
 ---
 
-## Core Requirements (Static)
-
-### Tier Classification
-- **Tier 1 (Low Risk):** SAEBRS total 37-57 AND wellbeing 50-66 AND attendance ≥90%
-- **Tier 2 (Emerging):** SAEBRS some risk OR wellbeing 35-49 OR attendance <90%
-- **Tier 3 (High Risk):** SAEBRS high risk OR wellbeing 0-34 OR attendance <80%
-
-### SAEBRS Score Ranges
-- Social: 0-18 | Academic: 0-18 | Emotional: 0-21 | Total: 0-57
-
-### SAEBRS+ Wellbeing Score (max ~66)
-- Social domain: 0-18 (from SAEBRS)
-- Academic domain: 0-18 (from SAEBRS)
-- Emotional domain: 0-9 (3 self-report items)
-- Belonging domain: 0-12 (4 self-report items)
-- Attendance domain: 0-9 (attendance % scaled)
+## Core Modules / Pages
+- **Dashboard** — overview with tier distribution
+- **Screening** — SAEBRS and Student Self-Report (separate workflows)
+- **Students** — list, search, filter, Add Student, Import Students
+- **Student Profile** — SAEBRS trend (tier bands + domain toggle), Self-Report, interventions, case notes
+- **Class Risk Radar** — class-level overview
+- **Analytics** — school-wide analytics
+- **Attendance** — XLSX/CSV upload, per-student % with tier bands, absence patterns (admin/leadership only)
+- **Interventions** — active/completed interventions
+- **Alerts** — early warning, tier change (with Approve/Reject), emotional distress
+- **MTSS Meeting** — meeting prep
+- **Reports** — downloadable reports
+- **Settings** — branding, MTSS logic, users, intervention types
+- **User Management** — admin only
 
 ---
 
 ## What's Been Implemented
 
-### 2026-02-01 — MVP Launch
-1. ✅ Universal Screening (SAEBRS + SAEBRS+) — Full 19-item form + 7-item self-report
-2. ✅ Student Wellbeing Profiles — Charts, interventions, case notes
-3. ✅ Tier Classification Engine — Auto-computes tier from SAEBRS + wellbeing + attendance
-4. ✅ Intervention Management — CRUD + AI suggestions (Claude Sonnet fallback)
-5. ✅ Case Management — Add/view case notes per student
-6. ✅ Progress Monitoring — SAEBRS trend charts, wellbeing radar charts
-7. ✅ School-Wide Analytics — Tier distribution, class heatmap, domain averages
-8. ✅ Alerts & Early Warning System — Auto-generated for high risk/low attendance
-9. ✅ Classroom Risk Radar — Colour-coded class view with risk indicators
-10. ✅ MTSS Meeting Tools — Meeting prep page
-11. ✅ Reports & CSV Export — 4 report types
-12. ✅ Google OAuth Authentication (whitelist-only)
-13. ✅ Demo Data Auto-Seed (32 students, 4 classes, 2 screening periods)
-14. ✅ Settings — School context, data wipe, demo reload
-15. ✅ Cohort Comparison — Class vs school average analytics
+### MVP (2026-03)
+- Full auth with custom Google OAuth (Authlib → then replaced with manual httpx flow)
+- MongoDB-backed OAuth state (fixes CSRF issue in K8s proxy)
+- Onboarding wizard for first admin
+- All core pages and navigation
 
-### 2026-03-14 — P0 Fixes + P1 Features
+### Auth P0 Fix (2026-03-16)
+- Fixed `mismatching_state` CSRF error via MongoDB-backed state store
+- Fixed `UnboundLocalError` in callback
 
-**P0 - Critical Fixes:**
-- ✅ Fixed Start Screening bug — Added error feedback (startError state) in ScreeningPage
-- ✅ App title changed to "WellTrack — MTSS Wellbeing Platform"
-- ✅ Settings Export All Data button (GET /api/settings/export-all → JSON download)
-- ✅ Settings Restore Data button (POST /api/settings/restore → admin only, file upload)
-- ✅ Settings role section: admin users get role-switching buttons; non-admins get read-only view
-- ✅ User Management page fully integrated (route, nav link admin-only, CRUD)
+### Large Feature Batch (2026-03-18)
+- **Removed**: Made with Emergent badge, AI Intervention Suggestions, Your Role from Settings, attendance field from SAEBRS screener
+- **Fixed**: Accent color not persisting (`PUT /api/settings` now accepts full dict, no longer strips branding fields), Settings tab scrollbar
+- **New Screening Workflow**: Mode selection (SAEBRS vs Self-Report) → Class/Term → individual student form
+  - SAEBRS: Teacher screens whole class sequentially (no attendance field)
+  - Self-Report: Teacher picks individual student from class list
+- **Student Profile**: SAEBRS Score Trend now has colour-coded Tier 1/2/3 background bands + Total/Domains toggle
+- **Wellbeing Domain Profile**: Attendance domain removed (4 domains: Social, Academic, Emotional, Belonging)
+- **Attendance Module**: New page (admin/leadership only), XLSX/CSV upload (parses ID, Date, AM, PM columns), per-student % with tier badges, monthly trend chart, absence pattern breakdown, auto-discovers new absence types from uploads
+- **Tier Change Alerts**: Auto-generated when SAEBRS result changes student's tier; visible in Alerts page with Approve/Reject buttons for wellbeing/leadership/admin
+- **Add Student**: Single student add modal alongside Import Students button
+- **Screener Role**: New role for staff whose only job is screening
+- **Reset to Defaults**: Button in Settings MTSS tab for tier thresholds
+- **Intervention Types**: Add/remove from Settings (already existed, confirmed working)
 
-### 2026-03-16 (3) — School Customisation (Items 1-11)
+---
 
-**Branding (1–4):**
-- ✅ School logo upload (base64, PNG/JPG/SVG, shown in sidebar + login)
-- ✅ Accent colour picker (preset palette + custom hex) applied via CSS `--wt-accent` variable to sidebar, nav items
-- ✅ Custom platform name (shown in sidebar, page title, login)
-- ✅ Login welcome message (custom tagline)
+## Architecture
 
-**MTSS Config (5–8):**
-- ✅ Custom tier thresholds — SAEBRS some/high risk score sliders, attendance % sliders, visual colour bar preview
-- ✅ SAEBRS+ module toggle — enable/disable wellbeing self-report step in screening
-- ✅ Custom intervention library — add/remove types; used in InterventionsPage + StudentProfilePage dropdowns
-- ✅ Academic year start month selector
+```
+/app/
+├── backend/
+│   ├── .env              # MONGO_URL, DB_NAME, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, FRONTEND_URL, SESSION_SECRET
+│   ├── requirements.txt  # includes openpyxl==3.1.5
+│   └── server.py         # Monolithic FastAPI (~1400 lines)
+├── frontend/
+│   ├── .env              # REACT_APP_BACKEND_URL
+│   └── src/
+│       ├── App.js
+│       ├── components/DashboardLayout.jsx
+│       ├── context/AuthContext.jsx, SettingsContext.jsx
+│       └── pages/
+│           ├── AttendancePage.jsx  (NEW)
+│           ├── ScreeningPage.jsx   (rewritten)
+│           ├── StudentProfilePage.jsx
+│           ├── StudentsPage.jsx
+│           ├── AlertsPage.jsx
+│           ├── SettingsPage.jsx
+│           └── ...
+└── memory/PRD.md
+```
 
-**Student Data (9–11):**
-- ✅ Custom student fields builder (text/select/boolean/number types, required flag, options)
-- ✅ Custom risk config (consecutive absence days threshold slider)
-- ✅ Custom fields displayed in student profile "Additional Information" section
+---
 
-**Architecture:**
-- `SettingsContext.jsx` — global settings provider, loads `/api/public-settings` (no auth) on mount; applies accent colour CSS variable
-- `SettingsPage.jsx` — tabbed layout: General · Branding · MTSS & Screening · Student Data · Data
-- `SETTINGS_DEFAULTS` dict in server.py — single source of defaults for all new fields
-
-**Onboarding flow (first-time setup):**
-- ✅ No more auto-seeded demo data on startup — clean slate
-- ✅ First Google login auto-registers as school administrator (no whitelist needed for first user)
-- ✅ Multi-step wizard: Welcome → School Details → Data Setup → Complete
-- ✅ School Details: school name, type (Primary/Secondary/K-12), current term
-- ✅ Data Setup: Load Demo Data / Restore from Backup / Start from Scratch
-- ✅ After completion: `onboarding_complete: true` in school_settings → normal app loads
-- ✅ `/api/onboarding/status` (public) + `/api/onboarding/complete` (admin) endpoints
-- ✅ App.js gates all routes behind onboarding check
-
-**Auth Migration:**
-- ✅ Replaced Emergent-managed auth with standard Google OAuth 2.0 (authlib + Starlette SessionMiddleware)
-- ✅ New flow: `/api/auth/google` → Google consent screen → `/api/auth/callback` → session cookie → dashboard
-- ✅ Backend reads GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, FRONTEND_URL, SESSION_SECRET from env
-- ✅ Error redirects: `?error=access_denied`, `?error=auth_failed` → login page shows friendly message
-- ✅ Whitelist check preserved: only users in DB can log in
-- ✅ Session cookie pattern unchanged (MongoDB user_sessions collection)
-
-**Auth P0 Fix (2026-03-16):**
-- ✅ Fixed `mismatching_state` CSRF error — replaced `authlib` session-based state with MongoDB-backed state (oauth_states collection, 10-min TTL, consumed on use)
-- ✅ Fixed `UnboundLocalError` — `existing` user lookup now happens before the if/elif/else block
-- ✅ Token exchange and userinfo now done manually via `httpx` directly against Google APIs (no Starlette session dependency)
-
-**Screening:**
-- ✅ 4 terms per year (Term 1–4) in screening period selector
-- ✅ Analytics page — School Context filter badge (Primary K-6 / Secondary 7-12 / K-12)
-- ✅ Progress Monitoring — SAEBRS trend chart now shows risk threshold reference lines (y=37 Low Risk, y=24 High Risk)
+## Key DB Collections
+- `users` — email, name, picture, role
+- `school_settings` — platform_name, accent_color, logo_base64, tier_thresholds, modules_enabled, intervention_types, absence_types
+- `students` — student_id, first_name, last_name, year_level, class_name, teacher, external_id (for attendance matching)
+- `saebrs_results` — per-student screening results
+- `saebrs_plus_results` — per-student self-report results
+- `interventions` — active/completed interventions
+- `case_notes` — case notes per student
+- `alerts` — early warning + tier change alerts (pending_approval field)
+- `attendance_records` — parsed from uploaded XLSX/CSV (student_id, date, am_status, pm_status)
+- `oauth_states` — short-lived OAuth state for CSRF protection
+- `user_sessions` — session tokens
 
 ---
 
 ## Key API Endpoints
-- `GET /api/auth/me` — Current user info
-- `POST /api/auth/session` — Process OAuth session (whitelist check)
-- `GET /api/users` — (Admin) List all users
-- `POST /api/users` — (Admin) Add user to whitelist
-- `PUT /api/users/{user_id}/role` — (Admin) Change user role
-- `DELETE /api/users/{user_id}` — (Admin) Remove user
-- `GET /api/settings/export-all` — Export all data as JSON backup
-- `POST /api/settings/restore` — (Admin) Restore data from JSON backup
-- `POST /api/screening/sessions` — Create screening session
-- `POST /api/screening/saebrs` — Submit SAEBRS results
-- `POST /api/screening/saebrs-plus` — Submit wellbeing self-report
-- `GET /api/analytics/cohort-comparison` — Cohort vs school comparison
+- `GET/POST /api/auth/google` — OAuth login redirect
+- `GET /api/auth/callback` — OAuth callback (no Starlette sessions; uses MongoDB state)
+- `GET /api/onboarding/status`
+- `POST /api/onboarding/complete`
+- `GET /api/public-settings`
+- `GET/PUT /api/settings` — full school settings (PUT now accepts raw dict)
+- `GET /api/students` — list with filters
+- `POST /api/students` — create single student
+- `POST /api/students/import` — bulk CSV import
+- `PUT /api/students/{id}/external-id` — link to attendance system ID
+- `POST /api/attendance/upload` — XLSX/CSV upload
+- `GET /api/attendance/summary` — per-student attendance % and tier
+- `GET /api/attendance/student/{id}` — detailed attendance with monthly trend
+- `GET/PUT /api/attendance/types` — manage absence type list
+- `POST /api/screening/saebrs` — submit SAEBRS result
+- `POST /api/screening/saebrs-plus` — submit Self-Report result
+- `PUT /api/alerts/{id}/approve` — approve tier change
+- `PUT /api/alerts/{id}/reject` — reject tier change
 
 ---
 
-## Demo Data
-- **School:** Riverside Community School
-- **Classes:** Year 3A (Ms Thompson), Year 5B (Mr Rodriguez), Year 7C (Ms Chen), Year 9A (Mr Williams)
-- **Students:** 32 students (8 per class) with mixed risk profiles
-- **Screening periods:** Term 1 2025 + Term 2 2025
-- **Default admin:** admin@school.edu.au (must be whitelisted in DB)
+## P0/P1/P2 Backlog
 
----
+### P0 — Resolved
+- Auth CSRF fix ✅
+- Accent color save bug ✅
+- Screening page runtime error ✅
 
-## Prioritized Backlog
+### P1 — In Progress / Remaining
+- [ ] Progress monitoring graphs in Student Profile (not yet implemented)
+- [ ] Cohort comparison in Analytics
+- [ ] Classroom Risk Radar — advanced sorting/filtering
 
-### P0 (Critical)
-- [ ] Bulk CSV import for SAEBRS scores
-
-### P1 (High value)
-- [ ] Intervention goal tracking with RAG (Red/Amber/Green) status
-- [ ] Progress monitoring — attendance trend over time chart
-- [ ] Multi-teacher class assignment
-
-### P2 (Nice to have)
+### P2 — Future
 - [ ] PDF export for reports
 - [ ] MTSS Meeting Support page with export
-- [ ] Mobile PWA for tablet screening
-- [ ] AI case note summarisation
-- [ ] Parent portal (read-only wellbeing view)
-- [ ] Custom alert thresholds per school
-- [ ] NAPLAN/external data integration
+- [ ] Email notifications for non-whitelisted login attempts
+- [ ] External ID bulk assignment (e.g., map CSV with name→external_id)
+- [ ] NAPLAN / external data integration

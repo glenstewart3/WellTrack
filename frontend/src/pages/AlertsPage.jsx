@@ -111,7 +111,8 @@ export default function AlertsPage() {
         <select value={filterType} onChange={e => setFilterType(e.target.value)}
           className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none bg-white">
           <option value="">All Types</option>
-          {alertTypes.map(t => <option key={t} value={t}>{ALERT_TYPE_LABELS[t] || t}</option>)}
+          <option value="tier_change">Tier Change</option>
+          {alertTypes.filter(t => t !== 'tier_change').map(t => <option key={t} value={t}>{ALERT_TYPE_LABELS[t] || t}</option>)}
         </select>
         <select value={filterSeverity} onChange={e => setFilterSeverity(e.target.value)}
           className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none bg-white">
