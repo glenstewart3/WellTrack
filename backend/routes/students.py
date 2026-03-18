@@ -191,6 +191,8 @@ async def update_student(student_id: str, data: dict, user=Depends(get_current_u
     update_data = {k: v for k, v in data.items() if k in allowed}
     if not update_data:
         raise HTTPException(400, "No valid fields to update")
-    await db.students.update_one({"student_id": student_id}, {"$set": update_data})
+    result = await db.students.update_one({"student_id": student_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Student not found")
     updated = await db.students.find_one({"student_id": student_id}, {"_id": 0})
     return updated

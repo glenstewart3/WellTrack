@@ -86,6 +86,18 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 
 ## What's Been Implemented (Chronological)
 
+### Session 7 (Mobile Responsiveness + Student Management)
+- **Fixed critical compilation error**: Orphaned JSX in `MeetingPrepPage.jsx` (caused app to crash on load)
+- **AlertsPage mobile fixes**:
+  - Tab bar now scrollable (`overflow-x-auto`) with short labels on mobile
+  - Active/Resolved toggle moved below tabs (separate row)
+  - Action buttons (Approve/Reject/Mark Read) moved inside flex-1 div, below content — no more squishing
+  - Same fix applied to both `AlertCard` and the inline Tier Changes card
+- **MeetingPrepPage Tier Changes tab**: Tier badges + Improved/Declined + Profile link now wrap below student name using `flex-wrap`, preventing horizontal overflow
+- **Edit Student modal**: Pencil icon on each row opens pre-filled edit modal. `PUT /api/students/{student_id}` backend endpoint added.
+- **Bulk Archive**: Checkbox column on student table + floating action bar. `PUT /api/students/bulk-archive` backend endpoint added.
+- **Global mobile overflow audit**: All main pages verified at 390px — no horizontal scroll
+
 ### Session 6 (server.py Refactor)
 - Split 2115-line monolithic `server.py` into 10 focused modules under `/app/backend/routes/` plus `database.py`, `helpers.py`, `models.py`, `seed.py`
 - New `server.py` is 61 lines — pure entry point, no business logic
@@ -157,12 +169,11 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 
 ### P2 — Medium Priority
 - **Wellbeing Check-in**: Simple daily wellbeing check-in for students (on hold by user)
-- **server.py Refactoring**: Split into APIRouter modules (auth, students, settings, interventions, analytics, attendance) - now 2115 lines
-- **Automated Attendance Alerts - Upload Confirmation UI**: The `alerts_generated` field is now returned in the upload response but not shown in the UI toast message. Show it in the result summary.
+- **Automated Weekly Backups**: Email a weekly data backup to the admin
+- **pytest test suite**: Backend test coverage for refactored routes
 
 ### P3 — Nice to Have
-- Edit student modal (currently can only edit via add)
-- Bulk archive/deactivate students
+- Bulk deactivate students (archive is done; true deactivation/re-activation UI)
 - Email notifications for alerts
 - Screening history comparison charts on student profile
 - Export all student data as CSV
