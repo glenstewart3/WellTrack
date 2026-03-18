@@ -54,12 +54,15 @@ export default function DashboardPage() {
 
   const unreadAlerts = alerts.filter(a => !a.is_read).length;
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8 fade-in">
       {/* Welcome */}
       <div>
         <h1 className="text-3xl font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>
-          Good morning, {user?.name?.split(' ')[0]}
+          {greeting}, {user?.name?.split(' ')[0]}
         </h1>
         <p className="text-slate-500 mt-1">Here's your school's wellbeing overview for today.</p>
       </div>

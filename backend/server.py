@@ -1695,15 +1695,18 @@ async def interventions_csv(user=Depends(get_current_user)):
 
 @api_router.get("/settings/export-all")
 async def export_all_data(user=Depends(get_current_user)):
-    """Export all data as JSON backup"""
+    """Export ALL data as JSON backup — includes every collection."""
     backup = {}
-    collections = ["students", "attendance", "screening_sessions", "saebrs_results",
-                   "saebrs_plus_results", "interventions", "case_notes", "alerts", "school_settings"]
+    collections = [
+        "students", "attendance_records", "school_days",
+        "screening_sessions", "saebrs_results", "saebrs_plus_results",
+        "interventions", "case_notes", "alerts", "school_settings",
+    ]
     for col in collections:
-        docs = await db[col].find({}, {"_id": 0}).to_list(10000)
+        docs = await db[col].find({}, {"_id": 0}).to_list(50000)
         backup[col] = docs
     backup["exported_at"] = datetime.now(timezone.utc).isoformat()
-    backup["version"] = "1.0"
+    backup["version"] = "2.0"
     json_bytes = json.dumps(backup, default=str, indent=2).encode("utf-8")
     return StreamingResponse(
         iter([json_bytes]),
@@ -1713,19 +1716,27 @@ async def export_all_data(user=Depends(get_current_user)):
 
 @api_router.post("/settings/restore")
 async def restore_all_data(request: Request, user=Depends(get_current_user)):
-    """Restore data from JSON backup"""
+    """Restore data from JSON backup — handles both v1.0 and v2.0 backups."""
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     body = await request.json()
-    restorable = ["students", "attendance", "screening_sessions", "saebrs_results",
-                  "saebrs_plus_results", "interventions", "case_notes", "alerts", "school_settings"]
+    # Support both old "attendance" key (v1) and new "attendance_records" key (v2)
+    restorable = [
+        "students", "attendance_records", "school_days",
+        "screening_sessions", "saebrs_results", "saebrs_plus_results",
+        "interventions", "case_notes", "alerts", "school_settings",
+    ]
     restored = {}
     for col in restorable:
-        if col in body and isinstance(body[col], list):
+        source_key = col
+        # v1 backups used "attendance" for what is now "attendance_records"
+        if col == "attendance_records" and col not in body and "attendance" in body:
+            source_key = "attendance"
+        if source_key in body and isinstance(body[source_key], list):
             await db[col].delete_many({})
-            if body[col]:
-                await db[col].insert_many([{**doc} for doc in body[col]])
-            restored[col] = len(body[col])
+            if body[source_key]:
+                await db[col].insert_many([{**doc} for doc in body[source_key]])
+            restored[col] = len(body[source_key])
     return {"message": "Data restored successfully", "restored": restored}
 
 # ==============================
