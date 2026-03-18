@@ -6,7 +6,7 @@ import { ArrowLeft, Plus, X, Loader, Edit2, Check } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceArea
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceArea, Legend
 } from 'recharts';
 import { exportStudentProfile } from '../utils/pdfExport';
 
