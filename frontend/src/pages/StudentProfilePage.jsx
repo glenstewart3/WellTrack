@@ -221,12 +221,21 @@ export default function StudentProfilePage() {
   })) || [];
 
   // Radar: include attendance domain
+  // Attendance: 0-10 scale aligned with 3 tiers
+  // Tier 1 (≥95%): 8-10 | Tier 2 (90-95%): 5-7 | Tier 3 (<90%): 0-4
+  const attPct = attendance_pct || 0;
+  const attScore = attPct >= 95
+    ? Math.round(8 + (attPct - 95) / 5 * 2)
+    : attPct >= 90
+    ? Math.round(5 + (attPct - 90) / 5 * 2)
+    : Math.round((attPct / 90) * 4);
+
   const radarData = latestPlus ? [
     { domain: 'Social', score: latestPlus.social_domain, max: 18 },
     { domain: 'Academic', score: latestPlus.academic_domain, max: 18 },
     { domain: 'Emotional', score: latestPlus.emotional_domain, max: 9 },
     { domain: 'Belonging', score: latestPlus.belonging_domain, max: 12 },
-    { domain: 'Attendance', score: Math.round(attendance_pct || 0), max: 100 },
+    { domain: 'Attendance', score: Math.min(10, attScore), max: 10 },
   ].map(d => ({ ...d, pct: Math.round((d.score / d.max) * 100) })) : [];
 
   // Display name with optional preferred name
