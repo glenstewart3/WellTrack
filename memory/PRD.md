@@ -86,7 +86,10 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 
 ## What's Been Implemented (Chronological)
 
-### Session 5b (Attendance Bug Fix)
+### Session 6 (server.py Refactor)
+- Split 2115-line monolithic `server.py` into 10 focused modules under `/app/backend/routes/` plus `database.py`, `helpers.py`, `models.py`, `seed.py`
+- New `server.py` is 61 lines — pure entry point, no business logic
+- No endpoint changes; all 11 core endpoints verified passing after refactor
 - **Root cause fixed**: Old stale `/api/attendance/{student_id}` route (using obsolete `db.attendance` collection) was shadowing all new attendance endpoints (`/attendance/summary`, `/attendance/student/{student_id}`, `/attendance/types`). Removed the two dead routes.
 - **Enhanced summary**: Added `absent_sessions` and `total_sessions` to the attendance summary response (was missing, showed `—` in UI). Refactored `get_student_attendance_pct` into `get_student_attendance_stats` returning all three metrics in one pass.
 - **Alert count in UI**: Attendance upload result panel now shows "N alerts auto-generated" when attendance alerts are created.
