@@ -1109,31 +1109,60 @@ async def school_wide(year_level: Optional[str] = None, user=Depends(get_current
     }
 
 @api_router.get("/analytics/cohort-comparison")
-async def cohort_comparison(class_name: Optional[str] = None, user=Depends(get_current_user)):
-    all_students = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
-    school_totals = {"social": 0, "academic": 0, "emotional": 0, "belonging": 0, "attendance": 0}
-    cohort_totals = {"social": 0, "academic": 0, "emotional": 0, "belonging": 0, "attendance": 0}
-    school_count = 0
-    cohort_count = 0
-    for s in all_students:
-        plus = await db.saebrs_plus_results.find_one({"student_id": s["student_id"]}, {"_id": 0}, sort=[("created_at", -1)])
-        if plus:
-            for dom in ["social", "academic", "emotional", "belonging", "attendance"]:
-                school_totals[dom] += plus[f"{dom}_domain"]
-            school_count += 1
-            if class_name and s["class_name"] == class_name:
-                for dom in ["social", "academic", "emotional", "belonging", "attendance"]:
-                    cohort_totals[dom] += plus[f"{dom}_domain"]
-                cohort_count += 1
-    school_avgs = {k: round(v / school_count, 1) if school_count > 0 else 0 for k, v in school_totals.items()}
-    cohort_avgs = {k: round(v / cohort_count, 1) if cohort_count > 0 else 0 for k, v in cohort_totals.items()}
-    return {
-        "school_averages": school_avgs,
-        "cohort_averages": cohort_avgs if class_name else None,
-        "class_name": class_name,
-        "school_count": school_count, "cohort_count": cohort_count,
-        "domain_maxes": {"social": 18, "academic": 18, "emotional": 9, "belonging": 12, "attendance": 9}
-    }
+async def cohort_comparison(group_by: str = "year_level", user=Depends(get_current_user)):
+    """Compare cohorts by year_level or class_name.
+    Returns per-cohort: tier distribution, avg attendance, risk distribution, student count.
+    """
+    if group_by not in ("year_level", "class_name"):
+        raise HTTPException(400, "group_by must be 'year_level' or 'class_name'")
+
+    students = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
+    cohorts: dict = {}
+
+    for s in students:
+        key = s.get(group_by) or "Unknown"
+        if key not in cohorts:
+            cohorts[key] = {"name": key, "total": 0, "screened": 0,
+                            "tier1": 0, "tier2": 0, "tier3": 0,
+                            "risk_low": 0, "risk_some": 0, "risk_high": 0,
+                            "att_sum": 0.0}
+        cohorts[key]["total"] += 1
+
+        sid = s["student_id"]
+        saebrs = await db.saebrs_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
+        plus = await db.saebrs_plus_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
+        att_pct = await get_student_attendance_pct(sid)
+        cohorts[key]["att_sum"] += att_pct
+
+        if saebrs:
+            cohorts[key]["screened"] += 1
+            rl = saebrs.get("risk_level", "Low Risk")
+            if rl == "High Risk":
+                cohorts[key]["risk_high"] += 1
+            elif rl == "Some Risk":
+                cohorts[key]["risk_some"] += 1
+            else:
+                cohorts[key]["risk_low"] += 1
+
+        if saebrs and plus:
+            t = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
+        elif saebrs:
+            t = 3 if saebrs["risk_level"] == "High Risk" else (2 if saebrs["risk_level"] == "Some Risk" else 1)
+        else:
+            t = None
+        if t:
+            cohorts[key][f"tier{t}"] += 1
+
+    result = []
+    for k, d in sorted(cohorts.items()):
+        avg_att = round(d["att_sum"] / d["total"], 1) if d["total"] > 0 else 0
+        result.append({
+            "name": d["name"], "total": d["total"], "screened": d["screened"],
+            "tier1": d["tier1"], "tier2": d["tier2"], "tier3": d["tier3"],
+            "risk_low": d["risk_low"], "risk_some": d["risk_some"], "risk_high": d["risk_high"],
+            "avg_attendance": avg_att,
+        })
+    return result
 
 @api_router.get("/analytics/intervention-outcomes")
 async def intervention_outcomes(user=Depends(get_current_user)):
@@ -1470,12 +1499,58 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
     new_types = list(existing_types | found_types)
     await db.school_settings.update_one({}, {"$set": {"absence_types": sorted(new_types)}}, upsert=True)
 
+    # Auto-generate attendance alerts for matched students
+    alerts_created = 0
+    student_map = {s["student_id"]: s for s in await db.students.find(
+        {"student_id": {"$in": list(ext_to_student.values())}}, {"_id": 0}).to_list(500)}
+
+    for ext_id in matched:
+        sid = ext_to_student.get(ext_id)
+        if not sid:
+            continue
+        s = student_map.get(sid, {})
+        pref = s.get("preferred_name")
+        display = f"{s.get('first_name', '')}{ (' (' + pref + ')') if pref else ''} {s.get('last_name', '')}".strip()
+        att_pct = await get_student_attendance_pct(sid)
+
+        # Determine alert severity
+        if att_pct < 80:
+            severity, alert_type = "high", "low_attendance_80"
+            msg = f"{display} critically low attendance ({att_pct:.0f}%)"
+        elif att_pct < 90:
+            severity, alert_type = "medium", "low_attendance_90"
+            msg = f"{display} attendance below 90% ({att_pct:.0f}%)"
+        else:
+            # Attendance OK — resolve any existing pending attendance alert
+            await db.alerts.update_many(
+                {"student_id": sid, "alert_type": {"$in": ["low_attendance_80", "low_attendance_90"]}, "status": "pending"},
+                {"$set": {"resolved": True, "status": "resolved"}}
+            )
+            continue
+
+        # Upsert: replace any existing pending attendance alert for this student
+        await db.alerts.update_one(
+            {"student_id": sid, "alert_type": {"$in": ["low_attendance_80", "low_attendance_90"]}, "status": "pending"},
+            {"$set": {
+                "alert_id": f"alrt_{uuid.uuid4().hex[:8]}",
+                "student_id": sid, "student_name": display,
+                "class_name": s.get("class_name", ""),
+                "type": "early_warning", "alert_type": alert_type,
+                "severity": severity, "message": msg,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "is_read": False, "resolved": False, "status": "pending"
+            }},
+            upsert=True
+        )
+        alerts_created += 1
+
     return {
         "processed": len(records),
         "school_days_registered": len(unique_dates),
         "matched_students": len(matched),
         "unmatched_students": len(unmatched),
         "stored_records": stored_count,
+        "alerts_generated": alerts_created,
         "unmatched_ids": unmatched[:30],
     }
 
@@ -2019,210 +2094,6 @@ async def seed_database():
         "case_notes": len(all_notes),
         "alerts": len(all_alerts),
     }
-
-    rng = random.Random(42)
-
-    classes_data = [
-        {"class": "3A", "teacher": "Ms Thompson", "year": "Year 3"},
-        {"class": "5B", "teacher": "Mr Rodriguez", "year": "Year 5"},
-        {"class": "7C", "teacher": "Ms Chen", "year": "Year 7"},
-        {"class": "9A", "teacher": "Mr Williams", "year": "Year 9"},
-    ]
-
-    first_names = ["Emma", "Liam", "Olivia", "Noah", "Ava", "Ethan", "Sophia", "Mason",
-                   "Isabella", "James", "Charlotte", "Alexander", "Amelia", "William", "Harper",
-                   "Benjamin", "Evelyn", "Lucas", "Abigail", "Henry", "Emily", "Sebastian",
-                   "Elizabeth", "Jack", "Sofia", "Owen", "Avery", "Theodore", "Ella", "Carter",
-                   "Scarlett", "Jayden"]
-    preferred_names = [None, None, None, "Ollie", None, None, None, None,
-                       "Izzy", None, None, "Alex", None, "Will", None,
-                       "Ben", None, None, "Abby", "Hank", None, "Seb",
-                       "Liz", None, None, None, None, "Theo", None, None,
-                       None, "Jay"]
-    last_names = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
-                  "Wilson", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin",
-                  "Thompson", "Moore", "Young", "Lee", "Walker", "Allen", "Hall", "Nguyen",
-                  "Robinson", "King", "Wright", "Scott", "Torres", "Green"]
-
-    students = []
-    name_idx = 0
-    for cls_data in classes_data:
-        for i in range(8):
-            fname = first_names[name_idx % len(first_names)]
-            pname = preferred_names[name_idx % len(preferred_names)]
-            lname = last_names[(name_idx + 7) % len(last_names)]
-            sussi = f"YUS{name_idx+1:04d}"
-            students.append({
-                "student_id": f"stu_{uuid.uuid4().hex[:8]}",
-                "first_name": fname, "preferred_name": pname, "last_name": lname,
-                "year_level": cls_data["year"], "class_name": cls_data["class"],
-                "teacher": cls_data["teacher"],
-                "date_of_birth": "2014-01-01", "gender": "Male" if name_idx % 2 == 0 else "Female",
-                "enrolment_status": "active",
-                "sussi_id": sussi, "external_id": sussi,
-            })
-            name_idx += 1
-
-    await db.students.insert_many(students)
-
-    await db.screening_sessions.insert_many([
-        {"screening_id": "scr_term1_2025", "screening_period": "Term 1", "year": 2025, "date": "2025-02-15", "teacher_id": "demo", "class_name": "all", "status": "completed"},
-        {"screening_id": "scr_term2_2025", "screening_period": "Term 2", "year": 2025, "date": "2025-05-10", "teacher_id": "demo", "class_name": "all", "status": "completed"},
-    ])
-
-    low_s = [3,3,3,2,3,3]; low_a = [3,3,2,3,2,3]; low_e = [3,3,3,3,2,3,3]
-    some_s = [2,2,2,2,1,2]; some_a = [2,2,1,2,1,2]; some_e = [2,2,2,1,2,2,2]
-    high_s = [1,0,1,1,0,1]; high_a = [0,1,0,1,0,0]; high_e = [1,0,0,1,0,1,0]
-    sr_low = [0,3,3,3,3,3,3]; sr_some = [2,2,2,2,2,2,2]; sr_high = [3,0,1,0,1,0,1]
-
-    risk_cycle = ["low","low","low","some","some","some","high","high"]
-    att_map = {"low": [98, 97, 96, 99], "some": [91, 88, 92, 89], "high": [72, 68, 78, 75]}
-
-    def vary(items, delta=1):
-        return [max(0, min(3, x + rng.randint(-delta, delta))) for x in items]
-
-    all_s1, all_s2, all_p1, all_p2, all_att_recs, all_int, all_notes, all_alerts = [], [], [], [], [], [], [], []
-    school_days_set = set()
-
-    for idx, student in enumerate(students):
-        sid = student["student_id"]
-        risk = risk_cycle[idx % len(risk_cycle)]
-        att_frac = rng.choice(att_map[risk]) / 100.0
-        pref = student.get('preferred_name')
-        display = f"{student['first_name']}{(' (' + pref + ')') if pref else ''} {student['last_name']}"
-
-        if risk == "low":
-            s_prof, a_prof, e_prof, sr_prof = low_s, low_a, low_e, sr_low
-        elif risk == "some":
-            s_prof, a_prof, e_prof, sr_prof = some_s, some_a, some_e, sr_some
-        else:
-            s_prof, a_prof, e_prof, sr_prof = high_s, high_a, high_e, sr_high
-
-        def make_saebrs(s_items, a_items, e_items, screening_id, ts):
-            s = sum(s_items); a = sum(a_items); e = sum(e_items); t = s + a + e
-            r, sr, ar, er = compute_saebrs_risk(t, s, a, e)
-            return {"result_id": str(uuid.uuid4()), "student_id": sid, "screening_id": screening_id,
-                    "social_items": s_items, "academic_items": a_items, "emotional_items": e_items,
-                    "social_score": s, "academic_score": a, "emotional_score": e, "total_score": t,
-                    "risk_level": r, "social_risk": sr, "academic_risk": ar, "emotional_risk": er, "created_at": ts}
-
-        def make_plus(saebrs_doc, sr_items, screening_id, att, ts):
-            soc = saebrs_doc["social_score"]; aca = saebrs_doc["academic_score"]
-            rev = 3 - sr_items[0]
-            emo = rev + sr_items[1] + sr_items[2]
-            bel = sr_items[3] + sr_items[4] + sr_items[5] + sr_items[6]
-            att_s = compute_attendance_score(att * 100)
-            att_d = att_s * 3
-            total = soc + aca + emo + bel + att_d
-            return {"result_id": str(uuid.uuid4()), "student_id": sid, "screening_id": screening_id,
-                    "self_report_items": sr_items, "attendance_pct": att * 100,
-                    "social_domain": soc, "academic_domain": aca, "emotional_domain": emo,
-                    "belonging_domain": bel, "attendance_domain": att_d,
-                    "wellbeing_total": total, "wellbeing_tier": compute_wellbeing_tier(total), "created_at": ts}
-
-        s1 = make_saebrs(vary(s_prof), vary(a_prof), vary(e_prof), "scr_term1_2025", "2025-02-15T09:00:00")
-        s2 = make_saebrs(vary(s_prof, 2), vary(a_prof, 2), vary(e_prof, 2), "scr_term2_2025", "2025-05-10T09:00:00")
-        all_s1.append(s1); all_s2.append(s2)
-
-        p1 = make_plus(s1, vary(sr_prof), "scr_term1_2025", att_frac, "2025-02-15T10:00:00")
-        p2 = make_plus(s2, vary(sr_prof, 2), "scr_term2_2025", att_frac, "2025-05-10T10:00:00")
-        all_p1.append(p1); all_p2.append(p2)
-
-        # Exception-based attendance: only store absences
-        days = 40
-        absent_days = int(days * (1 - att_frac))
-        base_date = date_type(2025, 4, 1)
-        absent_types = ["Medical/Illness", "Unexplained", "Family Holiday", "School refusal or school can't"]
-        for day_num in range(days):
-            rec_date = (base_date + timedelta(days=day_num)).isoformat()
-            school_days_set.add(rec_date)
-            if day_num < absent_days:
-                abs_type = rng.choice(absent_types)
-                all_att_recs.append({
-                    "student_id": sid, "external_id": student.get("sussi_id", ""),
-                    "date": rec_date, "am_status": abs_type, "pm_status": abs_type
-                })
-
-        final_tier = compute_mtss_tier(s2["risk_level"], p2["wellbeing_tier"], att_frac * 100)
-        prev_tier = compute_mtss_tier(s1["risk_level"], p1["wellbeing_tier"], att_frac * 100)
-
-        if s2["risk_level"] == "High Risk":
-            all_alerts.append({
-                "alert_id": f"alrt_{uuid.uuid4().hex[:8]}", "student_id": sid,
-                "student_name": display, "class_name": student["class_name"],
-                "type": "early_warning", "alert_type": "high_risk_saebrs", "severity": "high",
-                "message": f"{display} screened High Risk (SAEBRS: {s2['total_score']}/57)",
-                "created_at": "2025-05-10T09:30:00", "is_read": False, "resolved": False, "status": "pending"
-            })
-
-        if att_frac * 100 < 80:
-            all_alerts.append({
-                "alert_id": f"alrt_{uuid.uuid4().hex[:8]}", "student_id": sid,
-                "student_name": display, "class_name": student["class_name"],
-                "type": "early_warning", "alert_type": "low_attendance_80", "severity": "high",
-                "message": f"{display} critically low attendance ({att_frac*100:.0f}%)",
-                "created_at": "2025-05-01T08:00:00", "is_read": False, "resolved": False, "status": "pending"
-            })
-        elif att_frac * 100 < 90:
-            all_alerts.append({
-                "alert_id": f"alrt_{uuid.uuid4().hex[:8]}", "student_id": sid,
-                "student_name": display, "class_name": student["class_name"],
-                "type": "early_warning", "alert_type": "low_attendance_90", "severity": "medium",
-                "message": f"{display} attendance below 90% ({att_frac*100:.0f}%)",
-                "created_at": "2025-05-01T08:00:00", "is_read": False, "resolved": False, "status": "pending"
-            })
-
-        if prev_tier != final_tier:
-            all_alerts.append({
-                "alert_id": f"alrt_{uuid.uuid4().hex[:8]}", "student_id": sid,
-                "student_name": display, "class_name": student["class_name"],
-                "type": "tier_change", "alert_type": "tier_change",
-                "from_tier": prev_tier, "to_tier": final_tier,
-                "severity": "high" if final_tier > prev_tier else "medium",
-                "message": f"{display} moved from Tier {prev_tier} to Tier {final_tier}",
-                "created_at": "2025-05-10T09:30:00", "is_read": False, "resolved": False, "status": "pending"
-            })
-
-        staff_options = ["Ms Parker (Wellbeing)", "Mr Lewis (Counsellor)", "Ms Ahmed (SENCO)", student["teacher"]]
-        int_types = {"3": ["Counselling", "Behaviour Support", "Social Skills Groups"], "2": ["Mentoring", "Academic Support", "Attendance Intervention"]}
-        if final_tier == 3:
-            all_int.append({"intervention_id": f"int_{uuid.uuid4().hex[:8]}", "student_id": sid,
-                "intervention_type": rng.choice(int_types["3"]), "assigned_staff": rng.choice(staff_options[:3]),
-                "start_date": "2025-04-28", "review_date": "2025-06-09", "status": "active",
-                "goals": "Reduce risk indicators and improve school connectedness",
-                "progress_notes": "Initial engagement established. Monitoring weekly.",
-                "frequency": "3x weekly", "outcome_rating": None, "created_at": "2025-04-28T09:00:00"})
-            all_notes.append({"case_id": f"case_{uuid.uuid4().hex[:8]}", "student_id": sid,
-                "staff_member": rng.choice(["Ms Parker", student["teacher"]]),
-                "date": "2025-05-12", "note_type": "wellbeing",
-                "notes": f"Wellbeing check-in with {student['first_name']}. Student reported feeling stressed. Discussed coping strategies. Will refer to counsellor.",
-                "created_at": "2025-05-12T11:00:00"})
-        elif final_tier == 2:
-            all_int.append({"intervention_id": f"int_{uuid.uuid4().hex[:8]}", "student_id": sid,
-                "intervention_type": rng.choice(int_types["2"]), "assigned_staff": rng.choice(staff_options),
-                "start_date": "2025-04-28", "review_date": "2025-06-09", "status": "active",
-                "goals": "Monitor emerging risk factors and build protective factors",
-                "progress_notes": "Weekly check-ins established. Student receptive to support.",
-                "frequency": "Weekly", "outcome_rating": None, "created_at": "2025-04-28T09:00:00"})
-            all_notes.append({"case_id": f"case_{uuid.uuid4().hex[:8]}", "student_id": sid,
-                "staff_member": student["teacher"],
-                "date": "2025-05-08", "note_type": "general",
-                "notes": f"Regular wellbeing check with {student['first_name']}. Monitoring closely.",
-                "created_at": "2025-05-08T09:30:00"})
-
-    if school_days_set:
-        await db.school_days.insert_many([{"date": d} for d in sorted(school_days_set)])
-
-    for col_data, col_name in [(all_s1 + all_s2, "saebrs_results"), (all_p1 + all_p2, "saebrs_plus_results"),
-                                (all_att_recs, "attendance_records"), (all_int, "interventions"),
-                                (all_notes, "case_notes"), (all_alerts, "alerts")]:
-        if col_data:
-            await db[col_name].insert_many(col_data)
-
-    return {"message": "Demo data seeded", "students": len(students), "interventions": len(all_int),
-            "alerts": len(all_alerts), "attendance_records": len(all_att_recs),
-            "school_days": len(school_days_set)}
-
 # ==============================
 # APP SETUP
 # ==============================

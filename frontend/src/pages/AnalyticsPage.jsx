@@ -36,7 +36,10 @@ export default function AnalyticsPage() {
   const [schoolData, setSchoolData] = useState(null);
   const [attTrends, setAttTrends] = useState(null);
   const [intOutcomes, setIntOutcomes] = useState([]);
+  const [cohortData, setCohortData] = useState([]);
+  const [cohortGroupBy, setCohortGroupBy] = useState('year_level');
   const [loading, setLoading] = useState(true);
+  const [cohortLoading, setCohortLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
@@ -55,6 +58,19 @@ export default function AnalyticsPage() {
     };
     load();
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'cohort') return;
+    const loadCohort = async () => {
+      setCohortLoading(true);
+      try {
+        const res = await axios.get(`${API}/analytics/cohort-comparison?group_by=${cohortGroupBy}`, { withCredentials: true });
+        setCohortData(res.data);
+      } catch (e) { console.error(e); }
+      finally { setCohortLoading(false); }
+    };
+    loadCohort();
+  }, [activeTab, cohortGroupBy]);
 
   if (loading) {
     return (
@@ -110,6 +126,7 @@ export default function AnalyticsPage() {
           { key: 'overview', label: 'Overview', Icon: BarChart2 },
           { key: 'attendance', label: 'Attendance', Icon: Calendar },
           { key: 'interventions', label: 'Interventions', Icon: Target },
+          { key: 'cohort', label: 'Cohort Comparison', Icon: Users },
         ].map(({ key, label, Icon }) => (
           <button key={key} onClick={() => setActiveTab(key)} data-testid={`analytics-tab-${key}`}
             className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === key ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
@@ -338,6 +355,112 @@ export default function AnalyticsPage() {
                 ))}
               </div>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* COHORT COMPARISON TAB */}
+      {activeTab === 'cohort' && (
+        <div className="space-y-6">
+          {/* Group-by selector */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-slate-700">Compare by:</span>
+            <select
+              data-testid="cohort-group-by-select"
+              value={cohortGroupBy}
+              onChange={e => setCohortGroupBy(e.target.value)}
+              className="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-300"
+            >
+              <option value="year_level">Year Level</option>
+              <option value="class_name">Class</option>
+            </select>
+          </div>
+
+          {cohortLoading ? (
+            <div className="animate-pulse space-y-4">
+              {[1,2].map(i => <div key={i} className="h-48 bg-slate-100 rounded-xl" />)}
+            </div>
+          ) : cohortData.length === 0 ? (
+            <div className="bg-white border border-slate-200 rounded-xl p-16 text-center text-slate-400">
+              <Users size={40} className="mx-auto mb-3 opacity-30" />
+              <p>No cohort data available</p>
+              <p className="text-sm mt-1">Load demo data to see cohort comparisons</p>
+            </div>
+          ) : (
+            <>
+              {/* Summary cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {cohortData.map(c => (
+                  <div key={c.name} data-testid={`cohort-card-${c.name}`} className="bg-white border border-slate-200 rounded-xl p-4">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">{c.name}</p>
+                    <p className="text-2xl font-bold text-slate-900">{c.total}</p>
+                    <p className="text-xs text-slate-400">students</p>
+                    <div className="mt-2 flex gap-1 flex-wrap">
+                      {c.tier1 > 0 && <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 rounded font-medium">T1:{c.tier1}</span>}
+                      {c.tier2 > 0 && <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded font-medium">T2:{c.tier2}</span>}
+                      {c.tier3 > 0 && <span className="text-xs px-1.5 py-0.5 bg-rose-100 text-rose-700 rounded font-medium">T3:{c.tier3}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Tier Distribution comparison */}
+              <div className="bg-white border border-slate-200 rounded-xl p-6">
+                <SectionHeader icon={BarChart2} title={`MTSS Tier Distribution by ${cohortGroupBy === 'year_level' ? 'Year Level' : 'Class'}`} />
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={cohortData} barSize={24}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="tier1" name="Tier 1" fill="#22c55e" stackId="a" />
+                    <Bar dataKey="tier2" name="Tier 2" fill="#f59e0b" stackId="a" />
+                    <Bar dataKey="tier3" name="Tier 3" fill="#ef4444" stackId="a" radius={[4,4,0,0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Attendance comparison */}
+              <div className="bg-white border border-slate-200 rounded-xl p-6">
+                <SectionHeader icon={Calendar} title={`Average Attendance % by ${cohortGroupBy === 'year_level' ? 'Year Level' : 'Class'}`} />
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={cohortData} barSize={40}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} unit="%" domain={[80, 100]} />
+                    <Tooltip formatter={(v) => [`${v}%`, 'Avg Attendance']} />
+                    <Bar dataKey="avg_attendance" name="Avg Attendance" radius={[6,6,0,0]}>
+                      {cohortData.map((c, i) => (
+                        <Cell key={i} fill={c.avg_attendance >= 95 ? '#22c55e' : c.avg_attendance >= 90 ? '#f59e0b' : '#ef4444'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+                <div className="flex gap-4 mt-3 justify-center">
+                  <span className="flex items-center gap-1 text-xs text-slate-500"><span className="inline-block w-3 h-3 rounded-full bg-green-500"/>&ge;95% Tier 1</span>
+                  <span className="flex items-center gap-1 text-xs text-slate-500"><span className="inline-block w-3 h-3 rounded-full bg-amber-500"/>90–95% Tier 2</span>
+                  <span className="flex items-center gap-1 text-xs text-slate-500"><span className="inline-block w-3 h-3 rounded-full bg-red-500"/>&lt;90% Tier 3</span>
+                </div>
+              </div>
+
+              {/* Risk distribution comparison */}
+              <div className="bg-white border border-slate-200 rounded-xl p-6">
+                <SectionHeader icon={AlertTriangle} title={`SAEBRS Risk by ${cohortGroupBy === 'year_level' ? 'Year Level' : 'Class'}`} />
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={cohortData} barSize={20}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="risk_low" name="Low Risk" fill="#22c55e" stackId="b" />
+                    <Bar dataKey="risk_some" name="Some Risk" fill="#f59e0b" stackId="b" />
+                    <Bar dataKey="risk_high" name="High Risk" fill="#ef4444" stackId="b" radius={[4,4,0,0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </>
           )}
         </div>
       )}
