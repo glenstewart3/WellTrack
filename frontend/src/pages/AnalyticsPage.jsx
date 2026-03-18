@@ -122,7 +122,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex overflow-x-auto border-b border-slate-200 mb-6 -mx-6 px-6 sm:mx-0 sm:px-0">
+      <div className="flex overflow-x-auto border-b border-slate-200 mb-6">
         {[
           { key: 'overview',       label: 'Overview',          short: 'Overview', Icon: BarChart2 },
           { key: 'attendance',     label: 'Attendance',        short: 'Attend.',  Icon: Calendar },
