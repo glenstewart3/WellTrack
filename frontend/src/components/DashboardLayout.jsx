@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import {
   LayoutDashboard, ClipboardCheck, Users, Radar, BarChart3,
-  Target, Users2, Bell, FileText, Settings, LogOut,
+  Target, Users2, Bell, Settings, LogOut,
   Menu, X, Shield, UserCog, CalendarDays
 } from 'lucide-react';
 
@@ -13,12 +13,11 @@ const navItems = [
   { path: '/screening', icon: ClipboardCheck, label: 'Screening', roles: ['teacher', 'screener', 'wellbeing', 'leadership', 'admin'] },
   { path: '/students', icon: Users, label: 'Students' },
   { path: '/radar', icon: Radar, label: 'Class Risk Radar' },
-  { path: '/analytics', icon: BarChart3, label: 'Analytics' },
+  { path: '/analytics', icon: BarChart3, label: 'Analytics & Reports' },
   { path: '/interventions', icon: Target, label: 'Interventions' },
   { path: '/attendance', icon: CalendarDays, label: 'Attendance', roles: ['leadership', 'admin'] },
   { path: '/meeting', icon: Users2, label: 'MTSS Meeting' },
   { path: '/alerts', icon: Bell, label: 'Alerts' },
-  { path: '/reports', icon: FileText, label: 'Reports' },
   { path: '/settings', icon: Settings, label: 'Settings' },
   { path: '/users', icon: UserCog, label: 'User Management', adminOnly: true },
 ];

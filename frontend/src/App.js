@@ -17,7 +17,6 @@ import InterventionsPage from './pages/InterventionsPage';
 import AlertsPage from './pages/AlertsPage';
 import MeetingPrepPage from './pages/MeetingPrepPage';
 import SettingsPage from './pages/SettingsPage';
-import ReportsPage from './pages/ReportsPage';
 import UserManagementPage from './pages/UserManagementPage';
 import AttendancePage from './pages/AttendancePage';
 
@@ -81,7 +80,7 @@ function AppRouter() {
         <Route path="attendance" element={<AttendancePage />} />
         <Route path="alerts" element={<AlertsPage />} />
         <Route path="meeting" element={<MeetingPrepPage />} />
-        <Route path="reports" element={<ReportsPage />} />
+        <Route path="reports" element={<Navigate to="/analytics" replace />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="users" element={<UserManagementPage />} />
       </Route>

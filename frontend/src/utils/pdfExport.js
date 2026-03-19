@@ -241,3 +241,206 @@ export function exportMeetingReport(students, tierChanges) {
 
   doc.save(`mtss_meeting_${new Date().toISOString().split('T')[0]}.pdf`);
 }
+
+
+export function exportAnalyticsReport(data, filterLabel = 'Whole School') {
+  const { schoolData, attTrends, intOutcomes, absenceTypes, supportGaps } = data;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const accent = getAccentRgb();
+  const W = doc.internal.pageSize.getWidth();
+  let y = 20;
+
+  const checkPage = (needed = 40) => {
+    if (y + needed > doc.internal.pageSize.getHeight() - 15) {
+      doc.addPage();
+      y = 20;
+    }
+  };
+
+  const sectionTitle = (title) => {
+    checkPage(15);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text(title, 14, y);
+    y += 6;
+  };
+
+  // Header bar
+  doc.setFillColor(...accent);
+  doc.rect(0, 0, W, 16, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('WellTrack — Analytics & Reports', W / 2, 10, { align: 'center' });
+  doc.setTextColor(0, 0, 0);
+
+  y = 25;
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${filterLabel}`, 14, y);
+  y += 7;
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 100, 100);
+  doc.text(`Generated: ${new Date().toLocaleDateString()} · WellTrack MTSS Platform`, 14, y);
+  doc.setTextColor(0, 0, 0);
+  y += 12;
+
+  // ── OVERVIEW ──────────────────────────────────────────────────────────────
+  if (schoolData) {
+    sectionTitle('Overview');
+    autoTable(doc, {
+      startY: y,
+      head: [['Metric', 'Value']],
+      body: [
+        ['Total Students', schoolData.total_students],
+        ['Screened', `${schoolData.screened_students} (${schoolData.screening_rate}%)`],
+        ['Tier 1 (Low Risk)', schoolData.tier_distribution?.[1] || 0],
+        ['Tier 2 (Emerging Risk)', schoolData.tier_distribution?.[2] || 0],
+        ['Tier 3 (High Risk)', schoolData.tier_distribution?.[3] || 0],
+        ['SAEBRS High Risk', schoolData.risk_distribution?.high || 0],
+        ['SAEBRS Some Risk', schoolData.risk_distribution?.some || 0],
+        ['SAEBRS Low Risk', schoolData.risk_distribution?.low || 0],
+      ],
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: accent },
+      margin: { left: 14, right: 14 },
+      tableWidth: W - 28,
+    });
+    y = doc.lastAutoTable.finalY + 8;
+
+    if (schoolData.domain_averages) {
+      checkPage(40);
+      sectionTitle('Average Wellbeing Domain Scores');
+      autoTable(doc, {
+        startY: y,
+        head: [['Domain', 'Average Score']],
+        body: Object.entries(schoolData.domain_averages).map(([k, v]) => [
+          k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' '),
+          typeof v === 'number' ? v.toFixed(1) : '—',
+        ]),
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: accent },
+        margin: { left: 14, right: 14 },
+        tableWidth: W - 28,
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    }
+  }
+
+  // ── ATTENDANCE ────────────────────────────────────────────────────────────
+  if (attTrends) {
+    checkPage(30);
+    sectionTitle('Attendance Summary');
+    const chronic = attTrends.chronic_absentees || [];
+    autoTable(doc, {
+      startY: y,
+      head: [['Metric', 'Value']],
+      body: [
+        ['Total School Days', attTrends.total_school_days || '—'],
+        ['Chronic Absentees (<90%)', chronic.length],
+        ['Critical Absentees (<80%)', chronic.filter(a => a.attendance_pct < 80).length],
+      ],
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: accent },
+      margin: { left: 14, right: 14 },
+      tableWidth: W - 28,
+    });
+    y = doc.lastAutoTable.finalY + 8;
+
+    if (attTrends.day_of_week?.length > 0) {
+      checkPage(40);
+      sectionTitle('Attendance Rate by Day of Week');
+      autoTable(doc, {
+        startY: y,
+        head: [['Day', 'Attendance Rate']],
+        body: attTrends.day_of_week.map(d => [d.day, `${d.attendance_rate}%`]),
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: accent },
+        margin: { left: 14, right: 14 },
+        tableWidth: W - 28,
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    }
+
+    if (absenceTypes?.length > 0) {
+      checkPage(40);
+      sectionTitle('Absence Type Breakdown');
+      autoTable(doc, {
+        startY: y,
+        head: [['Absence Type', 'Count', 'Excluded from Attendance Calc']],
+        body: absenceTypes.slice(0, 15).map(a => [a.type, a.count, a.excluded ? 'Yes' : 'No']),
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: accent },
+        margin: { left: 14, right: 14 },
+        tableWidth: W - 28,
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    }
+
+    if (chronic.length > 0) {
+      checkPage(40);
+      sectionTitle('Students with Low Attendance');
+      autoTable(doc, {
+        startY: y,
+        head: [['Student', 'Class', 'Attendance %', 'Tier']],
+        body: chronic.map(ca => {
+          const s = ca.student;
+          const name = s ? `${s.first_name}${s.preferred_name ? ` (${s.preferred_name})` : ''} ${s.last_name}` : '—';
+          return [name, s?.class_name || '—', `${ca.attendance_pct}%`, `Tier ${ca.tier}`];
+        }),
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: accent },
+        margin: { left: 14, right: 14 },
+        tableWidth: W - 28,
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    }
+  }
+
+  // ── SUPPORT GAPS ──────────────────────────────────────────────────────────
+  checkPage(30);
+  sectionTitle('Support Gaps (Tier 2/3 Without Active Intervention)');
+  if (supportGaps?.length > 0) {
+    autoTable(doc, {
+      startY: y,
+      head: [['Student', 'Class', 'Tier', 'SAEBRS Risk', 'Attendance %']],
+      body: supportGaps.map(g => {
+        const s = g.student;
+        const name = s ? `${s.first_name}${s.preferred_name ? ` (${s.preferred_name})` : ''} ${s.last_name}` : '—';
+        return [name, s?.class_name || '—', `Tier ${g.tier}`, g.saebrs_risk, `${g.attendance_pct}%`];
+      }),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: accent },
+      margin: { left: 14, right: 14 },
+      tableWidth: W - 28,
+    });
+    y = doc.lastAutoTable.finalY + 8;
+  } else {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 150, 80);
+    doc.text('No support gaps — all Tier 2/3 students have active interventions assigned.', 14, y);
+    doc.setTextColor(0, 0, 0);
+    y += 8;
+  }
+
+  // ── INTERVENTIONS ─────────────────────────────────────────────────────────
+  if (intOutcomes?.length > 0) {
+    checkPage(40);
+    sectionTitle('Intervention Summary by Type');
+    autoTable(doc, {
+      startY: y,
+      head: [['Type', 'Total', 'Active', 'Completed', 'Completion Rate']],
+      body: intOutcomes.map(i => [i.type, i.total, i.active, i.completed, `${i.completion_rate}%`]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: accent },
+      margin: { left: 14, right: 14 },
+      tableWidth: W - 28,
+    });
+  }
+
+  const fname = `welltrack_analytics_${filterLabel.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(fname);
+}
