@@ -129,10 +129,26 @@ export default function AnalyticsPage() {
 
   const handleExportPdf = async () => {
     setPdfLoading(true);
+    const originalTab = activeTab;
     try {
+      const html2canvas = (await import('html2canvas')).default;
+      const capturedImages = {};
+      for (const tab of ['overview', 'attendance', 'wellbeing', 'interventions', 'support']) {
+        setActiveTab(tab);
+        await new Promise(r => setTimeout(r, 700));
+        const el = document.getElementById(`pdf-section-${tab}`);
+        if (el) {
+          const canvas = await html2canvas(el, { scale: 1.5, useCORS: true, backgroundColor: '#f8fafc' });
+          capturedImages[tab] = canvas.toDataURL('image/jpeg', 0.85);
+        }
+      }
+      setActiveTab(originalTab);
+      exportAnalyticsReport({ schoolData, attTrends, intOutcomes, absenceTypes, supportGaps, capturedImages }, filterLabel);
+    } catch (e) {
+      console.error(e);
+      setActiveTab(originalTab);
       exportAnalyticsReport({ schoolData, attTrends, intOutcomes, absenceTypes, supportGaps }, filterLabel);
-    } catch (e) { console.error(e); }
-    finally { setPdfLoading(false); }
+    } finally { setPdfLoading(false); }
   };
 
   if (loading) {
@@ -249,7 +265,7 @@ export default function AnalyticsPage() {
 
       {/* ── OVERVIEW TAB ────────────────────────────────────────────────────── */}
       {activeTab === 'overview' && (
-        <div className="space-y-6">
+        <div id="pdf-section-overview" className="space-y-6">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {statCard('Total Students', sd.total_students, 'All enrolled')}
             {statCard('Screened', sd.screened_students, `${sd.screening_rate}% of total`)}
@@ -336,7 +352,7 @@ export default function AnalyticsPage() {
 
       {/* ── ATTENDANCE TAB ───────────────────────────────────────────────────── */}
       {activeTab === 'attendance' && (
-        <div className="space-y-6">
+        <div id="pdf-section-attendance" className="space-y-6">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {statCard('School Days', attTrends?.total_school_days ?? '—', 'Days with attendance data')}
             {statCard('Chronic Absentees', attTrends?.chronic_absentees?.length ?? 0, 'Below 90% attendance', 'text-amber-600')}
@@ -442,7 +458,7 @@ export default function AnalyticsPage() {
 
       {/* ── WELLBEING & SEL TAB ─────────────────────────────────────────────── */}
       {activeTab === 'wellbeing' && (
-        <div className="space-y-6">
+        <div id="pdf-section-wellbeing" className="space-y-6">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {statCard('Total Students', sd.total_students, 'Active students')}
             {statCard('Screened', `${sd.screening_rate}%`, `${sd.screened_students} students`)}
@@ -553,7 +569,7 @@ export default function AnalyticsPage() {
 
       {/* ── INTERVENTIONS TAB ────────────────────────────────────────────────── */}
       {activeTab === 'interventions' && (
-        <div className="space-y-6">
+        <div id="pdf-section-interventions" className="space-y-6">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {statCard('Total Interventions', intOutcomes.reduce((a, b) => a + b.total, 0), 'All time')}
             {statCard('Active', intOutcomes.reduce((a, b) => a + b.active, 0), 'Currently running', 'text-emerald-600')}
@@ -604,7 +620,7 @@ export default function AnalyticsPage() {
 
       {/* ── SUPPORT & GAPS TAB ──────────────────────────────────────────────── */}
       {activeTab === 'support' && (
-        <div className="space-y-6">
+        <div id="pdf-section-support" className="space-y-6">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {statCard('Support Gaps', supportGaps.length, 'Tier 2/3, no active intervention', 'text-rose-600')}
             {statCard('Active Interventions', intOutcomes.reduce((a, b) => a + b.active, 0), 'Currently running', 'text-emerald-600')}

@@ -243,8 +243,21 @@ export function exportMeetingReport(students, tierChanges) {
 }
 
 
+function addChartImage(doc, imageDataUrl, y, W) {
+  if (!imageDataUrl) return y;
+  try {
+    const imgProps = doc.getImageProperties(imageDataUrl);
+    const imgW = W - 28;
+    const imgH = (imgProps.height * imgW) / imgProps.width;
+    const pageH = doc.internal.pageSize.getHeight();
+    if (y + imgH > pageH - 15) { doc.addPage(); y = 20; }
+    doc.addImage(imageDataUrl, 'JPEG', 14, y, imgW, imgH);
+    return y + imgH + 8;
+  } catch (e) { return y; }
+}
+
 export function exportAnalyticsReport(data, filterLabel = 'Whole School') {
-  const { schoolData, attTrends, intOutcomes, absenceTypes, supportGaps } = data;
+  const { schoolData, attTrends, intOutcomes, absenceTypes, supportGaps, capturedImages = {} } = data;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const accent = getAccentRgb();
   const W = doc.internal.pageSize.getWidth();
@@ -290,6 +303,13 @@ export function exportAnalyticsReport(data, filterLabel = 'Whole School') {
   // ── OVERVIEW ──────────────────────────────────────────────────────────────
   if (schoolData) {
     sectionTitle('Overview');
+
+    // Chart image first for visual context
+    if (capturedImages.overview) {
+      y = addChartImage(doc, capturedImages.overview, y, W);
+      checkPage(30);
+    }
+
     autoTable(doc, {
       startY: y,
       head: [['Metric', 'Value']],
@@ -332,7 +352,13 @@ export function exportAnalyticsReport(data, filterLabel = 'Whole School') {
   // ── ATTENDANCE ────────────────────────────────────────────────────────────
   if (attTrends) {
     checkPage(30);
-    sectionTitle('Attendance Summary');
+    sectionTitle('Attendance');
+
+    if (capturedImages.attendance) {
+      y = addChartImage(doc, capturedImages.attendance, y, W);
+      checkPage(30);
+    }
+
     const chronic = attTrends.chronic_absentees || [];
     autoTable(doc, {
       startY: y,
@@ -399,9 +425,21 @@ export function exportAnalyticsReport(data, filterLabel = 'Whole School') {
     }
   }
 
+  // ── WELLBEING ─────────────────────────────────────────────────────────────
+  if (capturedImages.wellbeing) {
+    checkPage(30);
+    sectionTitle('Wellbeing & SEL');
+    y = addChartImage(doc, capturedImages.wellbeing, y, W);
+  }
+
   // ── SUPPORT GAPS ──────────────────────────────────────────────────────────
   checkPage(30);
   sectionTitle('Support Gaps (Tier 2/3 Without Active Intervention)');
+
+  if (capturedImages.support) {
+    y = addChartImage(doc, capturedImages.support, y, W);
+    checkPage(30);
+  }
   if (supportGaps?.length > 0) {
     autoTable(doc, {
       startY: y,
@@ -430,6 +468,12 @@ export function exportAnalyticsReport(data, filterLabel = 'Whole School') {
   if (intOutcomes?.length > 0) {
     checkPage(40);
     sectionTitle('Intervention Summary by Type');
+
+    if (capturedImages.interventions) {
+      y = addChartImage(doc, capturedImages.interventions, y, W);
+      checkPage(40);
+    }
+
     autoTable(doc, {
       startY: y,
       head: [['Type', 'Total', 'Active', 'Completed', 'Completion Rate']],

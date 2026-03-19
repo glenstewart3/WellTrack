@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, getRiskColors } from '../utils/tierUtils';
-import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight, UserPlus, Pencil, Archive } from 'lucide-react';
+import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight, UserPlus, Pencil, Archive, RotateCcw } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -253,11 +253,13 @@ export default function StudentsPage() {
   const [editError, setEditError] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [archiving, setArchiving] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('active');
 
   const loadStudents = async () => {
     try {
       const [studRes, clsRes] = await Promise.all([
-        axios.get(`${API}/students/summary`, { withCredentials: true }),
+        axios.get(`${API}/students/summary?status=${filterStatus}`, { withCredentials: true }),
         axios.get(`${API}/classes`, { withCredentials: true }),
       ]);
       setStudents(studRes.data);
@@ -266,7 +268,7 @@ export default function StudentsPage() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { loadStudents(); }, []);
+  useEffect(() => { loadStudents(); }, [filterStatus]);
 
   const filtered = students.filter(s => {
     const name = `${s.first_name} ${s.preferred_name || ''} ${s.last_name}`.toLowerCase();
@@ -328,18 +330,31 @@ export default function StudentsPage() {
     finally { setArchiving(false); }
   };
 
+  const reactivateSelected = async () => {
+    if (!window.confirm(`Reactivate ${selectedIds.size} student(s)? They will return to the active list.`)) return;
+    setReactivating(true);
+    try {
+      await axios.put(`${API}/students/bulk-reactivate`, { student_ids: [...selectedIds] }, { withCredentials: true });
+      setSelectedIds(new Set());
+      loadStudents();
+    } catch (e) { console.error(e); }
+    finally { setReactivating(false); }
+  };
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto fade-in">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>Students</h1>
-          <p className="text-slate-500 mt-1">{students.length} enrolled students</p>
+          <p className="text-slate-500 mt-1">{students.length} {filterStatus === 'archived' ? 'archived' : 'enrolled'} students</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setShowAddStudent(true)} data-testid="add-student-btn"
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors">
-            <UserPlus size={15} /> Add Student
-          </button>
+          {filterStatus === 'active' && (
+            <button onClick={() => setShowAddStudent(true)} data-testid="add-student-btn"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors">
+              <UserPlus size={15} /> Add Student
+            </button>
+          )}
         </div>
       </div>
 
@@ -417,6 +432,18 @@ export default function StudentsPage() {
           </div>
         </div>
       )}
+
+      {/* Status filter */}
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-sm text-slate-500 font-medium">Status:</span>
+        {[{ value: 'active', label: 'Active' }, { value: 'archived', label: 'Archived' }].map(opt => (
+          <button key={opt.value} onClick={() => { setFilterStatus(opt.value); setSelectedIds(new Set()); }}
+            data-testid={`status-filter-${opt.value}`}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filterStatus === opt.value ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+            {opt.label}
+          </button>
+        ))}
+      </div>
 
       {/* Filters */}
       <div className="bg-white border border-slate-200 rounded-xl p-4 mb-6 flex flex-wrap gap-3">
@@ -636,15 +663,23 @@ export default function StudentsPage() {
         </div>
       )}
 
-      {/* Bulk Archive bar */}
+      {/* Bulk action bar */}
       {selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white rounded-2xl px-5 py-3 flex items-center gap-4 shadow-xl">
           <span className="text-sm font-medium">{selectedIds.size} selected</span>
-          <button onClick={archiveSelected} disabled={archiving} data-testid="bulk-archive-btn"
-            className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-60">
-            {archiving ? <Loader size={13} className="animate-spin" /> : <Archive size={13} />}
-            {archiving ? 'Archiving…' : 'Archive'}
-          </button>
+          {filterStatus === 'archived' ? (
+            <button onClick={reactivateSelected} disabled={reactivating} data-testid="bulk-reactivate-btn"
+              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-60">
+              {reactivating ? <Loader size={13} className="animate-spin" /> : <RotateCcw size={13} />}
+              {reactivating ? 'Reactivating…' : 'Reactivate'}
+            </button>
+          ) : (
+            <button onClick={archiveSelected} disabled={archiving} data-testid="bulk-archive-btn"
+              className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-60">
+              {archiving ? <Loader size={13} className="animate-spin" /> : <Archive size={13} />}
+              {archiving ? 'Archiving…' : 'Archive'}
+            </button>
+          )}
           <button onClick={() => setSelectedIds(new Set())} className="text-slate-400 hover:text-white transition-colors">
             <X size={16} />
           </button>

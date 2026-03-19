@@ -11,8 +11,9 @@ router = APIRouter()
 
 @router.get("/students")
 async def get_students(class_name: Optional[str] = None, year_level: Optional[str] = None,
+                       status: Optional[str] = None,
                        user=Depends(get_current_user)):
-    query = {"enrolment_status": "active"}
+    query = {"enrolment_status": status if status in ("active", "archived") else "active"}
     if class_name:
         query["class_name"] = class_name
     if year_level:
@@ -80,8 +81,9 @@ async def import_students(data: dict, user=Depends(get_current_user)):
 
 @router.get("/students/summary")
 async def get_students_summary(class_name: Optional[str] = None, year_level: Optional[str] = None,
+                                status: Optional[str] = None,
                                 user=Depends(get_current_user)):
-    query = {"enrolment_status": "active"}
+    query = {"enrolment_status": status if status in ("active", "archived") else "active"}
     if class_name:
         query["class_name"] = class_name
     if year_level:
@@ -181,6 +183,20 @@ async def bulk_archive_students(data: dict, user=Depends(get_current_user)):
         {"$set": {"enrolment_status": "archived"}}
     )
     return {"archived": result.modified_count}
+
+
+@router.put("/students/bulk-reactivate")
+async def bulk_reactivate_students(data: dict, user=Depends(get_current_user)):
+    if user.get("role") not in ["admin", "leadership"]:
+        raise HTTPException(403, "Access denied")
+    ids = data.get("student_ids", [])
+    if not ids:
+        raise HTTPException(400, "No student IDs provided")
+    result = await db.students.update_many(
+        {"student_id": {"$in": ids}},
+        {"$set": {"enrolment_status": "active"}}
+    )
+    return {"reactivated": result.modified_count}
 
 
 @router.put("/students/{student_id}")

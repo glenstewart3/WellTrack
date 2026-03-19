@@ -595,8 +595,22 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
   const [wiping, setWiping] = useState(false);
   const [showWipeConfirm, setShowWipeConfirm] = useState(false);
   const [wipeInput, setWipeInput] = useState('');
+  const [csvLoading, setCsvLoading] = useState({});
   const fileInputRef = useRef(null);
   const { user } = useAuth();
+
+  const downloadCSV = async (endpoint, filename) => {
+    setCsvLoading(prev => ({ ...prev, [endpoint]: true }));
+    try {
+      const res = await axios.get(`${API}/${endpoint}`, { withCredentials: true, responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }));
+      const a = document.createElement('a'); a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      setMsgType('error'); setMsg('Export failed'); setTimeout(() => setMsg(''), 3000);
+    } finally { setCsvLoading(prev => ({ ...prev, [endpoint]: false })); }
+  };
 
   const seedData = async () => {
     setSeeding(true);
@@ -666,6 +680,35 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
           </button>
         </div>
       ))}
+
+      {/* CSV Data Exports */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5">
+        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Export CSV Data</h3>
+        <p className="text-xs text-slate-400 mb-4">Download individual data sets as CSV for use in Excel or other tools.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {[
+            { endpoint: 'reports/students-csv', filename: 'students.csv', label: 'Student List', desc: 'All students with year level & class', testid: 'export-students-csv-btn' },
+            { endpoint: 'reports/tier-summary-csv', filename: 'tier_summary.csv', label: 'Tier Summary', desc: 'MTSS tier, SAEBRS & attendance per student', testid: 'export-tier-csv-btn' },
+            { endpoint: 'reports/screening-csv', filename: 'screening.csv', label: 'Screening Results', desc: 'Full SAEBRS screening data', testid: 'export-screening-csv-btn' },
+            { endpoint: 'reports/interventions-csv', filename: 'interventions.csv', label: 'Interventions', desc: 'All intervention records & status', testid: 'export-interventions-csv-btn' },
+          ].map(item => (
+            <div key={item.endpoint} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div>
+                <p className="text-sm font-semibold text-slate-700">{item.label}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{item.desc}</p>
+              </div>
+              <button
+                onClick={() => downloadCSV(item.endpoint, item.filename)}
+                disabled={csvLoading[item.endpoint]}
+                data-testid={item.testid}
+                className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-60 shrink-0 ml-2">
+                {csvLoading[item.endpoint] ? <Loader size={12} className="animate-spin" /> : <Download size={12} />}
+                {csvLoading[item.endpoint] ? '…' : 'CSV'}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {user?.role === 'admin' && (
         <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-100">
