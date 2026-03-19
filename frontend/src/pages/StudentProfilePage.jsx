@@ -446,34 +446,121 @@ export default function StudentProfilePage() {
       )}
 
       {activeTab === 'screening' && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {saebrs_results?.length === 0 && saebrs_plus_results?.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-400">
               <p>No screening data recorded</p>
             </div>
-          ) : saebrs_results?.map((r, i) => {
-            const plus = saebrs_plus_results?.[i];
-            return (
-              <div key={r.result_id} className="bg-white border border-slate-200 rounded-xl p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-semibold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>Screening {i + 1} — {r.created_at?.split('T')[0]}</h3>
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${getRiskColors(r.risk_level)}`}>{r.risk_level}</span>
+          ) : (
+            <>
+              {/* SAEBRS Trend Chart */}
+              {saebrs_results?.length > 0 && (
+                <div className="bg-white border border-slate-200 rounded-xl p-6" data-testid="saebrs-trend-chart">
+                  <h3 className="font-semibold text-slate-900 mb-0.5" style={{fontFamily:'Manrope,sans-serif'}}>SAEBRS Score Trend</h3>
+                  <p className="text-xs text-slate-400 mb-4">Green zone = Tier 1 (&gt;37) · Amber = Tier 2 (24–37) · Red = Tier 3 (&lt;24)</p>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <LineChart data={screeningChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                      <YAxis domain={[0, 57]} tick={{ fontSize: 11 }} />
+                      <Tooltip contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
+                      <Legend wrapperStyle={{ fontSize: '11px' }} />
+                      <ReferenceArea y1={37} y2={57} fill="#10b981" fillOpacity={0.08} />
+                      <ReferenceArea y1={24} y2={37} fill="#f59e0b" fillOpacity={0.08} />
+                      <ReferenceArea y1={0} y2={24} fill="#ef4444" fillOpacity={0.08} />
+                      <Line type="monotone" dataKey="total" stroke="#0f172a" strokeWidth={2.5} dot={{ r: 5 }} name="Total (0–57)" />
+                      <Line type="monotone" dataKey="social" stroke="#10b981" strokeWidth={1.5} dot={{ r: 3 }} strokeDasharray="4 2" name="Social (0–18)" />
+                      <Line type="monotone" dataKey="academic" stroke="#3b82f6" strokeWidth={1.5} dot={{ r: 3 }} strokeDasharray="4 2" name="Academic (0–18)" />
+                      <Line type="monotone" dataKey="emotional" stroke="#f59e0b" strokeWidth={1.5} dot={{ r: 3 }} strokeDasharray="4 2" name="Emotional (0–21)" />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                  <div><p className="font-bold text-slate-900">{r.total_score}/57</p><p className="text-slate-400 text-xs">Total SAEBRS</p></div>
-                  <div><p className="font-bold text-slate-900">{r.social_score}/18</p><p className="text-slate-400 text-xs">Social</p></div>
-                  <div><p className="font-bold text-slate-900">{r.academic_score}/18</p><p className="text-slate-400 text-xs">Academic</p></div>
-                  <div><p className="font-bold text-slate-900">{r.emotional_score}/21</p><p className="text-slate-400 text-xs">Emotional</p></div>
-                  {plus && <>
-                    <div><p className="font-bold text-indigo-700">{plus.wellbeing_total}/66</p><p className="text-slate-400 text-xs">Wellbeing Total</p></div>
-                    <div><p className="font-bold text-slate-900">{plus.social_domain}/18</p><p className="text-slate-400 text-xs">Social</p></div>
-                    <div><p className="font-bold text-slate-900">{plus.belonging_domain}/12</p><p className="text-slate-400 text-xs">Belonging</p></div>
-                    <div><p className="font-bold text-slate-900">{plus.emotional_domain}/9</p><p className="text-slate-400 text-xs">Emotional WB</p></div>
-                  </>}
+              )}
+
+              {/* Domain comparison across screenings — only if 2+ */}
+              {saebrs_results?.length >= 2 && (
+                <div className="bg-white border border-slate-200 rounded-xl p-6" data-testid="domain-comparison-chart">
+                  <h3 className="font-semibold text-slate-900 mb-0.5" style={{fontFamily:'Manrope,sans-serif'}}>Domain Comparison</h3>
+                  <p className="text-xs text-slate-400 mb-4">Side-by-side domain scores across each screening</p>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart layout="vertical" data={[
+                      { domain: 'Social (/18)', ...Object.fromEntries(saebrs_results.map((r, i) => [`S${i + 1}`, r.social_score])) },
+                      { domain: 'Academic (/18)', ...Object.fromEntries(saebrs_results.map((r, i) => [`S${i + 1}`, r.academic_score])) },
+                      { domain: 'Emotional (/21)', ...Object.fromEntries(saebrs_results.map((r, i) => [`S${i + 1}`, r.emotional_score])) },
+                    ]} barSize={16}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis type="number" tick={{ fontSize: 11 }} />
+                      <YAxis dataKey="domain" type="category" tick={{ fontSize: 11 }} width={110} />
+                      <Tooltip />
+                      <Legend wrapperStyle={{ fontSize: '11px' }} />
+                      {saebrs_results.map((_, i) => (
+                        <Bar key={i} dataKey={`S${i + 1}`} name={`Screening ${i + 1}`}
+                          fill={['#6366f1', '#3b82f6', '#06b6d4', '#8b5cf6'][i % 4]}
+                          radius={[0, 4, 4, 0]} />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
-              </div>
-            );
-          })}
+              )}
+
+              {/* Wellbeing trend */}
+              {saebrs_plus_results?.length > 0 && (
+                <div className="bg-white border border-slate-200 rounded-xl p-6" data-testid="wellbeing-trend-chart">
+                  <h3 className="font-semibold text-slate-900 mb-0.5" style={{fontFamily:'Manrope,sans-serif'}}>Student Wellbeing Trend</h3>
+                  <p className="text-xs text-slate-400 mb-4">Self-reported wellbeing over time — higher score = better wellbeing</p>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <LineChart data={wellbeingChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                      <YAxis domain={[0, 66]} tick={{ fontSize: 11 }} />
+                      <Tooltip contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
+                      <Legend wrapperStyle={{ fontSize: '11px' }} />
+                      <Line type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 5 }} name="Total (0–66)" />
+                      <Line type="monotone" dataKey="social" stroke="#10b981" strokeWidth={1.5} dot={{ r: 3 }} strokeDasharray="4 2" name="Social (0–18)" />
+                      <Line type="monotone" dataKey="academic" stroke="#3b82f6" strokeWidth={1.5} dot={{ r: 3 }} strokeDasharray="4 2" name="Academic (0–18)" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* Individual screening cards with change indicator */}
+              {saebrs_results?.map((r, i) => {
+                const plus = saebrs_plus_results?.[i];
+                const prev = i > 0 ? saebrs_results[i - 1] : null;
+                const change = prev !== null ? r.total_score - prev.total_score : null;
+                return (
+                  <div key={r.result_id || i} className="bg-white border border-slate-200 rounded-xl p-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <div>
+                        <h3 className="font-semibold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>Screening {i + 1}</h3>
+                        <p className="text-xs text-slate-400">{r.created_at?.split('T')[0]}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {change !== null && (
+                          <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${change > 0 ? 'bg-emerald-100 text-emerald-700' : change < 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}`}>
+                            {change > 0 ? '+' : ''}{change} pts
+                          </span>
+                        )}
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${getRiskColors(r.risk_level)}`}>{r.risk_level}</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                      <div><p className="font-bold text-slate-900">{r.total_score}/57</p><p className="text-slate-400 text-xs">Total SAEBRS</p></div>
+                      <div><p className="font-bold text-slate-900">{r.social_score}/18</p><p className="text-slate-400 text-xs">Social</p></div>
+                      <div><p className="font-bold text-slate-900">{r.academic_score}/18</p><p className="text-slate-400 text-xs">Academic</p></div>
+                      <div><p className="font-bold text-slate-900">{r.emotional_score}/21</p><p className="text-slate-400 text-xs">Emotional</p></div>
+                      {plus && <>
+                        <div><p className="font-bold text-indigo-700">{plus.wellbeing_total}/66</p><p className="text-slate-400 text-xs">Wellbeing Total</p></div>
+                        <div><p className="font-bold text-slate-900">{plus.social_domain}/18</p><p className="text-slate-400 text-xs">Social WB</p></div>
+                        <div><p className="font-bold text-slate-900">{plus.belonging_domain}/12</p><p className="text-slate-400 text-xs">Belonging</p></div>
+                        <div><p className="font-bold text-slate-900">{plus.emotional_domain}/9</p><p className="text-slate-400 text-xs">Emotional WB</p></div>
+                      </>}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
         </div>
       )}
 

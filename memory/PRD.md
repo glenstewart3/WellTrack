@@ -86,7 +86,9 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 
 ## What's Been Implemented (Chronological)
 
-### Session 10 (PDF Chart Export + Student Reactivation + CSV Exports in Settings)
+### Session 11 (Screening History Charts + Comprehensive pytest Suite)
+- **Screening History tab** (`StudentProfilePage.jsx`): Transformed from plain score cards into a full comparison view — SAEBRS Score Trend chart (with tier reference bands), Domain Comparison grouped bar chart (appears when 2+ screenings), Wellbeing Trend chart, and individual screening cards with "+N pts / -N pts" change indicators vs. previous screening
+- **pytest regression suite** (`/app/backend/tests/test_welltrack_regression.py` + `conftest.py`): 47 tests covering all major routes — auth, students (CRUD + archive/reactivate cycle + status filters), analytics (all endpoints with filter params), reports (filter options, absence types, screening coverage, support gaps, staff load), CSV exports (with content-type assertion + unauthenticated access), alerts, interventions, settings, meeting prep, screening. Run with: `pytest tests/test_welltrack_regression.py -v`
 - **PDF chart export** (`AnalyticsPage.jsx` + `pdfExport.js`): Export PDF now cycles through all 5 analytics tabs (Overview, Attendance, Wellbeing, Interventions, Support & Gaps), captures each chart section as a JPEG via `html2canvas`, and embeds the images in the PDF alongside data tables — fully visual and interpretable
 - **Student Reactivation** (`StudentsPage.jsx` + `students.py`): Status filter pills (Active / Archived) on Students page. Selecting "Archived" loads archived students; bulk action bar switches from "Archive" to "Reactivate". New endpoint `PUT /api/students/bulk-reactivate` sets `enrolment_status: "active"` for selected IDs
 - **CSV Exports in Settings** (`SettingsPage.jsx`): New "Export CSV Data" section in Settings → Data tab with 4 download buttons: Student List, Tier Summary, Screening Results, Interventions — calling existing `/api/reports/*-csv` endpoints
@@ -188,7 +190,8 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 
 ### P0 — None
 
-### P1 — None
+### P2 — Medium Priority
+- Email system (deferred by user): automated weekly JSON backup + alert email notifications — needs email provider choice (Resend or SendGrid)
 
 ### P2 — Medium Priority
 - **Wellbeing Check-in**: Simple daily wellbeing check-in for students (on hold by user)
