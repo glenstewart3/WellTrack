@@ -87,7 +87,9 @@ export default function OnboardingPage({ onComplete }) {
       }, { withCredentials: true });
       setStep('complete');
     } catch (e) {
-      setError(e.response?.data?.detail || 'Setup failed. Please try again.');
+      const detail = e.response?.data?.detail;
+      const msg = Array.isArray(detail) ? detail.map(d => d.msg).join(', ') : detail;
+      setError(msg || (e.response ? `Setup failed (${e.response.status}). Please try again.` : 'Connection lost — the server may be restarting. Please refresh and try again.'));
     } finally {
       setLoading(false);
     }
