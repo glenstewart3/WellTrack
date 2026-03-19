@@ -92,7 +92,8 @@ export default function App() {
   return (
     <SettingsProvider>
       <AuthProvider>
-        <BrowserRouter>
+        <BrowserRouter basename={process.env.REACT_APP_BASE_PATH || '/'}>
+
           <AppRouter />
         </BrowserRouter>
       </AuthProvider>
