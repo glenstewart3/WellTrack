@@ -86,7 +86,10 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 
 ## What's Been Implemented (Chronological)
 
-### Session 9 (Merge Reports into Analytics + PDF Export)
+### Session 10 (PDF Chart Export + Student Reactivation + CSV Exports in Settings)
+- **PDF chart export** (`AnalyticsPage.jsx` + `pdfExport.js`): Export PDF now cycles through all 5 analytics tabs (Overview, Attendance, Wellbeing, Interventions, Support & Gaps), captures each chart section as a JPEG via `html2canvas`, and embeds the images in the PDF alongside data tables — fully visual and interpretable
+- **Student Reactivation** (`StudentsPage.jsx` + `students.py`): Status filter pills (Active / Archived) on Students page. Selecting "Archived" loads archived students; bulk action bar switches from "Archive" to "Reactivate". New endpoint `PUT /api/students/bulk-reactivate` sets `enrolment_status: "active"` for selected IDs
+- **CSV Exports in Settings** (`SettingsPage.jsx`): New "Export CSV Data" section in Settings → Data tab with 4 download buttons: Student List, Tier Summary, Screening Results, Interventions — calling existing `/api/reports/*-csv` endpoints
 - **Reports page merged into Analytics**: Analytics is now "Analytics & Reports" with 6 tabs: Overview, Attendance (+ absence types), Wellbeing & SEL, Interventions, Support & Gaps, Cohort
 - **Global filter bar** (Whole School / Year Level / Class) on Analytics page — all tabs re-fetch with filter applied
 - **Export PDF button** in Analytics header — generates comprehensive multi-section PDF using jsPDF/autoTable
@@ -185,8 +188,7 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 
 ### P0 — None
 
-### P1 — High Priority
-- **Student Reactivation**: Allow unarchiving/reactivating archived students (filter on Students page)
+### P1 — None
 
 ### P2 — Medium Priority
 - **Wellbeing Check-in**: Simple daily wellbeing check-in for students (on hold by user)
