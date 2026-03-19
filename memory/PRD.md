@@ -86,6 +86,14 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 
 ## What's Been Implemented (Chronological)
 
+### Session 9 (Merge Reports into Analytics + PDF Export)
+- **Reports page merged into Analytics**: Analytics is now "Analytics & Reports" with 6 tabs: Overview, Attendance (+ absence types), Wellbeing & SEL, Interventions, Support & Gaps, Cohort
+- **Global filter bar** (Whole School / Year Level / Class) on Analytics page — all tabs re-fetch with filter applied
+- **Export PDF button** in Analytics header — generates comprehensive multi-section PDF using jsPDF/autoTable
+- **Nav updated**: "Analytics" → "Analytics & Reports", "Reports" nav item removed
+- **`/reports` redirects to `/analytics`** — no broken links
+- **`exportAnalyticsReport`** added to `/app/frontend/src/utils/pdfExport.js`
+
 ### Session 8 (Reports & Insights Overhaul + Analytics Fixes)
 - **Analytics chart color fix**: "Average Domain Scores" bar chart now uses per-domain colors (purple, green, amber, blue, pink) via Recharts `Cell` components instead of all-black bars
 - **Analytics scrollbar fix**: Removed negative margins on tab container that caused slight vertical overflow
