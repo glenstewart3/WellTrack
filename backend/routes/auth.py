@@ -234,9 +234,10 @@ async def get_onboarding_status():
 
 
 @router.post("/onboarding/setup")
-async def onboarding_setup(data: dict, response: Response):
+async def onboarding_setup(data: dict):
     """Fresh-install setup: creates first admin account + saves school settings. No auth required."""
     from fastapi import HTTPException
+    from fastapi.responses import JSONResponse
     user_count = await db.users.count_documents({})
     existing = await db.school_settings.find_one({}, {"_id": 0})
     if user_count > 0 or (existing and existing.get("onboarding_complete")):
@@ -272,11 +273,13 @@ async def onboarding_setup(data: dict, response: Response):
         "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
-    response.set_cookie(
+
+    resp = JSONResponse({"message": "Setup complete", "user_id": user_id})
+    resp.set_cookie(
         key="session_token", value=session_token,
         httponly=True, secure=True, samesite="none", path="/", max_age=7 * 24 * 3600,
     )
-    return {"message": "Setup complete", "user_id": user_id}
+    return resp
 
 
 @router.post("/onboarding/complete")
