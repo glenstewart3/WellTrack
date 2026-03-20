@@ -39,4 +39,5 @@ SETTINGS_DEFAULTS = {
     "ollama_model": "llama3.2",
     "ai_suggestions_enabled": True,
     "excluded_absence_types": [],
+    "email_auth_enabled": False,
 }

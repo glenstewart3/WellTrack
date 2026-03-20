@@ -485,8 +485,37 @@ function GeneralTab({ settings: s, onSave, saving, msg, msgType }) {
   const [schoolType, setSchoolType] = useState(s.school_type || 'both');
   const [currentTerm, setCurrentTerm] = useState(s.current_term || 'Term 1');
   const [currentYear, setCurrentYear] = useState(s.current_year || new Date().getFullYear());
+  const [emailAuthEnabled, setEmailAuthEnabled] = useState(s.email_auth_enabled || false);
+  const [pwForm, setPwForm] = useState({ current_password: '', new_password: '', confirm: '' });
+  const [pwMsg, setPwMsg] = useState({ text: '', type: '' });
+  const [pwSaving, setPwSaving] = useState(false);
+  const { user } = useAuth();
 
-  const handleSave = () => onSave({ school_name: schoolName, school_type: schoolType, current_term: currentTerm, current_year: currentYear });
+  useEffect(() => {
+    setEmailAuthEnabled(s.email_auth_enabled || false);
+  }, [s.email_auth_enabled]);
+
+  const handleSave = () => onSave({ school_name: schoolName, school_type: schoolType, current_term: currentTerm, current_year: currentYear, email_auth_enabled: emailAuthEnabled });
+
+  const handleChangePassword = async () => {
+    if (pwForm.new_password !== pwForm.confirm) {
+      setPwMsg({ text: 'New passwords do not match', type: 'error' }); return;
+    }
+    if (pwForm.new_password.length < 8) {
+      setPwMsg({ text: 'Password must be at least 8 characters', type: 'error' }); return;
+    }
+    setPwSaving(true);
+    try {
+      await axios.put(`${API}/auth/change-password`, { current_password: pwForm.current_password, new_password: pwForm.new_password }, { withCredentials: true });
+      setPwMsg({ text: 'Password updated successfully', type: 'success' });
+      setPwForm({ current_password: '', new_password: '', confirm: '' });
+    } catch (e) {
+      setPwMsg({ text: e.response?.data?.detail || 'Failed to update password', type: 'error' });
+    } finally {
+      setPwSaving(false);
+      setTimeout(() => setPwMsg({ text: '', type: '' }), 4000);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -534,6 +563,65 @@ function GeneralTab({ settings: s, onSave, saving, msg, msgType }) {
       </div>
 
       {/* Your Role block removed — use User Management to change roles */}
+
+      {/* Authentication */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+        <div>
+          <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Authentication</h3>
+          <p className="text-xs text-slate-400 mt-0.5">Control how staff can sign in to WellTrack</p>
+        </div>
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-slate-800">Email &amp; Password Login</p>
+            <p className="text-xs text-slate-400 mt-0.5">Allow staff to sign in with an email and password in addition to Google. Passwords are set by administrators from User Management.</p>
+          </div>
+          <button
+            onClick={() => setEmailAuthEnabled(p => !p)}
+            data-testid="email-auth-toggle"
+            className={`relative shrink-0 w-11 h-6 rounded-full transition-colors duration-200 ${emailAuthEnabled ? 'bg-slate-900' : 'bg-slate-200'}`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${emailAuthEnabled ? 'translate-x-5' : ''}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Change own password */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+        <div>
+          <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Change Your Password</h3>
+          <p className="text-xs text-slate-400 mt-0.5">Update the password for your own account</p>
+        </div>
+        {pwMsg.text && (
+          <div className={`flex items-center gap-2 rounded-xl p-3 text-sm ${pwMsg.type === 'error' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+            <CheckCircle size={14} /> {pwMsg.text}
+          </div>
+        )}
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Current Password</label>
+            <input type="password" value={pwForm.current_password} onChange={e => setPwForm(p => ({...p, current_password: e.target.value}))}
+              placeholder="Leave blank if no password set yet" data-testid="current-password-input"
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">New Password</label>
+            <input type="password" value={pwForm.new_password} onChange={e => setPwForm(p => ({...p, new_password: e.target.value}))}
+              placeholder="At least 8 characters" data-testid="new-password-input"
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Confirm New Password</label>
+            <input type="password" value={pwForm.confirm} onChange={e => setPwForm(p => ({...p, confirm: e.target.value}))}
+              placeholder="Repeat new password" data-testid="confirm-password-input"
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+          </div>
+          <button onClick={handleChangePassword} disabled={pwSaving || !pwForm.new_password} data-testid="change-password-btn"
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 disabled:opacity-60 transition-colors">
+            {pwSaving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+            {pwSaving ? 'Updating…' : 'Update Password'}
+          </button>
+        </div>
+      </div>
 
       <button onClick={handleSave} disabled={saving} data-testid="save-general-btn"
         className="w-full py-3.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>

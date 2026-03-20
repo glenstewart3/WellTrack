@@ -1,14 +1,79 @@
 from fastapi import APIRouter, Depends, Request, Response
 from datetime import datetime, timezone, timedelta
-import uuid, os, httpx
+import uuid
+import os
+import httpx
+from passlib.context import CryptContext
 
 from database import db
 from helpers import get_current_user, get_school_settings_doc
 
 router = APIRouter()
+_pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-@router.get("/auth/google")
+@router.post("/auth/login-email")
+async def login_email(data: dict, response: Response):
+    from fastapi import HTTPException
+    email = data.get("email", "").lower().strip()
+    password = data.get("password", "")
+
+    settings = await db.school_settings.find_one({}, {"_id": 0})
+    if not settings or not settings.get("email_auth_enabled", False):
+        raise HTTPException(status_code=403, detail="Email login is not enabled for this school")
+
+    user_doc = await db.users.find_one({"email": email}, {"_id": 0})
+    if not user_doc or not user_doc.get("password_hash"):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if not _pwd.verify(password, user_doc["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    session_token = f"sess_{uuid.uuid4().hex}"
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    await db.user_sessions.insert_one({
+        "user_id": user_doc["user_id"], "session_token": session_token,
+        "expires_at": expires_at.isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    response.set_cookie(
+        key="session_token", value=session_token,
+        httponly=True, secure=True, samesite="none", path="/", max_age=7*24*3600,
+    )
+    onboarding_complete = bool(settings and settings.get("onboarding_complete"))
+    return {"message": "Login successful", "redirect": "dashboard" if onboarding_complete else "onboarding"}
+
+
+@router.put("/auth/change-password")
+async def change_password(data: dict, user=Depends(get_current_user)):
+    from fastapi import HTTPException
+    current_pw = data.get("current_password", "")
+    new_pw = data.get("new_password", "")
+    if len(new_pw) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    user_doc = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0})
+    existing_hash = user_doc.get("password_hash") if user_doc else None
+    if existing_hash and not _pwd.verify(current_pw, existing_hash):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+    await db.users.update_one({"user_id": user["user_id"]}, {"$set": {"password_hash": _pwd.hash(new_pw)}})
+    return {"message": "Password changed successfully"}
+
+
+@router.post("/users/{user_id}/set-password")
+async def set_user_password(user_id: str, data: dict, user=Depends(get_current_user)):
+    from fastapi import HTTPException
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    password = data.get("password", "")
+    if len(password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    result = await db.users.update_one({"user_id": user_id}, {"$set": {"password_hash": _pwd.hash(password)}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "Password set successfully"}
+
+
+# ── Google OAuth ─────────────────────────────────────────────────────────────
 async def google_login(request: Request):
     from urllib.parse import urlencode
     state = uuid.uuid4().hex
@@ -32,8 +97,6 @@ async def google_login(request: Request):
 @router.get("/auth/callback")
 async def google_callback(request: Request):
     from fastapi.responses import RedirectResponse
-    import logging
-    logger = logging.getLogger("server")
     frontend_url = os.environ['FRONTEND_URL']
     code = request.query_params.get("code")
     state = request.query_params.get("state")

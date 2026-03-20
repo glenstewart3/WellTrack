@@ -12,7 +12,7 @@ router = APIRouter()
 @router.get("/public-settings")
 async def public_settings():
     s = await db.school_settings.find_one({}, {"_id": 0})
-    base = {k: SETTINGS_DEFAULTS[k] for k in ("platform_name", "accent_color", "logo_base64", "welcome_message", "school_name")}
+    base = {k: SETTINGS_DEFAULTS[k] for k in ("platform_name", "accent_color", "logo_base64", "welcome_message", "school_name", "email_auth_enabled")}
     if s:
         for k in base:
             if s.get(k) is not None:

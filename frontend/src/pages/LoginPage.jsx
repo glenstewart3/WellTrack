@@ -1,28 +1,51 @@
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { Shield, AlertCircle } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Shield, AlertCircle, Eye, EyeOff, Mail, Lock, ArrowLeft } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
+import axios from 'axios';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+const ERROR_MESSAGES = {
+  access_denied: 'Access denied. Your account has not been registered. Please contact your school administrator.',
+  auth_failed: 'Authentication failed. Please try again.',
+  no_email: 'Could not retrieve your email from Google. Please try again.',
+};
 
 export default function LoginPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { settings } = useSettings();
 
   const searchParams = new URLSearchParams(location.search);
   const errorCode = searchParams.get('error');
   const stateError = location.state?.error;
 
-  const ERROR_MESSAGES = {
-    access_denied: 'Access denied. Your account has not been registered. Please contact your school administrator.',
-    auth_failed: 'Authentication failed. Please try again.',
-    no_email: 'Could not retrieve your email from Google. Please try again.',
-  };
+  const [accessError, setAccessError] = useState((errorCode && ERROR_MESSAGES[errorCode]) || stateError || '');
+  const [mode, setMode] = useState('choose'); // 'choose' | 'email'
+  const [emailForm, setEmailForm] = useState({ email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const [accessError] = useState((errorCode && ERROR_MESSAGES[errorCode]) || stateError || '');
   const accent = settings.accent_color || '#0f172a';
+  const emailAuthEnabled = settings.email_auth_enabled || false;
 
   const handleGoogleLogin = () => {
-    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
     window.location.href = `${process.env.REACT_APP_BACKEND_URL}/api/auth/google`;
+  };
+
+  const handleEmailLogin = async (e) => {
+    e.preventDefault();
+    setAccessError('');
+    setSubmitting(true);
+    try {
+      const res = await axios.post(`${API}/auth/login-email`, emailForm, { withCredentials: true });
+      navigate(`/${res.data.redirect}`);
+    } catch (err) {
+      setAccessError(err.response?.data?.detail || 'Login failed. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -50,7 +73,7 @@ export default function LoginPage() {
             Welcome back
           </h1>
           <p className="text-slate-500 mb-8 text-base leading-relaxed">
-            {settings.welcome_message || 'Sign in to access your school\'s MTSS wellbeing platform. Supporting every student, every tier.'}
+            {settings.welcome_message || "Sign in to access your school's MTSS wellbeing platform."}
           </p>
 
           {/* Error */}
@@ -58,30 +81,106 @@ export default function LoginPage() {
             <div className="flex items-start gap-3 bg-rose-50 border border-rose-200 rounded-xl p-4 mb-5" data-testid="login-access-error">
               <AlertCircle size={16} className="text-rose-600 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-rose-700">Access Denied</p>
+                <p className="text-sm font-semibold text-rose-700">Sign In Error</p>
                 <p className="text-xs text-rose-600 mt-0.5">{accessError}</p>
               </div>
             </div>
           )}
 
-          {/* Login button */}
-          <button
-            onClick={handleGoogleLogin}
-            data-testid="google-login-btn"
-            className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 rounded-xl px-6 py-3.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all duration-150 active:scale-[0.98]"
-          >
-            <svg width="18" height="18" viewBox="0 0 18 18">
-              <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
-              <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
-              <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/>
-              <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"/>
-            </svg>
-            Continue with Google
-          </button>
+          {/* Email/password form */}
+          {mode === 'email' ? (
+            <div>
+              <button onClick={() => { setMode('choose'); setAccessError(''); }} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-6 transition-colors">
+                <ArrowLeft size={14} /> Back
+              </button>
+              <form onSubmit={handleEmailLogin} className="space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Email</label>
+                  <div className="relative">
+                    <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="email"
+                      required
+                      autoFocus
+                      value={emailForm.email}
+                      onChange={e => setEmailForm(p => ({ ...p, email: e.target.value }))}
+                      placeholder="your@email.com"
+                      data-testid="email-login-input"
+                      className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 bg-white"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Password</label>
+                  <div className="relative">
+                    <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={emailForm.password}
+                      onChange={e => setEmailForm(p => ({ ...p, password: e.target.value }))}
+                      placeholder="••••••••"
+                      data-testid="password-login-input"
+                      className="w-full pl-10 pr-10 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 bg-white"
+                    />
+                    <button type="button" onClick={() => setShowPassword(p => !p)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  data-testid="email-login-submit"
+                  className="w-full py-3.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: accent }}
+                >
+                  {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                  {submitting ? 'Signing in…' : 'Sign In'}
+                </button>
+              </form>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* Google login */}
+              <button
+                onClick={handleGoogleLogin}
+                data-testid="google-login-btn"
+                className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 rounded-xl px-6 py-3.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all duration-150 active:scale-[0.98]"
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18">
+                  <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+                  <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+                  <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/>
+                  <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"/>
+                </svg>
+                Continue with Google
+              </button>
 
-          <p className="mt-6 text-xs text-slate-400 text-center">
-            Secure authentication via Google OAuth. Your data stays within your school.
-          </p>
+              {/* Email/password option — only when enabled */}
+              {emailAuthEnabled && (
+                <>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-slate-200" />
+                    <span className="text-xs text-slate-400 font-medium">or</span>
+                    <div className="flex-1 h-px bg-slate-200" />
+                  </div>
+                  <button
+                    onClick={() => setMode('email')}
+                    data-testid="email-login-btn"
+                    className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 rounded-xl px-6 py-3.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all duration-150 active:scale-[0.98]"
+                  >
+                    <Mail size={16} className="text-slate-500" />
+                    Sign in with email &amp; password
+                  </button>
+                </>
+              )}
+
+              <p className="mt-6 text-xs text-slate-400 text-center">
+                Secure access — only registered users can sign in.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -110,7 +209,7 @@ export default function LoginPage() {
             WellTrack helps your school identify students who need support before they fall through the cracks — using evidence-based SAEBRS screening and wellbeing analytics.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           {['Universal Screening', 'Early Intervention', 'Progress Monitoring', 'Data-Driven'].map(tag => (
             <span key={tag} className="text-xs text-white/50 bg-white/10 px-3 py-1 rounded-full">{tag}</span>
           ))}

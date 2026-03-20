@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { UserCog, Plus, Trash2, X, Shield, Edit2, Loader, Mail } from 'lucide-react';
+import { UserCog, Plus, Trash2, X, Shield, Edit2, Loader, Mail, KeyRound, Eye, EyeOff } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -29,6 +29,10 @@ export default function UserManagementPage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState({ text: '', type: '' });
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [setPasswordUser, setSetPasswordUser] = useState(null);
+  const [passwordForm, setPasswordForm] = useState({ password: '', confirm: '' });
+  const [showPw, setShowPw] = useState(false);
+  const [pwSaving, setPwSaving] = useState(false);
 
   // Only admins can access this page
   useEffect(() => {
@@ -80,6 +84,18 @@ export default function UserManagementPage() {
     }
   };
 
+  const setPassword = async () => {
+    if (passwordForm.password !== passwordForm.confirm) { showMsg('Passwords do not match', 'error'); return; }
+    if (passwordForm.password.length < 8) { showMsg('Password must be at least 8 characters', 'error'); return; }
+    setPwSaving(true);
+    try {
+      await axios.post(`${API}/users/${setPasswordUser.user_id}/set-password`, { password: passwordForm.password }, { withCredentials: true });
+      showMsg(`Password set for ${setPasswordUser.name}`);
+      setSetPasswordUser(null); setPasswordForm({ password: '', confirm: '' });
+    } catch (e) { showMsg(e.response?.data?.detail || 'Failed to set password', 'error'); }
+    finally { setPwSaving(false); }
+  };
+
   const deleteUser = async (userId) => {
     try {
       await axios.delete(`${API}/users/${userId}`, { withCredentials: true });
@@ -122,7 +138,7 @@ export default function UserManagementPage() {
         <Shield size={16} className="text-amber-600 mt-0.5 shrink-0" />
         <div>
           <p className="text-sm font-semibold text-amber-800">Access Control</p>
-          <p className="text-xs text-amber-600 mt-0.5">Only users listed here can sign in with their Google account. If someone tries to sign in without being registered, they will be denied access.</p>
+          <p className="text-xs text-amber-600 mt-0.5">Only users listed here can sign in. Use the <KeyRound size={11} className="inline mb-0.5" /> icon to set an email &amp; password for a user — they can use it once Email Login is enabled in Settings → General.</p>
         </div>
       </div>
 
@@ -195,16 +211,26 @@ export default function UserManagementPage() {
                     {u.created_at?.split('T')[0] || '—'}
                   </td>
                   <td className="py-3.5 px-4">
-                    {u.user_id !== user?.user_id && (
+                    <div className="flex items-center gap-1">
                       <button
-                        onClick={() => setDeleteConfirm(u)}
-                        data-testid={`delete-user-${u.user_id}`}
-                        className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
-                        title="Remove user"
+                        onClick={() => { setSetPasswordUser(u); setPasswordForm({ password: '', confirm: '' }); setShowPw(false); }}
+                        data-testid={`set-password-${u.user_id}`}
+                        className="p-1.5 text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+                        title="Set password"
                       >
-                        <Trash2 size={14} />
+                        <KeyRound size={14} />
                       </button>
-                    )}
+                      {u.user_id !== user?.user_id && (
+                        <button
+                          onClick={() => setDeleteConfirm(u)}
+                          data-testid={`delete-user-${u.user_id}`}
+                          className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                          title="Remove user"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -266,6 +292,53 @@ export default function UserManagementPage() {
                 {saving ? 'Adding...' : 'Add User'}
               </button>
               <button onClick={() => setShowAdd(false)}
+                className="flex-1 bg-slate-100 text-slate-700 py-3 text-sm font-medium rounded-xl hover:bg-slate-200 transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Set Password Modal */}
+      {setPasswordUser && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div className="flex justify-between items-center mb-5">
+              <div>
+                <h3 className="font-bold text-slate-900 text-lg" style={{fontFamily:'Manrope,sans-serif'}}>Set Password</h3>
+                <p className="text-xs text-slate-400 mt-0.5">For <strong>{setPasswordUser.name}</strong></p>
+              </div>
+              <button onClick={() => setSetPasswordUser(null)}><X size={18} className="text-slate-400" /></button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">New Password</label>
+                <div className="relative">
+                  <input type={showPw ? 'text' : 'password'} value={passwordForm.password}
+                    onChange={e => setPasswordForm(p => ({...p, password: e.target.value}))}
+                    placeholder="At least 8 characters" data-testid="set-password-input"
+                    className="w-full pr-10 px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+                  <button type="button" onClick={() => setShowPw(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                    {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Confirm Password</label>
+                <input type={showPw ? 'text' : 'password'} value={passwordForm.confirm}
+                  onChange={e => setPasswordForm(p => ({...p, confirm: e.target.value}))}
+                  placeholder="Repeat password" data-testid="confirm-set-password-input"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button onClick={setPassword} disabled={pwSaving || !passwordForm.password} data-testid="save-set-password-btn"
+                className="flex-1 bg-slate-900 text-white py-3 text-sm font-semibold rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                {pwSaving ? <Loader size={14} className="animate-spin" /> : <KeyRound size={14} />}
+                {pwSaving ? 'Setting…' : 'Set Password'}
+              </button>
+              <button onClick={() => setSetPasswordUser(null)}
                 className="flex-1 bg-slate-100 text-slate-700 py-3 text-sm font-medium rounded-xl hover:bg-slate-200 transition-colors">
                 Cancel
               </button>
