@@ -111,7 +111,7 @@ export default function MeetingPrepPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex overflow-x-auto border-b border-slate-200 mb-5 -mx-6 px-6 sm:mx-0 sm:px-0">
+      <div className="flex overflow-x-auto overflow-y-hidden border-b border-slate-200 mb-5 -mx-6 px-6 sm:mx-0 sm:px-0">
         {[
           { key: 'students', label: `Students (${students.length})`, short: `Students` },
           { key: 'tier_changes', label: `Tier Changes (${tier_changes.length})`, short: `Changes`, highlight: tier_changes.some(tc => tc.direction === 'declined') },
