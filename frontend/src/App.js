@@ -48,7 +48,7 @@ function AppRouter() {
   useEffect(() => {
     axios.get(`${API}/onboarding/status`)
       .then(r => setOnboardingDone(r.data.complete))
-      .catch(() => setOnboardingDone(true)); // fail-safe: assume complete
+      .catch(() => setOnboardingDone(false)); // fail-safe: show onboarding if API unreachable
   }, []);
 
   if (authLoading || onboardingDone === null) return <Spinner />;
