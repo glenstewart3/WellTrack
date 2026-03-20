@@ -40,4 +40,5 @@ SETTINGS_DEFAULTS = {
     "ai_suggestions_enabled": True,
     "excluded_absence_types": [],
     "email_auth_enabled": True,
+    "google_auth_enabled": True,
 }

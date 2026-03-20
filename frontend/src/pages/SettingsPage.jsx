@@ -485,17 +485,19 @@ function GeneralTab({ settings: s, onSave, saving, msg, msgType }) {
   const [schoolType, setSchoolType] = useState(s.school_type || 'both');
   const [currentTerm, setCurrentTerm] = useState(s.current_term || 'Term 1');
   const [currentYear, setCurrentYear] = useState(s.current_year || new Date().getFullYear());
-  const [emailAuthEnabled, setEmailAuthEnabled] = useState(s.email_auth_enabled || false);
+  const [emailAuthEnabled, setEmailAuthEnabled] = useState(s.email_auth_enabled !== false);
+  const [googleAuthEnabled, setGoogleAuthEnabled] = useState(s.google_auth_enabled !== false);
   const [pwForm, setPwForm] = useState({ current_password: '', new_password: '', confirm: '' });
   const [pwMsg, setPwMsg] = useState({ text: '', type: '' });
   const [pwSaving, setPwSaving] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
-    setEmailAuthEnabled(s.email_auth_enabled || false);
+    setEmailAuthEnabled(s.email_auth_enabled !== false);
+    setGoogleAuthEnabled(s.google_auth_enabled !== false);
   }, [s.email_auth_enabled]);
 
-  const handleSave = () => onSave({ school_name: schoolName, school_type: schoolType, current_term: currentTerm, current_year: currentYear, email_auth_enabled: emailAuthEnabled });
+  const handleSave = () => onSave({ school_name: schoolName, school_type: schoolType, current_term: currentTerm, current_year: currentYear, email_auth_enabled: emailAuthEnabled, google_auth_enabled: googleAuthEnabled });
 
   const handleChangePassword = async () => {
     if (pwForm.new_password !== pwForm.confirm) {
@@ -570,19 +572,21 @@ function GeneralTab({ settings: s, onSave, saving, msg, msgType }) {
           <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Authentication</h3>
           <p className="text-xs text-slate-400 mt-0.5">Control how staff can sign in to WellTrack</p>
         </div>
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-800">Email &amp; Password Login</p>
-            <p className="text-xs text-slate-400 mt-0.5">Allow staff to sign in with an email and password in addition to Google. Passwords are set by administrators from User Management.</p>
+        {[
+          { key: 'email', label: 'Email & Password Login', desc: 'Staff sign in with an email and password. Passwords are set by admins in User Management.', state: emailAuthEnabled, setState: setEmailAuthEnabled, testid: 'email-auth-toggle' },
+          { key: 'google', label: 'Google Login', desc: 'Staff sign in with their Google account. Requires valid Google OAuth credentials in server settings.', state: googleAuthEnabled, setState: setGoogleAuthEnabled, testid: 'google-auth-toggle' },
+        ].map(opt => (
+          <div key={opt.key} className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-slate-800">{opt.label}</p>
+              <p className="text-xs text-slate-400 mt-0.5">{opt.desc}</p>
+            </div>
+            <button onClick={() => opt.setState(p => !p)} data-testid={opt.testid}
+              className={`relative shrink-0 w-11 h-6 rounded-full transition-colors duration-200 ${opt.state ? 'bg-slate-900' : 'bg-slate-200'}`}>
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${opt.state ? 'translate-x-5' : ''}`} />
+            </button>
           </div>
-          <button
-            onClick={() => setEmailAuthEnabled(p => !p)}
-            data-testid="email-auth-toggle"
-            className={`relative shrink-0 w-11 h-6 rounded-full transition-colors duration-200 ${emailAuthEnabled ? 'bg-slate-900' : 'bg-slate-200'}`}
-          >
-            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${emailAuthEnabled ? 'translate-x-5' : ''}`} />
-          </button>
-        </div>
+        ))}
       </div>
 
       {/* Change own password */}

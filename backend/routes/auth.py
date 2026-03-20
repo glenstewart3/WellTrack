@@ -76,6 +76,10 @@ async def set_user_password(user_id: str, data: dict, user=Depends(get_current_u
 # ── Google OAuth ─────────────────────────────────────────────────────────────
 @router.get("/auth/google")
 async def google_login(request: Request):
+    from fastapi import HTTPException
+    settings = await db.school_settings.find_one({}, {"_id": 0})
+    if settings and not settings.get("google_auth_enabled", True):
+        raise HTTPException(status_code=403, detail="Google login is not enabled")
     from urllib.parse import urlencode
     state = uuid.uuid4().hex
     await db.oauth_states.insert_one({
@@ -227,6 +231,52 @@ async def get_onboarding_status():
         "has_users": user_count > 0,
         "school_name": settings.get("school_name", "") if settings else "",
     }
+
+
+@router.post("/onboarding/setup")
+async def onboarding_setup(data: dict, response: Response):
+    """Fresh-install setup: creates first admin account + saves school settings. No auth required."""
+    from fastapi import HTTPException
+    user_count = await db.users.count_documents({})
+    existing = await db.school_settings.find_one({}, {"_id": 0})
+    if user_count > 0 or (existing and existing.get("onboarding_complete")):
+        raise HTTPException(status_code=400, detail="Setup has already been completed")
+
+    name = data.get("admin_name", "").strip()
+    email = data.get("admin_email", "").lower().strip()
+    password = data.get("admin_password", "")
+    if not name or not email or len(password) < 8:
+        raise HTTPException(status_code=400, detail="Name, email and a password of at least 8 characters are required")
+
+    user_id = f"user_{uuid.uuid4().hex[:12]}"
+    await db.users.insert_one({
+        "user_id": user_id, "email": email, "name": name,
+        "picture": "", "role": "admin",
+        "password_hash": _pwd.hash(password),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+    await db.school_settings.update_one({}, {"$set": {
+        "school_name": data.get("school_name", "My School"),
+        "school_type": data.get("school_type", "both"),
+        "current_term": data.get("current_term", "Term 1"),
+        "current_year": data.get("current_year", datetime.now(timezone.utc).year),
+        "email_auth_enabled": True,
+        "google_auth_enabled": data.get("google_auth_enabled", True),
+        "onboarding_complete": True,
+    }}, upsert=True)
+
+    session_token = f"sess_{uuid.uuid4().hex}"
+    await db.user_sessions.insert_one({
+        "user_id": user_id, "session_token": session_token,
+        "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    response.set_cookie(
+        key="session_token", value=session_token,
+        httponly=True, secure=True, samesite="none", path="/", max_age=7 * 24 * 3600,
+    )
+    return {"message": "Setup complete", "user_id": user_id}
 
 
 @router.post("/onboarding/complete")
