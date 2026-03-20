@@ -44,14 +44,13 @@ export default function DashboardLayout() {
     <div className="flex flex-col h-full">
       {/* Logo / Brand */}
       <div className="px-6 py-5 border-b border-slate-100">
+        {settings.logo_base64 && (
+          <img src={settings.logo_base64} alt="School logo" className="h-7 w-auto object-contain mb-3" />
+        )}
         <div className="flex items-center gap-3">
-          {settings.logo_base64 ? (
-            <img src={settings.logo_base64} alt="School logo" className="w-9 h-9 rounded-lg object-contain bg-slate-50 border border-slate-100" />
-          ) : (
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: accent }}>
-              <Shield size={17} className="text-white" />
-            </div>
-          )}
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: accent }}>
+            <Shield size={17} className="text-white" />
+          </div>
           <div>
             <p className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{settings.platform_name || 'WellTrack'}</p>
             <p className="text-xs text-slate-400">{settings.school_name || 'MTSS Wellbeing Platform'}</p>

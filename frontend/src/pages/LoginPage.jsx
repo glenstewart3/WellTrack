@@ -53,18 +53,19 @@ export default function LoginPage() {
       {/* Left panel */}
       <div className="flex-1 flex flex-col justify-center px-8 py-12 lg:px-16">
         <div className="max-w-md w-full mx-auto">
-          {/* Logo */}
-          <div className="flex items-center gap-3 mb-10">
-            {settings.logo_base64 ? (
-              <img src={settings.logo_base64} alt="School logo" className="w-10 h-10 rounded-xl object-contain bg-white border border-slate-100 shadow-sm" />
-            ) : (
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm" style={{ backgroundColor: accent }}>
+          {/* Logo + Brand */}
+          <div className="mb-10">
+            {settings.logo_base64 && (
+              <img src={settings.logo_base64} alt="School logo" className="h-9 w-auto object-contain mb-4" />
+            )}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0" style={{ backgroundColor: accent }}>
                 <Shield size={20} className="text-white" />
               </div>
-            )}
-            <div>
-              <p className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{settings.platform_name || 'WellTrack'}</p>
-              <p className="text-xs text-slate-400 font-medium">{settings.school_name || 'MTSS Student Wellbeing Platform'}</p>
+              <div>
+                <p className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{settings.platform_name || 'WellTrack'}</p>
+                <p className="text-xs text-slate-400 font-medium">{settings.school_name || 'MTSS Student Wellbeing Platform'}</p>
+              </div>
             </div>
           </div>
 
