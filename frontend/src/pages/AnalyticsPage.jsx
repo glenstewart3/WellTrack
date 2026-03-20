@@ -135,7 +135,7 @@ export default function AnalyticsPage() {
       const capturedImages = {};
       for (const tab of ['overview', 'attendance', 'wellbeing', 'interventions', 'support']) {
         setActiveTab(tab);
-        await new Promise(r => setTimeout(r, 700));
+        await new Promise(r => setTimeout(r, 400));
         const el = document.getElementById(`pdf-section-${tab}`);
         if (el) {
           const canvas = await html2canvas(el, { scale: 1.5, useCORS: true, backgroundColor: '#f8fafc' });
@@ -279,7 +279,7 @@ export default function AnalyticsPage() {
               <div className="flex gap-6 items-center justify-center">
                 <ResponsiveContainer width={160} height={160}>
                   <PieChart>
-                    <Pie data={tierPieData} cx="50%" cy="50%" innerRadius={45} outerRadius={75} dataKey="value" paddingAngle={3}>
+                    <Pie data={tierPieData} cx="50%" cy="50%" innerRadius={45} outerRadius={75} dataKey="value" paddingAngle={3} isAnimationActive={!pdfLoading}>
                       {COLORS.map((color, i) => <Cell key={i} fill={color} />)}
                     </Pie>
                     <Tooltip />
@@ -305,7 +305,7 @@ export default function AnalyticsPage() {
                   <XAxis dataKey="risk" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                  <Bar dataKey="count" radius={[6, 6, 0, 0]} isAnimationActive={!pdfLoading}>
                     {riskBarData.map((d, i) => <Cell key={i} fill={Object.values(RISK_COLORS)[i]} />)}
                   </Bar>
                 </BarChart>
@@ -322,7 +322,7 @@ export default function AnalyticsPage() {
                   <XAxis dataKey="domain" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Bar dataKey="score" radius={[6, 6, 0, 0]}>
+                  <Bar dataKey="score" radius={[6, 6, 0, 0]} isAnimationActive={!pdfLoading}>
                     {domainData.map((d, i) => <Cell key={i} fill={d.color} />)}
                   </Bar>
                 </BarChart>
@@ -340,9 +340,9 @@ export default function AnalyticsPage() {
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="tier1" name="Tier 1" fill="#22c55e" stackId="a" />
-                  <Bar dataKey="tier2" name="Tier 2" fill="#f59e0b" stackId="a" />
-                  <Bar dataKey="tier3" name="Tier 3" fill="#ef4444" stackId="a" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="tier1" name="Tier 1" fill="#22c55e" stackId="a" isAnimationActive={!pdfLoading} />
+                  <Bar dataKey="tier2" name="Tier 2" fill="#f59e0b" stackId="a" isAnimationActive={!pdfLoading} />
+                  <Bar dataKey="tier3" name="Tier 3" fill="#ef4444" stackId="a" radius={[4, 4, 0, 0]} isAnimationActive={!pdfLoading} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -368,7 +368,7 @@ export default function AnalyticsPage() {
                   <XAxis dataKey="day" tick={{ fontSize: 11 }} />
                   <YAxis unit="%" tick={{ fontSize: 11 }} domain={[85, 100]} />
                   <Tooltip formatter={(v) => [`${v}%`, 'Attendance Rate']} />
-                  <Bar dataKey="attendance_rate" radius={[6, 6, 0, 0]}>
+                  <Bar dataKey="attendance_rate" radius={[6, 6, 0, 0]} isAnimationActive={!pdfLoading}>
                     {attTrends.day_of_week.map((d, i) => (
                       <Cell key={i} fill={d.attendance_rate >= 95 ? '#22c55e' : d.attendance_rate >= 90 ? '#f59e0b' : '#ef4444'} />
                     ))}
@@ -394,7 +394,7 @@ export default function AnalyticsPage() {
                   <Tooltip formatter={(v) => [`${v}%`, 'Attendance Rate']} />
                   <ReferenceLine y={95} stroke="#22c55e" strokeDasharray="4 2" label={{ value: '95%', position: 'right', fontSize: 10, fill: '#22c55e' }} />
                   <ReferenceLine y={90} stroke="#f59e0b" strokeDasharray="4 2" label={{ value: '90%', position: 'right', fontSize: 10, fill: '#f59e0b' }} />
-                  <Line type="monotone" dataKey="attendance_rate" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="attendance_rate" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} isAnimationActive={!pdfLoading} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -409,7 +409,7 @@ export default function AnalyticsPage() {
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis dataKey="type" type="category" tick={{ fontSize: 11 }} width={140} />
                   <Tooltip />
-                  <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+                  <Bar dataKey="count" radius={[0, 6, 6, 0]} isAnimationActive={!pdfLoading}>
                     {absenceTypes.slice(0, 12).map((d, i) => (
                       <Cell key={i} fill={d.excluded ? '#94a3b8' : DOMAIN_COLORS[i % DOMAIN_COLORS.length]} />
                     ))}
@@ -475,7 +475,7 @@ export default function AnalyticsPage() {
                   <XAxis dataKey="domain" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Bar dataKey="score" radius={[6, 6, 0, 0]}>
+                  <Bar dataKey="score" radius={[6, 6, 0, 0]} isAnimationActive={!pdfLoading}>
                     {domainData.map((d, i) => <Cell key={i} fill={d.color} />)}
                   </Bar>
                 </BarChart>
@@ -490,7 +490,7 @@ export default function AnalyticsPage() {
                 <div className="flex gap-6 items-center justify-center">
                   <ResponsiveContainer width={150} height={150}>
                     <PieChart>
-                      <Pie data={riskPieData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="count" paddingAngle={3}>
+                      <Pie data={riskPieData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="count" paddingAngle={3} isAnimationActive={!pdfLoading}>
                         {riskPieData.map((d, i) => <Cell key={i} fill={d.color} />)}
                       </Pie>
                       <Tooltip />
@@ -550,7 +550,7 @@ export default function AnalyticsPage() {
                   <XAxis type="number" unit="%" tick={{ fontSize: 11 }} domain={[0, 100]} />
                   <YAxis dataKey="class" type="category" tick={{ fontSize: 11 }} width={60} />
                   <Tooltip formatter={(v) => [`${v}%`, 'Coverage']} />
-                  <Bar dataKey="coverage_pct" radius={[0, 6, 6, 0]}>
+                  <Bar dataKey="coverage_pct" radius={[0, 6, 6, 0]} isAnimationActive={!pdfLoading}>
                     {coverage.map((d, i) => (
                       <Cell key={i} fill={d.coverage_pct === 100 ? '#22c55e' : d.coverage_pct >= 75 ? '#f59e0b' : '#ef4444'} />
                     ))}
@@ -586,8 +586,8 @@ export default function AnalyticsPage() {
                   <YAxis dataKey="type" type="category" tick={{ fontSize: 11 }} width={150} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="active" name="Active" fill="#22c55e" stackId="a" />
-                  <Bar dataKey="completed" name="Completed" fill="#3b82f6" stackId="a" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="active" name="Active" fill="#22c55e" stackId="a" isAnimationActive={!pdfLoading} />
+                  <Bar dataKey="completed" name="Completed" fill="#3b82f6" stackId="a" radius={[0, 4, 4, 0]} isAnimationActive={!pdfLoading} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -743,7 +743,7 @@ export default function AnalyticsPage() {
                     <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} unit="%" domain={[80, 100]} />
                     <Tooltip formatter={(v) => [`${v}%`, 'Avg Attendance']} />
-                    <Bar dataKey="avg_attendance" name="Avg Attendance" radius={[6, 6, 0, 0]}>
+                    <Bar dataKey="avg_attendance" name="Avg Attendance" radius={[6, 6, 0, 0]} isAnimationActive={!pdfLoading}>
                       {cohortData.map((c, i) => (
                         <Cell key={i} fill={c.avg_attendance >= 95 ? '#22c55e' : c.avg_attendance >= 90 ? '#f59e0b' : '#ef4444'} />
                       ))}
@@ -761,9 +761,9 @@ export default function AnalyticsPage() {
                     <YAxis tick={{ fontSize: 11 }} />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="risk_low" name="Low Risk" fill="#22c55e" stackId="b" />
-                    <Bar dataKey="risk_some" name="Some Risk" fill="#f59e0b" stackId="b" />
-                    <Bar dataKey="risk_high" name="High Risk" fill="#ef4444" stackId="b" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="risk_low" name="Low Risk" fill="#22c55e" stackId="b" isAnimationActive={!pdfLoading} />
+                    <Bar dataKey="risk_some" name="Some Risk" fill="#f59e0b" stackId="b" isAnimationActive={!pdfLoading} />
+                    <Bar dataKey="risk_high" name="High Risk" fill="#ef4444" stackId="b" radius={[4, 4, 0, 0]} isAnimationActive={!pdfLoading} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
