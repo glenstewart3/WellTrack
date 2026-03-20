@@ -166,53 +166,90 @@ export default function DashboardPage() {
         {students.length === 0 ? (
           <p className="text-sm text-slate-400 py-4 text-center">All students are screened at Tier 1 or not yet screened.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100">
-                  <th className="text-left py-2 px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Student</th>
-                  <th className="text-left py-2 px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Class</th>
-                  <th className="text-left py-2 px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Tier</th>
-                  <th className="text-left py-2 px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">SAEBRS Risk</th>
-                  <th className="text-left py-2 px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Attendance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map(s => {
-                  const colors = getTierColors(s.mtss_tier);
-                  return (
-                    <tr
-                      key={s.student_id}
-                      onClick={() => navigate(`/students/${s.student_id}`)}
-                      className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors"
-                      data-testid={`student-row-${s.student_id}`}
-                    >
-                      <td className="py-3 px-2 font-medium text-slate-900">{s.first_name} {s.last_name}</td>
-                      <td className="py-3 px-2 text-slate-500">{s.class_name}</td>
-                      <td className="py-3 px-2">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${colors.badge}`}>
-                          Tier {s.mtss_tier}
-                        </span>
-                      </td>
-                      <td className="py-3 px-2">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          s.saebrs_risk === 'High Risk' ? 'bg-rose-100 text-rose-800' :
-                          s.saebrs_risk === 'Some Risk' ? 'bg-amber-100 text-amber-800' :
-                          'bg-emerald-100 text-emerald-800'}`}>
-                          {s.saebrs_risk}
-                        </span>
-                      </td>
-                      <td className="py-3 px-2">
-                        <span className={`text-xs font-medium ${s.attendance_pct < 80 ? 'text-rose-600' : s.attendance_pct < 90 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                          {s.attendance_pct}%
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            {/* Mobile: card list */}
+            <div className="sm:hidden divide-y divide-slate-100 -mx-6">
+              {students.map(s => {
+                const colors = getTierColors(s.mtss_tier);
+                return (
+                  <div
+                    key={s.student_id}
+                    onClick={() => navigate(`/students/${s.student_id}`)}
+                    className="flex items-center justify-between gap-3 px-6 py-3 cursor-pointer hover:bg-slate-50 transition-colors"
+                    data-testid={`student-row-${s.student_id}`}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900 truncate">{s.first_name} {s.last_name}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{s.class_name}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${colors.badge}`}>
+                        T{s.mtss_tier}
+                      </span>
+                      <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                        s.saebrs_risk === 'High Risk' ? 'bg-rose-100 text-rose-700' :
+                        s.saebrs_risk === 'Some Risk' ? 'bg-amber-100 text-amber-700' :
+                        'bg-emerald-100 text-emerald-700'}`}>
+                        {s.saebrs_risk === 'High Risk' ? 'High' : s.saebrs_risk === 'Some Risk' ? 'Some' : 'Low'}
+                      </span>
+                      <span className={`text-sm font-bold tabular-nums ${s.attendance_pct < 80 ? 'text-rose-600' : s.attendance_pct < 90 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                        {s.attendance_pct}%
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop: table */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100">
+                    <th className="text-left py-2 px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Student</th>
+                    <th className="text-left py-2 px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Class</th>
+                    <th className="text-left py-2 px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Tier</th>
+                    <th className="text-left py-2 px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">SAEBRS Risk</th>
+                    <th className="text-left py-2 px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Attendance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.map(s => {
+                    const colors = getTierColors(s.mtss_tier);
+                    return (
+                      <tr
+                        key={s.student_id}
+                        onClick={() => navigate(`/students/${s.student_id}`)}
+                        className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors"
+                        data-testid={`student-row-${s.student_id}`}
+                      >
+                        <td className="py-3 px-2 font-medium text-slate-900">{s.first_name} {s.last_name}</td>
+                        <td className="py-3 px-2 text-slate-500">{s.class_name}</td>
+                        <td className="py-3 px-2">
+                          <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${colors.badge}`}>
+                            Tier {s.mtss_tier}
+                          </span>
+                        </td>
+                        <td className="py-3 px-2">
+                          <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                            s.saebrs_risk === 'High Risk' ? 'bg-rose-100 text-rose-800' :
+                            s.saebrs_risk === 'Some Risk' ? 'bg-amber-100 text-amber-800' :
+                            'bg-emerald-100 text-emerald-800'}`}>
+                            {s.saebrs_risk}
+                          </span>
+                        </td>
+                        <td className="py-3 px-2">
+                          <span className={`text-sm font-medium tabular-nums ${s.attendance_pct < 80 ? 'text-rose-600' : s.attendance_pct < 90 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                            {s.attendance_pct}%
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
