@@ -30,7 +30,8 @@ app = FastAPI(title="WellTrack API")
 scheduler = AsyncIOScheduler()
 
 # Middleware
-app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=["*"],
+_cors_origins = [o.strip() for o in os.environ.get('ALLOWED_ORIGINS', '*').split(',') if o.strip()]
+app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=_cors_origins,
                    allow_methods=["*"], allow_headers=["*"])
 app.add_middleware(SessionMiddleware, secret_key=os.environ['SESSION_SECRET'])
 
