@@ -13,6 +13,7 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [alerts, setAlerts] = useState([]);
+  const [totalAlerts, setTotalAlerts] = useState(0);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,7 +26,9 @@ export default function DashboardPage() {
           axios.get(`${API}/students/summary`, { withCredentials: true }),
         ]);
         setStats(tierRes.data);
-        setAlerts(alertRes.data.slice(0, 5));
+        const allAlerts = alertRes.data;
+        setTotalAlerts(allAlerts.length);
+        setAlerts(allAlerts.slice(0, 5));
         setStudents(studRes.data.filter(s => (s.mtss_tier || 0) >= 2).slice(0, 6));
       } catch (e) {
         console.error(e);
@@ -52,8 +55,6 @@ export default function DashboardPage() {
     { name: 'Unscreened', value: tier.unscreened || 0, color: '#94a3b8' },
   ].filter(d => d.value > 0);
 
-  const unreadAlerts = alerts.filter(a => !a.is_read).length;
-
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
@@ -71,9 +72,9 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total Students', value: stats?.total_students || 0, icon: Users, color: 'text-slate-600', bg: 'bg-slate-50', action: () => navigate('/students') },
-          { label: 'Tier 2 Students', value: tier.tier2 || 0, icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50', action: () => navigate('/students') },
-          { label: 'Tier 3 Students', value: tier.tier3 || 0, icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-50', action: () => navigate('/students') },
-          { label: 'Active Alerts', value: unreadAlerts, icon: Bell, color: 'text-indigo-600', bg: 'bg-indigo-50', action: () => navigate('/alerts') },
+          { label: 'Tier 2 Students', value: tier.tier2 || 0, icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50', action: () => navigate('/students', { state: { filterTier: '2' } }) },
+          { label: 'Tier 3 Students', value: tier.tier3 || 0, icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-50', action: () => navigate('/students', { state: { filterTier: '3' } }) },
+          { label: 'Active Alerts', value: totalAlerts, icon: Bell, color: 'text-indigo-600', bg: 'bg-indigo-50', action: () => navigate('/alerts') },
         ].map(card => (
           <button
             key={card.label}

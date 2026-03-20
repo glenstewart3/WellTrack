@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, getRiskColors } from '../utils/tierUtils';
 import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight, UserPlus, Pencil, Archive, RotateCcw } from 'lucide-react';
@@ -236,6 +236,7 @@ function ImportModal({ onClose, onSuccess }) {
 
 export default function StudentsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -255,6 +256,15 @@ export default function StudentsPage() {
   const [archiving, setArchiving] = useState(false);
   const [reactivating, setReactivating] = useState(false);
   const [filterStatus, setFilterStatus] = useState('active');
+
+  // Apply tier filter passed via navigation state (e.g. from Dashboard stat cards)
+  useEffect(() => {
+    if (location.state?.filterTier) {
+      setFilterTier(location.state.filterTier);
+      // Clear the state so back-navigation doesn't re-apply it
+      window.history.replaceState({}, '');
+    }
+  }, []);
 
   const loadStudents = async () => {
     try {
