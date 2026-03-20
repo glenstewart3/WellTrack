@@ -74,6 +74,7 @@ async def set_user_password(user_id: str, data: dict, user=Depends(get_current_u
 
 
 # ── Google OAuth ─────────────────────────────────────────────────────────────
+@router.get("/auth/google")
 async def google_login(request: Request):
     from urllib.parse import urlencode
     state = uuid.uuid4().hex
