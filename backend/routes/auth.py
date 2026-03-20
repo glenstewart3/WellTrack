@@ -11,6 +11,18 @@ from helpers import get_current_user, get_school_settings_doc
 router = APIRouter()
 _pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# Cookie security — set COOKIE_SECURE=false in .env for plain HTTP local servers
+_COOKIE_SECURE = os.environ.get('COOKIE_SECURE', 'true').lower() != 'false'
+_COOKIE_SAMESITE = 'none' if _COOKIE_SECURE else 'lax'
+
+def _set_session_cookie(response, token: str):
+    response.set_cookie(
+        key='session_token', value=token,
+        httponly=True, secure=_COOKIE_SECURE,
+        samesite=_COOKIE_SAMESITE, path='/',
+        max_age=7 * 24 * 3600,
+    )
+
 
 @router.post("/auth/login-email")
 async def login_email(data: dict, response: Response):
@@ -36,10 +48,7 @@ async def login_email(data: dict, response: Response):
         "expires_at": expires_at.isoformat(),
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
-    response.set_cookie(
-        key="session_token", value=session_token,
-        httponly=True, secure=True, samesite="none", path="/", max_age=7*24*3600,
-    )
+    _set_session_cookie(response, session_token)
     onboarding_complete = bool(settings and settings.get("onboarding_complete"))
     return {"message": "Login successful", "redirect": "dashboard" if onboarding_complete else "onboarding"}
 
@@ -186,10 +195,7 @@ async def google_callback(request: Request):
     redirect_target = "dashboard" if onboarding_complete else "onboarding"
 
     redirect = RedirectResponse(url=f"{frontend_url}/{redirect_target}")
-    redirect.set_cookie(
-        key="session_token", value=session_token,
-        httponly=True, secure=True, samesite="none", path="/", max_age=7*24*3600,
-    )
+    _set_session_cookie(redirect, session_token)
     return redirect
 
 
@@ -275,10 +281,7 @@ async def onboarding_setup(data: dict):
     })
 
     resp = JSONResponse({"message": "Setup complete", "user_id": user_id})
-    resp.set_cookie(
-        key="session_token", value=session_token,
-        httponly=True, secure=True, samesite="none", path="/", max_age=7 * 24 * 3600,
-    )
+    _set_session_cookie(resp, session_token)
     return resp
 
 
