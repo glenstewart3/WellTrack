@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
   Shield, CheckCircle, Loader, AlertTriangle,
@@ -37,7 +36,6 @@ function StepProgress({ stepIndex }) {
 }
 
 export default function OnboardingPage({ onComplete }) {
-  const navigate = useNavigate();
   const [step, setStep] = useState('account');
 
   // Admin account
@@ -347,7 +345,11 @@ export default function OnboardingPage({ onComplete }) {
             <p className="text-xs text-slate-400 mb-8">
               Invite staff from User Management · Enable Google login from Settings → General
             </p>
-            <button onClick={() => { onComplete?.(); navigate('/dashboard', { replace: true }); }}
+            <button onClick={() => {
+                onComplete?.();
+                const base = process.env.REACT_APP_BASE_PATH || '';
+                window.location.href = `${base}/dashboard`;
+              }}
               data-testid="go-to-dashboard-btn"
               className="w-full bg-slate-900 text-white py-3.5 rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2">
               Go to Dashboard <ArrowRight size={16} />

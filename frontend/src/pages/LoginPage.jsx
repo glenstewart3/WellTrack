@@ -41,7 +41,9 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       const res = await axios.post(`${API}/auth/login-email`, emailForm, { withCredentials: true });
-      navigate(`/${res.data.redirect}`);
+      // Full page reload so AuthContext re-fetches the session from the new cookie
+      const base = process.env.REACT_APP_BASE_PATH || '';
+      window.location.href = `${base}/${res.data.redirect}`;
     } catch (err) {
       setAccessError(err.response?.data?.detail || 'Login failed. Please try again.');
     } finally {
