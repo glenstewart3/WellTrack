@@ -130,6 +130,8 @@ async def google_callback(request: Request):
                     "grant_type": "authorization_code",
                 },
             )
+        import logging
+        logging.getLogger("auth").warning(f"Google token response: {tok_resp.status_code} — {tok_resp.text[:300]}")
         if tok_resp.status_code != 200:
             return RedirectResponse(url=f"{frontend_url}/login?error=auth_failed")
         access_token = tok_resp.json().get("access_token")
