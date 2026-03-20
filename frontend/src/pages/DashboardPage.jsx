@@ -80,7 +80,7 @@ export default function DashboardPage() {
             key={card.label}
             onClick={card.action}
             data-testid={`stat-card-${card.label.toLowerCase().replace(/\s+/g, '-')}`}
-            className={`bg-white border ${card.border} rounded-xl p-5 text-left hover:shadow-md hover:border-slate-300 transition-all duration-150 active:scale-[0.98] group`}
+            className={`${card.bg} border ${card.border} rounded-xl p-5 text-left hover:shadow-md transition-all duration-150 active:scale-[0.98] group`}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
