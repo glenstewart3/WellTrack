@@ -86,7 +86,13 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 
 ## What's Been Implemented (Chronological)
 
-### Session 11 (Screening History Charts + Comprehensive pytest Suite)
+### Session 12 (Automatic Daily Backups)
+- **APScheduler** integrated into FastAPI startup — runs `run_backup()` at midnight UTC every day
+- Backup files saved to `/app/backend/backups/` as timestamped JSON snapshots of all collections
+- 30-day retention: files older than 30 days auto-deleted on each backup run
+- New endpoints: `GET /api/backups`, `POST /api/backups/trigger`, `GET /api/backups/download/{filename}`, `DELETE /api/backups/{filename}`
+- **Settings → Data tab**: new "Automatic Daily Backups" panel — lists all backups with size/date, "Run Now" button, per-file download + admin delete
+- Confirmed scheduler starts and backup creates correctly (187 KB JSON with all collections)
 - **Screening History tab** (`StudentProfilePage.jsx`): Transformed from plain score cards into a full comparison view — SAEBRS Score Trend chart (with tier reference bands), Domain Comparison grouped bar chart (appears when 2+ screenings), Wellbeing Trend chart, and individual screening cards with "+N pts / -N pts" change indicators vs. previous screening
 - **pytest regression suite** (`/app/backend/tests/test_welltrack_regression.py` + `conftest.py`): 47 tests covering all major routes — auth, students (CRUD + archive/reactivate cycle + status filters), analytics (all endpoints with filter params), reports (filter options, absence types, screening coverage, support gaps, staff load), CSV exports (with content-type assertion + unauthenticated access), alerts, interventions, settings, meeting prep, screening. Run with: `pytest tests/test_welltrack_regression.py -v`
 - **PDF chart export** (`AnalyticsPage.jsx` + `pdfExport.js`): Export PDF now cycles through all 5 analytics tabs (Overview, Attendance, Wellbeing, Interventions, Support & Gaps), captures each chart section as a JPEG via `html2canvas`, and embeds the images in the PDF alongside data tables — fully visual and interpretable
@@ -190,8 +196,8 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 
 ### P0 — None
 
-### P2 — Medium Priority
-- Email system (deferred by user): automated weekly JSON backup + alert email notifications — needs email provider choice (Resend or SendGrid)
+### P1 — Upcoming
+- Email system (deferred by user): automated alert notifications — needs email provider choice (Resend or SendGrid)
 
 ### P2 — Medium Priority
 - **Wellbeing Check-in**: Simple daily wellbeing check-in for students (on hold by user)

@@ -12,6 +12,8 @@ from fastapi.routing import APIRouter
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 import os, logging
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 
 from routes.auth import router as auth_router
 from routes.students import router as students_router
@@ -22,8 +24,10 @@ from routes.analytics import router as analytics_router
 from routes.attendance import router as attendance_router
 from routes.settings import router as settings_router
 from routes.reports import router as reports_router
+from routes.backups import router as backups_router
 
 app = FastAPI(title="WellTrack API")
+scheduler = AsyncIOScheduler()
 
 # Middleware
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=["*"],
@@ -41,6 +45,7 @@ api_router.include_router(analytics_router)
 api_router.include_router(attendance_router)
 api_router.include_router(settings_router)
 api_router.include_router(reports_router)
+api_router.include_router(backups_router)
 
 app.include_router(api_router)
 
@@ -52,10 +57,14 @@ logger = logging.getLogger("server")
 
 @app.on_event("startup")
 async def startup():
-    logger.info("WellTrack starting up.")
+    from routes.backups import run_backup
+    scheduler.add_job(run_backup, CronTrigger(hour=0, minute=0), id="daily_backup", replace_existing=True)
+    scheduler.start()
+    logger.info("WellTrack starting up. Daily backup scheduler running (midnight UTC).")
 
 
 @app.on_event("shutdown")
 async def shutdown():
+    scheduler.shutdown(wait=False)
     from database import client
     client.close()

@@ -596,8 +596,52 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
   const [showWipeConfirm, setShowWipeConfirm] = useState(false);
   const [wipeInput, setWipeInput] = useState('');
   const [csvLoading, setCsvLoading] = useState({});
+  const [backups, setBackups] = useState([]);
+  const [backupsLoading, setBackupsLoading] = useState(true);
+  const [triggeringBackup, setTriggeringBackup] = useState(false);
+  const [deletingBackup, setDeletingBackup] = useState(null);
   const fileInputRef = useRef(null);
   const { user } = useAuth();
+
+  const fetchBackups = async () => {
+    try {
+      const res = await axios.get(`${API}/backups`, { withCredentials: true });
+      setBackups(res.data.backups || []);
+    } catch (e) { console.error(e); }
+    finally { setBackupsLoading(false); }
+  };
+
+  useEffect(() => { fetchBackups(); }, []);
+
+  const triggerBackup = async () => {
+    setTriggeringBackup(true);
+    try {
+      const res = await axios.post(`${API}/backups/trigger`, {}, { withCredentials: true });
+      setMsgType('success');
+      setMsg(`Backup created: ${res.data.filename} (${res.data.size_kb} KB)`);
+      setTimeout(() => setMsg(''), 4000);
+      await fetchBackups();
+    } catch (e) {
+      setMsgType('error'); setMsg('Backup failed'); setTimeout(() => setMsg(''), 3000);
+    } finally { setTriggeringBackup(false); }
+  };
+
+  const downloadBackup = (filename) => {
+    const a = document.createElement('a');
+    a.href = `${API}/backups/download/${filename}`;
+    a.download = filename;
+    a.click();
+  };
+
+  const deleteBackup = async (filename) => {
+    setDeletingBackup(filename);
+    try {
+      await axios.delete(`${API}/backups/${filename}`, { withCredentials: true });
+      setBackups(prev => prev.filter(b => b.filename !== filename));
+    } catch (e) {
+      setMsgType('error'); setMsg('Delete failed'); setTimeout(() => setMsg(''), 3000);
+    } finally { setDeletingBackup(null); }
+  };
 
   const downloadCSV = async (endpoint, filename) => {
     setCsvLoading(prev => ({ ...prev, [endpoint]: true }));
@@ -708,6 +752,52 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Automatic Backups */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Automatic Daily Backups</h3>
+            <p className="text-xs text-slate-400 mt-0.5">JSON snapshots of all school data — saved to the server at midnight each day. Last 30 days kept.</p>
+          </div>
+          <button onClick={triggerBackup} disabled={triggeringBackup} data-testid="trigger-backup-btn"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors disabled:opacity-60 shrink-0 ml-4">
+            {triggeringBackup ? <Loader size={14} className="animate-spin" /> : <Download size={14} />}
+            {triggeringBackup ? 'Creating…' : 'Run Now'}
+          </button>
+        </div>
+
+        {backupsLoading ? (
+          <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-10 bg-slate-50 rounded-lg animate-pulse" />)}</div>
+        ) : backups.length === 0 ? (
+          <div className="text-center py-6 text-slate-400 text-sm bg-slate-50 rounded-lg">
+            No backups yet — click "Run Now" to create the first one.
+          </div>
+        ) : (
+          <div className="space-y-1.5 max-h-56 overflow-y-auto">
+            {backups.map(b => (
+              <div key={b.filename} className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-lg" data-testid={`backup-item-${b.filename}`}>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-slate-700 truncate">{b.filename}</p>
+                  <p className="text-xs text-slate-400">{new Date(b.created_at).toLocaleString()} · {b.size_kb} KB</p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0 ml-3">
+                  <button onClick={() => downloadBackup(b.filename)} data-testid={`download-backup-${b.filename}`}
+                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-white transition-colors">
+                    <Download size={13} />
+                  </button>
+                  {user?.role === 'admin' && (
+                    <button onClick={() => deleteBackup(b.filename)} disabled={deletingBackup === b.filename} data-testid={`delete-backup-${b.filename}`}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-60">
+                      {deletingBackup === b.filename ? <Loader size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {user?.role === 'admin' && (
