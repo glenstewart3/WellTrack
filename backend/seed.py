@@ -16,10 +16,10 @@ async def seed_database():
         await db[col].delete_many({})
 
     await db.school_settings.update_one({}, {"$set": {
-        "school_name": "Riverside Community School", "school_type": "both",
-        "current_term": "Term 2", "current_year": 2025,
         "excluded_absence_types": ["Camp", "Excursion", "School Event"],
     }}, upsert=True)
+    # NOTE: school_name, school_type, current_term, current_year are NOT reset here
+    # so that onboarding values are preserved when user chooses "Load Demo Data"
 
     rng = random.Random(42)
 

@@ -30,6 +30,7 @@ next-env.d.ts
 dist/
 dist
 
+backend/backups/
 # Environment files (comprehensive coverage)
 
 *token.json*

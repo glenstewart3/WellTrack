@@ -952,15 +952,24 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
   const [attFile, setAttFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [attResult, setAttResult] = useState(null);
-  const [excludedTypes, setExcludedTypes] = useState(settings.excluded_absence_types || []);
-  const [newExclude, setNewExclude] = useState('');
+  const [excludedTypes, setExcludedTypes] = useState([]);
+  const [allTypes, setAllTypes] = useState([]);
+  const [typesLoading, setTypesLoading] = useState(true);
+  const [typesSaving, setTypesSaving] = useState(false);
   const importRef = useRef(null);
   const attRef = useRef(null);
 
-  // Sync excluded_types when settings load
-  useEffect(() => {
-    setExcludedTypes(settings.excluded_absence_types || []);
-  }, [settings.excluded_absence_types]);
+  const loadAbsenceTypes = async () => {
+    setTypesLoading(true);
+    try {
+      const res = await axios.get(`${API}/attendance/types`, { withCredentials: true });
+      setAllTypes(res.data.types || []);
+      setExcludedTypes(res.data.excluded_types || []);
+    } catch (e) { console.error(e); }
+    finally { setTypesLoading(false); }
+  };
+
+  useEffect(() => { loadAbsenceTypes(); }, []);
 
   const parseAndImport = async () => {
     if (!importFile) return;
@@ -1007,6 +1016,8 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
       setMsgType('success');
       setMsg(`Attendance uploaded: ${res.data.school_days_registered} school days, ${res.data.matched_students} students matched`);
       setTimeout(() => setMsg(''), 6000);
+      // Reload absence types — new types may have been discovered
+      await loadAbsenceTypes();
     } catch (e) {
       setMsgType('error');
       setMsg(e.response?.data?.detail || 'Upload failed');
@@ -1014,7 +1025,12 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
     } finally { setUploading(false); }
   };
 
-  const saveExcludedTypes = () => onSave({ excluded_absence_types: excludedTypes });
+  const saveExcludedTypes = async () => {
+    setTypesSaving(true);
+    try {
+      await onSave({ excluded_absence_types: excludedTypes });
+    } finally { setTypesSaving(false); }
+  };
 
   return (
     <div className="space-y-5">
@@ -1085,32 +1101,58 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
         )}
       </div>
 
-      {/* Excluded Absence Types */}
+      {/* Absence Type Settings */}
       <div className="bg-white border border-slate-200 rounded-xl p-6">
-        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Excluded Absence Types</h3>
-        <p className="text-xs text-slate-400 mb-4">Absence types that should NOT count against a student's attendance percentage (e.g. "Camp", "Excursion").</p>
-        <div className="flex flex-wrap gap-2 mb-3">
-          {excludedTypes.map(t => (
-            <span key={t} className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium rounded-lg">
-              {t}
-              <button onClick={() => setExcludedTypes(prev => prev.filter(x => x !== t))} className="text-amber-400 hover:text-rose-500 transition-colors"><X size={11} /></button>
-            </span>
-          ))}
-          {excludedTypes.length === 0 && <p className="text-xs text-slate-400 italic">No excluded types yet.</p>}
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Absence Type Settings</h3>
+          {!typesLoading && allTypes.length > 0 && (
+            <span className="text-xs text-slate-400">{excludedTypes.length} excluded</span>
+          )}
         </div>
-        <div className="flex gap-2 mb-4">
-          <input type="text" value={newExclude} onChange={e => setNewExclude(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && newExclude.trim()) { setExcludedTypes(p => [...p, newExclude.trim()]); setNewExclude(''); } }}
-            placeholder="e.g. Camp, Excursion, Approved"
-            className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none" />
-          <button onClick={() => { if (newExclude.trim()) { setExcludedTypes(p => [...p, newExclude.trim()]); setNewExclude(''); } }}
-            className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors">
-            <Plus size={16} />
+        <p className="text-xs text-slate-400 mb-4">
+          Types are auto-discovered when you upload attendance files. Toggle each type to control whether it counts against a student's attendance rate.
+          <span className="ml-1 font-medium text-emerald-600">Green = counts</span> &nbsp;
+          <span className="font-medium text-slate-400">Grey = excluded (e.g. Camp, Excursion)</span>
+        </p>
+
+        {typesLoading ? (
+          <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-10 bg-slate-50 rounded-lg animate-pulse" />)}</div>
+        ) : allTypes.length === 0 ? (
+          <div className="text-center py-6 bg-slate-50 rounded-xl text-sm text-slate-400">
+            No absence types discovered yet — upload an attendance file first.
+          </div>
+        ) : (
+          <div className="space-y-1.5 max-h-72 overflow-y-auto mb-4">
+            {allTypes.map(type => {
+              const isExcluded = excludedTypes.includes(type);
+              return (
+                <div key={type} className={`flex items-center justify-between px-3 py-2.5 rounded-xl border transition-colors ${isExcluded ? 'bg-slate-50 border-slate-100' : 'bg-emerald-50/50 border-emerald-100'}`}
+                  data-testid={`absence-type-row-${type}`}>
+                  <span className={`text-sm font-medium ${isExcluded ? 'text-slate-400' : 'text-slate-700'}`}>{type}</span>
+                  <button
+                    onClick={() => setExcludedTypes(prev => isExcluded ? prev.filter(t => t !== type) : [...prev, type])}
+                    data-testid={`absence-type-toggle-${type}`}
+                    className="transition-colors ml-3"
+                    title={isExcluded ? 'Click to include in attendance calculation' : 'Click to exclude from attendance calculation'}
+                  >
+                    {isExcluded
+                      ? <ToggleLeft size={28} className="text-slate-300 hover:text-slate-400" />
+                      : <ToggleRight size={28} className="text-emerald-500 hover:text-emerald-600" />
+                    }
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {allTypes.length > 0 && (
+          <button onClick={saveExcludedTypes} disabled={typesSaving} data-testid="save-absence-types-btn"
+            className="flex items-center gap-2 px-4 py-2.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity" style={{ backgroundColor: 'var(--wt-accent)' }}>
+            {typesSaving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+            {typesSaving ? 'Saving…' : 'Save Absence Settings'}
           </button>
-        </div>
-        <button onClick={saveExcludedTypes} className="px-4 py-2 text-white rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity" style={{ backgroundColor: 'var(--wt-accent)' }}>
-          Save Excluded Types
-        </button>
+        )}
       </div>
     </div>
   );

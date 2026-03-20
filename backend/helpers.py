@@ -103,8 +103,19 @@ async def get_student_attendance_pct(student_id: str) -> float:
 
 
 async def get_student_attendance_stats(student_id: str) -> dict:
-    """Returns {pct, total_sessions, absent_sessions} for a student."""
+    """Returns {pct, total_days, absent_days} for a student.
+    Counts by school day: full day absent = 1.0, half day (one session absent) = 0.5.
+    """
     school_days_list = await db.school_days.distinct("date")
+
+    def _classify(s: str, excluded_types: set) -> str:
+        if not s:
+            return "present"
+        if s in excluded_types:
+            return "excluded"
+        if s == "Present" or s in FULL_PRESENT_STATUSES:
+            return "present"
+        return "absent"
 
     if school_days_list:
         exc_records = await db.attendance_records.find({"student_id": student_id}, {"_id": 0}).to_list(5000)
@@ -112,56 +123,50 @@ async def get_student_attendance_stats(student_id: str) -> dict:
         settings_doc = await get_school_settings_doc()
         excluded_types = set(settings_doc.get("excluded_absence_types", []))
 
-        total_sessions = 0
-        present_sessions = 0.0
-        absent_sessions = 0
+        total_days = 0
+        absent_days = 0.0
 
         for day in school_days_list:
             if day not in exc_by_date:
-                total_sessions += 2
-                present_sessions += 2.0
+                total_days += 1
             else:
                 rec = exc_by_date[day]
-                for sess in [rec.get("am_status", ""), rec.get("pm_status", "")]:
-                    s = (sess or "").strip()
-                    if not s:
-                        total_sessions += 1
-                        present_sessions += 1.0
-                    elif s in excluded_types:
-                        pass  # excluded — neutral
-                    elif s == "Present":
-                        total_sessions += 1
-                        present_sessions += 1.0  # "Present" in an exception file = fully present for this session
-                    elif s in FULL_PRESENT_STATUSES:
-                        total_sessions += 1
-                        present_sessions += 1.0
-                    else:
-                        total_sessions += 1
-                        present_sessions += 0.0
-                        absent_sessions += 1
+                am_cls = _classify((rec.get("am_status") or "").strip(), excluded_types)
+                pm_cls = _classify((rec.get("pm_status") or "").strip(), excluded_types)
 
-        if total_sessions == 0:
-            return {"pct": 100.0, "total_sessions": 0, "absent_sessions": 0}
-        pct = (present_sessions / total_sessions) * 100.0
-        return {"pct": pct, "total_sessions": total_sessions, "absent_sessions": absent_sessions}
+                # Whole day excluded — don't count at all
+                if am_cls == "excluded" and pm_cls == "excluded":
+                    continue
+
+                total_days += 1
+                if am_cls == "absent" and pm_cls == "absent":
+                    absent_days += 1.0   # full day absent
+                elif am_cls == "absent" or pm_cls == "absent":
+                    absent_days += 0.5   # half day absent
+
+        if total_days == 0:
+            return {"pct": 100.0, "total_days": 0, "absent_days": 0.0}
+        pct = max(0.0, min(100.0, ((total_days - absent_days) / total_days) * 100.0))
+        return {"pct": pct, "total_days": total_days, "absent_days": absent_days}
     else:
+        # Fallback when no school_days defined — derive from exception records
         records = await db.attendance_records.find({"student_id": student_id}, {"_id": 0}).to_list(5000)
         if not records:
-            return {"pct": 100.0, "total_sessions": 0, "absent_sessions": 0}
-        total_sessions = 0
-        absent_sessions = 0
+            return {"pct": 100.0, "total_days": 0, "absent_days": 0.0}
+        total_days = 0
+        absent_days = 0.0
         for r in records:
             am = (r.get("am_status") or "").strip()
             pm = (r.get("pm_status") or "").strip()
-            if am:
-                total_sessions += 1
-                if am not in PRESENT_STATUSES:
-                    absent_sessions += 1
-            if pm:
-                total_sessions += 1
-                if pm not in PRESENT_STATUSES:
-                    absent_sessions += 1
-        if total_sessions == 0:
-            return {"pct": 100.0, "total_sessions": 0, "absent_sessions": 0}
-        pct = ((total_sessions - absent_sessions) / total_sessions) * 100
-        return {"pct": pct, "total_sessions": total_sessions, "absent_sessions": absent_sessions}
+            if am or pm:
+                total_days += 1
+                am_abs = am and am not in PRESENT_STATUSES
+                pm_abs = pm and pm not in PRESENT_STATUSES
+                if am_abs and pm_abs:
+                    absent_days += 1.0
+                elif am_abs or pm_abs:
+                    absent_days += 0.5
+        if total_days == 0:
+            return {"pct": 100.0, "total_days": 0, "absent_days": 0.0}
+        pct = ((total_days - absent_days) / total_days) * 100
+        return {"pct": pct, "total_days": total_days, "absent_days": absent_days}

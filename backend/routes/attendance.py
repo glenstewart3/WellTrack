@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from collections import defaultdict
 from datetime import datetime, timezone
-import uuid, io, csv, openpyxl
+import uuid
+import io
+import csv
+import openpyxl
 
 from database import db, DEFAULT_ABSENCE_TYPES, PRESENT_STATUSES
 from helpers import get_current_user, get_student_attendance_pct, get_student_attendance_stats
@@ -179,44 +182,70 @@ async def get_attendance_summary(user=Depends(get_current_user)):
     for s in students_list:
         stats = await get_student_attendance_stats(s["student_id"])
         att_pct = stats["pct"]
-        has_data = len(school_days_list) > 0 or stats["total_sessions"] > 0
+        has_data = len(school_days_list) > 0 or stats["total_days"] > 0
         if not has_data:
-            result.append({**s, "attendance_pct": None, "total_sessions": 0, "absent_sessions": 0,
+            result.append({**s, "attendance_pct": None, "total_days": 0, "absent_days": 0.0,
                            "has_data": False, "attendance_tier": None})
             continue
         tier = 1 if att_pct >= 95 else (2 if att_pct >= 90 else 3)
-        result.append({**s, "attendance_pct": round(att_pct, 1), "total_sessions": stats["total_sessions"],
-                       "absent_sessions": stats["absent_sessions"], "has_data": True, "attendance_tier": tier})
+        result.append({**s, "attendance_pct": round(att_pct, 1), "total_days": stats["total_days"],
+                       "absent_days": stats["absent_days"], "has_data": True, "attendance_tier": tier})
     return result
 
 
 @router.get("/attendance/student/{student_id}")
 async def get_student_attendance_detail(student_id: str, user=Depends(get_current_user)):
     records = await db.attendance_records.find({"student_id": student_id}, {"_id": 0}).sort("date", 1).to_list(3000)
-    total_sessions, absent_sessions = 0, 0
+    settings_doc = await db.school_settings.find_one({}, {"_id": 0})
+    excluded_types = set((settings_doc.get("excluded_absence_types") if settings_doc else None) or [])
+
+    total_days = 0
+    absent_days = 0.0
     absence_types: dict = {}
     monthly_data: dict = {}
+
+    def is_absent(s: str) -> bool:
+        return bool(s) and s not in excluded_types and s != "Present" and s not in PRESENT_STATUSES
+
     for r in records:
-        for sess_key, sess_v in [("am_status", r.get("am_status", "")), ("pm_status", r.get("pm_status", ""))]:
-            v = (sess_v or "").strip()
-            month = r.get("date", "")[:7]
-            if v:
-                total_sessions += 1
-                if month not in monthly_data:
-                    monthly_data[month] = {"sessions": 0, "absent": 0}
-                monthly_data[month]["sessions"] += 1
-                if v not in PRESENT_STATUSES:
-                    absent_sessions += 1
-                    absence_types[v] = absence_types.get(v, 0) + 1
-                    monthly_data[month]["absent"] += 1
-    att_pct = ((total_sessions - absent_sessions) / total_sessions * 100) if total_sessions > 0 else 100.0
+        am = (r.get("am_status") or "").strip()
+        pm = (r.get("pm_status") or "").strip()
+        month = r.get("date", "")[:7]
+
+        am_abs = is_absent(am)
+        pm_abs = is_absent(pm)
+
+        total_days += 1
+        if month not in monthly_data:
+            monthly_data[month] = {"days": 0, "absent": 0.0}
+        monthly_data[month]["days"] += 1
+
+        if am_abs and pm_abs:
+            # Full day absent — if same type, count as 1; if different, 0.5 each
+            absent_days += 1.0
+            monthly_data[month]["absent"] += 1.0
+            if am == pm:
+                absence_types[am] = absence_types.get(am, 0) + 1.0
+            else:
+                absence_types[am] = absence_types.get(am, 0) + 0.5
+                absence_types[pm] = absence_types.get(pm, 0) + 0.5
+        elif am_abs:
+            absent_days += 0.5
+            monthly_data[month]["absent"] += 0.5
+            absence_types[am] = absence_types.get(am, 0) + 0.5
+        elif pm_abs:
+            absent_days += 0.5
+            monthly_data[month]["absent"] += 0.5
+            absence_types[pm] = absence_types.get(pm, 0) + 0.5
+
+    att_pct = ((total_days - absent_days) / total_days * 100) if total_days > 0 else 100.0
     monthly_trend = [
-        {"month": k, "attendance_pct": round(((v["sessions"] - v["absent"]) / v["sessions"] * 100) if v["sessions"] > 0 else 100, 1)}
+        {"month": k, "attendance_pct": round(((v["days"] - v["absent"]) / v["days"] * 100) if v["days"] > 0 else 100, 1)}
         for k, v in sorted(monthly_data.items())
     ]
     return {
         "student_id": student_id, "attendance_pct": round(att_pct, 1),
-        "total_sessions": total_sessions, "absent_sessions": absent_sessions,
+        "total_days": total_days, "absent_days": absent_days,
         "absence_types": absence_types, "monthly_trend": monthly_trend, "records": records[:300],
     }
 
@@ -224,7 +253,9 @@ async def get_student_attendance_detail(student_id: str, user=Depends(get_curren
 @router.get("/attendance/types")
 async def get_absence_types(user=Depends(get_current_user)):
     s = await db.school_settings.find_one({}, {"_id": 0})
-    return {"types": (s.get("absence_types") if s else None) or DEFAULT_ABSENCE_TYPES}
+    types = (s.get("absence_types") if s else None) or DEFAULT_ABSENCE_TYPES
+    excluded = (s.get("excluded_absence_types") if s else None) or []
+    return {"types": types, "excluded_types": excluded}
 
 
 @router.put("/attendance/types")

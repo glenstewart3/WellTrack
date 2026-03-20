@@ -190,7 +190,7 @@ export default function AttendancePage() {
                   <td className="px-5 py-3.5">
                     {s.has_data ? <AttendancePctBar pct={s.attendance_pct} /> : <span className="text-slate-300 text-xs">No data</span>}
                   </td>
-                  <td className="px-5 py-3.5 text-slate-500">{s.has_data ? s.absent_sessions : '—'}</td>
+                  <td className="px-5 py-3.5 text-slate-500">{s.has_data ? (Number.isInteger(s.absent_days) ? s.absent_days : s.absent_days?.toFixed(1)) : '—'}</td>
                   <td className="px-5 py-3.5">{s.has_data && s.attendance_tier ? <TierBadge tier={s.attendance_tier} /> : <span className="text-slate-300 text-xs">—</span>}</td>
                 </tr>
               ))}
@@ -225,12 +225,14 @@ export default function AttendancePage() {
                       <p className="text-xs text-slate-400 mt-0.5">Overall Attendance</p>
                     </div>
                     <div className="bg-slate-50 rounded-xl p-4 text-center">
-                      <p className="text-2xl font-bold text-slate-900">{studentDetail.absent_sessions}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">Absent Sessions</p>
+                      <p className="text-2xl font-bold text-slate-900">
+                        {Number.isInteger(studentDetail.absent_days) ? studentDetail.absent_days : studentDetail.absent_days?.toFixed(1)}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-0.5">Absent Days</p>
                     </div>
                     <div className="bg-slate-50 rounded-xl p-4 text-center">
-                      <p className="text-2xl font-bold text-slate-900">{studentDetail.total_sessions}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">Total Sessions</p>
+                      <p className="text-2xl font-bold text-slate-900">{studentDetail.total_days}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">School Days</p>
                     </div>
                   </div>
 
@@ -263,11 +265,11 @@ export default function AttendancePage() {
                             <div className="flex-1">
                               <div className="flex justify-between items-center mb-0.5">
                                 <span className="text-xs text-slate-600">{type}</span>
-                                <span className="text-xs font-semibold text-slate-700">{count} session{count !== 1 ? 's' : ''}</span>
+                                <span className="text-xs font-semibold text-slate-700">{Number.isInteger(count) ? count : count.toFixed(1)} day{count !== 1 ? 's' : ''}</span>
                               </div>
                               <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                 <div className="h-full bg-slate-400 rounded-full"
-                                  style={{ width: `${Math.min(100, (count / studentDetail.absent_sessions) * 100)}%` }} />
+                                  style={{ width: `${Math.min(100, (count / (studentDetail.absent_days || 1)) * 100)}%` }} />
                               </div>
                             </div>
                           </div>
