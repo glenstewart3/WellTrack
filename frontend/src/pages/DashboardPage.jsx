@@ -71,22 +71,26 @@ export default function DashboardPage() {
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Students', value: stats?.total_students || 0, icon: Users, color: 'text-slate-600', bg: 'bg-slate-50', action: () => navigate('/students') },
-          { label: 'Tier 2 Students', value: tier.tier2 || 0, icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50', action: () => navigate('/students', { state: { filterTier: '2' } }) },
-          { label: 'Tier 3 Students', value: tier.tier3 || 0, icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-50', action: () => navigate('/students', { state: { filterTier: '3' } }) },
-          { label: 'Active Alerts', value: totalAlerts, icon: Bell, color: 'text-indigo-600', bg: 'bg-indigo-50', action: () => navigate('/alerts') },
+          { label: 'Total Students', value: stats?.total_students || 0, icon: Users, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200', action: () => navigate('/students') },
+          { label: 'Tier 2 Students', value: tier.tier2 || 0, icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', action: () => navigate('/students', { state: { filterTier: '2' } }) },
+          { label: 'Tier 3 Students', value: tier.tier3 || 0, icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', action: () => navigate('/students', { state: { filterTier: '3' } }) },
+          { label: 'Active Alerts', value: totalAlerts, icon: Bell, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', action: () => navigate('/alerts') },
         ].map(card => (
           <button
             key={card.label}
             onClick={card.action}
             data-testid={`stat-card-${card.label.toLowerCase().replace(/\s+/g, '-')}`}
-            className="bg-white border border-slate-200 rounded-xl p-5 text-left hover:border-slate-300 hover:shadow-sm transition-all duration-150 active:scale-[0.98]"
+            className={`bg-white border ${card.border} rounded-xl p-5 text-left hover:shadow-md hover:border-slate-300 transition-all duration-150 active:scale-[0.98] group`}
           >
-            <div className={`w-9 h-9 ${card.bg} rounded-lg flex items-center justify-center mb-3`}>
-              <card.icon size={18} className={card.color} />
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-4xl font-bold text-slate-900 leading-none" style={{fontFamily:'Manrope,sans-serif'}}>{card.value}</p>
+                <p className="text-sm text-slate-500 mt-2 font-medium">{card.label}</p>
+              </div>
+              <div className={`w-10 h-10 ${card.bg} rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
+                <card.icon size={19} className={card.color} />
+              </div>
             </div>
-            <p className="text-2xl font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>{card.value}</p>
-            <p className="text-xs text-slate-500 mt-0.5 font-medium">{card.label}</p>
           </button>
         ))}
       </div>
@@ -94,21 +98,23 @@ export default function DashboardPage() {
       {/* Charts + Alerts row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Tier Distribution Chart */}
-        <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <h2 className="text-base font-semibold text-slate-900 mb-4" style={{fontFamily:'Manrope,sans-serif'}}>MTSS Tier Distribution</h2>
-          <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
-                {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-              </Pie>
-              <Tooltip formatter={(v, name) => [v, name]} contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="flex flex-wrap gap-2 mt-2">
+        <div className="bg-white border border-slate-200 rounded-xl p-6 flex flex-col">
+          <h2 className="text-base font-semibold text-slate-900 mb-4 shrink-0" style={{fontFamily:'Manrope,sans-serif'}}>MTSS Tier Distribution</h2>
+          <div className="flex-1 min-h-[180px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value">
+                  {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                </Pie>
+                <Tooltip formatter={(v, name) => [v, name]} contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-2 mt-3 shrink-0">
             {pieData.map(d => (
               <span key={d.name} className="flex items-center gap-1.5 text-xs text-slate-600">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
-                {d.name} ({d.value})
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
+                {d.name} <span className="font-semibold text-slate-800">({d.value})</span>
               </span>
             ))}
           </div>
