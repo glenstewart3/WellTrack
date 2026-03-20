@@ -288,17 +288,18 @@ function SAEBRSFlow({ className, term, onDone }) {
         <p className="text-xs text-slate-400 mb-6">Rate each behaviour: 0 = Never, 1 = Sometimes, 2 = Often, 3 = Almost Always</p>
 
         {sections.map(sec => (
-          <div key={sec.key} className="mb-6">
-            <p className="text-sm font-semibold text-slate-700 mb-3">{sec.label}</p>
-            <div className="space-y-3">
+          <div key={sec.key} className="mb-7">
+            <p className="text-sm font-semibold text-slate-700 mb-4 pb-2 border-b border-slate-100">{sec.label}</p>
+            <div className="space-y-5">
               {sec.items.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3">
-                  <span className="text-xs text-slate-600 flex-1 min-w-0">{item}</span>
-                  <div className="flex gap-1 shrink-0">
+                <div key={idx}>
+                  <p className="text-sm text-slate-700 mb-2 font-medium">{item}</p>
+                  <div className="flex gap-2">
                     {[0, 1, 2, 3].map(v => (
                       <button key={v} onClick={() => setItem(sec.key, idx, v)}
-                        className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all ${scores[sec.key][idx] === v ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
-                        {v}
+                        className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition-all ${scores[sec.key][idx] === v ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
+                        <span className="block">{v}</span>
+                        <span className="block text-xs opacity-60">{RESPONSE_LABELS[v]}</span>
                       </button>
                     ))}
                   </div>
