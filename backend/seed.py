@@ -10,7 +10,9 @@ from helpers import (compute_saebrs_risk, compute_wellbeing_tier,
                      compute_attendance_score, compute_mtss_tier)
 
 
-async def seed_database():
+async def seed_database(student_count: int = 32):
+    student_count = max(8, min(400, student_count))
+
     for col in ["students", "attendance", "attendance_records", "school_days", "screening_sessions",
                 "saebrs_results", "saebrs_plus_results", "interventions", "case_notes", "alerts"]:
         await db[col].delete_many({})
@@ -29,6 +31,10 @@ async def seed_database():
         {"class": "7C", "teacher": "Ms Chen", "year": "Year 7"},
         {"class": "9A", "teacher": "Mr Williams", "year": "Year 9"},
     ]
+    # Distribute student_count evenly across 4 classes; first (student_count % 4) classes get one extra
+    base_per_class = student_count // 4
+    extra_classes = student_count % 4
+    class_sizes = [base_per_class + (1 if i < extra_classes else 0) for i in range(len(classes_data))]
 
     first_names = ["Emma", "Liam", "Olivia", "Noah", "Ava", "Ethan", "Sophia", "Mason",
                    "Isabella", "James", "Charlotte", "Alexander", "Amelia", "William", "Harper",
@@ -47,8 +53,8 @@ async def seed_database():
 
     students = []
     name_idx = 0
-    for cls_data in classes_data:
-        for i in range(8):
+    for cls_idx, cls_data in enumerate(classes_data):
+        for i in range(class_sizes[cls_idx]):
             fname = first_names[name_idx % len(first_names)]
             pname = preferred_names[name_idx % len(preferred_names)]
             lname = last_names[(name_idx + 7) % len(last_names)]

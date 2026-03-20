@@ -30,7 +30,7 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 │   ├── pages/
 │   │   ├── AlertsPage.jsx        ✅ Two tabs: Early Warning / Tier Change
 │   │   ├── AnalyticsPage.jsx     ✅ Three tabs: Overview / Attendance / Interventions
-│   │   ├── AttendancePage.jsx    ✅ Per-day counting: full day=1, half day=0.5 (absent_days/total_days)
+│   │   ├── AttendancePage.jsx    ✅ Per-day counting: full day=1, half day=0.5 (absent_days/total_days). [LEFT] skip, [Name] preferred name parsing
 │   │   ├── InterventionsPage.jsx ✅ Row-click detail modal, AI suggestions (Ollama)
 │   │   ├── LoginPage.jsx
 │   │   ├── MeetingPrepPage.jsx   ✅ Two tabs: Students / Tier Changes

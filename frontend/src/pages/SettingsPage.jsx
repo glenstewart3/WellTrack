@@ -682,6 +682,7 @@ function RoleSection() {
 // ── DATA TAB ──────────────────────────────────────────────────────────────────
 function DataTab({ msg, msgType, setMsg, setMsgType }) {
   const [seeding, setSeeding] = useState(false);
+  const [seedStudentCount, setSeedStudentCount] = useState(32);
   const [exporting, setExporting] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [wiping, setWiping] = useState(false);
@@ -751,7 +752,7 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
   const seedData = async () => {
     setSeeding(true);
     try {
-      const res = await axios.post(`${API}/settings/seed`, {}, { withCredentials: true });
+      const res = await axios.post(`${API}/settings/seed`, { student_count: seedStudentCount }, { withCredentials: true });
       setMsgType('success'); setMsg(`Demo data loaded: ${res.data.students} students, ${res.data.interventions} interventions`);
       setTimeout(() => setMsg(''), 5000);
     } catch (e) { console.error(e); } finally { setSeeding(false); }
@@ -801,8 +802,31 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
           <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
         </div>
       )}
+      {/* Demo Data */}
+      <div className="p-4 bg-slate-50 rounded-xl">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-slate-700">Load Demo Data</p>
+            <p className="text-xs text-slate-400 mt-0.5">Reload sample students, screenings, interventions and alerts</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="number" min="8" max="400" value={seedStudentCount}
+              onChange={e => setSeedStudentCount(Math.max(8, Math.min(400, parseInt(e.target.value) || 32)))}
+              data-testid="seed-student-count-input"
+              className="w-20 px-2 py-1.5 border border-slate-200 rounded-lg text-sm text-center font-medium bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/20"
+              title="Number of demo students (8–400)"
+            />
+            <span className="text-xs text-slate-400">students</span>
+            <button onClick={seedData} disabled={seeding} data-testid="load-demo-data-btn"
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-60">
+              {seeding ? <Loader size={14} className="animate-spin" /> : <Database size={14} />}
+              {seeding ? '…' : 'Load Demo Data'}
+            </button>
+          </div>
+        </div>
+      </div>
       {[
-        { label: 'Load Demo Data', desc: 'Reload sample students, screenings, interventions and alerts', action: seedData, loading: seeding, icon: <Database size={14} />, text: 'Load Demo Data', variant: 'default' },
         { label: 'Export All Data', desc: 'Download a full JSON backup of all school data', action: exportData, loading: exporting, icon: <Download size={14} />, text: 'Export Backup', variant: 'default' },
       ].map(item => (
         <div key={item.label} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">

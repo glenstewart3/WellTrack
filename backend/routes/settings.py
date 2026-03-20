@@ -50,9 +50,10 @@ async def wipe_data(user=Depends(get_current_user)):
 
 
 @router.post("/settings/seed")
-async def seed_data_endpoint(user=Depends(get_current_user)):
+async def seed_data_endpoint(data: dict = None, user=Depends(get_current_user)):
     from seed import seed_database
-    return await seed_database()
+    student_count = int((data or {}).get("student_count", 32))
+    return await seed_database(student_count=student_count)
 
 
 @router.get("/settings/export-all")

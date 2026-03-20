@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import uuid
 import io
 import csv
+import re
 import openpyxl
 
 from database import db, DEFAULT_ABSENCE_TYPES, PRESENT_STATUSES
@@ -37,6 +38,7 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
         dt_c = col(['DATE'])
         am_c = col(['AM'])
         pm_c = col(['PM'])
+        name_c = col(['STUDENT NAME', 'FULL NAME', 'NAME', 'STUDENT'])
         if id_c is None or dt_c is None:
             raise HTTPException(400, "Could not find ID or Date column")
         for row in ws.iter_rows(min_row=2, values_only=True):
@@ -44,8 +46,15 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
             dv = row[dt_c] if dt_c is not None else ''
             am_v = str(row[am_c] or '').strip() if am_c is not None else ''
             pm_v = str(row[pm_c] or '').strip() if pm_c is not None else ''
+            name_v = str(row[name_c] or '').strip() if name_c is not None else ''
             if not ext_id or not dv:
                 continue
+            # Skip students who have left — marked with [LEFT] in their name
+            if '[LEFT]' in name_v.upper():
+                continue
+            # Extract preferred name from brackets, e.g. "Smith, John [Jet]"
+            pref_m = re.search(r'\[([^\]]+)\]', name_v)
+            pref_name = pref_m.group(1).strip() if pref_m else None
             if hasattr(dv, 'strftime'):
                 date_str = dv.strftime('%Y-%m-%d')
             else:
@@ -58,7 +67,7 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
                         pass
                 else:
                     continue
-            records.append({'external_id': ext_id.upper(), 'date': date_str, 'am_status': am_v, 'pm_status': pm_v})
+            records.append({'external_id': ext_id.upper(), 'date': date_str, 'am_status': am_v, 'pm_status': pm_v, '_pref_name': pref_name})
 
     elif fname.endswith('.csv'):
         text = content.decode('utf-8-sig')
@@ -69,15 +78,22 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
             date_str = (row.get('Date') or row.get('date') or '').strip()
             am_v = (row.get('AM') or row.get('am') or '').strip()
             pm_v = (row.get('PM') or row.get('pm') or '').strip()
+            name_v = (row.get('Student Name') or row.get('STUDENT NAME') or row.get('Name') or '').strip()
             if not ext_id or not date_str:
                 continue
+            # Skip students who have left
+            if '[LEFT]' in name_v.upper():
+                continue
+            # Extract preferred name from brackets
+            pref_m = re.search(r'\[([^\]]+)\]', name_v)
+            pref_name = pref_m.group(1).strip() if pref_m else None
             for fmt in ('%d/%m/%Y', '%Y-%m-%d'):
                 try:
                     date_str = datetime.strptime(date_str, fmt).strftime('%Y-%m-%d')
                     break
                 except Exception:
                     pass
-            records.append({'external_id': ext_id, 'date': date_str, 'am_status': am_v, 'pm_status': pm_v})
+            records.append({'external_id': ext_id, 'date': date_str, 'am_status': am_v, 'pm_status': pm_v, '_pref_name': pref_name})
     else:
         raise HTTPException(400, "Unsupported file format. Use XLSX or CSV.")
 
@@ -100,8 +116,15 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
     for r in records:
         by_ext[r['external_id']].append(r)
 
+    # Collect one preferred name per ext_id (last non-null wins)
+    pref_name_by_ext: dict = {}
+    for r in records:
+        if r.get('_pref_name'):
+            pref_name_by_ext[r['external_id']] = r['_pref_name']
+
     matched, unmatched = [], []
     stored_count = 0
+    pref_updated = 0
     for ext_id, recs in by_ext.items():
         student_id = ext_to_student.get(ext_id)
         if student_id:
@@ -112,6 +135,13 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
             if docs:
                 await db.attendance_records.insert_many(docs)
                 stored_count += len(docs)
+            # Update preferred name if discovered from file
+            if ext_id in pref_name_by_ext:
+                await db.students.update_one(
+                    {"student_id": student_id},
+                    {"$set": {"preferred_name": pref_name_by_ext[ext_id]}}
+                )
+                pref_updated += 1
             matched.append(ext_id)
         else:
             unmatched.append(ext_id)
@@ -170,6 +200,7 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
         "processed": len(records), "school_days_registered": len(unique_dates),
         "matched_students": len(matched), "unmatched_students": len(unmatched),
         "stored_records": stored_count, "alerts_generated": alerts_created,
+        "preferred_names_updated": pref_updated,
         "unmatched_ids": unmatched[:30],
     }
 

@@ -53,6 +53,7 @@ export default function OnboardingPage({ onComplete }) {
   // Data
   const [dataChoice, setDataChoice] = useState(null);
   const [restoreFile, setRestoreFile] = useState(null);
+  const [demoStudentCount, setDemoStudentCount] = useState(32);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const fileRef = useRef(null);
@@ -93,7 +94,7 @@ export default function OnboardingPage({ onComplete }) {
 
       // Now authenticated — seed/restore if needed
       if (dataChoice === 'demo') {
-        await axios.post(`${API}/settings/seed`, {}, { withCredentials: true });
+        await axios.post(`${API}/settings/seed`, { student_count: demoStudentCount }, { withCredentials: true });
       } else if (dataChoice === 'restore' && restoreFile) {
         const text = await restoreFile.text();
         const data = JSON.parse(text);
@@ -272,11 +273,23 @@ export default function OnboardingPage({ onComplete }) {
                   </div>
                   <div>
                     <p className="font-semibold text-slate-900 text-sm">Load Demo Data</p>
-                    <p className="text-xs text-slate-500 mt-0.5">32 sample students across 4 classes, 2 terms of screening data, interventions and analytics.</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Sample students across 4 classes, 2 terms of screening data, interventions and analytics.</p>
                   </div>
                   {dataChoice === 'demo' && <CheckCircle size={16} className="text-emerald-500 ml-auto shrink-0 mt-0.5" />}
                 </div>
               </button>
+              {dataChoice === 'demo' && (
+                <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <label className="text-sm font-medium text-slate-700 shrink-0">Number of demo students:</label>
+                  <input
+                    type="number" min="8" max="400" value={demoStudentCount}
+                    onChange={e => setDemoStudentCount(Math.max(8, Math.min(400, parseInt(e.target.value) || 32)))}
+                    data-testid="demo-student-count-input"
+                    className="w-24 px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-center font-medium focus:outline-none focus:ring-2 focus:ring-slate-900/20"
+                  />
+                  <span className="text-xs text-slate-400">(8 – 400)</span>
+                </div>
+              )}
 
               <button onClick={() => { setDataChoice('restore'); setTimeout(() => fileRef.current?.click(), 50); }}
                 data-testid="data-choice-restore"
@@ -338,7 +351,7 @@ export default function OnboardingPage({ onComplete }) {
               {schoolName} is ready!
             </h2>
             <p className="text-slate-500 mb-1 text-sm">
-              {dataChoice === 'demo' && 'Demo data loaded — explore with 32 sample students.'}
+              {dataChoice === 'demo' && `Demo data loaded — explore with ${demoStudentCount} sample students.`}
               {dataChoice === 'restore' && 'Your backup data has been restored successfully.'}
               {dataChoice === 'blank' && 'Your blank platform is set up. Start by importing or adding students.'}
             </p>
