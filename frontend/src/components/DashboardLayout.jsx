@@ -45,7 +45,7 @@ export default function DashboardLayout() {
       {/* Logo / Brand */}
       <div className="px-6 py-5 border-b border-slate-100">
         {settings.logo_base64 && (
-          <img src={settings.logo_base64} alt="School logo" className="h-7 w-auto object-contain mb-3" />
+          <img src={settings.logo_base64} alt="School logo" className="w-full h-14 object-contain mx-auto mb-4" />
         )}
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: accent }}>

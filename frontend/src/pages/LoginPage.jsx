@@ -56,7 +56,7 @@ export default function LoginPage() {
           {/* Logo + Brand */}
           <div className="mb-10">
             {settings.logo_base64 && (
-              <img src={settings.logo_base64} alt="School logo" className="h-9 w-auto object-contain mb-4" />
+              <img src={settings.logo_base64} alt="School logo" className="h-24 w-auto object-contain mb-6" />
             )}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0" style={{ backgroundColor: accent }}>
