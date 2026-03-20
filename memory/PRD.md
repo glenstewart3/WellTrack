@@ -30,13 +30,13 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 │   ├── pages/
 │   │   ├── AlertsPage.jsx        ✅ Two tabs: Early Warning / Tier Change
 │   │   ├── AnalyticsPage.jsx     ✅ Three tabs: Overview / Attendance / Interventions
-│   │   ├── AttendancePage.jsx    ✅ View only (upload moved to Settings > Imports)
+│   │   ├── AttendancePage.jsx    ✅ Per-day counting: full day=1, half day=0.5 (absent_days/total_days)
 │   │   ├── InterventionsPage.jsx ✅ Row-click detail modal, AI suggestions (Ollama)
 │   │   ├── LoginPage.jsx
 │   │   ├── MeetingPrepPage.jsx   ✅ Two tabs: Students / Tier Changes
-│   │   ├── OnboardingPage.jsx
+│   │   ├── OnboardingPage.jsx    ✅ Email-first setup (school name/term preserved after demo seed)
 │   │   ├── ScreeningPage.jsx
-│   │   ├── SettingsPage.jsx      ✅ Tabs: General/Branding/MTSS/Student Data/Imports/Integrations/Data
+│   │   ├── SettingsPage.jsx      ✅ Imports tab: auto-discovered absence type toggles
 │   │   ├── StudentProfilePage.jsx ✅ Editable interventions/notes, attendance radar, PDF export
 │   │   └── StudentsPage.jsx
 │   └── utils/
