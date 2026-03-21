@@ -27,26 +27,34 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
         ws = wb.active
         headers = [str(cell.value or '').strip().upper() for cell in ws[1]]
 
-        def col(names):
+        def col(names, fallback=None):
             for n in names:
                 for i, h in enumerate(headers):
                     if h == n.upper() or h.startswith(n.upper()):
                         return i
-            return None
+            return fallback  # fall back to known column position if header not found
 
-        id_c = col(['SUSSIID', 'SUSSI ID', 'ID', 'STUDENT ID', 'STUDENTID', 'STUDENT CODE'])
-        dt_c = col(['DATE'])
-        am_c = col(['AM'])
-        pm_c = col(['PM'])
-        name_c = col(['STUDENT NAME', 'FULL NAME', 'NAME', 'STUDENT'])
-        if id_c is None or dt_c is None:
-            raise HTTPException(400, "Could not find ID or Date column")
+        # ID: look by header name; fall back to column A (index 0)
+        id_c = col(['SUSSIID', 'SUSSI ID', 'ID', 'STUDENT ID', 'STUDENTID', 'STUDENT CODE',
+                    'COMPASS', 'ROLL', 'SIS', 'STUD'], fallback=0)
+        # Date: look by header name; fall back to column H (index 7)
+        dt_c = col(['DATE', 'ABSENCE DATE', 'ABSENCEDATE', 'ABS DATE', 'ABSDATE'], fallback=7)
+        # Name: look by header, fall back to column B (index 1)
+        name_c = col(['STUDENT NAME', 'FULL NAME', 'NAME', 'STUDENT'], fallback=1)
+        # AM/PM: look by header; fall back to the two columns immediately after Date
+        am_c = col(['AM'], fallback=dt_c + 1 if dt_c is not None else None)
+        pm_c = col(['PM'], fallback=dt_c + 2 if dt_c is not None else None)
+
+        num_cols = len(headers)
+
         for row in ws.iter_rows(min_row=2, values_only=True):
-            ext_id = str(row[id_c] or '').strip() if id_c is not None else ''
-            dv = row[dt_c] if dt_c is not None else ''
-            am_v = str(row[am_c] or '').strip() if am_c is not None else ''
-            pm_v = str(row[pm_c] or '').strip() if pm_c is not None else ''
-            name_v = str(row[name_c] or '').strip() if name_c is not None else ''
+            if len(row) <= id_c or len(row) <= dt_c:
+                continue
+            ext_id = str(row[id_c] or '').strip() if id_c is not None and id_c < num_cols else ''
+            dv = row[dt_c] if dt_c is not None and dt_c < len(row) else ''
+            am_v = str(row[am_c] or '').strip() if am_c is not None and am_c < len(row) else ''
+            pm_v = str(row[pm_c] or '').strip() if pm_c is not None and pm_c < len(row) else ''
+            name_v = str(row[name_c] or '').strip() if name_c is not None and name_c < len(row) else ''
             if not ext_id or not dv:
                 continue
             # Skip students who have left — marked with [LEFT] in their name
@@ -59,13 +67,17 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
                 date_str = dv.strftime('%Y-%m-%d')
             else:
                 ds = str(dv).strip()
-                for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%d-%m-%Y'):
+                # Handle "d/m/yyyy", "d-m-yyyy", "dd/mm/yyyy", ISO, and plain text like "01 Jan 2025"
+                parsed = False
+                for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%d-%m-%Y', '%d %b %Y', '%d %B %Y',
+                            '%m/%d/%Y', '%d/%m/%y', '%Y/%m/%d'):
                     try:
                         date_str = datetime.strptime(ds, fmt).strftime('%Y-%m-%d')
+                        parsed = True
                         break
                     except Exception:
                         pass
-                else:
+                if not parsed:
                     continue
             records.append({'external_id': ext_id.upper(), 'date': date_str, 'am_status': am_v, 'pm_status': pm_v, '_pref_name': pref_name})
 
