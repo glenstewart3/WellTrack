@@ -56,10 +56,9 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user)):
     att_pct = await get_student_attendance_pct(student_id)
     active_ints = await db.interventions.find({"student_id": student_id, "status": "active"}, {"_id": 0}).to_list(10)
 
-    display_name = student.get('first_name', '')
-    if student.get('preferred_name'):
-        display_name += f" ({student['preferred_name']})"
-    display_name += f" {student.get('last_name', '')}"
+    first = student.get('first_name', '')
+    pref = student.get('preferred_name')
+    display_name = f"{first}{(' (' + pref + ')') if pref and pref != first else ''} {student.get('last_name', '')}".strip()
 
     context = f"Student: {display_name.strip()}, Year Level: {student.get('year_level', 'Unknown')}\n"
     if latest_saebrs:

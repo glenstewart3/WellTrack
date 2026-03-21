@@ -152,7 +152,8 @@ async def seed_database(student_count: int = 32):
 
         att_frac = rng.choice(att_map[base_risk]) / 100.0
         pref = student.get('preferred_name')
-        display = f"{student['first_name']}{(' (' + pref + ')') if pref else ''} {student['last_name']}"
+        first = student['first_name']
+        display = f"{first}{(' (' + pref + ')') if pref and pref != first else ''} {student['last_name']}"
 
         def prof(risk):
             if risk == "low":   return low_s, low_a, low_e, sr_low
