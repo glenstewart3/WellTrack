@@ -125,6 +125,7 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 - ✅ Absence type toggles (exclude from attendance calculation)
 - ✅ **N+1 query elimination** — all multi-student endpoints use batch DB queries
 - ✅ **MongoDB indexes** — on student_id, date, status for fast queries
+- ✅ **Multi-year calendar support** — each school year's terms/school_days stored independently; editing 2026 terms cannot affect 2025 attendance data; attendance % always scoped to `current_year` from settings; Calendar tab shows year selector with "New Year" button
 
 ---
 
