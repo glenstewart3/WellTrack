@@ -319,7 +319,29 @@ async def seed_database(student_count: int = 32):
                     "created_at": f"2025-0{4 + tmpl_idx}-07T09:30:00"
                 })
 
+    # Insert demo school days by default; override with term-based days if terms are defined
     await db.school_days.insert_many([{"date": d} for d in sorted(school_days_set)])
+    settings_doc = await db.school_settings.find_one({}, {"_id": 0})
+    terms = (settings_doc or {}).get("terms", [])
+    if terms:
+        # Re-apply term-based school days so the Calendar settings are not overwritten by seed
+        from datetime import date as _dt, timedelta as _td
+        excluded = {d["date"] for d in (settings_doc or {}).get("non_school_days", [])}
+        term_days = set()
+        for t in terms:
+            try:
+                start = _dt.fromisoformat(t["start_date"])
+                end   = _dt.fromisoformat(t["end_date"])
+            except Exception:
+                continue
+            cur = start
+            while cur <= end:
+                if cur.weekday() < 5 and cur.isoformat() not in excluded:
+                    term_days.add(cur.isoformat())
+                cur += _td(days=1)
+        await db.school_days.delete_many({})
+        if term_days:
+            await db.school_days.insert_many([{"date": d} for d in sorted(term_days)])
 
     for col_data, col_name in [
         (all_s1 + all_s2, "saebrs_results"),

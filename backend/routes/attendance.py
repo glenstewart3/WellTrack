@@ -125,9 +125,8 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
     if not records:
         raise HTTPException(400, "No valid records found in file")
 
-    unique_dates = list({r['date'] for r in records})
-    for d in unique_dates:
-        await db.school_days.update_one({"date": d}, {"$set": {"date": d}}, upsert=True)
+    # Count unique absence dates for reporting (school_days are defined via Settings → Calendar)
+    absence_date_count = len({r['date'] for r in records})
 
     students_list = await db.students.find({}, {"_id": 0, "student_id": 1, "external_id": 1, "sussi_id": 1}).to_list(1000)
     ext_to_student = {}
@@ -222,7 +221,7 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
         alerts_created += 1
 
     return {
-        "processed": len(records), "school_days_registered": len(unique_dates),
+        "processed": len(records), "absence_dates_in_file": absence_date_count,
         "matched_students": len(matched), "unmatched_students": len(unmatched),
         "stored_records": stored_count, "alerts_generated": alerts_created,
         "preferred_names_updated": pref_updated,

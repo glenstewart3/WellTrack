@@ -5,7 +5,8 @@ import { useSettings } from '../context/SettingsContext';
 import {
   Settings, Trash2, Database, AlertTriangle, CheckCircle, Loader, School,
   Download, Upload, RefreshCw, Palette, Building2, Image, Plus, X,
-  Sliders, ToggleLeft, ToggleRight, Tag, User, Shield, RotateCcw, Bot, Wifi, FileUp
+  Sliders, ToggleLeft, ToggleRight, Tag, User, Shield, RotateCcw, Bot, Wifi, FileUp,
+  Calendar, CalendarDays, BookOpen
 } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -968,6 +969,201 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
   );
 }
 
+// ── CALENDAR TAB ─────────────────────────────────────────────────────────────
+function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
+  const [terms, setTerms] = useState([]);
+  const [nonSchoolDays, setNonSchoolDays] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [newTerm, setNewTerm] = useState({ name: '', start_date: '', end_date: '' });
+  const [newDay, setNewDay] = useState({ date: '', reason: '' });
+
+  useEffect(() => {
+    axios.get(`${API}/settings/terms`, { withCredentials: true })
+      .then(r => { setTerms(r.data.terms || []); setNonSchoolDays(r.data.non_school_days || []); })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const calcDays = (term) => {
+    if (!term.start_date || !term.end_date) return 0;
+    const excluded = new Set(nonSchoolDays.map(d => d.date));
+    let count = 0;
+    const end = new Date(term.end_date);
+    const cur = new Date(term.start_date);
+    while (cur <= end) {
+      const dow = cur.getDay();
+      if (dow !== 0 && dow !== 6 && !excluded.has(cur.toISOString().split('T')[0])) count++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return count;
+  };
+
+  const totalDays = terms.reduce((s, t) => s + calcDays(t), 0);
+
+  const addTerm = () => {
+    if (!newTerm.name.trim() || !newTerm.start_date || !newTerm.end_date) return;
+    if (newTerm.start_date > newTerm.end_date) { setMsg('Start date must be before end date'); setMsgType('error'); return; }
+    setTerms(p => [...p, { ...newTerm, id: Date.now().toString() }]);
+    setNewTerm({ name: '', start_date: '', end_date: '' });
+  };
+
+  const addDay = () => {
+    if (!newDay.date) return;
+    if (nonSchoolDays.some(d => d.date === newDay.date)) return;
+    setNonSchoolDays(p => [...p, { ...newDay, id: Date.now().toString() }].sort((a, b) => a.date.localeCompare(b.date)));
+    setNewDay({ date: '', reason: '' });
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const res = await axios.put(`${API}/settings/terms`, { terms, non_school_days: nonSchoolDays }, { withCredentials: true });
+      setMsgType('success'); setMsg(res.data.message || 'Calendar saved');
+      setTimeout(() => setMsg(''), 6000);
+    } catch (e) {
+      setMsgType('error'); setMsg(e.response?.data?.detail || 'Save failed');
+      setTimeout(() => setMsg(''), 5000);
+    } finally { setSaving(false); }
+  };
+
+  const fmtDate = (iso) => {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-');
+    return `${parseInt(d)} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]} ${y}`;
+  };
+
+  if (loading) return <div className="text-sm text-slate-400 py-8 text-center">Loading calendar…</div>;
+
+  return (
+    <div className="space-y-5">
+      {msg && (
+        <div className={`flex items-center gap-2 rounded-xl p-4 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+          <CheckCircle size={15} className={msgType === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
+          <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
+        </div>
+      )}
+
+      {/* Terms */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Term Dates</h3>
+          {totalDays > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200">
+              <CalendarDays size={12} /> {totalDays} school days total
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-slate-400 mb-4">Define each term's start and end dates. Weekends are excluded automatically. School days are used as the denominator for attendance calculations — students not in the absence file are counted as present.</p>
+
+        {terms.length === 0 && (
+          <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4 text-xs">No terms defined — attendance percentages cannot be calculated until you add at least one term.</p>
+        )}
+
+        {terms.length > 0 && (
+          <div className="space-y-2 mb-4">
+            {terms.map(t => {
+              const days = calcDays(t);
+              return (
+                <div key={t.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100" data-testid={`term-row-${t.id}`}>
+                  <BookOpen size={15} className="text-slate-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-800">{t.name}</p>
+                    <p className="text-xs text-slate-400">{fmtDate(t.start_date)} → {fmtDate(t.end_date)}</p>
+                  </div>
+                  <span className="text-xs font-medium text-slate-500 bg-white px-2 py-1 rounded-lg border border-slate-200 shrink-0">{days} days</span>
+                  <button onClick={() => setTerms(p => p.filter(x => x.id !== t.id))} className="text-slate-300 hover:text-rose-500 transition-colors shrink-0" data-testid={`delete-term-${t.id}`}>
+                    <X size={15} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
+          <input type="text" placeholder="Term name (e.g. Term 1 2026)" value={newTerm.name}
+            onChange={e => setNewTerm(p => ({ ...p, name: e.target.value }))}
+            onKeyDown={e => e.key === 'Enter' && addTerm()}
+            data-testid="new-term-name"
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+          <input type="date" value={newTerm.start_date}
+            onChange={e => setNewTerm(p => ({ ...p, start_date: e.target.value }))}
+            data-testid="new-term-start"
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+          <input type="date" value={newTerm.end_date}
+            onChange={e => setNewTerm(p => ({ ...p, end_date: e.target.value }))}
+            data-testid="new-term-end"
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+          <button onClick={addTerm} data-testid="add-term-btn"
+            className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap">
+            <Plus size={14} /> Add Term
+          </button>
+        </div>
+      </div>
+
+      {/* Non-school days */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Non-School Days</h3>
+        <p className="text-xs text-slate-400 mb-4">Public holidays, curriculum days, or any other day within a term that is not a school day. These are excluded from the school day count.</p>
+
+        {nonSchoolDays.length === 0 && (
+          <p className="text-sm text-slate-400 italic mb-4">No non-school days added yet.</p>
+        )}
+
+        {nonSchoolDays.length > 0 && (
+          <div className="space-y-1.5 mb-4">
+            {nonSchoolDays.map(d => (
+              <div key={d.id || d.date} className="flex items-center gap-3 px-3 py-2.5 bg-amber-50/60 border border-amber-100 rounded-xl" data-testid={`non-school-day-${d.date}`}>
+                <Calendar size={13} className="text-amber-500 shrink-0" />
+                <span className="text-sm font-semibold text-slate-700 w-28 shrink-0">{fmtDate(d.date)}</span>
+                <span className="text-sm text-slate-500 flex-1 min-w-0 truncate">{d.reason || <span className="italic text-slate-300">No reason</span>}</span>
+                <button onClick={() => setNonSchoolDays(p => p.filter(x => x.date !== d.date))} className="text-slate-300 hover:text-rose-500 transition-colors shrink-0" data-testid={`delete-non-school-day-${d.date}`}>
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-2 items-end">
+          <input type="date" value={newDay.date}
+            onChange={e => setNewDay(p => ({ ...p, date: e.target.value }))}
+            data-testid="new-non-school-date"
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none" />
+          <input type="text" placeholder="Reason (e.g. Australia Day, Curriculum Day)" value={newDay.reason}
+            onChange={e => setNewDay(p => ({ ...p, reason: e.target.value }))}
+            onKeyDown={e => e.key === 'Enter' && addDay()}
+            data-testid="new-non-school-reason"
+            className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none" />
+          <button onClick={addDay} data-testid="add-non-school-day-btn"
+            className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap">
+            <Plus size={14} /> Add
+          </button>
+        </div>
+      </div>
+
+      {/* Save */}
+      <div className="flex items-center justify-between bg-slate-50 rounded-xl p-4">
+        <div>
+          <p className="text-sm font-semibold text-slate-700">
+            {totalDays > 0 ? `${totalDays} school days across ${terms.length} term${terms.length !== 1 ? 's' : ''}` : 'No terms defined'}
+          </p>
+          {nonSchoolDays.length > 0 && (
+            <p className="text-xs text-slate-400 mt-0.5">{nonSchoolDays.length} non-school day{nonSchoolDays.length !== 1 ? 's' : ''} excluded</p>
+          )}
+        </div>
+        <button onClick={save} disabled={saving} data-testid="save-calendar-btn"
+          className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity" style={{ backgroundColor: 'var(--wt-accent)' }}>
+          {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+          {saving ? 'Saving…' : 'Save Calendar'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
 // ── IMPORTS TAB ──────────────────────────────────────────────────────────────
 function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
   const [importFile, setImportFile] = useState(null);
@@ -1038,7 +1234,7 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
       setAttFile(null);
       if (attRef.current) attRef.current.value = '';
       setMsgType('success');
-      setMsg(`Attendance uploaded: ${res.data.school_days_registered} school days, ${res.data.matched_students} students matched`);
+      setMsg(`Attendance uploaded: ${res.data.matched_students} students matched · ${res.data.processed} absence records processed`);
       setTimeout(() => setMsg(''), 6000);
       // Reload absence types — new types may have been discovered
       await loadAbsenceTypes();
@@ -1308,7 +1504,7 @@ export default function SettingsPage() {
       </div>
 
       <TabNav
-        tabs={['General', 'Branding', 'MTSS & Screening', 'Student Data', 'Imports', 'Integrations', 'Data']}
+        tabs={['General', 'Branding', 'MTSS & Screening', 'Student Data', 'Calendar', 'Imports', 'Integrations', 'Data']}
         active={activeTab}
         onChange={setActiveTab}
       />
@@ -1317,6 +1513,7 @@ export default function SettingsPage() {
       {activeTab === 'Branding' && <BrandingTab {...tabProps} />}
       {activeTab === 'MTSS & Screening' && <MTSSTab {...tabProps} />}
       {activeTab === 'Student Data' && <StudentDataTab {...tabProps} />}
+      {activeTab === 'Calendar' && <CalendarTab msg={msg} msgType={msgType} setMsg={setMsg} setMsgType={setMsgType} />}
       {activeTab === 'Imports' && <ImportsTab msg={msg} msgType={msgType} setMsg={setMsg} setMsgType={setMsgType} settings={settings} onSave={saveSettings} />}
       {activeTab === 'Integrations' && <IntegrationsTab {...tabProps} />}
       {activeTab === 'Data' && <DataTab msg={msg} msgType={msgType} setMsg={setMsg} setMsgType={setMsgType} />}

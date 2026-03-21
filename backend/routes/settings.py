@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from datetime import datetime, timezone
-import json, io, csv
+from datetime import datetime, timezone, date as date_type, timedelta
+import json, io, csv, uuid
 
 from database import db, SETTINGS_DEFAULTS
 from helpers import get_current_user, get_student_attendance_pct
@@ -107,3 +107,56 @@ async def get_classes(user=Depends(get_current_user)):
         s = await db.students.find_one({"class_name": cls}, {"_id": 0})
         result.append({"class_name": cls, "teacher": s["teacher"] if s else ""})
     return result
+
+
+# ── School Calendar (terms + non-school days) ─────────────────────────────────
+
+def _generate_school_days(terms: list, non_school_days: list) -> list:
+    """Return sorted list of ISO date strings for all weekday school days across terms,
+    excluding non_school_days (public holidays, curriculum days, etc.)."""
+    excluded = {d["date"] for d in (non_school_days or [])}
+    days: set = set()
+    for t in (terms or []):
+        try:
+            start = date_type.fromisoformat(t["start_date"])
+            end   = date_type.fromisoformat(t["end_date"])
+        except Exception:
+            continue
+        cur = start
+        while cur <= end:
+            if cur.weekday() < 5 and cur.isoformat() not in excluded:  # Mon–Fri
+                days.add(cur.isoformat())
+            cur += timedelta(days=1)
+    return sorted(days)
+
+
+@router.get("/settings/terms")
+async def get_terms(user=Depends(get_current_user)):
+    s = await db.school_settings.find_one({}, {"_id": 0})
+    count = await db.school_days.count_documents({})
+    return {
+        "terms": (s or {}).get("terms", []),
+        "non_school_days": (s or {}).get("non_school_days", []),
+        "school_days_count": count,
+    }
+
+
+@router.put("/settings/terms")
+async def save_terms(data: dict, user=Depends(get_current_user)):
+    if user.get("role") != "admin":
+        raise HTTPException(403, "Admin access required")
+    terms = data.get("terms", [])
+    non_school_days = data.get("non_school_days", [])
+    # Ensure every term has an id
+    for t in terms:
+        if not t.get("id"):
+            t["id"] = str(uuid.uuid4())[:8]
+    await db.school_settings.update_one({}, {"$set": {
+        "terms": terms, "non_school_days": non_school_days,
+    }}, upsert=True)
+    all_dates = _generate_school_days(terms, non_school_days)
+    await db.school_days.delete_many({})
+    if all_dates:
+        await db.school_days.insert_many([{"date": d} for d in all_dates])
+    return {"message": f"{len(terms)} term(s) saved · {len(all_dates)} school days generated",
+            "school_days_count": len(all_dates)}
