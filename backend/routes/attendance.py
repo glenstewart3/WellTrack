@@ -8,8 +8,9 @@ import csv
 import re
 import openpyxl
 
-from database import db, DEFAULT_ABSENCE_TYPES, PRESENT_STATUSES
-from helpers import get_current_user, get_student_attendance_pct, get_student_attendance_stats, get_bulk_attendance_stats
+from database import db, DEFAULT_ABSENCE_TYPES, PRESENT_STATUSES, FULL_PRESENT_STATUSES
+from helpers import get_current_user, get_student_attendance_pct, get_student_attendance_stats, \
+    get_bulk_attendance_stats, compute_att_stats
 
 router = APIRouter()
 
@@ -257,54 +258,80 @@ async def get_attendance_summary(user=Depends(get_current_user)):
 
 @router.get("/attendance/student/{student_id}")
 async def get_student_attendance_detail(student_id: str, user=Depends(get_current_user)):
-    records = await db.attendance_records.find({"student_id": student_id}, {"_id": 0}).sort("date", 1).to_list(3000)
-    settings_doc = await db.school_settings.find_one({}, {"_id": 0})
-    excluded_types = set((settings_doc.get("excluded_absence_types") if settings_doc else None) or [])
+    settings_doc, records = await asyncio.gather(
+        db.school_settings.find_one({}, {"_id": 0}),
+        db.attendance_records.find({"student_id": student_id}, {"_id": 0}).sort("date", 1).to_list(3000),
+    )
+    excluded_types = set((settings_doc or {}).get("excluded_absence_types") or [])
+    year = (settings_doc or {}).get("current_year")
+    year_filter = {"year": year} if year else {}
+    school_days_list = await db.school_days.distinct("date", year_filter)
 
-    total_days = 0
-    absent_days = 0.0
-    absence_types: dict = {}
+    exc_by_date = {r["date"]: r for r in records}
+
+    # Use the same logic as the summary list (term calendar as denominator)
+    stats = compute_att_stats(school_days_list, exc_by_date, excluded_types)
+    total_days = stats["total_days"]
+    absent_days = stats["absent_days"]
+    att_pct = stats["pct"]
+
+    def _classify(s: str) -> str:
+        if not s:
+            return "present"
+        if s in excluded_types:
+            return "excluded"
+        if s == "Present" or s in FULL_PRESENT_STATUSES:
+            return "present"
+        return "absent"
+
+    # Monthly trend — use school_days as denominator per month
     monthly_data: dict = {}
-
-    def is_absent(s: str) -> bool:
-        return bool(s) and s not in excluded_types and s != "Present" and s not in PRESENT_STATUSES
-
-    for r in records:
-        am = (r.get("am_status") or "").strip()
-        pm = (r.get("pm_status") or "").strip()
-        month = r.get("date", "")[:7]
-
-        am_abs = is_absent(am)
-        pm_abs = is_absent(pm)
-
-        total_days += 1
+    for day in school_days_list:
+        month = day[:7]
         if month not in monthly_data:
-            monthly_data[month] = {"days": 0, "absent": 0.0}
-        monthly_data[month]["days"] += 1
+            monthly_data[month] = {"school_days": 0, "absent": 0.0}
+        if day not in exc_by_date:
+            monthly_data[month]["school_days"] += 1
+        else:
+            rec = exc_by_date[day]
+            am_cls = _classify((rec.get("am_status") or "").strip())
+            pm_cls = _classify((rec.get("pm_status") or "").strip())
+            if am_cls == "excluded" and pm_cls == "excluded":
+                continue
+            monthly_data[month]["school_days"] += 1
+            if am_cls == "absent" and pm_cls == "absent":
+                monthly_data[month]["absent"] += 1.0
+            elif am_cls == "absent" or pm_cls == "absent":
+                monthly_data[month]["absent"] += 0.5
 
-        if am_abs and pm_abs:
-            # Full day absent — if same type, count as 1; if different, 0.5 each
-            absent_days += 1.0
-            monthly_data[month]["absent"] += 1.0
+    monthly_trend = [
+        {"month": k, "attendance_pct": round(
+            ((v["school_days"] - v["absent"]) / v["school_days"] * 100) if v["school_days"] > 0 else 100.0, 1
+        )}
+        for k, v in sorted(monthly_data.items())
+    ]
+
+    # Absence type breakdown — count only absences on school days
+    absence_types: dict = {}
+    school_days_set = set(school_days_list)
+    for day, rec in exc_by_date.items():
+        if day not in school_days_set:
+            continue
+        am = (rec.get("am_status") or "").strip()
+        pm = (rec.get("pm_status") or "").strip()
+        am_cls = _classify(am)
+        pm_cls = _classify(pm)
+        if am_cls == "absent" and pm_cls == "absent":
             if am == pm:
                 absence_types[am] = absence_types.get(am, 0) + 1.0
             else:
                 absence_types[am] = absence_types.get(am, 0) + 0.5
                 absence_types[pm] = absence_types.get(pm, 0) + 0.5
-        elif am_abs:
-            absent_days += 0.5
-            monthly_data[month]["absent"] += 0.5
+        elif am_cls == "absent":
             absence_types[am] = absence_types.get(am, 0) + 0.5
-        elif pm_abs:
-            absent_days += 0.5
-            monthly_data[month]["absent"] += 0.5
+        elif pm_cls == "absent":
             absence_types[pm] = absence_types.get(pm, 0) + 0.5
 
-    att_pct = ((total_days - absent_days) / total_days * 100) if total_days > 0 else 100.0
-    monthly_trend = [
-        {"month": k, "attendance_pct": round(((v["days"] - v["absent"]) / v["days"] * 100) if v["days"] > 0 else 100, 1)}
-        for k, v in sorted(monthly_data.items())
-    ]
     return {
         "student_id": student_id, "attendance_pct": round(att_pct, 1),
         "total_days": total_days, "absent_days": absent_days,
