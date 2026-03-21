@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from collections import defaultdict
 from datetime import datetime, timezone
+import asyncio
 import uuid
 import io
 import csv
@@ -8,7 +9,7 @@ import re
 import openpyxl
 
 from database import db, DEFAULT_ABSENCE_TYPES, PRESENT_STATUSES
-from helpers import get_current_user, get_student_attendance_pct, get_student_attendance_stats
+from helpers import get_current_user, get_student_attendance_pct, get_student_attendance_stats, get_bulk_attendance_stats
 
 router = APIRouter()
 
@@ -180,10 +181,13 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
     existing_types = set(school_s.get("absence_types") or DEFAULT_ABSENCE_TYPES)
     await db.school_settings.update_one({}, {"$set": {"absence_types": sorted(existing_types | found_types)}}, upsert=True)
 
-    # Auto-generate attendance alerts
+    # Auto-generate attendance alerts (batch pct lookup)
     alerts_created = 0
     student_map = {s["student_id"]: s for s in await db.students.find(
         {"student_id": {"$in": list(ext_to_student.values())}}, {"_id": 0}).to_list(500)}
+
+    matched_sids = [ext_to_student[ext_id] for ext_id in matched if ext_to_student.get(ext_id)]
+    att_stats_map = await get_bulk_attendance_stats(matched_sids)
 
     for ext_id in matched:
         sid = ext_to_student.get(ext_id)
@@ -192,7 +196,7 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
         s = student_map.get(sid, {})
         pref = s.get("preferred_name")
         display = f"{s.get('first_name', '')}{ (' (' + pref + ')') if pref else ''} {s.get('last_name', '')}".strip()
-        att_pct = await get_student_attendance_pct(sid)
+        att_pct = att_stats_map.get(sid, {}).get("pct", 100.0)
 
         if att_pct < 80:
             severity, alert_type = "high", "low_attendance_80"
@@ -232,10 +236,19 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
 @router.get("/attendance/summary")
 async def get_attendance_summary(user=Depends(get_current_user)):
     students_list = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
-    school_days_list = await db.school_days.distinct("date")
+    student_ids = [s["student_id"] for s in students_list]
+
+    school_days_list, settings_doc = await asyncio.gather(
+        db.school_days.distinct("date"),
+        db.school_settings.find_one({}, {"_id": 0}),
+    )
+    excluded_types = set((settings_doc or {}).get("excluded_absence_types", []))
+    att_map = await get_bulk_attendance_stats(student_ids, school_days_list, excluded_types)
+
     result = []
     for s in students_list:
-        stats = await get_student_attendance_stats(s["student_id"])
+        sid = s["student_id"]
+        stats = att_map.get(sid, {"pct": 100.0, "total_days": 0, "absent_days": 0.0})
         att_pct = stats["pct"]
         has_data = len(school_days_list) > 0 or stats["total_days"] > 0
         if not has_data:

@@ -1,6 +1,8 @@
-from fastapi import HTTPException, Request
-from datetime import datetime, timezone
+import asyncio
 import uuid
+from collections import defaultdict
+from datetime import datetime, timezone
+from fastapi import HTTPException, Request
 
 from database import db, PRESENT_STATUSES, FULL_PRESENT_STATUSES, SETTINGS_DEFAULTS
 
@@ -95,9 +97,9 @@ async def create_alert(student_id: str, student_name: str, class_name: str,
     })
 
 
-# ── Attendance calc ───────────────────────────────────────────────────────────
+# ── Attendance calc (single-student) ─────────────────────────────────────────
 
-def _compute_att_stats(school_days_list: list, exc_by_date: dict, excluded_types: set) -> dict:
+def compute_att_stats(school_days_list: list, exc_by_date: dict, excluded_types: set) -> dict:
     """Pure-Python computation (no DB calls) — accepts pre-fetched data.
     exc_by_date: {date_str: record_dict} for this student's absence records.
     Returns {pct, total_days, absent_days}.
@@ -159,7 +161,7 @@ async def get_student_attendance_pct(student_id: str) -> float:
 
 
 async def get_student_attendance_stats(student_id: str) -> dict:
-    """Single-student lookup — fetches its own data. Use _compute_att_stats for batch operations."""
+    """Single-student lookup. Use get_bulk_attendance_stats for multi-student operations."""
     school_days_list, exc_records, settings_doc = await asyncio.gather(
         db.school_days.distinct("date"),
         db.attendance_records.find({"student_id": student_id}, {"_id": 0}).to_list(5000),
@@ -167,4 +169,99 @@ async def get_student_attendance_stats(student_id: str) -> dict:
     )
     exc_by_date = {r["date"]: r for r in exc_records}
     excluded_types = set((settings_doc or {}).get("excluded_absence_types", []))
-    return _compute_att_stats(school_days_list, exc_by_date, excluded_types)
+    return compute_att_stats(school_days_list, exc_by_date, excluded_types)
+
+
+# ── Batch attendance helpers ──────────────────────────────────────────────────
+
+async def get_bulk_attendance_records(student_ids: list) -> dict:
+    """Returns {student_id: [records]} for all student_ids (raw, no computation)."""
+    if not student_ids:
+        return {}
+    all_records = await db.attendance_records.find(
+        {"student_id": {"$in": student_ids}}, {"_id": 0}
+    ).to_list(100000)
+    result: dict = defaultdict(list)
+    for r in all_records:
+        result[r["student_id"]].append(r)
+    return dict(result)
+
+
+async def get_bulk_attendance_stats(student_ids: list, school_days_list=None, excluded_types=None) -> dict:
+    """Batch version of get_student_attendance_stats.
+    Returns {student_id: {pct, total_days, absent_days}} in a single set of DB calls.
+    Pass school_days_list and excluded_types if already fetched to avoid redundant queries.
+    """
+    if not student_ids:
+        return {}
+    fetches = []
+    if school_days_list is None:
+        fetches.append(db.school_days.distinct("date"))
+    if excluded_types is None:
+        fetches.append(db.school_settings.find_one({}, {"_id": 0}))
+    fetches.append(get_bulk_attendance_records(student_ids))
+
+    results = await asyncio.gather(*fetches)
+
+    idx = 0
+    if school_days_list is None:
+        school_days_list = results[idx]; idx += 1
+    if excluded_types is None:
+        settings_doc = results[idx]; idx += 1
+        excluded_types = set((settings_doc or {}).get("excluded_absence_types", []))
+    records_by_student = results[idx]
+
+    return {
+        sid: compute_att_stats(school_days_list, {r["date"]: r for r in records_by_student.get(sid, [])}, excluded_types)
+        for sid in student_ids
+    }
+
+
+# ── Batch SAEBRS helpers ──────────────────────────────────────────────────────
+
+async def get_latest_saebrs_bulk(student_ids: list) -> dict:
+    """Returns {student_id: latest_saebrs_doc} for all student_ids using a single aggregation."""
+    if not student_ids:
+        return {}
+    pipeline = [
+        {"$match": {"student_id": {"$in": student_ids}}},
+        {"$sort": {"created_at": 1}},
+        {"$group": {"_id": "$student_id", "doc": {"$last": "$$ROOT"}}},
+        {"$replaceRoot": {"newRoot": "$doc"}},
+        {"$project": {"_id": 0}},
+    ]
+    results = await db.saebrs_results.aggregate(pipeline).to_list(500)
+    return {r["student_id"]: r for r in results}
+
+
+async def get_latest_saebrs_plus_bulk(student_ids: list) -> dict:
+    """Returns {student_id: latest_saebrs_plus_doc} for all student_ids using a single aggregation."""
+    if not student_ids:
+        return {}
+    pipeline = [
+        {"$match": {"student_id": {"$in": student_ids}}},
+        {"$sort": {"created_at": 1}},
+        {"$group": {"_id": "$student_id", "doc": {"$last": "$$ROOT"}}},
+        {"$replaceRoot": {"newRoot": "$doc"}},
+        {"$project": {"_id": 0}},
+    ]
+    results = await db.saebrs_plus_results.aggregate(pipeline).to_list(500)
+    return {r["student_id"]: r for r in results}
+
+
+async def get_all_saebrs_bulk(student_ids: list) -> dict:
+    """Returns {student_id: [saebrs docs sorted by created_at asc]} for all student_ids.
+    Used for tier change detection (needs last 2 screenings) and trend charts.
+    """
+    if not student_ids:
+        return {}
+    pipeline = [
+        {"$match": {"student_id": {"$in": student_ids}}},
+        {"$sort": {"created_at": 1}},
+        {"$group": {"_id": "$student_id", "docs": {"$push": "$$ROOT"}}},
+    ]
+    results = await db.saebrs_results.aggregate(pipeline).to_list(500)
+    return {
+        r["_id"]: [{k: v for k, v in d.items() if k != "_id"} for d in r["docs"]]
+        for r in results
+    }

@@ -59,9 +59,17 @@ logger = logging.getLogger("server")
 @app.on_event("startup")
 async def startup():
     from routes.backups import run_backup
+    from database import db
+    # Create indexes to support batch queries and avoid collection scans
+    await db.attendance_records.create_index("student_id")
+    await db.attendance_records.create_index("date")
+    await db.saebrs_results.create_index([("student_id", 1), ("created_at", 1)])
+    await db.saebrs_plus_results.create_index([("student_id", 1), ("created_at", 1)])
+    await db.interventions.create_index([("student_id", 1), ("status", 1)])
+    await db.user_sessions.create_index("session_token")
     scheduler.add_job(run_backup, CronTrigger(hour=0, minute=0), id="daily_backup", replace_existing=True)
     scheduler.start()
-    logger.info("WellTrack starting up. Daily backup scheduler running (midnight UTC).")
+    logger.info("WellTrack starting up. MongoDB indexes ensured. Daily backup scheduler running (midnight UTC).")
 
 
 @app.on_event("shutdown")

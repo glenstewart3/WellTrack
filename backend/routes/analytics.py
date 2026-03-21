@@ -1,9 +1,16 @@
+import asyncio
+from collections import defaultdict
+from datetime import date as date_obj
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
 
-from database import db
-from helpers import (get_current_user, get_school_settings_doc, get_student_attendance_pct,
-                     compute_mtss_tier, PRESENT_STATUSES)
+from database import db, PRESENT_STATUSES
+from helpers import (
+    get_current_user, get_school_settings_doc, compute_mtss_tier,
+    compute_att_stats,
+    get_bulk_attendance_records, get_bulk_attendance_stats,
+    get_latest_saebrs_bulk, get_latest_saebrs_plus_bulk, get_all_saebrs_bulk,
+)
 
 router = APIRouter()
 
@@ -11,16 +18,24 @@ router = APIRouter()
 @router.get("/analytics/tier-distribution")
 async def tier_distribution(user=Depends(get_current_user)):
     students = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
+    student_ids = [s["student_id"] for s in students]
+
+    saebrs_map, plus_map, att_map = await asyncio.gather(
+        get_latest_saebrs_bulk(student_ids),
+        get_latest_saebrs_plus_bulk(student_ids),
+        get_bulk_attendance_stats(student_ids),
+    )
+
     counts = {"tier1": 0, "tier2": 0, "tier3": 0, "unscreened": 0}
     class_breakdown = {}
     for s in students:
         sid = s["student_id"]
-        saebrs = await db.saebrs_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
-        plus = await db.saebrs_plus_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
-        att_pct = await get_student_attendance_pct(sid)
+        saebrs = saebrs_map.get(sid)
+        plus = plus_map.get(sid)
+        att_pct = att_map.get(sid, {}).get("pct", 100.0)
         cls = s["class_name"]
         if cls not in class_breakdown:
-            class_breakdown[cls] = {"tier1": 0, "tier2": 0, "tier3": 0, "teacher": s["teacher"]}
+            class_breakdown[cls] = {"tier1": 0, "tier2": 0, "tier3": 0, "teacher": s.get("teacher", "")}
         if saebrs and plus:
             t = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
             counts[f"tier{t}"] += 1
@@ -36,23 +51,35 @@ async def tier_distribution(user=Depends(get_current_user)):
 
 @router.get("/analytics/classroom-radar/{class_name}")
 async def classroom_radar(class_name: str, user=Depends(get_current_user)):
-    students = await db.students.find({"class_name": class_name, "enrolment_status": "active"}, {"_id": 0}).to_list(50)
+    students = await db.students.find(
+        {"class_name": class_name, "enrolment_status": "active"}, {"_id": 0}
+    ).to_list(50)
+    student_ids = [s["student_id"] for s in students]
+
+    all_saebrs_map, plus_map, att_map, active_int_docs = await asyncio.gather(
+        get_all_saebrs_bulk(student_ids),
+        get_latest_saebrs_plus_bulk(student_ids),
+        get_bulk_attendance_stats(student_ids),
+        db.interventions.find({"student_id": {"$in": student_ids}, "status": "active"}, {"_id": 0}).to_list(200),
+    )
+    active_int_set = {i["student_id"] for i in active_int_docs}
+
     result = []
     for s in students:
         sid = s["student_id"]
-        all_saebrs = await db.saebrs_results.find({"student_id": sid}, {"_id": 0}).sort("created_at", 1).to_list(10)
+        all_saebrs = all_saebrs_map.get(sid, [])
         saebrs = all_saebrs[-1] if all_saebrs else None
-        plus = await db.saebrs_plus_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
-        att_pct = await get_student_attendance_pct(sid)
-        score_trend = None
-        if len(all_saebrs) >= 2:
-            score_trend = all_saebrs[-1]["total_score"] - all_saebrs[-2]["total_score"]
+        plus = plus_map.get(sid)
+        att_pct = att_map.get(sid, {}).get("pct", 100.0)
+        score_trend = (all_saebrs[-1]["total_score"] - all_saebrs[-2]["total_score"]) if len(all_saebrs) >= 2 else None
+
         if saebrs and plus:
             tier = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
         elif saebrs:
             tier = 3 if saebrs["risk_level"] == "High Risk" else (2 if saebrs["risk_level"] == "Some Risk" else 1)
         else:
             tier = 0
+
         indicators = []
         if plus and plus.get("belonging_domain", 12) <= 4: indicators.append("low_belonging")
         if plus and plus.get("emotional_domain", 9) <= 3: indicators.append("emotional_distress")
@@ -60,7 +87,7 @@ async def classroom_radar(class_name: str, user=Depends(get_current_user)):
         if score_trend is not None and score_trend <= -8: indicators.append("rapid_score_drop")
         if saebrs and saebrs.get("social_risk") != "Low Risk": indicators.append("social_behaviour_risk")
         if saebrs and saebrs.get("academic_risk") != "Low Risk": indicators.append("academic_engagement_risk")
-        active_int = await db.interventions.find_one({"student_id": sid, "status": "active"}, {"_id": 0})
+
         result.append({
             "student": s, "mtss_tier": tier,
             "saebrs_risk": saebrs["risk_level"] if saebrs else "Not Screened",
@@ -73,7 +100,7 @@ async def classroom_radar(class_name: str, user=Depends(get_current_user)):
             "belonging_domain": plus["belonging_domain"] if plus else None,
             "emotional_domain": plus["emotional_domain"] if plus else None,
             "attendance_pct": round(att_pct, 1), "score_trend": score_trend,
-            "risk_indicators": indicators, "has_active_intervention": bool(active_int)
+            "risk_indicators": indicators, "has_active_intervention": sid in active_int_set,
         })
     result.sort(key=lambda x: (-(x["mtss_tier"] or 0), -len(x["risk_indicators"])))
     return result
@@ -87,9 +114,17 @@ async def school_wide(year_level: Optional[str] = None, class_name: Optional[str
     if class_name:
         query["class_name"] = class_name
     students = await db.students.find(query, {"_id": 0}).to_list(500)
+    student_ids = [s["student_id"] for s in students]
+
+    saebrs_map, plus_map, att_map = await asyncio.gather(
+        get_latest_saebrs_bulk(student_ids),
+        get_latest_saebrs_plus_bulk(student_ids),
+        get_bulk_attendance_stats(student_ids),
+    )
+
     domain_totals = {"social": 0, "academic": 0, "emotional": 0, "belonging": 0, "attendance": 0}
     domain_counts = 0
-    tier_by_year = {}
+    tier_by_year: dict = {}
     tier_distribution = {1: 0, 2: 0, 3: 0}
     risk_distribution = {"low": 0, "some": 0, "high": 0}
     domain_risk = {
@@ -97,7 +132,7 @@ async def school_wide(year_level: Optional[str] = None, class_name: Optional[str
         "academic": {"low": 0, "some": 0, "high": 0},
         "emotional": {"low": 0, "some": 0, "high": 0},
     }
-    class_breakdown = {}
+    class_breakdown: dict = {}
     screened_count = 0
 
     for s in students:
@@ -108,9 +143,11 @@ async def school_wide(year_level: Optional[str] = None, class_name: Optional[str
             tier_by_year[yr] = {"tier1": 0, "tier2": 0, "tier3": 0}
         if cls not in class_breakdown:
             class_breakdown[cls] = {"tier1": 0, "tier2": 0, "tier3": 0}
-        saebrs = await db.saebrs_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
-        plus = await db.saebrs_plus_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
-        att_pct = await get_student_attendance_pct(sid)
+
+        saebrs = saebrs_map.get(sid)
+        plus = plus_map.get(sid)
+        att_pct = att_map.get(sid, {}).get("pct", 100.0)
+
         if saebrs:
             screened_count += 1
             rl = saebrs.get("risk_level", "Low Risk")
@@ -157,6 +194,14 @@ async def cohort_comparison(group_by: str = "year_level", user=Depends(get_curre
     if group_by not in ("year_level", "class_name"):
         raise HTTPException(400, "group_by must be 'year_level' or 'class_name'")
     students = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
+    student_ids = [s["student_id"] for s in students]
+
+    saebrs_map, plus_map, att_map = await asyncio.gather(
+        get_latest_saebrs_bulk(student_ids),
+        get_latest_saebrs_plus_bulk(student_ids),
+        get_bulk_attendance_stats(student_ids),
+    )
+
     cohorts: dict = {}
     for s in students:
         key = s.get(group_by) or "Unknown"
@@ -166,9 +211,9 @@ async def cohort_comparison(group_by: str = "year_level", user=Depends(get_curre
                             "risk_low": 0, "risk_some": 0, "risk_high": 0, "att_sum": 0.0}
         cohorts[key]["total"] += 1
         sid = s["student_id"]
-        saebrs = await db.saebrs_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
-        plus = await db.saebrs_plus_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
-        att_pct = await get_student_attendance_pct(sid)
+        saebrs = saebrs_map.get(sid)
+        plus = plus_map.get(sid)
+        att_pct = att_map.get(sid, {}).get("pct", 100.0)
         cohorts[key]["att_sum"] += att_pct
         if saebrs:
             cohorts[key]["screened"] += 1
@@ -187,6 +232,7 @@ async def cohort_comparison(group_by: str = "year_level", user=Depends(get_curre
             t = None
         if t:
             cohorts[key][f"tier{t}"] += 1
+
     result = []
     for k, d in sorted(cohorts.items()):
         avg_att = round(d["att_sum"] / d["total"], 1) if d["total"] > 0 else 0
@@ -210,7 +256,7 @@ async def intervention_outcomes(year_level: Optional[str] = None, class_name: Op
         interventions = await db.interventions.find({"student_id": {"$in": sids}}, {"_id": 0}).to_list(500)
     else:
         interventions = await db.interventions.find({}, {"_id": 0}).to_list(500)
-    by_type = {}
+    by_type: dict = {}
     for i in interventions:
         t = i["intervention_type"]
         if t not in by_type:
@@ -230,21 +276,24 @@ async def intervention_outcomes(year_level: Optional[str] = None, class_name: Op
 
 @router.get("/analytics/attendance-trends")
 async def attendance_trends(year_level: Optional[str] = None, class_name: Optional[str] = None, user=Depends(get_current_user)):
-    from collections import defaultdict
-    from datetime import date as date_obj
-
     student_query = {"enrolment_status": "active"}
     if year_level:
         student_query["year_level"] = year_level
     if class_name:
         student_query["class_name"] = class_name
     students = await db.students.find(student_query, {"_id": 0}).to_list(500)
-    settings_doc = await get_school_settings_doc()
-    excluded_types = set(settings_doc.get("excluded_absence_types", []))
-    school_days_list = await db.school_days.distinct("date")
+    student_ids = [s["student_id"] for s in students]
     num_students = len(students)
 
-    # Pre-group school days so we know the correct total sessions per month / day-of-week
+    # Single parallel batch: fetch school days, settings, and all records at once
+    school_days_list, settings_doc, records_by_student = await asyncio.gather(
+        db.school_days.distinct("date"),
+        get_school_settings_doc(),
+        get_bulk_attendance_records(student_ids),
+    )
+    excluded_types = set(settings_doc.get("excluded_absence_types", []))
+
+    # Pre-group school days by month / day-of-week for denominator calculation
     days_by_month: dict = defaultdict(int)
     days_by_dow: dict = defaultdict(int)
     for day in school_days_list:
@@ -254,28 +303,28 @@ async def attendance_trends(year_level: Optional[str] = None, class_name: Option
         except Exception:
             pass
 
-    # Count exception (absent) sessions from exception records
     monthly_absent: dict = defaultdict(int)
-    monthly_excluded: dict = defaultdict(int)   # excluded types don't count in denominator
+    monthly_excluded: dict = defaultdict(int)
     dow_absent: dict = defaultdict(int)
     dow_excluded: dict = defaultdict(int)
     chronic_absentees = []
 
     for s in students:
         sid = s["student_id"]
-        att_pct = await get_student_attendance_pct(sid)
+        recs = records_by_student.get(sid, [])
+        exc_by_date = {r["date"]: r for r in recs}
+        stats = compute_att_stats(school_days_list, exc_by_date, excluded_types)
+        att_pct = stats["pct"]
+
         if att_pct < 90:
             chronic_absentees.append({"student": s, "attendance_pct": round(att_pct, 1),
                                       "tier": 3 if att_pct < 80 else 2})
-
-        records = await db.attendance_records.find({"student_id": sid}, {"_id": 0}).to_list(3000)
-        for r in records:
+        for r in recs:
             month = r.get("date", "")[:7]
             try:
                 dow = date_obj.fromisoformat(r.get("date", "")).weekday()
             except Exception:
                 dow = None
-
             for sv in [r.get("am_status", ""), r.get("pm_status", "")]:
                 sv = (sv or "").strip()
                 if not sv:
@@ -291,7 +340,6 @@ async def attendance_trends(year_level: Optional[str] = None, class_name: Option
                     if dow is not None:
                         dow_absent[dow] += 1
 
-    # Build monthly attendance rate using correct denominator
     monthly_trend = []
     for month in sorted(days_by_month.keys()):
         total = days_by_month[month] * 2 * num_students - monthly_excluded.get(month, 0)
@@ -299,7 +347,6 @@ async def attendance_trends(year_level: Optional[str] = None, class_name: Option
         att_rate = round((total - absent) / total * 100, 1) if total > 0 else 100.0
         monthly_trend.append({"month": month, "attendance_rate": att_rate})
 
-    # Build day-of-week attendance rate
     DOW_NAMES = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday", 4: "Friday"}
     dow_trend = []
     for dow in range(5):
@@ -320,16 +367,28 @@ async def attendance_trends(year_level: Optional[str] = None, class_name: Option
 @router.get("/meeting-prep")
 async def meeting_prep(user=Depends(get_current_user)):
     students = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
+    student_ids = [s["student_id"] for s in students]
+
+    all_saebrs_map, plus_map, att_map, active_int_docs = await asyncio.gather(
+        get_all_saebrs_bulk(student_ids),
+        get_latest_saebrs_plus_bulk(student_ids),
+        get_bulk_attendance_stats(student_ids),
+        db.interventions.find({"student_id": {"$in": student_ids}, "status": "active"}, {"_id": 0}).to_list(1000),
+    )
+    interventions_by_student: dict = defaultdict(list)
+    for intv in active_int_docs:
+        interventions_by_student[intv["student_id"]].append(intv)
+
     result = []
     tier_changes = []
 
     for s in students:
         sid = s["student_id"]
-        all_saebrs = await db.saebrs_results.find({"student_id": sid}, {"_id": 0}).sort("created_at", 1).to_list(10)
+        all_saebrs = all_saebrs_map.get(sid, [])
         saebrs = all_saebrs[-1] if all_saebrs else None
         prev_saebrs = all_saebrs[-2] if len(all_saebrs) >= 2 else None
-        plus = await db.saebrs_plus_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
-        att_pct = await get_student_attendance_pct(sid)
+        plus = plus_map.get(sid)
+        att_pct = att_map.get(sid, {}).get("pct", 100.0)
 
         if saebrs and plus:
             tier = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
@@ -350,9 +409,11 @@ async def meeting_prep(user=Depends(get_current_user)):
                 })
 
         if tier >= 2:
-            interventions = await db.interventions.find({"student_id": sid, "status": "active"}, {"_id": 0}).to_list(5)
-            result.append({"student": s, "mtss_tier": tier, "saebrs": saebrs, "saebrs_plus": plus,
-                           "active_interventions": interventions, "attendance_pct": round(att_pct, 1)})
+            result.append({
+                "student": s, "mtss_tier": tier, "saebrs": saebrs, "saebrs_plus": plus,
+                "active_interventions": interventions_by_student.get(sid, []),
+                "attendance_pct": round(att_pct, 1),
+            })
 
     result.sort(key=lambda x: -x["mtss_tier"])
     return {"students": result, "tier_changes": tier_changes}

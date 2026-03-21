@@ -5,7 +5,9 @@ import csv
 from typing import Optional
 
 from database import db, PRESENT_STATUSES
-from helpers import get_current_user, get_student_attendance_pct, compute_mtss_tier, get_school_settings_doc
+import asyncio
+from helpers import get_current_user, get_student_attendance_pct, compute_mtss_tier, get_school_settings_doc, \
+    get_bulk_attendance_stats, get_latest_saebrs_bulk, get_latest_saebrs_plus_bulk
 
 router = APIRouter()
 
@@ -27,16 +29,30 @@ async def students_csv(user=Depends(get_current_user)):
 @router.get("/reports/tier-summary-csv")
 async def tier_csv(user=Depends(get_current_user)):
     students = await db.students.find({}, {"_id": 0}).to_list(500)
+    student_ids = [s["student_id"] for s in students]
+
+    saebrs_map, plus_map, att_map, active_int_docs = await asyncio.gather(
+        get_latest_saebrs_bulk(student_ids),
+        get_latest_saebrs_plus_bulk(student_ids),
+        get_bulk_attendance_stats(student_ids),
+        db.interventions.find({"student_id": {"$in": student_ids}, "status": "active"},
+                              {"_id": 0, "student_id": 1}).to_list(1000),
+    )
+    int_count_map: dict = {}
+    for intv in active_int_docs:
+        sid = intv["student_id"]
+        int_count_map[sid] = int_count_map.get(sid, 0) + 1
+
     buf = io.StringIO()
     w = csv.writer(buf)
     w.writerow(["Student ID", "First Name", "Last Name", "Class", "MTSS Tier", "SAEBRS Risk",
                 "SAEBRS Total", "Wellbeing Tier", "Wellbeing Total", "Attendance %", "Active Interventions"])
     for s in students:
         sid = s["student_id"]
-        saebrs = await db.saebrs_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
-        plus = await db.saebrs_plus_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
-        att_pct = await get_student_attendance_pct(sid)
-        int_count = await db.interventions.count_documents({"student_id": sid, "status": "active"})
+        saebrs = saebrs_map.get(sid)
+        plus = plus_map.get(sid)
+        att_pct = att_map.get(sid, {}).get("pct", 100.0)
+        int_count = int_count_map.get(sid, 0)
         if saebrs and plus:
             tier = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
         elif saebrs:
@@ -141,15 +157,27 @@ async def screening_coverage_report(
     if class_name:
         sq["class_name"] = class_name
     students = await db.students.find(sq, {"_id": 0}).to_list(500)
-    class_data = {}
+    student_ids = [s["student_id"] for s in students]
+
+    # Batch: check who has a saebrs result
+    screened_ids = set()
+    if student_ids:
+        pipeline = [
+            {"$match": {"student_id": {"$in": student_ids}}},
+            {"$group": {"_id": "$student_id"}},
+        ]
+        results = await db.saebrs_results.aggregate(pipeline).to_list(500)
+        screened_ids = {r["_id"] for r in results}
+
+    class_data: dict = {}
     for s in students:
         cls = s["class_name"]
         if cls not in class_data:
             class_data[cls] = {"class": cls, "total": 0, "screened": 0}
         class_data[cls]["total"] += 1
-        saebrs = await db.saebrs_results.find_one({"student_id": s["student_id"]}, {"_id": 0})
-        if saebrs:
+        if s["student_id"] in screened_ids:
             class_data[cls]["screened"] += 1
+
     result = []
     for cls, d in sorted(class_data.items()):
         pct = round(d["screened"] / d["total"] * 100) if d["total"] > 0 else 0
@@ -169,26 +197,35 @@ async def support_gaps_report(
     if class_name:
         sq["class_name"] = class_name
     students = await db.students.find(sq, {"_id": 0}).to_list(500)
+    student_ids = [s["student_id"] for s in students]
+
+    saebrs_map, plus_map, att_map, active_int_docs = await asyncio.gather(
+        get_latest_saebrs_bulk(student_ids),
+        get_latest_saebrs_plus_bulk(student_ids),
+        get_bulk_attendance_stats(student_ids),
+        db.interventions.find({"student_id": {"$in": student_ids}, "status": "active"},
+                              {"_id": 0, "student_id": 1}).to_list(1000),
+    )
+    students_with_active_int = {intv["student_id"] for intv in active_int_docs}
+
     gaps = []
     for s in students:
         sid = s["student_id"]
-        saebrs = await db.saebrs_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
-        plus = await db.saebrs_plus_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
-        att_pct = await get_student_attendance_pct(sid)
+        saebrs = saebrs_map.get(sid)
+        plus = plus_map.get(sid)
+        att_pct = att_map.get(sid, {}).get("pct", 100.0)
         if saebrs and plus:
             tier = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
         elif saebrs:
             tier = 3 if saebrs["risk_level"] == "High Risk" else (2 if saebrs["risk_level"] == "Some Risk" else 1)
         else:
             continue
-        if tier >= 2:
-            active_int = await db.interventions.count_documents({"student_id": sid, "status": "active"})
-            if active_int == 0:
-                gaps.append({
-                    "student": s, "tier": tier,
-                    "saebrs_risk": saebrs["risk_level"] if saebrs else "Not Screened",
-                    "attendance_pct": round(att_pct, 1),
-                })
+        if tier >= 2 and sid not in students_with_active_int:
+            gaps.append({
+                "student": s, "tier": tier,
+                "saebrs_risk": saebrs["risk_level"] if saebrs else "Not Screened",
+                "attendance_pct": round(att_pct, 1),
+            })
     gaps.sort(key=lambda x: -x["tier"])
     return gaps
 

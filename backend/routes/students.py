@@ -3,7 +3,9 @@ from typing import Optional
 import uuid
 
 from database import db
-from helpers import get_current_user, get_student_attendance_pct, compute_mtss_tier
+import asyncio
+from helpers import get_current_user, get_student_attendance_pct, compute_mtss_tier, \
+    get_bulk_attendance_stats, get_latest_saebrs_bulk, get_latest_saebrs_plus_bulk
 from models import Student
 
 router = APIRouter()
@@ -89,14 +91,27 @@ async def get_students_summary(class_name: Optional[str] = None, year_level: Opt
     if year_level:
         query["year_level"] = year_level
     students = await db.students.find(query, {"_id": 0}).sort("last_name", 1).to_list(500)
+    student_ids = [s["student_id"] for s in students]
+
+    # Batch fetch everything in parallel — eliminates N+1 queries
+    saebrs_map, plus_map, att_map, active_int_docs = await asyncio.gather(
+        get_latest_saebrs_bulk(student_ids),
+        get_latest_saebrs_plus_bulk(student_ids),
+        get_bulk_attendance_stats(student_ids),
+        db.interventions.find({"student_id": {"$in": student_ids}, "status": "active"},
+                              {"_id": 0, "student_id": 1}).to_list(1000),
+    )
+    active_int_count: dict = {}
+    for intv in active_int_docs:
+        sid = intv["student_id"]
+        active_int_count[sid] = active_int_count.get(sid, 0) + 1
 
     result = []
     for s in students:
         sid = s["student_id"]
-        saebrs = await db.saebrs_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
-        plus = await db.saebrs_plus_results.find_one({"student_id": sid}, {"_id": 0}, sort=[("created_at", -1)])
-        att_pct = await get_student_attendance_pct(sid)
-        active_interventions = await db.interventions.count_documents({"student_id": sid, "status": "active"})
+        saebrs = saebrs_map.get(sid)
+        plus = plus_map.get(sid)
+        att_pct = att_map.get(sid, {}).get("pct", 100.0)
 
         if saebrs and plus:
             tier = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
@@ -113,7 +128,7 @@ async def get_students_summary(class_name: Optional[str] = None, year_level: Opt
             "wellbeing_tier": plus["wellbeing_tier"] if plus else None,
             "wellbeing_total": plus["wellbeing_total"] if plus else None,
             "attendance_pct": round(att_pct, 1),
-            "active_interventions": active_interventions
+            "active_interventions": active_int_count.get(sid, 0),
         })
     return result
 
