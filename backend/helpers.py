@@ -167,7 +167,8 @@ async def get_student_attendance_stats(student_id: str) -> dict:
         db.attendance_records.find({"student_id": student_id}, {"_id": 0}).to_list(5000),
     )
     year = (settings_doc or {}).get("current_year")
-    year_filter = {"year": year} if year else {}
+    today_str = datetime.now(timezone.utc).date().isoformat()
+    year_filter = {"year": year, "date": {"$lte": today_str}} if year else {"date": {"$lte": today_str}}
     school_days_list = await db.school_days.distinct("date", year_filter)
     excluded_types = set((settings_doc or {}).get("excluded_absence_types", []))
     exc_by_date = {r["date"]: r for r in exc_records}
@@ -203,7 +204,8 @@ async def get_bulk_attendance_stats(student_ids: list, school_days_list=None, ex
             excluded_types = set((settings_doc or {}).get("excluded_absence_types", []))
         if school_days_list is None:
             year = (settings_doc or {}).get("current_year")
-            year_filter = {"year": year} if year else {}
+            today_str = datetime.now(timezone.utc).date().isoformat()
+            year_filter = {"year": year, "date": {"$lte": today_str}} if year else {"date": {"$lte": today_str}}
             school_days_list, records_by_student = await asyncio.gather(
                 db.school_days.distinct("date", year_filter),
                 get_bulk_attendance_records(student_ids),

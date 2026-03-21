@@ -291,7 +291,8 @@ async def attendance_trends(year_level: Optional[str] = None, class_name: Option
         get_bulk_attendance_records(student_ids),
     )
     year = settings_doc.get("current_year")
-    year_filter = {"year": year} if year else {}
+    today_str = date_obj.today().isoformat()
+    year_filter = {"year": year, "date": {"$lte": today_str}} if year else {"date": {"$lte": today_str}}
     school_days_list = await db.school_days.distinct("date", year_filter)
     excluded_types = set(settings_doc.get("excluded_absence_types", []))
 

@@ -264,7 +264,8 @@ async def get_student_attendance_detail(student_id: str, user=Depends(get_curren
     )
     excluded_types = set((settings_doc or {}).get("excluded_absence_types") or [])
     year = (settings_doc or {}).get("current_year")
-    year_filter = {"year": year} if year else {}
+    today_str = datetime.now(timezone.utc).date().isoformat()
+    year_filter = {"year": year, "date": {"$lte": today_str}} if year else {"date": {"$lte": today_str}}
     school_days_list = await db.school_days.distinct("date", year_filter)
 
     exc_by_date = {r["date"]: r for r in records}
