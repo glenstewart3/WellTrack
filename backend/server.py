@@ -60,13 +60,36 @@ logger = logging.getLogger("server")
 async def startup():
     from routes.backups import run_backup
     from database import db
-    # Create indexes to support batch queries and avoid collection scans
+    from datetime import datetime, timezone
+
+    # Create indexes
     await db.attendance_records.create_index("student_id")
     await db.attendance_records.create_index("date")
     await db.saebrs_results.create_index([("student_id", 1), ("created_at", 1)])
     await db.saebrs_plus_results.create_index([("student_id", 1), ("created_at", 1)])
     await db.interventions.create_index([("student_id", 1), ("status", 1)])
     await db.user_sessions.create_index("session_token")
+    await db.school_days.create_index("year")
+
+    # ── Multi-year migration ─────────────────────────────────────────────────
+    # 1. school_days: add year field derived from date string (e.g. "2025-02-03" → 2025)
+    await db.school_days.update_many(
+        {"year": {"$exists": False}},
+        [{"$set": {"year": {"$toInt": {"$substr": ["$date", 0, 4]}}}}]
+    )
+    # 2. school_settings.terms: stamp each term with current_year if missing
+    settings_doc = await db.school_settings.find_one({}, {"_id": 0})
+    if settings_doc:
+        current_year = settings_doc.get("current_year", datetime.now(timezone.utc).year)
+        terms = settings_doc.get("terms", [])
+        changed = False
+        for t in terms:
+            if not t.get("year"):
+                t["year"] = current_year
+                changed = True
+        if changed:
+            await db.school_settings.update_one({}, {"$set": {"terms": terms}})
+
     scheduler.add_job(run_backup, CronTrigger(hour=0, minute=0), id="daily_backup", replace_existing=True)
     scheduler.start()
     logger.info("WellTrack starting up. MongoDB indexes ensured. Daily backup scheduler running (midnight UTC).")

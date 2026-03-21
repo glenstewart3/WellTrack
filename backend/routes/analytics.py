@@ -285,12 +285,14 @@ async def attendance_trends(year_level: Optional[str] = None, class_name: Option
     student_ids = [s["student_id"] for s in students]
     num_students = len(students)
 
-    # Single parallel batch: fetch school days, settings, and all records at once
-    school_days_list, settings_doc, records_by_student = await asyncio.gather(
-        db.school_days.distinct("date"),
+    # Batch fetch: settings + all records (parallel), then year-filtered school_days
+    settings_doc, records_by_student = await asyncio.gather(
         get_school_settings_doc(),
         get_bulk_attendance_records(student_ids),
     )
+    year = settings_doc.get("current_year")
+    year_filter = {"year": year} if year else {}
+    school_days_list = await db.school_days.distinct("date", year_filter)
     excluded_types = set(settings_doc.get("excluded_absence_types", []))
 
     # Pre-group school days by month / day-of-week for denominator calculation

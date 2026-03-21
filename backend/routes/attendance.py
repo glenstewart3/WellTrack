@@ -237,20 +237,14 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
 async def get_attendance_summary(user=Depends(get_current_user)):
     students_list = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
     student_ids = [s["student_id"] for s in students_list]
-
-    school_days_list, settings_doc = await asyncio.gather(
-        db.school_days.distinct("date"),
-        db.school_settings.find_one({}, {"_id": 0}),
-    )
-    excluded_types = set((settings_doc or {}).get("excluded_absence_types", []))
-    att_map = await get_bulk_attendance_stats(student_ids, school_days_list, excluded_types)
-
+    # get_bulk_attendance_stats handles year-scoping internally
+    att_map = await get_bulk_attendance_stats(student_ids)
     result = []
     for s in students_list:
         sid = s["student_id"]
         stats = att_map.get(sid, {"pct": 100.0, "total_days": 0, "absent_days": 0.0})
         att_pct = stats["pct"]
-        has_data = len(school_days_list) > 0 or stats["total_days"] > 0
+        has_data = stats["total_days"] > 0
         if not has_data:
             result.append({**s, "attendance_pct": None, "total_days": 0, "absent_days": 0.0,
                            "has_data": False, "attendance_tier": None})

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from datetime import datetime, timezone, date as date_type, timedelta
+from typing import Optional
 import json, io, csv, uuid
 
 from database import db, SETTINGS_DEFAULTS
@@ -131,13 +132,31 @@ def _generate_school_days(terms: list, non_school_days: list) -> list:
 
 
 @router.get("/settings/terms")
-async def get_terms(user=Depends(get_current_user)):
+async def get_terms(year: Optional[int] = None, user=Depends(get_current_user)):
     s = await db.school_settings.find_one({}, {"_id": 0})
-    count = await db.school_days.count_documents({})
+    all_terms = (s or {}).get("terms", [])
+    non_school_days = (s or {}).get("non_school_days", [])
+
+    # Derive available years from stored terms
+    years_set = sorted({t["year"] for t in all_terms if t.get("year")}, reverse=True)
+    current_year = (s or {}).get("current_year")
+    # Ensure current_year always appears in the list
+    if current_year and current_year not in years_set:
+        years_set = sorted({current_year} | set(years_set), reverse=True)
+    available_years = years_set or [current_year or datetime.now(timezone.utc).year]
+
+    # Which year to return — explicit param > current_year > highest available
+    active_year = year or current_year or (available_years[0] if available_years else None)
+    filtered_terms = [t for t in all_terms if t.get("year") == active_year] if active_year else all_terms
+    count_filter = {"year": active_year} if active_year else {}
+    count = await db.school_days.count_documents(count_filter)
+
     return {
-        "terms": (s or {}).get("terms", []),
-        "non_school_days": (s or {}).get("non_school_days", []),
+        "terms": filtered_terms,
+        "non_school_days": non_school_days,
         "school_days_count": count,
+        "available_years": available_years,
+        "active_year": active_year,
     }
 
 
@@ -147,16 +166,41 @@ async def save_terms(data: dict, user=Depends(get_current_user)):
         raise HTTPException(403, "Admin access required")
     terms = data.get("terms", [])
     non_school_days = data.get("non_school_days", [])
-    # Ensure every term has an id
+    save_year = data.get("year")  # The school year being edited
+
+    # Stamp every term with an id and the save_year
     for t in terms:
         if not t.get("id"):
             t["id"] = str(uuid.uuid4())[:8]
+        if save_year and not t.get("year"):
+            t["year"] = save_year
+
+    # Merge with other years' terms (preserve them)
+    s = await db.school_settings.find_one({}, {"_id": 0}) or {}
+    existing_terms = s.get("terms", [])
+    if save_year is not None:
+        other_terms = [t for t in existing_terms if t.get("year") != save_year]
+        merged_terms = other_terms + terms
+    else:
+        merged_terms = terms
+
     await db.school_settings.update_one({}, {"$set": {
-        "terms": terms, "non_school_days": non_school_days,
+        "terms": merged_terms, "non_school_days": non_school_days,
     }}, upsert=True)
+
+    # Regenerate school_days only for this year (or all if no year given)
     all_dates = _generate_school_days(terms, non_school_days)
-    await db.school_days.delete_many({})
-    if all_dates:
-        await db.school_days.insert_many([{"date": d} for d in all_dates])
-    return {"message": f"{len(terms)} term(s) saved · {len(all_dates)} school days generated",
-            "school_days_count": len(all_dates)}
+    if save_year is not None:
+        await db.school_days.delete_many({"year": save_year})
+        if all_dates:
+            await db.school_days.insert_many([{"date": d, "year": save_year} for d in all_dates])
+    else:
+        await db.school_days.delete_many({})
+        if all_dates:
+            await db.school_days.insert_many([{"date": d, "year": int(d[:4])} for d in all_dates])
+
+    return {
+        "message": f"{len(terms)} term(s) saved · {len(all_dates)} school days generated for {save_year or 'all'}",
+        "school_days_count": len(all_dates),
+        "year": save_year,
+    }

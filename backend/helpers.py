@@ -161,14 +161,16 @@ async def get_student_attendance_pct(student_id: str) -> float:
 
 
 async def get_student_attendance_stats(student_id: str) -> dict:
-    """Single-student lookup. Use get_bulk_attendance_stats for multi-student operations."""
-    school_days_list, exc_records, settings_doc = await asyncio.gather(
-        db.school_days.distinct("date"),
-        db.attendance_records.find({"student_id": student_id}, {"_id": 0}).to_list(5000),
+    """Single-student lookup. Scoped to the current school year from settings."""
+    settings_doc, exc_records = await asyncio.gather(
         db.school_settings.find_one({}, {"_id": 0}),
+        db.attendance_records.find({"student_id": student_id}, {"_id": 0}).to_list(5000),
     )
-    exc_by_date = {r["date"]: r for r in exc_records}
+    year = (settings_doc or {}).get("current_year")
+    year_filter = {"year": year} if year else {}
+    school_days_list = await db.school_days.distinct("date", year_filter)
     excluded_types = set((settings_doc or {}).get("excluded_absence_types", []))
+    exc_by_date = {r["date"]: r for r in exc_records}
     return compute_att_stats(school_days_list, exc_by_date, excluded_types)
 
 
@@ -189,28 +191,29 @@ async def get_bulk_attendance_records(student_ids: list) -> dict:
 
 async def get_bulk_attendance_stats(student_ids: list, school_days_list=None, excluded_types=None) -> dict:
     """Batch version of get_student_attendance_stats.
-    Returns {student_id: {pct, total_days, absent_days}} in a single set of DB calls.
+    When school_days_list is not provided, automatically scopes to the current school year.
     Pass school_days_list and excluded_types if already fetched to avoid redundant queries.
     """
     if not student_ids:
         return {}
-    fetches = []
-    if school_days_list is None:
-        fetches.append(db.school_days.distinct("date"))
-    if excluded_types is None:
-        fetches.append(db.school_settings.find_one({}, {"_id": 0}))
-    fetches.append(get_bulk_attendance_records(student_ids))
 
-    results = await asyncio.gather(*fetches)
+    if excluded_types is None or school_days_list is None:
+        settings_doc = await db.school_settings.find_one({}, {"_id": 0})
+        if excluded_types is None:
+            excluded_types = set((settings_doc or {}).get("excluded_absence_types", []))
+        if school_days_list is None:
+            year = (settings_doc or {}).get("current_year")
+            year_filter = {"year": year} if year else {}
+            school_days_list, records_by_student = await asyncio.gather(
+                db.school_days.distinct("date", year_filter),
+                get_bulk_attendance_records(student_ids),
+            )
+            return {
+                sid: compute_att_stats(school_days_list, {r["date"]: r for r in records_by_student.get(sid, [])}, excluded_types)
+                for sid in student_ids
+            }
 
-    idx = 0
-    if school_days_list is None:
-        school_days_list = results[idx]; idx += 1
-    if excluded_types is None:
-        settings_doc = results[idx]; idx += 1
-        excluded_types = set((settings_doc or {}).get("excluded_absence_types", []))
-    records_by_student = results[idx]
-
+    records_by_student = await get_bulk_attendance_records(student_ids)
     return {
         sid: compute_att_stats(school_days_list, {r["date"]: r for r in records_by_student.get(sid, [])}, excluded_types)
         for sid in student_ids
