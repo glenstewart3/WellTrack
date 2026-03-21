@@ -20,92 +20,105 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
         raise HTTPException(403, "Admin or leadership access required")
     content = await file.read()
     fname = (file.filename or "").lower()
-    records = []
 
-    if fname.endswith('.xlsx') or fname.endswith('.xls'):
-        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
-        ws = wb.active
-        headers = [str(cell.value or '').strip().upper() for cell in ws[1]]
+    # ── shared helpers ────────────────────────────────────────────────────────
+    def _find_col(headers, names, fallback=None):
+        for n in names:
+            for i, h in enumerate(headers):
+                if h == n.upper() or h.startswith(n.upper()):
+                    return i
+        return fallback
 
-        def col(names, fallback=None):
-            for n in names:
-                for i, h in enumerate(headers):
-                    if h == n.upper() or h.startswith(n.upper()):
-                        return i
-            return fallback  # fall back to known column position if header not found
+    def _parse_date(dv):
+        if hasattr(dv, 'strftime'):
+            return dv.strftime('%Y-%m-%d')
+        ds = str(dv).strip()
+        for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%d-%m-%Y', '%d %b %Y', '%d %B %Y',
+                    '%d/%m/%y', '%Y/%m/%d'):
+            try:
+                return datetime.strptime(ds, fmt).strftime('%Y-%m-%d')
+            except Exception:
+                pass
+        return None
 
-        # ID: look by header name; fall back to column A (index 0)
-        id_c = col(['SUSSIID', 'SUSSI ID', 'ID', 'STUDENT ID', 'STUDENTID', 'STUDENT CODE',
-                    'COMPASS', 'ROLL', 'SIS', 'STUD'], fallback=0)
-        # Date: look by header name; fall back to column H (index 7)
-        dt_c = col(['DATE', 'ABSENCE DATE', 'ABSENCEDATE', 'ABS DATE', 'ABSDATE'], fallback=7)
-        # Name: look by header, fall back to column B (index 1)
-        name_c = col(['STUDENT NAME', 'FULL NAME', 'NAME', 'STUDENT'], fallback=1)
-        # AM/PM: look by header; fall back to the two columns immediately after Date
-        am_c = col(['AM'], fallback=dt_c + 1 if dt_c is not None else None)
-        pm_c = col(['PM'], fallback=dt_c + 2 if dt_c is not None else None)
+    def _process_rows(all_rows):
+        """Convert a list-of-lists (any format) into attendance record dicts.
 
-        num_cols = len(headers)
+        Handles:
+        - Empty/merged columns between data columns (e.g. ID, _, _, Date, _, AM)
+        - Title rows before the header row
+        - Student name only present on the first row per student ID
+        """
+        if not all_rows:
+            return []
 
-        for row in ws.iter_rows(min_row=2, values_only=True):
-            if len(row) <= id_c or len(row) <= dt_c:
+        # Find header row: first of the first 20 rows that contains 'ID'
+        header_idx = 0
+        headers = []
+        for i, row in enumerate(all_rows[:20]):
+            cells = [str(v or '').strip().upper() for v in row]
+            if 'ID' in cells or any(c in ('DATE', 'ABSENCE DATE') for c in cells):
+                header_idx = i
+                headers = cells
+                break
+        if not headers:
+            headers = [str(v or '').strip().upper() for v in all_rows[0]]
+
+        id_c   = _find_col(headers, ['ID', 'SUSSIID', 'SUSSI ID', 'STUDENT ID', 'STUDENTID',
+                                     'STUDENT CODE', 'COMPASS', 'ROLL'], fallback=0)
+        dt_c   = _find_col(headers, ['DATE', 'ABSENCE DATE', 'ABS DATE', 'ABSDATE'], fallback=7)
+        name_c = _find_col(headers, ['STUDENT NAME', 'FULL NAME', 'NAME', 'STUDENT'], fallback=2)
+        am_c   = _find_col(headers, ['AM'], fallback=None)
+        pm_c   = _find_col(headers, ['PM'], fallback=None)
+
+        parsed = []
+        name_by_id: dict = {}   # carry forward — name only on first row per student
+
+        for row in all_rows[header_idx + 1:]:
+            if id_c is None or dt_c is None:
                 continue
-            ext_id = str(row[id_c] or '').strip() if id_c is not None and id_c < num_cols else ''
-            dv = row[dt_c] if dt_c is not None and dt_c < len(row) else ''
-            am_v = str(row[am_c] or '').strip() if am_c is not None and am_c < len(row) else ''
-            pm_v = str(row[pm_c] or '').strip() if pm_c is not None and pm_c < len(row) else ''
-            name_v = str(row[name_c] or '').strip() if name_c is not None and name_c < len(row) else ''
+            ext_id   = str(row[id_c] or '').strip().upper() if id_c < len(row) else ''
+            dv       = row[dt_c] if dt_c < len(row) else ''
+            am_v     = str(row[am_c] or '').strip() if am_c is not None and am_c < len(row) else ''
+            pm_v     = str(row[pm_c] or '').strip() if pm_c is not None and pm_c < len(row) else ''
+            raw_name = str(row[name_c] or '').strip() if name_c is not None and name_c < len(row) else ''
+
             if not ext_id or not dv:
                 continue
-            # Skip students who have left — marked with [LEFT] in their name
-            if '[LEFT]' in name_v.upper():
-                continue
-            # Extract preferred name from brackets, e.g. "Smith, John [Jet]"
-            pref_m = re.search(r'\[([^\]]+)\]', name_v)
-            pref_name = pref_m.group(1).strip() if pref_m else None
-            if hasattr(dv, 'strftime'):
-                date_str = dv.strftime('%Y-%m-%d')
-            else:
-                ds = str(dv).strip()
-                # Handle "d/m/yyyy", "d-m-yyyy", "dd/mm/yyyy", ISO, and plain text like "01 Jan 2025"
-                parsed = False
-                for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%d-%m-%Y', '%d %b %Y', '%d %B %Y',
-                            '%m/%d/%Y', '%d/%m/%y', '%Y/%m/%d'):
-                    try:
-                        date_str = datetime.strptime(ds, fmt).strftime('%Y-%m-%d')
-                        parsed = True
-                        break
-                    except Exception:
-                        pass
-                if not parsed:
-                    continue
-            records.append({'external_id': ext_id.upper(), 'date': date_str, 'am_status': am_v, 'pm_status': pm_v, '_pref_name': pref_name})
 
-    elif fname.endswith('.csv'):
-        text = content.decode('utf-8-sig')
-        reader = csv.DictReader(io.StringIO(text))
-        for row in reader:
-            ext_id = (row.get('SussiId') or row.get('SUSSIID') or row.get('ID') or
-                      row.get('Student ID') or row.get('student_id') or '').strip().upper()
-            date_str = (row.get('Date') or row.get('date') or '').strip()
-            am_v = (row.get('AM') or row.get('am') or '').strip()
-            pm_v = (row.get('PM') or row.get('pm') or '').strip()
-            name_v = (row.get('Student Name') or row.get('STUDENT NAME') or row.get('Name') or '').strip()
-            if not ext_id or not date_str:
-                continue
+            # Carry forward student name — only the first row per student has it
+            if raw_name:
+                name_by_id[ext_id] = raw_name
+            name_v = name_by_id.get(ext_id, '')
+
             # Skip students who have left
             if '[LEFT]' in name_v.upper():
                 continue
-            # Extract preferred name from brackets
+
+            # Extract preferred name from brackets e.g. "Smith, John [Jet]"
             pref_m = re.search(r'\[([^\]]+)\]', name_v)
             pref_name = pref_m.group(1).strip() if pref_m else None
-            for fmt in ('%d/%m/%Y', '%Y-%m-%d'):
-                try:
-                    date_str = datetime.strptime(date_str, fmt).strftime('%Y-%m-%d')
-                    break
-                except Exception:
-                    pass
-            records.append({'external_id': ext_id, 'date': date_str, 'am_status': am_v, 'pm_status': pm_v, '_pref_name': pref_name})
+
+            date_str = _parse_date(dv)
+            if not date_str:
+                continue
+
+            parsed.append({'external_id': ext_id, 'date': date_str,
+                           'am_status': am_v, 'pm_status': pm_v, '_pref_name': pref_name})
+        return parsed
+
+    # ── file reading ──────────────────────────────────────────────────────────
+    if fname.endswith('.xlsx') or fname.endswith('.xls'):
+        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+        ws = wb.active
+        all_rows = [list(row) for row in ws.iter_rows(values_only=True)]
+        records = _process_rows(all_rows)
+
+    elif fname.endswith('.csv'):
+        text = content.decode('utf-8-sig')
+        all_rows = list(csv.reader(io.StringIO(text)))
+        records = _process_rows(all_rows)
+
     else:
         raise HTTPException(400, "Unsupported file format. Use XLSX or CSV.")
 
