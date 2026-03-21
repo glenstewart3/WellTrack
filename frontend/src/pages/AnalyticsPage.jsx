@@ -427,7 +427,7 @@ export default function AnalyticsPage() {
                   const pct = ca.attendance_pct;
                   const color = pct < 80 ? 'text-rose-600' : 'text-amber-600';
                   const bg = pct < 80 ? 'bg-rose-50 border-rose-200' : 'bg-amber-50 border-amber-200';
-                  const name = ca.student ? `${ca.student.first_name}${ca.student.preferred_name ? ` (${ca.student.preferred_name})` : ''} ${ca.student.last_name}` : '—';
+                  const name = ca.student ? `${ca.student.first_name}${ca.student.preferred_name && ca.student.preferred_name !== ca.student.first_name ? ` (${ca.student.preferred_name})` : ''} ${ca.student.last_name}` : '—';
                   return (
                     <div key={i} className={`flex items-center justify-between p-3 rounded-xl border ${bg} cursor-pointer hover:opacity-90`}
                       onClick={() => navigate(`/students/${ca.student?.student_id}`)}>
@@ -632,7 +632,7 @@ export default function AnalyticsPage() {
               <SectionHeader icon={AlertTriangle} title="Students Needing Support" sub="Tier 2 or 3 students with no active intervention — click to assign one" />
               <div className="space-y-2">
                 {supportGaps.map((g, i) => {
-                  const name = `${g.student.first_name}${g.student.preferred_name ? ` (${g.student.preferred_name})` : ''} ${g.student.last_name}`;
+                  const name = `${g.student.first_name}${g.student.preferred_name && g.student.preferred_name !== g.student.first_name ? ` (${g.student.preferred_name})` : ''} ${g.student.last_name}`;
                   const bg = g.tier === 3 ? 'bg-rose-50 border-rose-200' : 'bg-amber-50 border-amber-200';
                   const badge = g.tier === 3 ? 'text-rose-700 bg-rose-100' : 'text-amber-700 bg-amber-100';
                   return (

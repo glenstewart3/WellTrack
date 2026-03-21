@@ -196,6 +196,8 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
             continue
         s = student_map.get(sid, {})
         pref = s.get("preferred_name")
+        if pref and pref == s.get("first_name"):
+            pref = None
         display = f"{s.get('first_name', '')}{ (' (' + pref + ')') if pref else ''} {s.get('last_name', '')}".strip()
         att_pct = att_stats_map.get(sid, {}).get("pct", 100.0)
 

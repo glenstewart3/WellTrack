@@ -544,7 +544,7 @@ export default function StudentsPage() {
                             <span className="text-xs font-semibold text-slate-600">{s.first_name[0]}{s.last_name[0]}</span>
                           </div>
                           <span className="font-medium text-slate-900 text-xs sm:text-sm leading-tight">
-                            {s.first_name}{s.preferred_name ? ` (${s.preferred_name})` : ''} {s.last_name}
+                            {s.first_name}{s.preferred_name && s.preferred_name !== s.first_name ? ` (${s.preferred_name})` : ''} {s.last_name}
                           </span>
                         </div>
                       </td>

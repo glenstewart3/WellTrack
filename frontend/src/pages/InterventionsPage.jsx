@@ -11,7 +11,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 function studentDisplayName(s) {
   if (!s) return '';
   const first = s.first_name || '';
-  const pref = s.preferred_name ? ` (${s.preferred_name})` : '';
+  const pref = s.preferred_name && s.preferred_name !== s.first_name ? ` (${s.preferred_name})` : '';
   const last = s.last_name || '';
   return `${first}${pref} ${last}`.trim();
 }

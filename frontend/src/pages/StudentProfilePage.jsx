@@ -239,7 +239,7 @@ export default function StudentProfilePage() {
   ].map(d => ({ ...d, pct: Math.round((d.score / d.max) * 100) })) : [];
 
   // Display name with optional preferred name
-  const displayName = `${student.first_name}${student.preferred_name ? ` (${student.preferred_name})` : ''} ${student.last_name}`;
+  const displayName = `${student.first_name}${student.preferred_name && student.preferred_name !== student.first_name ? ` (${student.preferred_name})` : ''} ${student.last_name}`;
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto fade-in">

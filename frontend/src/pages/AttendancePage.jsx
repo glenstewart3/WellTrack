@@ -185,7 +185,7 @@ export default function AttendancePage() {
               {filtered.map(s => (
                 <tr key={s.student_id} onClick={() => viewStudent(s)}
                   className="hover:bg-slate-50 cursor-pointer transition-colors">
-                  <td className="px-5 py-3.5 font-medium text-slate-900">{s.first_name}{s.preferred_name ? ` (${s.preferred_name})` : ''} {s.last_name}</td>
+                  <td className="px-5 py-3.5 font-medium text-slate-900">{s.first_name}{s.preferred_name && s.preferred_name !== s.first_name ? ` (${s.preferred_name})` : ''} {s.last_name}</td>
                   <td className="px-5 py-3.5 text-slate-500">{s.class_name}</td>
                   <td className="px-5 py-3.5">
                     {s.has_data ? <AttendancePctBar pct={s.attendance_pct} /> : <span className="text-slate-300 text-xs">No data</span>}
@@ -206,7 +206,7 @@ export default function AttendancePage() {
             <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0">
               <div>
                 <h3 className="font-bold text-slate-900 text-lg" style={{ fontFamily: 'Manrope,sans-serif' }}>
-                  {selectedStudent.first_name}{selectedStudent.preferred_name ? ` (${selectedStudent.preferred_name})` : ''} {selectedStudent.last_name}
+                  {selectedStudent.first_name}{selectedStudent.preferred_name && selectedStudent.preferred_name !== selectedStudent.first_name ? ` (${selectedStudent.preferred_name})` : ''} {selectedStudent.last_name}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">{selectedStudent.class_name} · {selectedStudent.year_level}</p>
               </div>
