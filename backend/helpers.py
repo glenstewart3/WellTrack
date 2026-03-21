@@ -97,18 +97,12 @@ async def create_alert(student_id: str, student_name: str, class_name: str,
 
 # ── Attendance calc ───────────────────────────────────────────────────────────
 
-async def get_student_attendance_pct(student_id: str) -> float:
-    stats = await get_student_attendance_stats(student_id)
-    return stats["pct"]
-
-
-async def get_student_attendance_stats(student_id: str) -> dict:
-    """Returns {pct, total_days, absent_days} for a student.
-    Counts by school day: full day absent = 1.0, half day (one session absent) = 0.5.
+def _compute_att_stats(school_days_list: list, exc_by_date: dict, excluded_types: set) -> dict:
+    """Pure-Python computation (no DB calls) — accepts pre-fetched data.
+    exc_by_date: {date_str: record_dict} for this student's absence records.
+    Returns {pct, total_days, absent_days}.
     """
-    school_days_list = await db.school_days.distinct("date")
-
-    def _classify(s: str, excluded_types: set) -> str:
+    def _classify(s: str) -> str:
         if not s:
             return "present"
         if s in excluded_types:
@@ -118,46 +112,33 @@ async def get_student_attendance_stats(student_id: str) -> dict:
         return "absent"
 
     if school_days_list:
-        exc_records = await db.attendance_records.find({"student_id": student_id}, {"_id": 0}).to_list(5000)
-        exc_by_date = {r["date"]: r for r in exc_records}
-        settings_doc = await get_school_settings_doc()
-        excluded_types = set(settings_doc.get("excluded_absence_types", []))
-
         total_days = 0
         absent_days = 0.0
-
         for day in school_days_list:
             if day not in exc_by_date:
                 total_days += 1
             else:
                 rec = exc_by_date[day]
-                am_cls = _classify((rec.get("am_status") or "").strip(), excluded_types)
-                pm_cls = _classify((rec.get("pm_status") or "").strip(), excluded_types)
-
-                # Whole day excluded — don't count at all
+                am_cls = _classify((rec.get("am_status") or "").strip())
+                pm_cls = _classify((rec.get("pm_status") or "").strip())
                 if am_cls == "excluded" and pm_cls == "excluded":
                     continue
-
                 total_days += 1
                 if am_cls == "absent" and pm_cls == "absent":
-                    absent_days += 1.0   # full day absent
+                    absent_days += 1.0
                 elif am_cls == "absent" or pm_cls == "absent":
-                    absent_days += 0.5   # half day absent
-
+                    absent_days += 0.5
         if total_days == 0:
             return {"pct": 100.0, "total_days": 0, "absent_days": 0.0}
         pct = max(0.0, min(100.0, ((total_days - absent_days) / total_days) * 100.0))
         return {"pct": pct, "total_days": total_days, "absent_days": absent_days}
     else:
-        # Fallback when no school_days defined — derive from exception records
-        records = await db.attendance_records.find({"student_id": student_id}, {"_id": 0}).to_list(5000)
-        if not records:
-            return {"pct": 100.0, "total_days": 0, "absent_days": 0.0}
+        # No school days defined — derive from exception records
         total_days = 0
         absent_days = 0.0
-        for r in records:
-            am = (r.get("am_status") or "").strip()
-            pm = (r.get("pm_status") or "").strip()
+        for rec in exc_by_date.values():
+            am = (rec.get("am_status") or "").strip()
+            pm = (rec.get("pm_status") or "").strip()
             if am or pm:
                 total_days += 1
                 am_abs = am and am not in PRESENT_STATUSES
@@ -170,3 +151,20 @@ async def get_student_attendance_stats(student_id: str) -> dict:
             return {"pct": 100.0, "total_days": 0, "absent_days": 0.0}
         pct = ((total_days - absent_days) / total_days) * 100
         return {"pct": pct, "total_days": total_days, "absent_days": absent_days}
+
+
+async def get_student_attendance_pct(student_id: str) -> float:
+    stats = await get_student_attendance_stats(student_id)
+    return stats["pct"]
+
+
+async def get_student_attendance_stats(student_id: str) -> dict:
+    """Single-student lookup — fetches its own data. Use _compute_att_stats for batch operations."""
+    school_days_list, exc_records, settings_doc = await asyncio.gather(
+        db.school_days.distinct("date"),
+        db.attendance_records.find({"student_id": student_id}, {"_id": 0}).to_list(5000),
+        db.school_settings.find_one({}, {"_id": 0}),
+    )
+    exc_by_date = {r["date"]: r for r in exc_records}
+    excluded_types = set((settings_doc or {}).get("excluded_absence_types", []))
+    return _compute_att_stats(school_days_list, exc_by_date, excluded_types)
