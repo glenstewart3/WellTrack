@@ -138,6 +138,7 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 - ✅ **Screener user role** (Mar 2026) — New role restricted to Screening page only. Nav shows only Screening item. Route guard redirects any non-/screening URL to /screening. Lands on /screening on login. Indigo badge. Role selectable in User Management.
 
 |- ✅ **Student Photo Upload** (Mar 2026) — Bulk photo upload via ZIP. Filename format: `LastName, FirstName.jpg`. Staff folders auto-skipped. Strict case-insensitive exact name matching. Photos resized (max 400×400, JPEG q82) and saved to `/app/uploads/student_photos/{student_id}.jpg`. Served via FastAPI StaticFiles at `/api/student-photos/`. `photo_url` stored per student in DB. Avatars shown in Students list and Student Profile header; falls back to initials if no photo.
+|- ✅ **Remove Photo from edit modal** (Mar 2026) — Student edit modal shows photo preview (or initials if none). "Remove photo" button calls `DELETE /api/students/{student_id}/photo`, deletes file from disk, clears `photo_url` from DB. Modal updates in-place immediately.
 
 ---
 
