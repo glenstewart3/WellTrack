@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from collections import defaultdict
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 import asyncio
 import uuid
 import io
@@ -24,21 +24,14 @@ def _classify_status(status: str, excluded_types: set) -> str:
     return "absent"
 
 
-def _build_biweekly_trend(school_days_list: list, exc_by_date: dict, excluded_types: set) -> list:
-    """Aggregate attendance into 2-week buckets sorted by date."""
-    if not school_days_list:
-        return []
-    sorted_days = sorted(school_days_list)
-    start_dt = datetime.fromisoformat(sorted_days[0])
-    buckets: dict = {}
-    for day_str in sorted_days:
-        dt = datetime.fromisoformat(day_str)
-        delta_days = (dt - start_dt).days
-        bucket_idx = delta_days // 14
-        bucket_start = (start_dt + timedelta(days=bucket_idx * 14)).date().isoformat()
-        if bucket_start not in buckets:
-            buckets[bucket_start] = {"school_days": 0, "absent": 0.0}
-        rec = exc_by_date.get(day_str)
+def _build_monthly_trend(school_days_list: list, exc_by_date: dict, excluded_types: set) -> list:
+    """Aggregate attendance into monthly buckets."""
+    monthly_data: dict = {}
+    for day in school_days_list:
+        month = day[:7]
+        if month not in monthly_data:
+            monthly_data[month] = {"school_days": 0, "absent": 0.0}
+        rec = exc_by_date.get(day)
         if rec:
             am = (rec.get("am_status") or "").strip()
             pm = (rec.get("pm_status") or "").strip()
@@ -46,18 +39,18 @@ def _build_biweekly_trend(school_days_list: list, exc_by_date: dict, excluded_ty
             pm_cls = _classify_status(pm, excluded_types)
             if am_cls == "excluded" and pm_cls == "excluded":
                 continue
-            buckets[bucket_start]["school_days"] += 1
+            monthly_data[month]["school_days"] += 1
             if am_cls == "absent" and pm_cls == "absent":
-                buckets[bucket_start]["absent"] += 1.0
+                monthly_data[month]["absent"] += 1.0
             elif am_cls == "absent" or pm_cls == "absent":
-                buckets[bucket_start]["absent"] += 0.5
+                monthly_data[month]["absent"] += 0.5
         else:
-            buckets[bucket_start]["school_days"] += 1
+            monthly_data[month]["school_days"] += 1
     trend = []
-    for k, v in sorted(buckets.items()):
+    for k, v in sorted(monthly_data.items()):
         pct = round((v["school_days"] - v["absent"]) / v["school_days"] * 100, 1) if v["school_days"] > 0 else 100.0
-        dt = datetime.fromisoformat(k)
-        label = dt.strftime("%d %b").lstrip("0")
+        dt = datetime.fromisoformat(f"{k}-01")
+        label = dt.strftime("%b %Y")
         trend.append({"period": k, "attendance_pct": pct, "label": label})
     return trend
 
@@ -374,12 +367,12 @@ async def get_student_attendance_detail(
         elif pm_cls == "absent":
             absence_types[pm] = absence_types.get(pm, 0) + 0.5
 
-    biweekly_trend = _build_biweekly_trend(school_days_list, exc_by_date, excluded_types)
+    monthly_trend = _build_monthly_trend(school_days_list, exc_by_date, excluded_types)
 
     return {
         "student_id": student_id, "attendance_pct": round(att_pct, 1),
         "total_days": total_days, "absent_days": absent_days,
-        "absence_types": absence_types, "biweekly_trend": biweekly_trend, "records": records[:300],
+        "absence_types": absence_types, "monthly_trend": monthly_trend, "records": records[:300],
     }
 
 

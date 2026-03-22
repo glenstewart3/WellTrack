@@ -377,11 +377,11 @@ export default function AttendancePage() {
                   </div>
 
                   {/* Bi-weekly trend chart */}
-                  {studentDetail.biweekly_trend?.length > 1 && (
+                  {studentDetail.monthly_trend?.length > 1 && (
                     <div>
-                      <h4 className="text-sm font-semibold text-slate-700 mb-3">Attendance Trend (2-week intervals)</h4>
+                      <h4 className="text-sm font-semibold text-slate-700 mb-3">Monthly Attendance Trend</h4>
                       <ResponsiveContainer width="100%" height={180}>
-                        <LineChart data={studentDetail.biweekly_trend} margin={{ left: -10, right: 10 }}>
+                        <LineChart data={studentDetail.monthly_trend} margin={{ left: -10, right: 10 }}>
                           <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
                           <YAxis domain={[70, 100]} tick={{ fontSize: 11 }} unit="%" tickCount={7} />
                           <Tooltip

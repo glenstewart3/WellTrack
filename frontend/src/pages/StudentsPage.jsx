@@ -253,6 +253,7 @@ export default function StudentsPage() {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkEditMode, setBulkEditMode] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [reactivating, setReactivating] = useState(false);
   const [filterStatus, setFilterStatus] = useState('active');
@@ -414,7 +415,7 @@ export default function StudentsPage() {
                   placeholder="Ms Thompson"
                   className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-hidden">
                 <div>
                   <label className="text-xs text-slate-500 block mb-1">Gender</label>
                   <select value={addStudentForm.gender} onChange={e => setAddStudentForm(p => ({...p, gender: e.target.value}))}
@@ -423,10 +424,10 @@ export default function StudentsPage() {
                     <option>Male</option><option>Female</option><option>Non-binary</option>
                   </select>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs text-slate-500 block mb-1">Date of Birth</label>
                   <input type="date" value={addStudentForm.date_of_birth} onChange={e => setAddStudentForm(p => ({...p, date_of_birth: e.target.value}))}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none" />
+                    className="w-full max-w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none appearance-none" />
                 </div>
               </div>
             </div>
@@ -456,8 +457,8 @@ export default function StudentsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 mb-6 flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-48">
+      <div className="bg-white border border-slate-200 rounded-xl p-4 mb-6 flex flex-wrap gap-3 items-center">
+        <div className="relative flex-1 min-w-36">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
@@ -472,7 +473,7 @@ export default function StudentsPage() {
           value={filterClass}
           onChange={e => setFilterClass(e.target.value)}
           data-testid="filter-class"
-          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20 bg-white"
+          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20 bg-white hidden sm:block"
         >
           <option value="">All Classes</option>
           {classes.map(c => <option key={c.class_name} value={c.class_name}>{c.class_name}</option>)}
@@ -481,7 +482,7 @@ export default function StudentsPage() {
           value={filterTier}
           onChange={e => setFilterTier(e.target.value)}
           data-testid="filter-tier"
-          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20 bg-white"
+          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20 bg-white hidden sm:block"
         >
           <option value="">All Tiers</option>
           <option value="1">Tier 1 (Low Risk)</option>
@@ -489,6 +490,18 @@ export default function StudentsPage() {
           <option value="3">Tier 3 (High Risk)</option>
           <option value="">Not Screened</option>
         </select>
+        {/* Edit mode toggle */}
+        <button
+          onClick={() => { setBulkEditMode(m => !m); setSelectedIds(new Set()); }}
+          data-testid="bulk-edit-toggle"
+          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors shrink-0 ${
+            bulkEditMode
+              ? 'bg-slate-900 text-white'
+              : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          {bulkEditMode ? 'Done' : 'Edit'}
+        </button>
       </div>
 
       {/* Table */}
@@ -507,11 +520,13 @@ export default function StudentsPage() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <th className="py-3 px-3 w-8">
-                    <input type="checkbox" checked={selectedIds.size === filtered.length && filtered.length > 0}
-                      onChange={toggleSelectAll}
-                      className="rounded border-slate-300 cursor-pointer" />
-                  </th>
+                  {bulkEditMode && (
+                    <th className="py-3 px-3 w-8">
+                      <input type="checkbox" checked={selectedIds.size === filtered.length && filtered.length > 0}
+                        onChange={toggleSelectAll}
+                        className="rounded border-slate-300 cursor-pointer" />
+                    </th>
+                  )}
                   <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Student</th>
                   <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden sm:table-cell">Class</th>
                   <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden md:table-cell">Year</th>
@@ -533,11 +548,13 @@ export default function StudentsPage() {
                       className={`border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors ${selectedIds.has(s.student_id) ? 'bg-indigo-50/50' : ''}`}
                       data-testid={`student-row-${s.student_id}`}
                     >
-                      <td className="py-3 px-3 w-8" onClick={e => e.stopPropagation()}>
-                        <input type="checkbox" checked={selectedIds.has(s.student_id)}
-                          onChange={e => toggleSelect(s.student_id, e)}
-                          className="rounded border-slate-300 cursor-pointer" />
-                      </td>
+                      {bulkEditMode && (
+                        <td className="py-3 px-3 w-8" onClick={e => e.stopPropagation()}>
+                          <input type="checkbox" checked={selectedIds.has(s.student_id)}
+                            onChange={e => toggleSelect(s.student_id, e)}
+                            className="rounded border-slate-300 cursor-pointer" />
+                        </td>
+                      )}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2.5">
                           <div className="w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center shrink-0">
@@ -644,7 +661,7 @@ export default function StudentsPage() {
                 <input value={editForm.teacher} onChange={e => setEditForm(p => ({...p, teacher: e.target.value}))}
                   className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-hidden">
                 <div>
                   <label className="text-xs text-slate-500 block mb-1">Gender</label>
                   <select value={editForm.gender} onChange={e => setEditForm(p => ({...p, gender: e.target.value}))}
@@ -653,10 +670,10 @@ export default function StudentsPage() {
                     <option>Male</option><option>Female</option><option>Non-binary</option>
                   </select>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs text-slate-500 block mb-1">Date of Birth</label>
                   <input type="date" value={editForm.date_of_birth} onChange={e => setEditForm(p => ({...p, date_of_birth: e.target.value}))}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none" />
+                    className="w-full max-w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none appearance-none" />
                 </div>
               </div>
             </div>
@@ -673,8 +690,8 @@ export default function StudentsPage() {
         </div>
       )}
 
-      {/* Bulk action bar */}
-      {selectedIds.size > 0 && (
+      {/* Bulk action bar — only shown in edit mode */}
+      {bulkEditMode && selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white rounded-2xl px-5 py-3 flex items-center gap-4 shadow-xl">
           <span className="text-sm font-medium">{selectedIds.size} selected</span>
           {filterStatus === 'archived' ? (
