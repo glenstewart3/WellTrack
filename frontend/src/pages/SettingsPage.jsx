@@ -1127,52 +1127,45 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
         </div>
         <p className="text-xs text-slate-400 mb-4">Weekends are excluded automatically. Students not in the absence file on a school day are counted as present.</p>
 
-        {terms.length === 0 && (
-          <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4 text-xs">
-            No terms for {selectedYear} — add at least one term so attendance percentages can be calculated.
-          </p>
-        )}
-
-        {terms.length > 0 && (
-          <div className="space-y-2 mb-4">
-            {terms.map(t => {
-              const days = calcDays(t);
-              return (
-                <div key={t.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100" data-testid={`term-row-${t.id}`}>
-                  <BookOpen size={15} className="text-slate-400 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-800">{t.name}</p>
-                    <p className="text-xs text-slate-400">{fmtDate(t.start_date)} → {fmtDate(t.end_date)}</p>
-                  </div>
-                  <span className="text-xs font-medium text-slate-500 bg-white px-2 py-1 rounded-lg border border-slate-200 shrink-0">{days} days</span>
-                  <button onClick={() => setTerms(p => p.filter(x => x.id !== t.id))}
-                    className="text-slate-300 hover:text-rose-500 transition-colors shrink-0" data-testid={`delete-term-${t.id}`}>
-                    <X size={15} />
-                  </button>
+        <div className="space-y-3 mb-4">
+          {terms.map((t, idx) => {
+            const days = calcDays(t);
+            return (
+              <div key={t.id} className="p-4 bg-slate-50 rounded-xl border border-slate-100" data-testid={`term-row-${t.id}`}>
+                <div className="flex items-center gap-2 mb-3">
+                  <BookOpen size={14} className="text-slate-400 shrink-0" />
+                  <span className="text-sm font-bold text-slate-800">{t.name}</span>
+                  {days > 0 && (
+                    <span className="ml-auto text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      {days} days
+                    </span>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
-          <input type="text" placeholder={`Term name (e.g. Term 1 ${selectedYear})`} value={newTerm.name}
-            onChange={e => setNewTerm(p => ({ ...p, name: e.target.value }))}
-            onKeyDown={e => e.key === 'Enter' && addTerm()}
-            data-testid="new-term-name"
-            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
-          <input type="date" value={newTerm.start_date}
-            onChange={e => setNewTerm(p => ({ ...p, start_date: e.target.value }))}
-            data-testid="new-term-start"
-            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
-          <input type="date" value={newTerm.end_date}
-            onChange={e => setNewTerm(p => ({ ...p, end_date: e.target.value }))}
-            data-testid="new-term-end"
-            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
-          <button onClick={addTerm} data-testid="add-term-btn"
-            className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap">
-            <Plus size={14} /> Add Term
-          </button>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">Start date</label>
+                    <input
+                      type="date"
+                      value={t.start_date}
+                      onChange={e => updateTerm(idx, 'start_date', e.target.value)}
+                      data-testid={`term-${idx + 1}-start`}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">End date</label>
+                    <input
+                      type="date"
+                      value={t.end_date}
+                      onChange={e => updateTerm(idx, 'end_date', e.target.value)}
+                      data-testid={`term-${idx + 1}-end`}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/20"
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
