@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { CalendarDays, AlertTriangle, Users, TrendingDown, Loader, X } from 'lucide-react';
+import { CalendarDays, AlertTriangle, Users, TrendingDown, Loader, X, Info } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -101,6 +101,7 @@ export default function AttendancePage() {
   const [terms, setTerms] = useState([]);
   const [cohortType, setCohortType] = useState('school'); // school | year | class
   const [cohortValue, setCohortValue] = useState('');
+  const [schoolDaysCount, setSchoolDaysCount] = useState(null); // null = loading, 0 = no calendar
 
   const fetchSummary = async (year, period, month, week, termsArr) => {
     setLoading(true);
@@ -117,6 +118,7 @@ export default function AttendancePage() {
       const r = await axios.get(`${API}/settings/terms?year=${year}`, { withCredentials: true });
       const t = r.data.terms || [];
       setTerms(t);
+      setSchoolDaysCount(r.data.school_days_count ?? 0);
       return t;
     } catch (e) { console.error(e); return []; }
   };
@@ -131,6 +133,7 @@ export default function AttendancePage() {
         setAvailableYears(yrs);
         setViewYear(activeYear);
         setTerms(loadedTerms);
+        setSchoolDaysCount(r.data.school_days_count ?? 0);
         await fetchSummary(activeYear, 'ytd', '', '', loadedTerms);
       } catch (e) { setLoading(false); }
     };
@@ -217,6 +220,21 @@ export default function AttendancePage() {
         <h1 className="text-3xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Attendance</h1>
         <p className="text-slate-500 mt-1 text-sm">Student attendance tracking — upload files in <strong>Settings → Imports</strong></p>
       </div>
+
+      {/* No calendar configured banner */}
+      {schoolDaysCount === 0 && (
+        <div className="flex items-start gap-3 mb-5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm" data-testid="no-calendar-banner">
+          <Info size={16} className="text-amber-500 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <span className="font-semibold text-amber-800">Calendar not configured</span>
+            <span className="text-amber-700"> — attendance percentages are approximate (using uploaded attendance dates as school days). </span>
+            <a href="/settings" className="font-semibold text-amber-800 underline underline-offset-2 hover:text-amber-900">
+              Set up Terms in Settings → Calendar
+            </a>
+            <span className="text-amber-700"> for exact calculations.</span>
+          </div>
+        </div>
+      )}
 
       {/* Period filter row */}
       <div className="flex flex-wrap items-center gap-2 mb-6" data-testid="period-filter-row">
