@@ -9,9 +9,11 @@ load_dotenv(Path(__file__).parent / '.env')
 
 from fastapi import FastAPI
 from fastapi.routing import APIRouter
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 import os, logging
+from pathlib import Path
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -49,6 +51,11 @@ api_router.include_router(reports_router)
 api_router.include_router(backups_router)
 
 app.include_router(api_router)
+
+# Serve student photos as static files under /api/student-photos/
+_photos_dir = Path("/app/uploads/student_photos")
+_photos_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/api/student-photos", StaticFiles(directory=str(_photos_dir)), name="student_photos")
 
 # Logging
 logging.basicConfig(level=logging.INFO,

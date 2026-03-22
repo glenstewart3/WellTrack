@@ -1398,8 +1398,12 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
   const [attFile, setAttFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [attResult, setAttResult] = useState(null);
+  const [photoZip, setPhotoZip] = useState(null);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [photoResult, setPhotoResult] = useState(null);
   const importRef = useRef(null);
   const attRef = useRef(null);
+  const photoRef = useRef(null);
 
   const parseAndImport = async () => {
     if (!importFile) return;
@@ -1451,6 +1455,30 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
       setMsg(e.response?.data?.detail || 'Upload failed');
       setTimeout(() => setMsg(''), 5000);
     } finally { setUploading(false); }
+  };
+
+  const uploadPhotos = async () => {
+    if (!photoZip) return;
+    setUploadingPhotos(true);
+    setPhotoResult(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', photoZip);
+      const res = await axios.post(`${API}/students/upload-photos`, fd, {
+        withCredentials: true,
+        onUploadProgress: () => {},
+      });
+      setPhotoResult(res.data);
+      setPhotoZip(null);
+      if (photoRef.current) photoRef.current.value = '';
+      setMsgType('success');
+      setMsg(`Photos uploaded: ${res.data.matched} matched · ${res.data.unmatched} unmatched`);
+      setTimeout(() => setMsg(''), 8000);
+    } catch (e) {
+      setMsgType('error');
+      setMsg(e.response?.data?.detail || 'Photo upload failed');
+      setTimeout(() => setMsg(''), 5000);
+    } finally { setUploadingPhotos(false); }
   };
 
   return (
@@ -1519,6 +1547,66 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
                 <p className="text-amber-800 font-semibold">⚠ {attResult.unmatched_students} student ID{attResult.unmatched_students !== 1 ? 's' : ''} in the file had no match in the student database:</p>
                 <p className="text-amber-700 font-mono break-all">{attResult.unmatched_ids?.join(', ')}</p>
                 <p className="text-amber-600">Go to <strong>Import Students</strong> above and ensure these SussiId values are present.</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Student Photos Upload */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <div className="flex items-start gap-3 mb-3">
+          <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+            <Image size={15} className="text-indigo-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Upload Student Photos</h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Upload a ZIP file containing student photos. Photos are matched by filename using the format{' '}
+              <code className="bg-slate-100 px-1 rounded">LastName, FirstName.jpg</code>.
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Photos can be organised into class/year folders inside the ZIP — folder names are ignored. Any <strong>Staff</strong> folder is automatically skipped.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <input ref={photoRef} type="file" accept=".zip" className="hidden"
+            onChange={e => { setPhotoZip(e.target.files?.[0] || null); setPhotoResult(null); }}
+            data-testid="photo-zip-input" />
+          <button onClick={() => photoRef.current?.click()}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">
+            <FileUp size={14} /> {photoZip ? photoZip.name : 'Choose ZIP file'}
+          </button>
+          {photoZip && (
+            <button onClick={uploadPhotos} disabled={uploadingPhotos} data-testid="upload-photos-btn"
+              className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity"
+              style={{ backgroundColor: 'var(--wt-accent)' }}>
+              {uploadingPhotos ? <Loader size={14} className="animate-spin" /> : <Upload size={14} />}
+              {uploadingPhotos ? 'Uploading…' : 'Upload Photos'}
+            </button>
+          )}
+        </div>
+        {uploadingPhotos && (
+          <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+            <Loader size={13} className="animate-spin text-indigo-500" />
+            Processing ZIP — this may take a moment for large files…
+          </div>
+        )}
+        {photoResult && (
+          <div className="mt-3 p-3 bg-slate-50 rounded-xl text-xs text-slate-600 space-y-2" data-testid="photo-upload-result">
+            <div className="flex items-center gap-4 flex-wrap">
+              <span className="text-emerald-700 font-semibold">{photoResult.matched} matched</span>
+              {photoResult.unmatched > 0 && <span className="text-amber-700 font-semibold">{photoResult.unmatched} unmatched</span>}
+              {photoResult.skipped_staff > 0 && <span className="text-slate-500">{photoResult.skipped_staff} staff skipped</span>}
+            </div>
+            {photoResult.unmatched_names?.length > 0 && (
+              <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg space-y-1">
+                <p className="text-amber-800 font-semibold">Unmatched filenames (no student found):</p>
+                <ul className="text-amber-700 space-y-0.5 max-h-36 overflow-y-auto">
+                  {photoResult.unmatched_names.map((n, i) => <li key={i} className="font-mono">{n}</li>)}
+                </ul>
+                <p className="text-amber-600">Check that student names in the DB match the filename exactly (case-insensitive).</p>
               </div>
             )}
           </div>

@@ -1,12 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from typing import Optional
-import uuid
+import uuid, zipfile, io, re
+from pathlib import Path
+from PIL import Image
 
 from database import db
 import asyncio
 from helpers import get_current_user, get_student_attendance_pct, compute_mtss_tier, \
     get_bulk_attendance_stats, get_latest_saebrs_bulk, get_latest_saebrs_plus_bulk
 from models import Student
+
+PHOTOS_DIR = Path("/app/uploads/student_photos")
+PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
 
 router = APIRouter()
 
@@ -227,3 +232,89 @@ async def update_student(student_id: str, data: dict, user=Depends(get_current_u
         raise HTTPException(404, "Student not found")
     updated = await db.students.find_one({"student_id": student_id}, {"_id": 0})
     return updated
+
+
+@router.post("/students/upload-photos")
+async def upload_student_photos(file: UploadFile = File(...), user=Depends(get_current_user)):
+    if user.get("role") not in ["admin", "leadership"]:
+        raise HTTPException(403, "Access denied")
+
+    fname_lower = (file.filename or "").lower()
+    if not fname_lower.endswith(".zip"):
+        raise HTTPException(400, "Please upload a ZIP file")
+
+    content = await file.read()
+
+    matched, unmatched, skipped_staff = [], [], []
+
+    with zipfile.ZipFile(io.BytesIO(content)) as zf:
+        for info in zf.infolist():
+            if info.is_dir():
+                continue
+
+            path_parts = Path(info.filename).parts
+            # Skip anything inside a Staff folder
+            if any(p.lower().startswith("staff") for p in path_parts):
+                skipped_staff.append(info.filename)
+                continue
+
+            stem_raw = Path(info.filename).stem
+            ext = Path(info.filename).suffix.lower()
+            if ext not in (".jpg", ".jpeg", ".png"):
+                continue
+
+            # Trim trailing/leading spaces from the full stem
+            stem = stem_raw.strip()
+
+            if "," not in stem:
+                unmatched.append(stem_raw)
+                continue
+
+            # Split on first comma only — handles "Van Den Breul, Emma"
+            last_raw, first_raw = stem.split(",", 1)
+            last_name = last_raw.strip()
+            first_name = first_raw.strip()
+
+            if not last_name or not first_name:
+                unmatched.append(stem_raw)
+                continue
+
+            # Strict case-insensitive exact match
+            student = await db.students.find_one(
+                {
+                    "last_name": re.compile(f"^{re.escape(last_name)}$", re.IGNORECASE),
+                    "first_name": re.compile(f"^{re.escape(first_name)}$", re.IGNORECASE),
+                    "enrolment_status": "active",
+                },
+                {"_id": 0, "student_id": 1},
+            )
+
+            if not student:
+                unmatched.append(f"{last_name}, {first_name}")
+                continue
+
+            student_id = student["student_id"]
+            save_ext = ".jpg" if ext in (".jpg", ".jpeg") else ".png"
+            photo_filename = f"{student_id}{save_ext}"
+            photo_path = PHOTOS_DIR / photo_filename
+
+            # Resize and save via Pillow (max 400×400, JPEG quality 82)
+            with zf.open(info) as img_bytes:
+                img = Image.open(img_bytes)
+                img = img.convert("RGB")
+                img.thumbnail((400, 400), Image.LANCZOS)
+                img.save(str(photo_path), "JPEG", quality=82, optimize=True)
+
+            photo_url = f"/api/student-photos/{photo_filename}"
+            await db.students.update_one(
+                {"student_id": student_id},
+                {"$set": {"photo_url": photo_url}},
+            )
+            matched.append(f"{last_name}, {first_name}")
+
+    return {
+        "matched": len(matched),
+        "unmatched": len(unmatched),
+        "skipped_staff": len(skipped_staff),
+        "unmatched_names": unmatched[:100],
+    }

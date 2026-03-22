@@ -600,8 +600,11 @@ export default function StudentsPage() {
                       )}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center shrink-0">
-                            <span className="text-xs font-semibold text-slate-600">{s.first_name[0]}{s.last_name[0]}</span>
+                          <div className="w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center shrink-0 overflow-hidden">
+                            {s.photo_url
+                              ? <img src={`${process.env.REACT_APP_BACKEND_URL}${s.photo_url}`} alt="" className="w-full h-full object-cover" />
+                              : <span className="text-xs font-semibold text-slate-600">{s.first_name[0]}{s.last_name[0]}</span>
+                            }
                           </div>
                           <span className="font-medium text-slate-900 text-xs sm:text-sm leading-tight">
                             {s.first_name}{s.preferred_name && s.preferred_name !== s.first_name ? ` (${s.preferred_name})` : ''} {s.last_name}
