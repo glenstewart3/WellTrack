@@ -50,6 +50,21 @@ async def wipe_data(user=Depends(get_current_user)):
     return {"message": "All data wiped"}
 
 
+@router.delete("/settings/data/students")
+async def delete_student_data(user=Depends(get_current_user)):
+    for col in ["students", "screening_sessions", "saebrs_results", "saebrs_plus_results",
+                "interventions", "case_notes", "alerts"]:
+        await db[col].delete_many({})
+    return {"message": "Student data deleted"}
+
+
+@router.delete("/settings/data/attendance")
+async def delete_attendance_data(user=Depends(get_current_user)):
+    for col in ["attendance_records", "attendance"]:
+        await db[col].delete_many({})
+    return {"message": "Attendance data deleted"}
+
+
 @router.post("/settings/seed")
 async def seed_data_endpoint(data: dict = None, user=Depends(get_current_user)):
     from seed import seed_database

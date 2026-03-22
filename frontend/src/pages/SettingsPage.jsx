@@ -25,18 +25,32 @@ const PRESET_COLOURS = ['#0f172a','#1e40af','#065f46','#7c2d12','#4a044e','#0c4a
 
 const FIELD_TYPES = ['text', 'select', 'boolean', 'number'];
 
-function TabNav({ tabs, active, onChange }) {
+const TAB_CONFIG = [
+  { key: 'General',          icon: Settings },
+  { key: 'Branding',         icon: Palette },
+  { key: 'MTSS & Screening', icon: Sliders },
+  { key: 'Student Data',     icon: User },
+  { key: 'Calendar',         icon: CalendarDays },
+  { key: 'Imports',          icon: FileUp },
+  { key: 'Integrations',     icon: Wifi },
+  { key: 'Data',             icon: Database },
+];
+
+function TabNav({ active, onChange }) {
   return (
-    <div className="flex border-b border-slate-200 mb-6 gap-0 flex-wrap">
-      {tabs.map(t => (
+    <div className="flex flex-wrap gap-1 mb-8 p-1.5 bg-slate-100 rounded-2xl">
+      {TAB_CONFIG.map(({ key, icon: Icon }) => (
         <button
-          key={t}
-          onClick={() => onChange(t)}
-          className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px ${
-            active === t ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-700'
+          key={key}
+          onClick={() => onChange(key)}
+          className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl transition-all whitespace-nowrap ${
+            active === key
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700 hover:bg-white/60'
           }`}
         >
-          {t}
+          <Icon size={13} />
+          {key}
         </button>
       ))}
     </div>
@@ -689,6 +703,9 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
   const [wiping, setWiping] = useState(false);
   const [showWipeConfirm, setShowWipeConfirm] = useState(false);
   const [wipeInput, setWipeInput] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null); // 'students' | 'attendance'
+  const [deleteInput, setDeleteInput] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const [csvLoading, setCsvLoading] = useState({});
   const [backups, setBackups] = useState([]);
   const [backupsLoading, setBackupsLoading] = useState(true);
@@ -793,6 +810,17 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
       setShowWipeConfirm(false); setWipeInput('');
       setMsgType('success'); setMsg('All data wiped'); setTimeout(() => setMsg(''), 4000);
     } catch (e) { console.error(e); } finally { setWiping(false); }
+  };
+
+  const deleteTargetData = async () => {
+    if (deleteInput !== 'DELETE' || !deleteTarget) return;
+    setDeleting(true);
+    try {
+      await axios.delete(`${API}/settings/data/${deleteTarget}`, { withCredentials: true });
+      setDeleteTarget(null); setDeleteInput('');
+      const label = deleteTarget === 'students' ? 'Student data' : 'Attendance data';
+      setMsgType('success'); setMsg(`${label} deleted`); setTimeout(() => setMsg(''), 4000);
+    } catch (e) { console.error(e); } finally { setDeleting(false); }
   };
 
   return (
@@ -933,6 +961,34 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
         </div>
       )}
 
+      {/* Targeted delete options */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5">
+        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Delete Specific Data</h3>
+        <p className="text-xs text-slate-400 mb-4">Remove a specific category of data without affecting everything else.</p>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between p-3 bg-rose-50 rounded-xl border border-rose-100">
+            <div>
+              <p className="text-sm font-semibold text-rose-700">Delete Student Data</p>
+              <p className="text-xs text-rose-400 mt-0.5">Removes all students, screenings, interventions, case notes and alerts</p>
+            </div>
+            <button onClick={() => { setDeleteTarget('students'); setDeleteInput(''); }} data-testid="delete-students-btn"
+              className="flex items-center gap-2 px-3 py-2 bg-rose-600 text-white rounded-lg text-sm font-medium hover:bg-rose-700 transition-colors shrink-0 ml-4">
+              <Trash2 size={13} /> Delete Students
+            </button>
+          </div>
+          <div className="flex items-center justify-between p-3 bg-rose-50 rounded-xl border border-rose-100">
+            <div>
+              <p className="text-sm font-semibold text-rose-700">Delete Attendance Data</p>
+              <p className="text-xs text-rose-400 mt-0.5">Removes all uploaded absence records (calendar terms are kept)</p>
+            </div>
+            <button onClick={() => { setDeleteTarget('attendance'); setDeleteInput(''); }} data-testid="delete-attendance-btn"
+              className="flex items-center gap-2 px-3 py-2 bg-rose-600 text-white rounded-lg text-sm font-medium hover:bg-rose-700 transition-colors shrink-0 ml-4">
+              <Trash2 size={13} /> Delete Attendance
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between p-4 bg-rose-50 rounded-xl border border-rose-100">
         <div>
           <p className="text-sm font-semibold text-rose-700">Delete All Data</p>
@@ -943,6 +999,38 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
           <Trash2 size={14} /> Wipe All Data
         </button>
       </div>
+
+      {/* Targeted delete confirmation modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-rose-100 rounded-xl flex items-center justify-center"><AlertTriangle size={18} className="text-rose-600" /></div>
+              <h3 className="font-bold text-slate-900">
+                Delete {deleteTarget === 'students' ? 'Student' : 'Attendance'} Data?
+              </h3>
+            </div>
+            <p className="text-sm text-slate-600 mb-4">
+              {deleteTarget === 'students'
+                ? 'This will permanently delete all students, screenings, interventions, case notes, and alerts.'
+                : 'This will permanently delete all uploaded attendance records. Calendar terms and school days are kept.'}
+              {' '}Type <strong>DELETE</strong> to confirm.
+            </p>
+            <input value={deleteInput} onChange={e => setDeleteInput(e.target.value)} placeholder="Type DELETE"
+              data-testid="delete-target-confirm-input"
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm mb-4 focus:outline-none" />
+            <div className="flex gap-2">
+              <button onClick={deleteTargetData} disabled={deleteInput !== 'DELETE' || deleting}
+                data-testid="confirm-delete-target-btn"
+                className="flex-1 bg-rose-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-rose-700 disabled:opacity-50 transition-colors">
+                {deleting ? 'Deleting…' : 'Confirm Delete'}
+              </button>
+              <button onClick={() => { setDeleteTarget(null); setDeleteInput(''); }}
+                className="flex-1 bg-slate-100 text-slate-700 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-200 transition-colors">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showWipeConfirm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -1575,7 +1663,6 @@ export default function SettingsPage() {
       </div>
 
       <TabNav
-        tabs={['General', 'Branding', 'MTSS & Screening', 'Student Data', 'Calendar', 'Imports', 'Integrations', 'Data']}
         active={activeTab}
         onChange={setActiveTab}
       />
