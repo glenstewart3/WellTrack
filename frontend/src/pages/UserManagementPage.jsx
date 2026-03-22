@@ -8,6 +8,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const ROLE_OPTIONS = [
   { value: 'teacher', label: 'Teacher', color: 'bg-blue-100 text-blue-700' },
+  { value: 'screener', label: 'Screener', color: 'bg-indigo-100 text-indigo-700' },
   { value: 'wellbeing', label: 'Wellbeing Staff', color: 'bg-purple-100 text-purple-700' },
   { value: 'leadership', label: 'Leadership', color: 'bg-emerald-100 text-emerald-700' },
   { value: 'admin', label: 'Administrator', color: 'bg-slate-900 text-white' },

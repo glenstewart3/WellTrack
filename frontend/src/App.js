@@ -39,20 +39,26 @@ function ProtectedRoute() {
   const location = useLocation();
   if (loading) return <Spinner />;
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
+  // Screeners can only access /screening
+  if (user.role === 'screener' && !location.pathname.startsWith('/screening')) {
+    return <Navigate to="/screening" replace />;
+  }
   return <DashboardLayout />;
 }
 
 function AppRouter() {
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, user } = useAuth();
   const [onboardingDone, setOnboardingDone] = useState(null);
 
   useEffect(() => {
     axios.get(`${API}/onboarding/status`)
       .then(r => setOnboardingDone(r.data.complete))
-      .catch(() => setOnboardingDone(false)); // fail-safe: show onboarding if API unreachable
+      .catch(() => setOnboardingDone(false));
   }, []);
 
   if (authLoading || onboardingDone === null) return <Spinner />;
+
+  const defaultPath = user?.role === 'screener' ? '/screening' : '/dashboard';
 
   // Gate all navigation behind onboarding
   if (!onboardingDone) {
@@ -70,7 +76,7 @@ function AppRouter() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/" element={<ProtectedRoute />}>
-        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route index element={<Navigate to={defaultPath} replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="screening" element={<ScreeningPage />} />
         <Route path="students" element={<StudentsPage />} />

@@ -69,6 +69,7 @@ export default function DashboardLayout() {
         <div className="space-y-0.5">
           {navItems.filter(item => {
             if (item.adminOnly && user?.role !== 'admin') return false;
+            if (user?.role === 'screener') return item.path === '/screening';
             if (item.roles && !item.roles.includes(user?.role)) return false;
             return true;
           }).map(({ path, icon: Icon, label }) => (
