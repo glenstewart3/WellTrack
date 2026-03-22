@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, getRiskColors } from '../utils/tierUtils';
-import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight, UserPlus, Archive, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight, UserPlus, Archive, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -252,6 +252,7 @@ export default function StudentsPage() {
   const [editForm, setEditForm] = useState({});
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
+  const [removingPhoto, setRemovingPhoto] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkEditMode, setBulkEditMode] = useState(false);
   const [archiving, setArchiving] = useState(false);
@@ -347,6 +348,17 @@ export default function StudentsPage() {
       loadStudents();
     } catch (e) { setEditError(e.response?.data?.detail || 'Update failed'); }
     finally { setEditSaving(false); }
+  };
+
+  const removePhoto = async () => {
+    if (!editStudent?.student_id) return;
+    setRemovingPhoto(true);
+    try {
+      await axios.delete(`${API}/students/${editStudent.student_id}/photo`, { withCredentials: true });
+      setEditStudent(prev => ({ ...prev, photo_url: null }));
+      loadStudents();
+    } catch (e) { setEditError(e.response?.data?.detail || 'Failed to remove photo'); }
+    finally { setRemovingPhoto(false); }
   };
 
   const toggleSelect = (id, e) => {
@@ -663,6 +675,27 @@ export default function StudentsPage() {
               <button onClick={() => setEditStudent(null)}><X size={18} className="text-slate-400" /></button>
             </div>
             {editError && <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl px-4 py-3 mb-4">{editError}</div>}
+            {/* Photo preview + remove */}
+            <div className="flex items-center gap-4 mb-4 p-3 bg-slate-50 rounded-xl">
+              <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-200 flex items-center justify-center shrink-0">
+                {editStudent?.photo_url
+                  ? <img src={`${process.env.REACT_APP_BACKEND_URL}${editStudent.photo_url}`} alt="" className="w-full h-full object-cover" data-testid="edit-modal-photo" />
+                  : <span className="text-lg font-bold text-slate-500">{editForm.first_name?.[0]}{editForm.last_name?.[0]}</span>
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-700 truncate">{editForm.first_name} {editForm.last_name}</p>
+                {editStudent?.photo_url ? (
+                  <button onClick={removePhoto} disabled={removingPhoto} data-testid="remove-photo-btn"
+                    className="mt-1 flex items-center gap-1.5 text-xs text-rose-600 hover:text-rose-700 font-medium disabled:opacity-50 transition-colors">
+                    {removingPhoto ? <Loader size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                    {removingPhoto ? 'Removing…' : 'Remove photo'}
+                  </button>
+                ) : (
+                  <p className="text-xs text-slate-400 mt-0.5">No photo — upload via Settings → Imports</p>
+                )}
+              </div>
+            </div>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>

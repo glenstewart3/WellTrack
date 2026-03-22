@@ -234,6 +234,22 @@ async def update_student(student_id: str, data: dict, user=Depends(get_current_u
     return updated
 
 
+@router.delete("/students/{student_id}/photo")
+async def remove_student_photo(student_id: str, user=Depends(get_current_user)):
+    if user.get("role") not in ["admin", "leadership"]:
+        raise HTTPException(403, "Access denied")
+    student = await db.students.find_one({"student_id": student_id}, {"_id": 0, "student_id": 1, "photo_url": 1})
+    if student is None:
+        raise HTTPException(404, "Student not found")
+    photo_url = student.get("photo_url")
+    if photo_url:
+        photo_path = PHOTOS_DIR / Path(photo_url).name
+        if photo_path.exists():
+            photo_path.unlink()
+    await db.students.update_one({"student_id": student_id}, {"$unset": {"photo_url": ""}})
+    return {"message": "Photo removed"}
+
+
 @router.post("/students/upload-photos")
 async def upload_student_photos(file: UploadFile = File(...), user=Depends(get_current_user)):
     if user.get("role") not in ["admin", "leadership"]:
