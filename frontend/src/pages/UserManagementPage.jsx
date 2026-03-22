@@ -142,100 +142,150 @@ export default function UserManagementPage() {
         </div>
       </div>
 
-      {/* Users Table */}
+      {/* Users List */}
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         {loading ? (
           <div className="p-8 space-y-3">{[1,2,3,4].map(i => <div key={i} className="h-14 bg-slate-100 rounded animate-pulse" />)}</div>
         ) : users.length === 0 ? (
           <div className="p-16 text-center text-slate-400">No users registered yet</div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                {['User', 'Email', 'Role', 'Added', 'Actions'].map(h => (
-                  <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {users.map(u => (
-                <tr key={u.user_id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors" data-testid={`user-row-${u.user_id}`}>
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center gap-3">
-                      {u.picture ? (
-                        <img src={u.picture} alt={u.name} className="w-7 h-7 rounded-full object-cover" />
+          <>
+            {/* Desktop table */}
+            <table className="w-full text-sm hidden sm:table">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  {['User', 'Email', 'Role', 'Added', 'Actions'].map(h => (
+                    <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(u => (
+                  <tr key={u.user_id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors" data-testid={`user-row-${u.user_id}`}>
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-3">
+                        {u.picture ? (
+                          <img src={u.picture} alt={u.name} className="w-7 h-7 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-7 h-7 bg-slate-200 rounded-full flex items-center justify-center">
+                            <span className="text-xs font-semibold text-slate-600">{(u.name || u.email)[0]?.toUpperCase()}</span>
+                          </div>
+                        )}
+                        <span className="font-medium text-slate-900">{u.name || '—'}</span>
+                        {u.user_id === user?.user_id && (
+                          <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-medium">You</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-500">
+                      <div className="flex items-center gap-1.5">
+                        <Mail size={12} className="text-slate-400 shrink-0" />
+                        {u.email}
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      {editUser === u.user_id ? (
+                        <div className="flex items-center gap-2">
+                          <select defaultValue={u.role} onChange={e => updateRole(u.user_id, e.target.value)}
+                            data-testid={`role-select-${u.user_id}`}
+                            className="px-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none bg-white">
+                            {ROLE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                          </select>
+                          <button onClick={() => setEditUser(null)} className="text-slate-400 hover:text-slate-600"><X size={14} /></button>
+                        </div>
                       ) : (
-                        <div className="w-7 h-7 bg-slate-200 rounded-full flex items-center justify-center">
-                          <span className="text-xs font-semibold text-slate-600">{(u.name || u.email)[0]?.toUpperCase()}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${getRoleBadge(u.role)}`}>
+                            {ROLE_OPTIONS.find(r => r.value === u.role)?.label || u.role}
+                          </span>
+                          <button onClick={() => setEditUser(u.user_id)} className="text-slate-300 hover:text-slate-600 transition-colors" title="Edit role">
+                            <Edit2 size={13} />
+                          </button>
                         </div>
                       )}
-                      <span className="font-medium text-slate-900">{u.name || '—'}</span>
-                      {u.user_id === user?.user_id && (
-                        <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-medium">You</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-400 text-xs">{u.created_at?.split('T')[0] || '—'}</td>
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => { setSetPasswordUser(u); setPasswordForm({ password: '', confirm: '' }); setShowPw(false); }}
+                          data-testid={`set-password-${u.user_id}`}
+                          className="p-1.5 text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors" title="Set password">
+                          <KeyRound size={14} />
+                        </button>
+                        {u.user_id !== user?.user_id && (
+                          <button onClick={() => setDeleteConfirm(u)} data-testid={`delete-user-${u.user_id}`}
+                            className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="Remove user">
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Mobile card list */}
+            <div className="sm:hidden divide-y divide-slate-50">
+              {users.map(u => (
+                <div key={u.user_id} className="p-4" data-testid={`user-row-${u.user_id}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {u.picture ? (
+                        <img src={u.picture} alt={u.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
+                      ) : (
+                        <div className="w-9 h-9 bg-slate-200 rounded-full flex items-center justify-center shrink-0">
+                          <span className="text-sm font-semibold text-slate-600">{(u.name || u.email)[0]?.toUpperCase()}</span>
+                        </div>
                       )}
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 text-slate-500">
-                    <div className="flex items-center gap-1.5">
-                      <Mail size={12} className="text-slate-400 shrink-0" />
-                      {u.email}
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    {editUser === u.user_id ? (
-                      <div className="flex items-center gap-2">
-                        <select
-                          defaultValue={u.role}
-                          onChange={e => updateRole(u.user_id, e.target.value)}
-                          data-testid={`role-select-${u.user_id}`}
-                          className="px-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none bg-white"
-                        >
-                          {ROLE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                        </select>
-                        <button onClick={() => setEditUser(null)} className="text-slate-400 hover:text-slate-600">
-                          <X size={14} />
-                        </button>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-slate-900 text-sm">{u.name || '—'}</span>
+                          {u.user_id === user?.user_id && (
+                            <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-medium">You</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 truncate mt-0.5">{u.email}</p>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          {editUser === u.user_id ? (
+                            <div className="flex items-center gap-2">
+                              <select defaultValue={u.role} onChange={e => updateRole(u.user_id, e.target.value)}
+                                className="px-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none bg-white">
+                                {ROLE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                              </select>
+                              <button onClick={() => setEditUser(null)} className="text-slate-400"><X size={13} /></button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getRoleBadge(u.role)}`}>
+                                {ROLE_OPTIONS.find(r => r.value === u.role)?.label || u.role}
+                              </span>
+                              <button onClick={() => setEditUser(u.user_id)} className="text-slate-300 hover:text-slate-600">
+                                <Edit2 size={12} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${getRoleBadge(u.role)}`}>
-                          {ROLE_OPTIONS.find(r => r.value === u.role)?.label || u.role}
-                        </span>
-                        <button onClick={() => setEditUser(u.user_id)} className="text-slate-300 hover:text-slate-600 transition-colors" title="Edit role">
-                          <Edit2 size={13} />
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-4 text-slate-400 text-xs">
-                    {u.created_at?.split('T')[0] || '—'}
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => { setSetPasswordUser(u); setPasswordForm({ password: '', confirm: '' }); setShowPw(false); }}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button onClick={() => { setSetPasswordUser(u); setPasswordForm({ password: '', confirm: '' }); setShowPw(false); }}
                         data-testid={`set-password-${u.user_id}`}
-                        className="p-1.5 text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
-                        title="Set password"
-                      >
-                        <KeyRound size={14} />
+                        className="p-2 text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors" title="Set password">
+                        <KeyRound size={15} />
                       </button>
                       {u.user_id !== user?.user_id && (
-                        <button
-                          onClick={() => setDeleteConfirm(u)}
-                          data-testid={`delete-user-${u.user_id}`}
-                          className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
-                          title="Remove user"
-                        >
-                          <Trash2 size={14} />
+                        <button onClick={() => setDeleteConfirm(u)} data-testid={`delete-user-${u.user_id}`}
+                          className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
+                          <Trash2 size={15} />
                         </button>
                       )}
                     </div>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 

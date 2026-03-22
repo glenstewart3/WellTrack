@@ -2,7 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from datetime import datetime, timezone, date as date_type, timedelta
 from typing import Optional
-import json, io, csv, uuid
+import json
+import io
+import csv
+import uuid
 
 from database import db, SETTINGS_DEFAULTS
 from helpers import get_current_user, get_student_attendance_pct
@@ -152,13 +155,19 @@ async def get_terms(year: Optional[int] = None, user=Depends(get_current_user)):
     all_terms = (s or {}).get("terms", [])
     non_school_days = (s or {}).get("non_school_days", [])
 
-    # Derive available years from stored terms
-    years_set = sorted({t["year"] for t in all_terms if t.get("year")}, reverse=True)
+    # Derive available years from stored terms + years with actual attendance data
+    term_years = {t["year"] for t in all_terms if t.get("year")}
+    # Also include years that have school_days (handles years configured but no saved terms doc)
+    sd_years = set(await db.school_days.distinct("year"))
+    # Also include years inferred from attendance_records dates
+    att_dates = await db.attendance_records.distinct("date")
+    att_years = {int(d[:4]) for d in att_dates if d and len(d) >= 4}
+    all_years = term_years | sd_years | att_years
+
     current_year = (s or {}).get("current_year")
-    # Ensure current_year always appears in the list
-    if current_year and current_year not in years_set:
-        years_set = sorted({current_year} | set(years_set), reverse=True)
-    available_years = years_set or [current_year or datetime.now(timezone.utc).year]
+    if current_year:
+        all_years.add(current_year)
+    available_years = sorted(all_years, reverse=True) or [current_year or datetime.now(timezone.utc).year]
 
     # Which year to return — explicit param > current_year > highest available
     active_year = year or current_year or (available_years[0] if available_years else None)

@@ -10,7 +10,11 @@ function TierBadge({ tier }) {
   const c = tier === 1
     ? 'bg-emerald-100 text-emerald-700'
     : tier === 2 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700';
-  return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${c}`}>Tier {tier}</span>;
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${c}`}>
+      Tier {tier}
+    </span>
+  );
 }
 
 function AttendancePctBar({ pct }) {
@@ -20,17 +24,15 @@ function AttendancePctBar({ pct }) {
       <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
         <div style={{ width: `${pct}%`, backgroundColor: color }} className="h-full rounded-full" />
       </div>
-      <span className="text-sm font-semibold" style={{ color, minWidth: 44 }}>{pct}%</span>
+      <span className="text-sm font-semibold shrink-0" style={{ color, minWidth: 44 }}>{pct}%</span>
     </div>
   );
 }
 
-// Build API query string from period filter values
 function buildQS(year, period, month, week, termsArr) {
   const today = new Date().toISOString().split('T')[0];
   const p = {};
   if (year) p.year = year;
-
   if (period === 'ytd') {
     p.to_date = today;
   } else if (period === 'full') {
@@ -91,7 +93,6 @@ export default function AttendancePage() {
   const [studentDetail, setStudentDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // Period filter state
   const [viewYear, setViewYear] = useState(null);
   const [availableYears, setAvailableYears] = useState([]);
   const [periodType, setPeriodType] = useState('ytd');
@@ -118,7 +119,6 @@ export default function AttendancePage() {
     } catch (e) { console.error(e); return []; }
   };
 
-  // Initial load — fetch years/terms first, then summary
   useEffect(() => {
     const init = async () => {
       try {
@@ -191,23 +191,25 @@ export default function AttendancePage() {
 
   const curLabel = getPeriodLabel(periodType, viewYear, filterMonth, filterWeek, terms);
 
-  const periodPills = [
-    { key: 'ytd', label: 'YTD' },
-    { key: 'full', label: 'Full Year' },
-    ...terms.map((t, i) => ({ key: `term${i + 1}`, label: t.name || `Term ${i + 1}` })),
-    { key: 'month', label: 'Month' },
-    { key: 'week', label: 'Week' },
+  // Period dropdown options
+  const periodOptions = [
+    { value: 'ytd', label: 'Year to Date' },
+    { value: 'full', label: 'Full Year' },
+    ...terms.map((t, i) => ({ value: `term${i + 1}`, label: t.name || `Term ${i + 1}` })),
+    { value: 'month', label: 'By Month…' },
+    { value: 'week', label: 'By Week…' },
   ];
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto fade-in">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto fade-in">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Attendance</h1>
-        <p className="text-slate-500 mt-1">Student attendance tracking — upload files in <strong>Settings → Imports</strong></p>
+        <p className="text-slate-500 mt-1 text-sm">Student attendance tracking — upload files in <strong>Settings → Imports</strong></p>
       </div>
 
       {/* Period filter row */}
       <div className="flex flex-wrap items-center gap-2 mb-6" data-testid="period-filter-row">
+        {/* Year pills */}
         {availableYears.length > 0 && (
           <div className="flex gap-1 p-1 bg-slate-100 rounded-xl" data-testid="year-selector">
             {availableYears.map(y => (
@@ -219,43 +221,48 @@ export default function AttendancePage() {
           </div>
         )}
 
-        <div className="flex gap-1 p-1 bg-slate-100 rounded-xl flex-wrap" data-testid="period-selector">
-          {periodPills.map(p => (
-            <button key={p.key} onClick={() => handlePeriodChange(p.key)} data-testid={`period-btn-${p.key}`}
-              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
-                periodType === p.key ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}>{p.label}</button>
+        {/* Period dropdown */}
+        <select
+          value={periodType}
+          onChange={e => handlePeriodChange(e.target.value)}
+          data-testid="period-dropdown"
+          className="px-3 py-2 border border-slate-200 bg-white rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 cursor-pointer"
+        >
+          {periodOptions.map(o => (
+            <option key={o.value} value={o.value}>{o.label}</option>
           ))}
-        </div>
+        </select>
 
+        {/* Month picker — shown after selecting month */}
         {periodType === 'month' && (
           <input type="month" value={filterMonth} onChange={e => handleMonthChange(e.target.value)}
             data-testid="month-picker"
             className="px-3 py-1.5 border border-slate-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
         )}
 
+        {/* Week picker — shown after selecting week */}
         {periodType === 'week' && (
           <input type="week" value={filterWeek} onChange={e => handleWeekChange(e.target.value)}
             data-testid="week-picker"
             className="px-3 py-1.5 border border-slate-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
         )}
 
-        <span className="text-xs text-slate-400 font-medium ml-1">{curLabel}</span>
+        <span className="text-xs text-slate-400 font-medium">{curLabel}</span>
       </div>
 
       {/* Summary tiles */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
           { label: 'Total Students', value: summary.length, sub: `with data: ${withData.length}`, icon: <Users size={18} />, color: 'text-slate-700' },
           { label: 'School Average', value: withData.length ? `${avgPct}%` : '—', sub: curLabel, icon: <CalendarDays size={18} />, color: 'text-slate-700' },
           { label: 'Tier 3 Concerns', value: concerns.length, sub: 'below 90%', icon: <TrendingDown size={18} />, color: 'text-rose-600' },
           { label: 'Tier 2 At Risk', value: atRisk.length, sub: '90–95%', icon: <AlertTriangle size={18} />, color: 'text-amber-600' },
         ].map(tile => (
-          <div key={tile.label} className="bg-white border border-slate-200 rounded-xl p-5">
+          <div key={tile.label} className="bg-white border border-slate-200 rounded-xl p-4">
             <div className={`${tile.color} mb-2`}>{tile.icon}</div>
             <p className={`text-2xl font-bold ${tile.color}`} style={{ fontFamily: 'Manrope,sans-serif' }}>{tile.value}</p>
             <p className="text-xs text-slate-400 mt-0.5">{tile.label}</p>
-            <p className="text-xs text-slate-300">{tile.sub}</p>
+            <p className="text-xs text-slate-300 hidden sm:block">{tile.sub}</p>
           </div>
         ))}
       </div>
@@ -264,7 +271,7 @@ export default function AttendancePage() {
       <div className="flex flex-wrap gap-3 mb-5">
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search student…"
           data-testid="search-input"
-          className="px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none flex-1 min-w-48" />
+          className="px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none flex-1 min-w-36" />
         <select value={filterTier} onChange={e => setFilterTier(e.target.value)}
           data-testid="tier-filter"
           className="px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none">
@@ -288,29 +295,35 @@ export default function AttendancePage() {
           <table className="w-full text-sm" data-testid="attendance-table">
             <thead>
               <tr className="border-b border-slate-100 text-left">
-                <th className="px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Student</th>
-                <th className="px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Class</th>
-                <th className="px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider w-48">Attendance Rate</th>
-                <th className="px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Absences</th>
-                <th className="px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tier</th>
+                <th className="px-4 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Student</th>
+                {/* Hide class on mobile */}
+                <th className="px-4 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Class</th>
+                <th className="px-4 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Rate</th>
+                {/* Hide absences on mobile */}
+                <th className="px-4 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Absent</th>
+                <th className="px-4 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tier</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {filtered.map(s => (
                 <tr key={s.student_id} onClick={() => viewStudent(s)}
                   className="hover:bg-slate-50 cursor-pointer transition-colors" data-testid={`student-row-${s.student_id}`}>
-                  <td className="px-5 py-3.5 font-medium text-slate-900">
-                    {s.first_name}{s.preferred_name && s.preferred_name !== s.first_name ? ` (${s.preferred_name})` : ''} {s.last_name}
+                  <td className="px-4 py-3 font-medium text-slate-900 max-w-[140px] sm:max-w-none">
+                    <div className="truncate">
+                      {s.first_name}{s.preferred_name && s.preferred_name !== s.first_name ? ` (${s.preferred_name})` : ''} {s.last_name}
+                    </div>
                   </td>
-                  <td className="px-5 py-3.5 text-slate-500">{s.class_name}</td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-4 py-3 text-slate-500 hidden sm:table-cell">{s.class_name}</td>
+                  <td className="px-4 py-3 min-w-[100px]">
                     {s.has_data ? <AttendancePctBar pct={s.attendance_pct} /> : <span className="text-slate-300 text-xs">No data</span>}
                   </td>
-                  <td className="px-5 py-3.5 text-slate-500">
+                  <td className="px-4 py-3 text-slate-500 hidden sm:table-cell">
                     {s.has_data ? (Number.isInteger(s.absent_days) ? s.absent_days : s.absent_days?.toFixed(1)) : '—'}
                   </td>
-                  <td className="px-5 py-3.5">
-                    {s.has_data && s.attendance_tier ? <TierBadge tier={s.attendance_tier} /> : <span className="text-slate-300 text-xs">—</span>}
+                  <td className="px-4 py-3">
+                    {s.has_data && s.attendance_tier
+                      ? <TierBadge tier={s.attendance_tier} />
+                      : <span className="text-slate-300 text-xs">—</span>}
                   </td>
                 </tr>
               ))}
@@ -349,7 +362,7 @@ export default function AttendancePage() {
                       <p className={`text-2xl font-bold ${studentDetail.attendance_pct < 90 ? 'text-rose-600' : studentDetail.attendance_pct < 95 ? 'text-amber-600' : 'text-emerald-600'}`}>
                         {studentDetail.attendance_pct}%
                       </p>
-                      <p className="text-xs text-slate-400 mt-0.5">Attendance ({curLabel})</p>
+                      <p className="text-xs text-slate-400 mt-0.5">Attendance</p>
                     </div>
                     <div className="bg-slate-50 rounded-xl p-4 text-center">
                       <p className="text-2xl font-bold text-slate-900">
@@ -363,17 +376,23 @@ export default function AttendancePage() {
                     </div>
                   </div>
 
-                  {studentDetail.monthly_trend?.length > 0 && (
+                  {/* Bi-weekly trend chart */}
+                  {studentDetail.biweekly_trend?.length > 1 && (
                     <div>
-                      <h4 className="text-sm font-semibold text-slate-700 mb-3">Monthly Attendance Trend</h4>
-                      <ResponsiveContainer width="100%" height={160}>
-                        <LineChart data={studentDetail.monthly_trend}>
-                          <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                          <YAxis domain={[60, 100]} tick={{ fontSize: 11 }} unit="%" />
-                          <Tooltip formatter={(v) => [`${v}%`, 'Attendance']} contentStyle={{ borderRadius: '0.5rem', fontSize: '12px' }} />
-                          <ReferenceLine y={95} stroke="#10b981" strokeDasharray="4 2" label={{ value: "Tier 1", position: "insideTopRight", fontSize: 9, fill: "#10b981" }} />
-                          <ReferenceLine y={90} stroke="#f59e0b" strokeDasharray="4 2" label={{ value: "Tier 2", position: "insideTopRight", fontSize: 9, fill: "#f59e0b" }} />
-                          <Line type="monotone" dataKey="attendance_pct" stroke="#0f172a" strokeWidth={2.5} dot={{ r: 4 }} />
+                      <h4 className="text-sm font-semibold text-slate-700 mb-3">Attendance Trend (2-week intervals)</h4>
+                      <ResponsiveContainer width="100%" height={180}>
+                        <LineChart data={studentDetail.biweekly_trend} margin={{ left: -10, right: 10 }}>
+                          <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+                          <YAxis domain={[70, 100]} tick={{ fontSize: 11 }} unit="%" tickCount={7} />
+                          <Tooltip
+                            formatter={(v) => [`${v}%`, 'Attendance']}
+                            contentStyle={{ borderRadius: '0.5rem', fontSize: '12px' }}
+                          />
+                          <ReferenceLine y={95} stroke="#10b981" strokeDasharray="4 2"
+                            label={{ value: "95%", position: "insideTopRight", fontSize: 9, fill: "#10b981" }} />
+                          <ReferenceLine y={90} stroke="#f59e0b" strokeDasharray="4 2"
+                            label={{ value: "90%", position: "insideTopRight", fontSize: 9, fill: "#f59e0b" }} />
+                          <Line type="monotone" dataKey="attendance_pct" stroke="#0f172a" strokeWidth={2.5} dot={{ r: 3 }} />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>

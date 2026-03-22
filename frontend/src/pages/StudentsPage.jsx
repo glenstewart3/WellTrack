@@ -644,7 +644,7 @@ export default function StudentsPage() {
                 <input value={editForm.teacher} onChange={e => setEditForm(p => ({...p, teacher: e.target.value}))}
                   className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-slate-500 block mb-1">Gender</label>
                   <select value={editForm.gender} onChange={e => setEditForm(p => ({...p, gender: e.target.value}))}

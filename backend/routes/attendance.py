@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import asyncio
 import uuid
 import io
@@ -12,6 +12,54 @@ from helpers import get_current_user, get_student_attendance_pct, get_student_at
     get_bulk_attendance_stats, compute_att_stats
 
 router = APIRouter()
+
+
+def _classify_status(status: str, excluded_types: set) -> str:
+    if not status:
+        return "present"
+    if status in excluded_types:
+        return "excluded"
+    if status == "Present" or status in FULL_PRESENT_STATUSES:
+        return "present"
+    return "absent"
+
+
+def _build_biweekly_trend(school_days_list: list, exc_by_date: dict, excluded_types: set) -> list:
+    """Aggregate attendance into 2-week buckets sorted by date."""
+    if not school_days_list:
+        return []
+    sorted_days = sorted(school_days_list)
+    start_dt = datetime.fromisoformat(sorted_days[0])
+    buckets: dict = {}
+    for day_str in sorted_days:
+        dt = datetime.fromisoformat(day_str)
+        delta_days = (dt - start_dt).days
+        bucket_idx = delta_days // 14
+        bucket_start = (start_dt + timedelta(days=bucket_idx * 14)).date().isoformat()
+        if bucket_start not in buckets:
+            buckets[bucket_start] = {"school_days": 0, "absent": 0.0}
+        rec = exc_by_date.get(day_str)
+        if rec:
+            am = (rec.get("am_status") or "").strip()
+            pm = (rec.get("pm_status") or "").strip()
+            am_cls = _classify_status(am, excluded_types)
+            pm_cls = _classify_status(pm, excluded_types)
+            if am_cls == "excluded" and pm_cls == "excluded":
+                continue
+            buckets[bucket_start]["school_days"] += 1
+            if am_cls == "absent" and pm_cls == "absent":
+                buckets[bucket_start]["absent"] += 1.0
+            elif am_cls == "absent" or pm_cls == "absent":
+                buckets[bucket_start]["absent"] += 0.5
+        else:
+            buckets[bucket_start]["school_days"] += 1
+    trend = []
+    for k, v in sorted(buckets.items()):
+        pct = round((v["school_days"] - v["absent"]) / v["school_days"] * 100, 1) if v["school_days"] > 0 else 100.0
+        dt = datetime.fromisoformat(k)
+        label = dt.strftime("%d %b").lstrip("0")
+        trend.append({"period": k, "attendance_pct": pct, "label": label})
+    return trend
 
 
 @router.post("/attendance/upload")
@@ -300,47 +348,10 @@ async def get_student_attendance_detail(
 
     exc_by_date = {r["date"]: r for r in records}
 
-    # Use the same logic as the summary list (term calendar as denominator)
     stats = compute_att_stats(school_days_list, exc_by_date, excluded_types)
     total_days = stats["total_days"]
     absent_days = stats["absent_days"]
     att_pct = stats["pct"]
-
-    def _classify(s: str) -> str:
-        if not s:
-            return "present"
-        if s in excluded_types:
-            return "excluded"
-        if s == "Present" or s in FULL_PRESENT_STATUSES:
-            return "present"
-        return "absent"
-
-    # Monthly trend — use school_days as denominator per month
-    monthly_data: dict = {}
-    for day in school_days_list:
-        month = day[:7]
-        if month not in monthly_data:
-            monthly_data[month] = {"school_days": 0, "absent": 0.0}
-        if day not in exc_by_date:
-            monthly_data[month]["school_days"] += 1
-        else:
-            rec = exc_by_date[day]
-            am_cls = _classify((rec.get("am_status") or "").strip())
-            pm_cls = _classify((rec.get("pm_status") or "").strip())
-            if am_cls == "excluded" and pm_cls == "excluded":
-                continue
-            monthly_data[month]["school_days"] += 1
-            if am_cls == "absent" and pm_cls == "absent":
-                monthly_data[month]["absent"] += 1.0
-            elif am_cls == "absent" or pm_cls == "absent":
-                monthly_data[month]["absent"] += 0.5
-
-    monthly_trend = [
-        {"month": k, "attendance_pct": round(
-            ((v["school_days"] - v["absent"]) / v["school_days"] * 100) if v["school_days"] > 0 else 100.0, 1
-        )}
-        for k, v in sorted(monthly_data.items())
-    ]
 
     # Absence type breakdown — count only absences on school days
     absence_types: dict = {}
@@ -350,8 +361,8 @@ async def get_student_attendance_detail(
             continue
         am = (rec.get("am_status") or "").strip()
         pm = (rec.get("pm_status") or "").strip()
-        am_cls = _classify(am)
-        pm_cls = _classify(pm)
+        am_cls = _classify_status(am, excluded_types)
+        pm_cls = _classify_status(pm, excluded_types)
         if am_cls == "absent" and pm_cls == "absent":
             if am == pm:
                 absence_types[am] = absence_types.get(am, 0) + 1.0
@@ -363,10 +374,12 @@ async def get_student_attendance_detail(
         elif pm_cls == "absent":
             absence_types[pm] = absence_types.get(pm, 0) + 0.5
 
+    biweekly_trend = _build_biweekly_trend(school_days_list, exc_by_date, excluded_types)
+
     return {
         "student_id": student_id, "attendance_pct": round(att_pct, 1),
         "total_days": total_days, "absent_days": absent_days,
-        "absence_types": absence_types, "monthly_trend": monthly_trend, "records": records[:300],
+        "absence_types": absence_types, "biweekly_trend": biweekly_trend, "records": records[:300],
     }
 
 
