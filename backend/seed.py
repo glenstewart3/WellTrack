@@ -23,6 +23,10 @@ async def seed_database(student_count: int = 32):
     # NOTE: school_name, school_type, current_term, current_year are NOT reset here
     # so that onboarding values are preserved when user chooses "Load Demo Data"
 
+    # Determine year to seed — use the school's configured current_year or today's year
+    settings_doc = await db.school_settings.find_one({}, {"_id": 0})
+    seed_year = (settings_doc or {}).get("current_year") or date_type.today().year
+
     rng = random.Random(42)
 
     classes_data = [
@@ -73,10 +77,10 @@ async def seed_database(student_count: int = 32):
     await db.students.insert_many(students)
 
     await db.screening_sessions.insert_many([
-        {"screening_id": "scr_term1_2025", "screening_period": "Term 1", "year": 2025,
-         "date": "2025-02-15", "teacher_id": "demo", "class_name": "all", "status": "completed"},
-        {"screening_id": "scr_term2_2025", "screening_period": "Term 2", "year": 2025,
-         "date": "2025-05-10", "teacher_id": "demo", "class_name": "all", "status": "completed"},
+        {"screening_id": f"scr_term1_{seed_year}", "screening_period": "Term 1", "year": seed_year,
+         "date": f"{seed_year}-02-15", "teacher_id": "demo", "class_name": "all", "status": "completed"},
+        {"screening_id": f"scr_term2_{seed_year}", "screening_period": "Term 2", "year": seed_year,
+         "date": f"{seed_year}-05-10", "teacher_id": "demo", "class_name": "all", "status": "completed"},
     ])
 
     def build_school_days(start_date, num_days):
@@ -88,8 +92,8 @@ async def seed_database(student_count: int = 32):
             d += timedelta(days=1)
         return days
 
-    term1_days = build_school_days(date_type(2025, 2, 3), 30)
-    term2_days = build_school_days(date_type(2025, 4, 28), 25)
+    term1_days = build_school_days(date_type(seed_year, 2, 3), 30)
+    term2_days = build_school_days(date_type(seed_year, 4, 28), 25)
     all_school_days = term1_days + term2_days
 
     low_s = [3, 3, 3, 2, 3, 3]; low_a = [3, 3, 2, 3, 2, 3]; low_e = [3, 3, 3, 3, 2, 3, 3]
@@ -187,12 +191,12 @@ async def seed_database(student_count: int = 32):
                     "wellbeing_total": total, "wellbeing_tier": compute_wellbeing_tier(total),
                     "created_at": ts}
 
-        s1 = make_saebrs(vary(s_t1), vary(a_t1), vary(e_t1), "scr_term1_2025", "2025-02-15T09:00:00")
-        s2 = make_saebrs(vary(s_t2, 2), vary(a_t2, 2), vary(e_t2, 2), "scr_term2_2025", "2025-05-10T09:00:00")
+        s1 = make_saebrs(vary(s_t1), vary(a_t1), vary(e_t1), f"scr_term1_{seed_year}", f"{seed_year}-02-15T09:00:00")
+        s2 = make_saebrs(vary(s_t2, 2), vary(a_t2, 2), vary(e_t2, 2), f"scr_term2_{seed_year}", f"{seed_year}-05-10T09:00:00")
         all_s1.append(s1); all_s2.append(s2)
 
-        p1 = make_plus(s1, vary(sr_t1), "scr_term1_2025", att_frac, "2025-02-15T10:00:00")
-        p2 = make_plus(s2, vary(sr_t2, 2), "scr_term2_2025", att_frac, "2025-05-10T10:00:00")
+        p1 = make_plus(s1, vary(sr_t1), f"scr_term1_{seed_year}", att_frac, f"{seed_year}-02-15T10:00:00")
+        p2 = make_plus(s2, vary(sr_t2, 2), f"scr_term2_{seed_year}", att_frac, f"{seed_year}-05-10T10:00:00")
         all_p1.append(p1); all_p2.append(p2)
 
         total_days = len(all_school_days)
@@ -232,7 +236,7 @@ async def seed_database(student_count: int = 32):
                 "student_name": display, "class_name": student["class_name"],
                 "type": "early_warning", "alert_type": "high_risk_saebrs", "severity": "high",
                 "message": f"{display} screened High Risk (SAEBRS: {s2['total_score']}/57)",
-                "created_at": "2025-05-10T09:30:00", "is_read": False, "resolved": False, "status": "pending"
+                "created_at": f"{seed_year}-05-10T09:30:00", "is_read": False, "resolved": False, "status": "pending"
             })
 
         if att_frac * 100 < 80:
@@ -241,7 +245,7 @@ async def seed_database(student_count: int = 32):
                 "student_name": display, "class_name": student["class_name"],
                 "type": "early_warning", "alert_type": "low_attendance_80", "severity": "high",
                 "message": f"{display} critically low attendance ({att_frac * 100:.0f}%)",
-                "created_at": "2025-05-01T08:00:00", "is_read": False, "resolved": False, "status": "pending"
+                "created_at": f"{seed_year}-05-01T08:00:00", "is_read": False, "resolved": False, "status": "pending"
             })
         elif att_frac * 100 < 90:
             all_alerts.append({
@@ -249,7 +253,7 @@ async def seed_database(student_count: int = 32):
                 "student_name": display, "class_name": student["class_name"],
                 "type": "early_warning", "alert_type": "low_attendance_90", "severity": "medium",
                 "message": f"{display} attendance below 90% ({att_frac * 100:.0f}%)",
-                "created_at": "2025-05-01T08:00:00", "is_read": False, "resolved": False, "status": "pending"
+                "created_at": f"{seed_year}-05-01T08:00:00", "is_read": False, "resolved": False, "status": "pending"
             })
 
         if prev_tier != final_tier:
@@ -260,7 +264,7 @@ async def seed_database(student_count: int = 32):
                 "from_tier": prev_tier, "to_tier": final_tier,
                 "severity": "high" if final_tier > prev_tier else "medium",
                 "message": f"{display} moved from Tier {prev_tier} to Tier {final_tier}",
-                "created_at": "2025-05-10T09:30:00", "is_read": False, "resolved": False, "status": "pending"
+                "created_at": f"{seed_year}-05-10T09:30:00", "is_read": False, "resolved": False, "status": "pending"
             })
 
         staff_options = ["Ms Parker (Wellbeing)", "Mr Lewis (Counsellor)", "Ms Ahmed (SENCO)", student["teacher"]]
@@ -271,57 +275,57 @@ async def seed_database(student_count: int = 32):
             all_int.append({
                 "intervention_id": f"int_{uuid.uuid4().hex[:8]}", "student_id": sid,
                 "intervention_type": rng.choice(int_types_t3), "assigned_staff": rng.choice(staff_options[:3]),
-                "start_date": "2025-04-28", "review_date": "2025-06-09", "status": "active",
+                "start_date": f"{seed_year}-04-28", "review_date": f"{seed_year}-06-09", "status": "active",
                 "goals": "Reduce risk indicators, build coping strategies and improve school connectedness.",
                 "progress_notes": "Initial engagement established. Student is attending sessions. Monitoring weekly progress.",
-                "frequency": "3x weekly", "outcome_rating": None, "created_at": "2025-04-28T09:00:00"
+                "frequency": "3x weekly", "outcome_rating": None, "created_at": f"{seed_year}-04-28T09:00:00"
             })
             all_int.append({
                 "intervention_id": f"int_{uuid.uuid4().hex[:8]}", "student_id": sid,
                 "intervention_type": rng.choice(int_types_t3), "assigned_staff": rng.choice(staff_options[:3]),
-                "start_date": "2025-02-03", "review_date": "2025-03-28", "status": "completed",
+                "start_date": f"{seed_year}-02-03", "review_date": f"{seed_year}-03-28", "status": "completed",
                 "goals": "Establish rapport and identify key risk factors.",
                 "progress_notes": "Completed 8-week programme. Student showed moderate improvement in social engagement.",
-                "frequency": "Weekly", "outcome_rating": rng.choice([3, 4, 4]), "created_at": "2025-02-03T09:00:00"
+                "frequency": "Weekly", "outcome_rating": rng.choice([3, 4, 4]), "created_at": f"{seed_year}-02-03T09:00:00"
             })
             for tmpl_idx, (ntype, ntext) in enumerate(case_note_templates.get(3, [])):
-                note_dates = ["2025-03-10", "2025-04-14", "2025-05-12"]
+                note_dates = [f"{seed_year}-03-10", f"{seed_year}-04-14", f"{seed_year}-05-12"]
                 all_notes.append({
                     "case_id": f"case_{uuid.uuid4().hex[:8]}", "student_id": sid,
                     "staff_member": rng.choice(["Ms Parker (Wellbeing)", student["teacher"], "Mr Lewis (Counsellor)"]),
                     "date": note_dates[tmpl_idx % len(note_dates)], "note_type": ntype, "notes": ntext,
-                    "created_at": f"2025-0{3 + tmpl_idx}-10T11:00:00"
+                    "created_at": f"{seed_year}-0{3 + tmpl_idx}-10T11:00:00"
                 })
 
         elif final_tier == 2:
             all_int.append({
                 "intervention_id": f"int_{uuid.uuid4().hex[:8]}", "student_id": sid,
                 "intervention_type": rng.choice(int_types_t2), "assigned_staff": rng.choice(staff_options),
-                "start_date": "2025-04-28", "review_date": "2025-06-09", "status": "active",
+                "start_date": f"{seed_year}-04-28", "review_date": f"{seed_year}-06-09", "status": "active",
                 "goals": "Monitor emerging risk factors and build protective factors through regular check-ins.",
                 "progress_notes": "Weekly check-ins established. Student is receptive to support.",
-                "frequency": "Weekly", "outcome_rating": None, "created_at": "2025-04-28T09:00:00"
+                "frequency": "Weekly", "outcome_rating": None, "created_at": f"{seed_year}-04-28T09:00:00"
             })
             if rng.random() < 0.5:
                 all_int.append({
                     "intervention_id": f"int_{uuid.uuid4().hex[:8]}", "student_id": sid,
                     "intervention_type": rng.choice(int_types_t2), "assigned_staff": rng.choice(staff_options),
-                    "start_date": "2025-02-17", "review_date": "2025-03-28", "status": "completed",
+                    "start_date": f"{seed_year}-02-17", "review_date": f"{seed_year}-03-28", "status": "completed",
                     "goals": "Early monitoring and prevention of further risk escalation.",
                     "progress_notes": "6-week monitoring programme complete. No escalation observed.",
-                    "frequency": "Fortnightly", "outcome_rating": rng.choice([3, 4, 5]), "created_at": "2025-02-17T09:00:00"
+                    "frequency": "Fortnightly", "outcome_rating": rng.choice([3, 4, 5]), "created_at": f"{seed_year}-02-17T09:00:00"
                 })
             for tmpl_idx, (ntype, ntext) in enumerate(case_note_templates.get(2, [])):
-                note_dates = ["2025-04-07", "2025-05-08"]
+                note_dates = [f"{seed_year}-04-07", f"{seed_year}-05-08"]
                 all_notes.append({
                     "case_id": f"case_{uuid.uuid4().hex[:8]}", "student_id": sid,
                     "staff_member": rng.choice([student["teacher"], "Ms Parker (Wellbeing)"]),
                     "date": note_dates[tmpl_idx % len(note_dates)], "note_type": ntype, "notes": ntext,
-                    "created_at": f"2025-0{4 + tmpl_idx}-07T09:30:00"
+                    "created_at": f"{seed_year}-0{4 + tmpl_idx}-07T09:30:00"
                 })
 
     # Insert demo school days by default; override with term-based days if terms are defined
-    await db.school_days.insert_many([{"date": d} for d in sorted(school_days_set)])
+    await db.school_days.insert_many([{"date": d, "year": seed_year} for d in sorted(school_days_set)])
     settings_doc = await db.school_settings.find_one({}, {"_id": 0})
     terms = (settings_doc or {}).get("terms", [])
     if terms:
@@ -342,7 +346,7 @@ async def seed_database(student_count: int = 32):
                 cur += _td(days=1)
         await db.school_days.delete_many({})
         if term_days:
-            await db.school_days.insert_many([{"date": d} for d in sorted(term_days)])
+            await db.school_days.insert_many([{"date": d, "year": seed_year} for d in sorted(term_days)])
 
     for col_data, col_name in [
         (all_s1 + all_s2, "saebrs_results"),

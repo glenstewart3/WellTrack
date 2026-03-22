@@ -761,7 +761,7 @@ function RoleSection() {
 // ── DATA TAB ──────────────────────────────────────────────────────────────────
 function DataTab({ msg, msgType, setMsg, setMsgType }) {
   const [seeding, setSeeding] = useState(false);
-  const [seedStudentCount, setSeedStudentCount] = useState(32);
+  const [seedStudentCount, setSeedStudentCount] = useState('32');
   const [exporting, setExporting] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [wiping, setWiping] = useState(false);
@@ -832,9 +832,11 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
   };
 
   const seedData = async () => {
+    const count = Math.max(8, Math.min(400, parseInt(seedStudentCount) || 32));
+    setSeedStudentCount(String(count));
     setSeeding(true);
     try {
-      const res = await axios.post(`${API}/settings/seed`, { student_count: seedStudentCount }, { withCredentials: true });
+      const res = await axios.post(`${API}/settings/seed`, { student_count: count }, { withCredentials: true });
       setMsgType('success'); setMsg(`Demo data loaded: ${res.data.students} students, ${res.data.interventions} interventions`);
       setTimeout(() => setMsg(''), 5000);
     } catch (e) { console.error(e); } finally { setSeeding(false); }
@@ -905,7 +907,11 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
           <div className="flex items-center gap-2">
             <input
               type="number" min="8" max="400" value={seedStudentCount}
-              onChange={e => setSeedStudentCount(Math.max(8, Math.min(400, parseInt(e.target.value) || 32)))}
+              onChange={e => setSeedStudentCount(e.target.value)}
+              onBlur={e => {
+                const v = Math.max(8, Math.min(400, parseInt(e.target.value) || 32));
+                setSeedStudentCount(String(v));
+              }}
               data-testid="seed-student-count-input"
               className="w-20 px-2 py-1.5 border border-slate-200 rounded-lg text-sm text-center font-medium bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/20"
               title="Number of demo students (8–400)"
