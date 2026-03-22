@@ -137,6 +137,8 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 - ✅ **User-specific themes** (Mar 2026) — 6 themes: Slate (default), Ocean, Forest, Warm, Dark, Midnight. Stored per-user in DB via `PUT /api/auth/preferences`. Applied via `data-theme` on `<html>`. Theme picker: 6 colored swatches in sidebar footer. Dark/Midnight: full dark mode. Light themes (Ocean/Forest/Warm): colored sidebar + tinted page background. Active nav color per theme.
 - ✅ **Screener user role** (Mar 2026) — New role restricted to Screening page only. Nav shows only Screening item. Route guard redirects any non-/screening URL to /screening. Lands on /screening on login. Indigo badge. Role selectable in User Management.
 
+|- ✅ **Student Photo Upload** (Mar 2026) — Bulk photo upload via ZIP. Filename format: `LastName, FirstName.jpg`. Staff folders auto-skipped. Strict case-insensitive exact name matching. Photos resized (max 400×400, JPEG q82) and saved to `/app/uploads/student_photos/{student_id}.jpg`. Served via FastAPI StaticFiles at `/api/student-photos/`. `photo_url` stored per student in DB. Avatars shown in Students list and Student Profile header; falls back to initials if no photo.
+
 ---
 
 ## Prioritized Backlog
