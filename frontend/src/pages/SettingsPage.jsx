@@ -1367,14 +1367,17 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
           )}
         </div>
         {attResult && (
-          <div className="mt-3 p-3 bg-slate-50 rounded-xl text-xs text-slate-600 space-y-1">
-            <p><strong>School days registered:</strong> {attResult.school_days_registered}</p>
-            <p><strong>Exception records:</strong> {attResult.processed} &nbsp; <strong>Students matched:</strong> {attResult.matched_students}</p>
+          <div className="mt-3 p-3 bg-slate-50 rounded-xl text-xs text-slate-600 space-y-1" data-testid="upload-att-result">
+            <p><strong>Exception records processed:</strong> {attResult.processed} &nbsp; <strong>Students matched:</strong> {attResult.matched_students}</p>
             {attResult.alerts_generated > 0 && (
               <p className="text-amber-700"><strong>{attResult.alerts_generated}</strong> attendance alert{attResult.alerts_generated !== 1 ? 's' : ''} auto-generated — check the Alerts page.</p>
             )}
             {attResult.unmatched_students > 0 && (
-              <p className="text-amber-600">⚠ {attResult.unmatched_students} student IDs not matched. Check SussiId values.</p>
+              <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-1">
+                <p className="text-amber-800 font-semibold">⚠ {attResult.unmatched_students} student ID{attResult.unmatched_students !== 1 ? 's' : ''} in the file had no match in the student database:</p>
+                <p className="text-amber-700 font-mono break-all">{attResult.unmatched_ids?.join(', ')}</p>
+                <p className="text-amber-600">Go to <strong>Import Students</strong> above and ensure these SussiId values are present.</p>
+              </div>
             )}
           </div>
         )}

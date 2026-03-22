@@ -90,6 +90,22 @@ async def startup():
         if changed:
             await db.school_settings.update_one({}, {"$set": {"terms": terms}})
 
+    # 3. Auto-generate school_days if terms exist but collection is empty for that year
+    settings_doc = await db.school_settings.find_one({}, {"_id": 0})
+    if settings_doc and settings_doc.get("terms"):
+        from routes.settings import _generate_school_days
+        terms = settings_doc["terms"]
+        non_school_days = settings_doc.get("non_school_days", [])
+        years_with_terms = {t.get("year") for t in terms if t.get("year")}
+        for yr in years_with_terms:
+            count = await db.school_days.count_documents({"year": yr})
+            if count == 0:
+                yr_terms = [t for t in terms if t.get("year") == yr]
+                dates = _generate_school_days(yr_terms, non_school_days)
+                if dates:
+                    await db.school_days.insert_many([{"date": d, "year": yr} for d in dates])
+                    logger.info(f"Auto-generated {len(dates)} school_days for year {yr}")
+
     scheduler.add_job(run_backup, CronTrigger(hour=0, minute=0), id="daily_backup", replace_existing=True)
     scheduler.start()
     logger.info("WellTrack starting up. MongoDB indexes ensured. Daily backup scheduler running (midnight UTC).")
