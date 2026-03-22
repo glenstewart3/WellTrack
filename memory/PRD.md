@@ -131,6 +131,7 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 - ✅ **Import Identifier priority** (Feb 2026) — Student import now uses Import Identifier (col A) as primary SussiId source
 - ✅ **Tab nav redesign + delete buttons** (Feb 2026) — Settings tabs now use pill/segmented-control style with lucide icons; added Delete Student Data and Delete Attendance Data buttons with confirmation modals in Data tab
 - ✅ **Attendance period filter + settings restructure** (Feb 2026) — Attendance page has year selector + YTD/Full Year/Term 1-4/Month/Week period pills; table AND student modal reflect the selected period. Absence Type Settings moved from Imports → MTSS & Screening tab.
+- ✅ **Multi-year attendance + UI overhaul** (Feb 2026) — available_years includes years from attendance_records; period filter changed to dropdown; bi-weekly trend chart (70-100% Y-axis); TierBadge whitespace-nowrap; attendance table hides Class/Absent on mobile; UserManagement page has mobile card layout; student edit modal DOB field stacks on mobile.
 
 ---
 
