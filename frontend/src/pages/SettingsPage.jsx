@@ -981,26 +981,41 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
   const [schoolDaysCount, setSchoolDaysCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [newTerm, setNewTerm] = useState({ name: '', start_date: '', end_date: '' });
   const [newDay, setNewDay] = useState({ date: '', reason: '' });
+
+  const normalizeTerms = React.useCallback((loadedTerms, year) => {
+    return [1, 2, 3, 4].map(n => {
+      const existing = loadedTerms.find(t =>
+        t.name === `Term ${n}` || t.name?.startsWith(`Term ${n} `) || t.name?.startsWith(`Term ${n}:`)
+      ) || loadedTerms.sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''))[n - 1];
+      return {
+        id: existing?.id || `${year}-t${n}`,
+        name: `Term ${n}`,
+        year,
+        start_date: existing?.start_date || '',
+        end_date: existing?.end_date || '',
+      };
+    });
+  }, []);
 
   const fetchTerms = React.useCallback(async (year) => {
     setLoading(true);
     try {
       const url = year ? `${API}/settings/terms?year=${year}` : `${API}/settings/terms`;
       const r = await axios.get(url, { withCredentials: true });
-      setTerms(r.data.terms || []);
+      const activeYear = r.data.active_year || year || initYear;
+      setTerms(normalizeTerms(r.data.terms || [], activeYear));
       setNonSchoolDays(r.data.non_school_days || []);
       setSchoolDaysCount(r.data.school_days_count || 0);
-      const yrs = r.data.available_years || [year || initYear];
+      const yrs = r.data.available_years || [activeYear];
       setAvailableYears(yrs);
-      setSelectedYear(r.data.active_year || year || yrs[0]);
+      setSelectedYear(activeYear);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [initYear]);
+  }, [initYear, normalizeTerms]);
 
   useEffect(() => { fetchTerms(initYear); }, []);
 
@@ -1011,9 +1026,12 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
     const next = max + 1;
     setAvailableYears(prev => [...new Set([...prev, next])].sort((a, b) => b - a));
     setSelectedYear(next);
-    setTerms([]);
+    setTerms(normalizeTerms([], next));
     setSchoolDaysCount(0);
   };
+
+  const updateTerm = (idx, field, value) =>
+    setTerms(prev => prev.map((t, i) => i === idx ? { ...t, [field]: value } : t));
 
   const calcDays = (term) => {
     if (!term.start_date || !term.end_date) return 0;
@@ -1031,13 +1049,6 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
 
   const totalDays = terms.reduce((s, t) => s + calcDays(t), 0);
 
-  const addTerm = () => {
-    if (!newTerm.name.trim() || !newTerm.start_date || !newTerm.end_date) return;
-    if (newTerm.start_date > newTerm.end_date) { setMsg('Start date must be before end date'); setMsgType('error'); return; }
-    setTerms(p => [...p, { ...newTerm, id: Date.now().toString(), year: selectedYear }]);
-    setNewTerm({ name: '', start_date: '', end_date: '' });
-  };
-
   const addDay = () => {
     if (!newDay.date) return;
     if (nonSchoolDays.some(d => d.date === newDay.date)) return;
@@ -1046,10 +1057,15 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
   };
 
   const save = async () => {
+    // Validate filled terms
+    const filledTerms = terms.filter(t => t.start_date && t.end_date);
+    for (const t of filledTerms) {
+      if (t.start_date > t.end_date) { setMsg(`${t.name}: start date must be before end date`); setMsgType('error'); return; }
+    }
     setSaving(true);
     try {
       const res = await axios.put(`${API}/settings/terms`, {
-        terms, non_school_days: nonSchoolDays, year: selectedYear,
+        terms: filledTerms, non_school_days: nonSchoolDays, year: selectedYear,
       }, { withCredentials: true });
       setSchoolDaysCount(res.data.school_days_count || 0);
       setMsgType('success'); setMsg(res.data.message || 'Calendar saved');
