@@ -126,12 +126,14 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 - ✅ **N+1 query elimination** — all multi-student endpoints use batch DB queries
 - ✅ **MongoDB indexes** — on student_id, date, status for fast queries
 - ✅ **Multi-year calendar support** — each school year's terms/school_days stored independently; editing 2026 terms cannot affect 2025 attendance data; attendance % always scoped to `current_year` from settings; Calendar tab shows year selector with "New Year" button
+- ✅ **Preset Terms 1-4 UI** (Feb 2026) — Calendar tab simplified to 4 fixed rows (Term 1–4) with inline Start/End date inputs; removed dynamic Add/Delete Term UI
 
 ---
 
 ## Prioritized Backlog
 
 ### P0 — None (all critical issues resolved)
+- ✅ **Preset Terms 1-4 UI** — Calendar tab now shows 4 fixed rows with inline date inputs; no Add/Delete Term buttons
 
 ### P1 — Upcoming
 - Email system (deferred by user): automated alert notifications — needs email provider choice (Resend or SendGrid)
