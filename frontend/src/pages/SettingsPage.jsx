@@ -1361,11 +1361,11 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Upload Attendance</h3>
         <p className="text-xs text-slate-400 mb-1">Upload an exception-based attendance file. Only students with absences or exceptions need to be in the file — unlisted students are automatically marked as present.</p>
-        <p className="text-xs text-slate-400 mb-4">Supports XLSX and CSV with columns: <code className="bg-slate-100 px-1 rounded">SussiId/ID, Date, AM, PM</code>. "Present" status = half-day.</p>
+        <p className="text-xs text-slate-400 mb-4">Supports CSV with columns: <code className="bg-slate-100 px-1 rounded">SussiId/ID, Date, AM, PM</code>. "Present" status = half-day.</p>
         <div className="flex items-center gap-3 flex-wrap">
-          <input ref={attRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => setAttFile(e.target.files?.[0] || null)} data-testid="attendance-file-input" />
+          <input ref={attRef} type="file" accept=".csv" className="hidden" onChange={e => setAttFile(e.target.files?.[0] || null)} data-testid="attendance-file-input" />
           <button onClick={() => attRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">
-            <FileUp size={14} /> {attFile ? attFile.name : 'Choose XLSX or CSV'}
+            <FileUp size={14} /> {attFile ? attFile.name : 'Choose CSV file'}
           </button>
           {attFile && (
             <button onClick={uploadAttendance} disabled={uploading} data-testid="upload-attendance-btn"

@@ -6,7 +6,6 @@ import uuid
 import io
 import csv
 import re
-import openpyxl
 
 from database import db, DEFAULT_ABSENCE_TYPES, PRESENT_STATUSES, FULL_PRESENT_STATUSES
 from helpers import get_current_user, get_student_attendance_pct, get_student_attendance_stats, \
@@ -110,19 +109,13 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
         return parsed
 
     # ── file reading ──────────────────────────────────────────────────────────
-    if fname.endswith('.xlsx') or fname.endswith('.xls'):
-        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
-        ws = wb.active
-        all_rows = [list(row) for row in ws.iter_rows(values_only=True)]
-        records = _process_rows(all_rows)
-
-    elif fname.endswith('.csv'):
+    if fname.endswith('.csv'):
         text = content.decode('utf-8-sig')
         all_rows = list(csv.reader(io.StringIO(text)))
         records = _process_rows(all_rows)
 
     else:
-        raise HTTPException(400, "Unsupported file format. Use XLSX or CSV.")
+        raise HTTPException(400, "Unsupported file format. Please upload a CSV file.")
 
     if not records:
         raise HTTPException(400, "No valid records found in file")
