@@ -134,6 +134,7 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 - ✅ **Multi-year attendance + UI overhaul** (Feb 2026) — available_years includes years from attendance_records; period filter changed to dropdown; bi-weekly trend chart (70-100% Y-axis); TierBadge whitespace-nowrap; attendance table hides Class/Absent on mobile; UserManagement page has mobile card layout; student edit modal DOB field stacks on mobile.
 - ✅ **Attendance calculation fallback fix** (Mar 2026) — No school_days in DB: now uses all unique attendance_record dates as proxy school days instead of broken per-student fallback. All 229 students show has_data=True with realistic percentages (avg 87.4%). `compute_att_stats` uses `is not None` guard. Excluded types applied correctly in all paths.
 - ✅ **No calendar configured banner** (Mar 2026) — Amber banner on Attendance page when school_days_count = 0 with link to Settings → Calendar. Auto-hides once calendar is saved.
+- ✅ **User-specific themes** (Mar 2026) — 6 themes: Slate (default), Ocean, Forest, Warm, Dark, Midnight. Stored per-user in DB via `PUT /api/auth/preferences`. Applied via `data-theme` on `<html>`. Theme picker: 6 colored swatches in sidebar footer. Dark/Midnight: full dark mode. Light themes (Ocean/Forest/Warm): colored sidebar + tinted page background. Active nav color per theme.
 
 ---
 
