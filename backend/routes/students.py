@@ -43,7 +43,7 @@ async def import_students(data: dict, user=Depends(get_current_user)):
         if base_role.lower() not in ("student", "") or user_status.lower() == "inactive":
             continue
 
-        sussi_id = str(row.get("SussiId") or row.get("sussi_id") or row.get("Import Identifier") or "").strip()
+        sussi_id = str(row.get("Import Identifier") or row.get("SussiId") or row.get("sussi_id") or "").strip()
         first_name = str(row.get("First Name") or row.get("first_name") or "").strip()
         preferred_name = str(row.get("Preferred Name") or row.get("preferred_name") or "").strip()
         last_name = str(row.get("Surname") or row.get("last_name") or "").strip()

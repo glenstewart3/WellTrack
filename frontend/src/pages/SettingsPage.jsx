@@ -1332,8 +1332,8 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
       {/* Student Import */}
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Import Students</h3>
-        <p className="text-xs text-slate-400 mb-1">Upload a CSV exported from your school system. Supports columns: <code className="bg-slate-100 px-1 rounded">SussiId, First Name, Preferred Name, Surname, Form Group, Year Level, User Status, Base Role</code></p>
-        <p className="text-xs text-slate-400 mb-4">Students are matched by SussiId and updated if they already exist.</p>
+        <p className="text-xs text-slate-400 mb-1">Upload a CSV exported from your school system. Supports columns: <code className="bg-slate-100 px-1 rounded">Import Identifier, First Name, Preferred Name, Surname, Form Group, Year Level, User Status, Base Role</code></p>
+        <p className="text-xs text-slate-400 mb-4">Students are matched by <strong>Import Identifier</strong> (column A) and updated if they already exist.</p>
         <div className="flex items-center gap-3 flex-wrap">
           <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={e => setImportFile(e.target.files?.[0] || null)} data-testid="import-students-file" />
           <button onClick={() => importRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">
