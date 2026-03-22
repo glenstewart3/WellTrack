@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, getRiskColors } from '../utils/tierUtils';
-import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight, UserPlus, Pencil, Archive, RotateCcw } from 'lucide-react';
+import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight, UserPlus, Archive, RotateCcw } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -415,11 +415,11 @@ export default function StudentsPage() {
                   placeholder="Ms Thompson"
                   className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-hidden">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-slate-500 block mb-1">Gender</label>
                   <select value={addStudentForm.gender} onChange={e => setAddStudentForm(p => ({...p, gender: e.target.value}))}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none">
+                    className="w-full h-[42px] px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none">
                     <option value="">Not specified</option>
                     <option>Male</option><option>Female</option><option>Non-binary</option>
                   </select>
@@ -427,7 +427,8 @@ export default function StudentsPage() {
                 <div className="min-w-0">
                   <label className="text-xs text-slate-500 block mb-1">Date of Birth</label>
                   <input type="date" value={addStudentForm.date_of_birth} onChange={e => setAddStudentForm(p => ({...p, date_of_birth: e.target.value}))}
-                    className="w-full max-w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none appearance-none" />
+                    placeholder="dd/mm/yyyy"
+                    className="w-full max-w-full h-[42px] px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none appearance-none" />
                 </div>
               </div>
             </div>
@@ -544,7 +545,7 @@ export default function StudentsPage() {
                   return (
                     <tr
                       key={s.student_id}
-                      onClick={() => navigate(`/students/${s.student_id}`)}
+                      onClick={(e) => bulkEditMode ? openEdit(s, e) : navigate(`/students/${s.student_id}`)}
                       className={`border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors ${selectedIds.has(s.student_id) ? 'bg-indigo-50/50' : ''}`}
                       data-testid={`student-row-${s.student_id}`}
                     >
@@ -597,13 +598,7 @@ export default function StudentsPage() {
                         ) : <span className="text-slate-400 text-xs">—</span>}
                       </td>
                       <td className="py-3 px-3">
-                        <div className="flex items-center gap-1">
-                          <button onClick={e => openEdit(s, e)} data-testid={`edit-student-${s.student_id}`}
-                            className="p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition-colors">
-                            <Pencil size={13} />
-                          </button>
-                          <ChevronRight size={15} className="text-slate-400" />
-                        </div>
+                        <ChevronRight size={15} className="text-slate-400" />
                       </td>
                     </tr>
                   );
@@ -661,11 +656,11 @@ export default function StudentsPage() {
                 <input value={editForm.teacher} onChange={e => setEditForm(p => ({...p, teacher: e.target.value}))}
                   className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-hidden">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-slate-500 block mb-1">Gender</label>
                   <select value={editForm.gender} onChange={e => setEditForm(p => ({...p, gender: e.target.value}))}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none">
+                    className="w-full h-[42px] px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none">
                     <option value="">Not specified</option>
                     <option>Male</option><option>Female</option><option>Non-binary</option>
                   </select>
@@ -673,7 +668,8 @@ export default function StudentsPage() {
                 <div className="min-w-0">
                   <label className="text-xs text-slate-500 block mb-1">Date of Birth</label>
                   <input type="date" value={editForm.date_of_birth} onChange={e => setEditForm(p => ({...p, date_of_birth: e.target.value}))}
-                    className="w-full max-w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none appearance-none" />
+                    placeholder="dd/mm/yyyy"
+                    className="w-full max-w-full h-[42px] px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none appearance-none" />
                 </div>
               </div>
             </div>
