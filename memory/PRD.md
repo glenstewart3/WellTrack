@@ -132,6 +132,7 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 - ✅ **Tab nav redesign + delete buttons** (Feb 2026) — Settings tabs now use pill/segmented-control style with lucide icons; added Delete Student Data and Delete Attendance Data buttons with confirmation modals in Data tab
 - ✅ **Attendance period filter + settings restructure** (Feb 2026) — Attendance page has year selector + YTD/Full Year/Term 1-4/Month/Week period pills; table AND student modal reflect the selected period. Absence Type Settings moved from Imports → MTSS & Screening tab.
 - ✅ **Multi-year attendance + UI overhaul** (Feb 2026) — available_years includes years from attendance_records; period filter changed to dropdown; bi-weekly trend chart (70-100% Y-axis); TierBadge whitespace-nowrap; attendance table hides Class/Absent on mobile; UserManagement page has mobile card layout; student edit modal DOB field stacks on mobile.
+- ✅ **Attendance calculation fallback fix** (Mar 2026) — No school_days in DB: now uses all unique attendance_record dates as proxy school days instead of broken per-student fallback. All 229 students show has_data=True with realistic percentages (avg 87.4%). `compute_att_stats` uses `is not None` guard. Excluded types applied correctly in all paths.
 
 ---
 
@@ -139,6 +140,7 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 
 ### P0 — None (all critical issues resolved)
 - ✅ **Preset Terms 1-4 UI** — Calendar tab now shows 4 fixed rows with inline date inputs; no Add/Delete Term buttons
+- ✅ **Attendance calculation fallback fix** (Mar 2026) — When no school_days in DB, uses all unique attendance record dates as proxy denominator. Old: per-student fallback gave 0% for absent students. New: 229/229 students show realistic data (avg 87.4%). `compute_att_stats` now uses `is not None` check. Excluded absence types correctly applied in all paths.
 
 ### P1 — Upcoming
 - Email system (deferred by user): automated alert notifications — needs email provider choice (Resend or SendGrid)
