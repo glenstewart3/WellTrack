@@ -4,6 +4,7 @@ import axios from 'axios';
 import './App.css';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SettingsProvider } from './context/SettingsContext';
+import { ThemeProvider } from './context/ThemeContext';
 import DashboardLayout from './components/DashboardLayout';
 import LoginPage from './pages/LoginPage';
 import OnboardingPage from './pages/OnboardingPage';
@@ -92,10 +93,11 @@ export default function App() {
   return (
     <SettingsProvider>
       <AuthProvider>
-        <BrowserRouter basename={process.env.REACT_APP_BASE_PATH || '/'}>
-
-          <AppRouter />
-        </BrowserRouter>
+        <ThemeProvider>
+          <BrowserRouter basename={process.env.REACT_APP_BASE_PATH || '/'}>
+            <AppRouter />
+          </BrowserRouter>
+        </ThemeProvider>
       </AuthProvider>
     </SettingsProvider>
   );

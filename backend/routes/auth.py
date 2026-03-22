@@ -199,6 +199,21 @@ async def google_callback(request: Request):
     return redirect
 
 
+@router.put("/auth/preferences")
+async def update_preferences(data: dict, user=Depends(get_current_user)):
+    from fastapi import HTTPException
+    allowed = {"default", "dark", "midnight", "ocean", "forest", "warm"}
+    theme = data.get("theme")
+    if theme is not None and theme not in allowed:
+        raise HTTPException(status_code=400, detail="Invalid theme")
+    update = {}
+    if theme is not None:
+        update["theme"] = theme
+    if update:
+        await db.users.update_one({"user_id": user["user_id"]}, {"$set": update})
+    return {"message": "Preferences updated"}
+
+
 @router.get("/auth/me")
 async def get_me(user=Depends(get_current_user)):
     return user

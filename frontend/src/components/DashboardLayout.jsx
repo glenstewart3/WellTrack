@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
+import { useTheme, THEMES, THEME_NAV_ACTIVE } from '../context/ThemeContext';
 import {
   LayoutDashboard, ClipboardCheck, Users, Radar, BarChart3,
   Target, Users2, Bell, Settings, LogOut,
-  Menu, X, Shield, UserCog, CalendarDays
+  Menu, X, Shield, UserCog, CalendarDays, Check
 } from 'lucide-react';
 
 const navItems = [
@@ -28,12 +29,17 @@ const roleBadgeColors = { teacher: 'bg-blue-100 text-blue-700', screener: 'bg-in
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const { settings, loadFullSettings } = useSettings();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => { loadFullSettings(); }, [loadFullSettings]);
 
   const accent = settings.accent_color || '#0f172a';
+  // Use theme-specific nav active color when not on default theme
+  const activeNavColor = THEME_NAV_ACTIVE[theme] || accent;
+  // Only apply wt-sidebar class for non-default themes (avoids overriding role badge colors on default)
+  const sidebarClass = theme !== 'default' ? 'wt-sidebar' : 'bg-white border-slate-200';
 
   const handleLogout = async () => {
     await logout();
@@ -71,7 +77,7 @@ export default function DashboardLayout() {
               to={path}
               onClick={() => setMobileOpen(false)}
               data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
-              style={({ isActive }) => isActive ? { backgroundColor: accent } : {}}
+              style={({ isActive }) => isActive ? { backgroundColor: activeNavColor } : {}}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
                   isActive ? 'text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -110,14 +116,38 @@ export default function DashboardLayout() {
           <LogOut size={15} />
           Sign Out
         </button>
+
+        {/* Theme picker */}
+        <div className="mt-3 pt-3 border-t border-slate-100">
+          <p className="text-xs mb-2 px-1" style={{ color: 'var(--wt-sidebar-text-muted, #94a3b8)' }}>Appearance</p>
+          <div className="flex gap-1.5 flex-wrap px-1">
+            {Object.entries(THEMES).map(([key, t]) => (
+              <button
+                key={key}
+                onClick={() => setTheme(key)}
+                title={t.name}
+                data-testid={`theme-swatch-${key}`}
+                className="w-6 h-6 rounded-full transition-all duration-150 hover:scale-110 relative flex items-center justify-center"
+                style={{
+                  backgroundColor: t.swatch,
+                  outline: theme === key ? '2px solid white' : '2px solid transparent',
+                  outlineOffset: '2px',
+                  boxShadow: theme === key ? `0 0 0 3px ${t.swatch}` : 'none',
+                }}
+              >
+                {theme === key && <Check size={10} className="text-white" strokeWidth={3} />}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
 
   return (
-    <div className="flex h-dvh bg-slate-50 overflow-hidden">
+    <div className="flex h-dvh overflow-hidden" style={{ backgroundColor: 'var(--wt-page-bg)' }}>
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-60 bg-white border-r border-slate-200 shrink-0">
+      <aside className={`hidden lg:flex flex-col w-60 border-r shrink-0 ${sidebarClass}`}>
         <SidebarContent />
       </aside>
 
@@ -125,7 +155,7 @@ export default function DashboardLayout() {
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
-          <aside className="relative z-10 flex flex-col w-60 bg-white h-full shadow-xl">
+          <aside className={`relative z-10 flex flex-col w-60 h-full shadow-xl border-r ${sidebarClass}`}>
             <SidebarContent />
           </aside>
         </div>
@@ -134,7 +164,7 @@ export default function DashboardLayout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
-        <header className="bg-white border-b border-slate-200 px-4 lg:px-6 py-3 flex items-center gap-4 shrink-0">
+        <header className="border-b px-4 lg:px-6 py-3 flex items-center gap-4 shrink-0" style={{ backgroundColor: 'var(--wt-header-bg)', borderColor: 'var(--wt-header-border)' }}>
           <button
             onClick={() => setMobileOpen(true)}
             className="lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-600"
