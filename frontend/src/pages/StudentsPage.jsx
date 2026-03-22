@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, getRiskColors } from '../utils/tierUtils';
-import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight, UserPlus, Archive, RotateCcw } from 'lucide-react';
+import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight, UserPlus, Archive, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -257,6 +257,18 @@ export default function StudentsPage() {
   const [archiving, setArchiving] = useState(false);
   const [reactivating, setReactivating] = useState(false);
   const [filterStatus, setFilterStatus] = useState('active');
+  const [sortField, setSortField] = useState(null);
+  const [sortDir, setSortDir] = useState('asc');
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      if (sortDir === 'asc') setSortDir('desc');
+      else { setSortField(null); setSortDir('asc'); }
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  };
 
   // Apply tier filter passed via navigation state (e.g. from Dashboard stat cards)
   useEffect(() => {
@@ -287,7 +299,23 @@ export default function StudentsPage() {
     const matchClass = !filterClass || s.class_name === filterClass;
     const matchTier = !filterTier || String(s.mtss_tier) === filterTier;
     return matchSearch && matchClass && matchTier;
-  }).sort((a, b) => (b.mtss_tier || 0) - (a.mtss_tier || 0));
+  }).sort((a, b) => {
+    if (!sortField) return (b.mtss_tier || 0) - (a.mtss_tier || 0);
+    let aVal, bVal;
+    switch (sortField) {
+      case 'student': aVal = `${a.last_name} ${a.first_name}`.toLowerCase(); bVal = `${b.last_name} ${b.first_name}`.toLowerCase(); break;
+      case 'class': aVal = (a.class_name || '').toLowerCase(); bVal = (b.class_name || '').toLowerCase(); break;
+      case 'year': aVal = parseInt((a.year_level || '').replace(/\D/g, '') || '0'); bVal = parseInt((b.year_level || '').replace(/\D/g, '') || '0'); break;
+      case 'tier': aVal = a.mtss_tier || 99; bVal = b.mtss_tier || 99; break;
+      case 'attend': aVal = a.attendance_pct ?? 100; bVal = b.attendance_pct ?? 100; break;
+      case 'saebrs': aVal = a.saebrs_total ?? -1; bVal = b.saebrs_total ?? -1; break;
+      case 'interventions': aVal = a.intervention_count || 0; bVal = b.intervention_count || 0; break;
+      default: return 0;
+    }
+    if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
 
   const addSingleStudent = async () => {
     if (!addStudentForm.first_name || !addStudentForm.last_name || !addStudentForm.year_level || !addStudentForm.class_name || !addStudentForm.teacher) {
@@ -528,14 +556,28 @@ export default function StudentsPage() {
                         className="rounded border-slate-300 cursor-pointer" />
                     </th>
                   )}
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Student</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden sm:table-cell">Class</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden md:table-cell">Year</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Tier</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden md:table-cell">SAEBRS</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden lg:table-cell">Wellbeing</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Attend.</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden sm:table-cell">Interventions</th>
+                  {[
+                    { key: 'student', label: 'Student', cls: '' },
+                    { key: 'class', label: 'Class', cls: 'hidden sm:table-cell' },
+                    { key: 'year', label: 'Year', cls: 'hidden md:table-cell' },
+                    { key: 'tier', label: 'Tier', cls: '' },
+                    { key: 'saebrs', label: 'SAEBRS', cls: 'hidden md:table-cell' },
+                    { key: null, label: 'Wellbeing', cls: 'hidden lg:table-cell' },
+                    { key: 'attend', label: 'Attend.', cls: '' },
+                    { key: 'interventions', label: 'Interventions', cls: 'hidden sm:table-cell' },
+                  ].map(({ key, label, cls }) => (
+                    <th key={label}
+                      onClick={() => key && handleSort(key)}
+                      className={`text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider ${cls} ${key ? 'cursor-pointer select-none hover:text-slate-700 transition-colors' : ''}`}>
+                      <span className="flex items-center gap-1">
+                        {label}
+                        {key && (sortField === key
+                          ? (sortDir === 'asc' ? <ArrowUp size={12} className="text-slate-700" /> : <ArrowDown size={12} className="text-slate-700" />)
+                          : <ArrowUpDown size={11} className="text-slate-300" />
+                        )}
+                      </span>
+                    </th>
+                  ))}
                   <th className="w-14"></th>
                 </tr>
               </thead>

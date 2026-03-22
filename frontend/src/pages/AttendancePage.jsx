@@ -99,6 +99,8 @@ export default function AttendancePage() {
   const [filterMonth, setFilterMonth] = useState('');
   const [filterWeek, setFilterWeek] = useState('');
   const [terms, setTerms] = useState([]);
+  const [cohortType, setCohortType] = useState('school'); // school | year | class
+  const [cohortValue, setCohortValue] = useState('');
 
   const fetchSummary = async (year, period, month, week, termsArr) => {
     setLoading(true);
@@ -174,10 +176,19 @@ export default function AttendancePage() {
     finally { setDetailLoading(false); }
   };
 
+  const yearLevels = [...new Set(summary.map(s => s.year_level).filter(Boolean))].sort((a, b) => {
+    const na = parseInt((a || '').replace(/\D/g, '') || '0');
+    const nb = parseInt((b || '').replace(/\D/g, '') || '0');
+    return na - nb;
+  });
+  const classNames = [...new Set(summary.map(s => s.class_name).filter(Boolean))].sort();
+
   const filtered = summary
     .filter(s => {
       if (search && !`${s.first_name} ${s.last_name}`.toLowerCase().includes(search.toLowerCase())) return false;
       if (filterTier && String(s.attendance_tier) !== filterTier) return false;
+      if (cohortType === 'year' && cohortValue && s.year_level !== cohortValue) return false;
+      if (cohortType === 'class' && cohortValue && s.class_name !== cohortValue) return false;
       return true;
     })
     .sort((a, b) => (a.attendance_pct ?? 100) - (b.attendance_pct ?? 100));
@@ -265,6 +276,46 @@ export default function AttendancePage() {
             <p className="text-xs text-slate-300 hidden sm:block">{tile.sub}</p>
           </div>
         ))}
+      </div>
+
+      {/* Cohort filter */}
+      <div className="flex flex-wrap items-center gap-2 mb-5" data-testid="cohort-filter-row">
+        <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
+          {[
+            { key: 'school', label: 'Whole School' },
+            { key: 'year', label: 'Year Level' },
+            { key: 'class', label: 'Class' },
+          ].map(c => (
+            <button key={c.key}
+              onClick={() => { setCohortType(c.key); setCohortValue(''); }}
+              data-testid={`cohort-btn-${c.key}`}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
+                cohortType === c.key ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}>{c.label}</button>
+          ))}
+        </div>
+
+        {cohortType === 'year' && (
+          <select value={cohortValue} onChange={e => setCohortValue(e.target.value)}
+            data-testid="cohort-year-select"
+            className="px-3 py-2 border border-slate-200 bg-white rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20">
+            <option value="">All Year Levels</option>
+            {yearLevels.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+        )}
+
+        {cohortType === 'class' && (
+          <select value={cohortValue} onChange={e => setCohortValue(e.target.value)}
+            data-testid="cohort-class-select"
+            className="px-3 py-2 border border-slate-200 bg-white rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20">
+            <option value="">All Classes</option>
+            {classNames.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        )}
+
+        {(cohortType !== 'school' && cohortValue) && (
+          <span className="text-xs text-slate-500 font-medium">{cohortValue}</span>
+        )}
       </div>
 
       {/* Search + tier filter */}
