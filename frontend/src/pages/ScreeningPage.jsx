@@ -309,21 +309,6 @@ function SAEBRSFlow({ className, term, onDone }) {
           </div>
         ))}
 
-        <div className="border-t border-slate-100 pt-4 mt-2">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-semibold text-slate-700">Total Score</span>
-            <span className="text-xl font-bold text-slate-900">{totalScore}/57</span>
-          </div>
-          <div className="mt-3 h-2 rounded-full overflow-hidden flex">
-            <div style={{ width: `${(Math.min(24, totalScore) / 57) * 100}%` }} className="bg-rose-400" />
-            <div style={{ width: `${(Math.max(0, Math.min(37, totalScore) - 24) / 57) * 100}%` }} className="bg-amber-400" />
-            <div style={{ width: `${(Math.max(0, totalScore - 37) / 57) * 100}%` }} className="bg-emerald-400" />
-          </div>
-          <div className="flex justify-between text-xs text-slate-400 mt-1">
-            <span>0</span><span className="text-rose-400">24</span><span className="text-amber-400">37</span><span>57</span>
-          </div>
-        </div>
-
         {startError && <p className="text-sm text-rose-600 mt-3">{startError}</p>}
       </div>
 
