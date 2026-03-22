@@ -230,11 +230,31 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
 
 
 @router.get("/attendance/summary")
-async def get_attendance_summary(user=Depends(get_current_user)):
+async def get_attendance_summary(
+    year: int = None,
+    from_date: str = None,
+    to_date: str = None,
+    user=Depends(get_current_user)):
+    settings_doc = await db.school_settings.find_one({}, {"_id": 0})
+    current_year = year or (settings_doc or {}).get("current_year") or datetime.now(timezone.utc).year
+    today_str = datetime.now(timezone.utc).date().isoformat()
+    excluded_types = set((settings_doc or {}).get("excluded_absence_types", []))
+
+    day_filter = {"year": current_year}
+    if from_date and to_date:
+        day_filter["date"] = {"$gte": from_date, "$lte": to_date}
+    elif from_date:
+        day_filter["date"] = {"$gte": from_date, "$lte": today_str}
+    elif to_date:
+        day_filter["date"] = {"$lte": to_date}
+    else:
+        day_filter["date"] = {"$lte": today_str}
+
     students_list = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
     student_ids = [s["student_id"] for s in students_list]
-    # get_bulk_attendance_stats handles year-scoping internally
-    att_map = await get_bulk_attendance_stats(student_ids)
+    school_days_list = await db.school_days.distinct("date", day_filter)
+    att_map = await get_bulk_attendance_stats(student_ids, school_days_list=school_days_list, excluded_types=excluded_types)
+
     result = []
     for s in students_list:
         sid = s["student_id"]
@@ -252,15 +272,30 @@ async def get_attendance_summary(user=Depends(get_current_user)):
 
 
 @router.get("/attendance/student/{student_id}")
-async def get_student_attendance_detail(student_id: str, user=Depends(get_current_user)):
+async def get_student_attendance_detail(
+    student_id: str,
+    year: int = None,
+    from_date: str = None,
+    to_date: str = None,
+    user=Depends(get_current_user)):
     settings_doc, records = await asyncio.gather(
         db.school_settings.find_one({}, {"_id": 0}),
         db.attendance_records.find({"student_id": student_id}, {"_id": 0}).sort("date", 1).to_list(3000),
     )
     excluded_types = set((settings_doc or {}).get("excluded_absence_types") or [])
-    year = (settings_doc or {}).get("current_year")
+    current_year = year or (settings_doc or {}).get("current_year")
     today_str = datetime.now(timezone.utc).date().isoformat()
-    year_filter = {"year": year, "date": {"$lte": today_str}} if year else {"date": {"$lte": today_str}}
+
+    year_filter = {"year": current_year} if current_year else {}
+    if from_date and to_date:
+        year_filter["date"] = {"$gte": from_date, "$lte": to_date}
+    elif from_date:
+        year_filter["date"] = {"$gte": from_date, "$lte": today_str}
+    elif to_date:
+        year_filter["date"] = {"$lte": to_date}
+    else:
+        year_filter["date"] = {"$lte": today_str}
+
     school_days_list = await db.school_days.distinct("date", year_filter)
 
     exc_by_date = {r["date"]: r for r in records}

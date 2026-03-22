@@ -196,6 +196,21 @@ function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
   const [modules, setModules] = useState({ saebrs_plus: true, ...s.modules_enabled });
   const [intTypes, setIntTypes] = useState(s.intervention_types || []);
   const [newType, setNewType] = useState('');
+  const [allTypes, setAllTypes] = useState([]);
+  const [excludedTypes, setExcludedTypes] = useState([]);
+  const [typesLoading, setTypesLoading] = useState(true);
+
+  const loadAbsenceTypes = async () => {
+    setTypesLoading(true);
+    try {
+      const res = await axios.get(`${API}/attendance/types`, { withCredentials: true });
+      setAllTypes(res.data.types || []);
+      setExcludedTypes(res.data.excluded_types || []);
+    } catch (e) { console.error(e); }
+    finally { setTypesLoading(false); }
+  };
+
+  useEffect(() => { loadAbsenceTypes(); }, []);
 
   const addType = () => {
     const v = newType.trim();
@@ -204,7 +219,12 @@ function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
   const removeType = (t) => setIntTypes(prev => prev.filter(x => x !== t));
   const resetThresholds = () => setThresholds({ ...DEFAULT_THRESHOLDS });
 
-  const handleSave = () => onSave({ tier_thresholds: thresholds, modules_enabled: modules, intervention_types: intTypes });
+  const handleSave = () => onSave({
+    tier_thresholds: thresholds,
+    modules_enabled: modules,
+    intervention_types: intTypes,
+    excluded_absence_types: excludedTypes,
+  });
 
   return (
     <div className="space-y-5">
@@ -336,6 +356,50 @@ function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
             <Plus size={16} />
           </button>
         </div>
+      </div>
+
+      {/* Absence Type Settings */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Absence Type Settings</h3>
+          {!typesLoading && allTypes.length > 0 && (
+            <span className="text-xs text-slate-400">{excludedTypes.length} excluded</span>
+          )}
+        </div>
+        <p className="text-xs text-slate-400 mb-4">
+          Types are auto-discovered when you upload attendance files. Toggle to control whether each type counts against attendance rate.
+          <span className="ml-1 font-medium text-emerald-600">Green = counts</span> &nbsp;
+          <span className="font-medium text-slate-400">Grey = excluded (e.g. Camp, Excursion)</span>
+        </p>
+        {typesLoading ? (
+          <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-10 bg-slate-50 rounded-lg animate-pulse" />)}</div>
+        ) : allTypes.length === 0 ? (
+          <div className="text-center py-6 bg-slate-50 rounded-xl text-sm text-slate-400">
+            No absence types discovered yet — upload an attendance file first.
+          </div>
+        ) : (
+          <div className="space-y-1.5 max-h-60 overflow-y-auto">
+            {allTypes.map(type => {
+              const isExcluded = excludedTypes.includes(type);
+              return (
+                <div key={type}
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl border transition-colors ${isExcluded ? 'bg-slate-50 border-slate-100' : 'bg-emerald-50/50 border-emerald-100'}`}
+                  data-testid={`absence-type-row-${type}`}>
+                  <span className={`text-sm font-medium ${isExcluded ? 'text-slate-400' : 'text-slate-700'}`}>{type}</span>
+                  <button
+                    onClick={() => setExcludedTypes(prev => isExcluded ? prev.filter(t => t !== type) : [...prev, type])}
+                    data-testid={`absence-type-toggle-${type}`}
+                    title={isExcluded ? 'Click to include' : 'Click to exclude'}>
+                    {isExcluded
+                      ? <ToggleLeft size={28} className="text-slate-300 hover:text-slate-400" />
+                      : <ToggleRight size={28} className="text-emerald-500 hover:text-emerald-600" />
+                    }
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <button onClick={handleSave} disabled={saving} data-testid="save-mtss-btn"
@@ -1328,24 +1392,8 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
   const [attFile, setAttFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [attResult, setAttResult] = useState(null);
-  const [excludedTypes, setExcludedTypes] = useState([]);
-  const [allTypes, setAllTypes] = useState([]);
-  const [typesLoading, setTypesLoading] = useState(true);
-  const [typesSaving, setTypesSaving] = useState(false);
   const importRef = useRef(null);
   const attRef = useRef(null);
-
-  const loadAbsenceTypes = async () => {
-    setTypesLoading(true);
-    try {
-      const res = await axios.get(`${API}/attendance/types`, { withCredentials: true });
-      setAllTypes(res.data.types || []);
-      setExcludedTypes(res.data.excluded_types || []);
-    } catch (e) { console.error(e); }
-    finally { setTypesLoading(false); }
-  };
-
-  useEffect(() => { loadAbsenceTypes(); }, []);
 
   const parseAndImport = async () => {
     if (!importFile) return;
@@ -1392,20 +1440,11 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
       setMsgType('success');
       setMsg(`Attendance uploaded: ${res.data.matched_students} students matched · ${res.data.processed} absence records processed`);
       setTimeout(() => setMsg(''), 6000);
-      // Reload absence types — new types may have been discovered
-      await loadAbsenceTypes();
     } catch (e) {
       setMsgType('error');
       setMsg(e.response?.data?.detail || 'Upload failed');
       setTimeout(() => setMsg(''), 5000);
     } finally { setUploading(false); }
-  };
-
-  const saveExcludedTypes = async () => {
-    setTypesSaving(true);
-    try {
-      await onSave({ excluded_absence_types: excludedTypes });
-    } finally { setTypesSaving(false); }
   };
 
   return (
@@ -1480,59 +1519,6 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
         )}
       </div>
 
-      {/* Absence Type Settings */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Absence Type Settings</h3>
-          {!typesLoading && allTypes.length > 0 && (
-            <span className="text-xs text-slate-400">{excludedTypes.length} excluded</span>
-          )}
-        </div>
-        <p className="text-xs text-slate-400 mb-4">
-          Types are auto-discovered when you upload attendance files. Toggle each type to control whether it counts against a student's attendance rate.
-          <span className="ml-1 font-medium text-emerald-600">Green = counts</span> &nbsp;
-          <span className="font-medium text-slate-400">Grey = excluded (e.g. Camp, Excursion)</span>
-        </p>
-
-        {typesLoading ? (
-          <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-10 bg-slate-50 rounded-lg animate-pulse" />)}</div>
-        ) : allTypes.length === 0 ? (
-          <div className="text-center py-6 bg-slate-50 rounded-xl text-sm text-slate-400">
-            No absence types discovered yet — upload an attendance file first.
-          </div>
-        ) : (
-          <div className="space-y-1.5 max-h-72 overflow-y-auto mb-4">
-            {allTypes.map(type => {
-              const isExcluded = excludedTypes.includes(type);
-              return (
-                <div key={type} className={`flex items-center justify-between px-3 py-2.5 rounded-xl border transition-colors ${isExcluded ? 'bg-slate-50 border-slate-100' : 'bg-emerald-50/50 border-emerald-100'}`}
-                  data-testid={`absence-type-row-${type}`}>
-                  <span className={`text-sm font-medium ${isExcluded ? 'text-slate-400' : 'text-slate-700'}`}>{type}</span>
-                  <button
-                    onClick={() => setExcludedTypes(prev => isExcluded ? prev.filter(t => t !== type) : [...prev, type])}
-                    data-testid={`absence-type-toggle-${type}`}
-                    className="transition-colors ml-3"
-                    title={isExcluded ? 'Click to include in attendance calculation' : 'Click to exclude from attendance calculation'}
-                  >
-                    {isExcluded
-                      ? <ToggleLeft size={28} className="text-slate-300 hover:text-slate-400" />
-                      : <ToggleRight size={28} className="text-emerald-500 hover:text-emerald-600" />
-                    }
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {allTypes.length > 0 && (
-          <button onClick={saveExcludedTypes} disabled={typesSaving} data-testid="save-absence-types-btn"
-            className="flex items-center gap-2 px-4 py-2.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity" style={{ backgroundColor: 'var(--wt-accent)' }}>
-            {typesSaving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-            {typesSaving ? 'Saving…' : 'Save Absence Settings'}
-          </button>
-        )}
-      </div>
     </div>
   );
 }
