@@ -127,6 +127,9 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 - ✅ **MongoDB indexes** — on student_id, date, status for fast queries
 - ✅ **Multi-year calendar support** — each school year's terms/school_days stored independently; editing 2026 terms cannot affect 2025 attendance data; attendance % always scoped to `current_year` from settings; Calendar tab shows year selector with "New Year" button
 - ✅ **Preset Terms 1-4 UI** (Feb 2026) — Calendar tab simplified to 4 fixed rows (Term 1–4) with inline Start/End date inputs; removed dynamic Add/Delete Term UI
+- ✅ **Attendance upload CSV-only** (Feb 2026) — Removed XLSX support from upload; frontend accept and backend parser CSV-only
+- ✅ **Import Identifier priority** (Feb 2026) — Student import now uses Import Identifier (col A) as primary SussiId source
+- ✅ **Tab nav redesign + delete buttons** (Feb 2026) — Settings tabs now use pill/segmented-control style with lucide icons; added Delete Student Data and Delete Attendance Data buttons with confirmation modals in Data tab
 
 ---
 
