@@ -99,9 +99,12 @@ async def create_alert(student_id: str, student_name: str, class_name: str,
 
 # ── Attendance calc (single-student) ─────────────────────────────────────────
 
-def compute_att_stats(school_days_list: list, exc_by_date: dict, excluded_types: set) -> dict:
+def compute_att_stats(school_days_list, exc_by_date: dict, excluded_types: set) -> dict:
     """Pure-Python computation (no DB calls) — accepts pre-fetched data.
     exc_by_date: {date_str: record_dict} for this student's absence records.
+    school_days_list:
+      - list (even empty []): normal mode. Empty list → no data (total_days=0).
+      - None: legacy fallback only — derives denominator from exception records.
     Returns {pct, total_days, absent_days}.
     """
     def _classify(s: str) -> str:
@@ -113,7 +116,8 @@ def compute_att_stats(school_days_list: list, exc_by_date: dict, excluded_types:
             return "present"
         return "absent"
 
-    if school_days_list:
+    if school_days_list is not None:
+        # Normal mode: iterate over provided school days (may be empty → no data)
         total_days = 0
         absent_days = 0.0
         for day in school_days_list:
@@ -135,19 +139,22 @@ def compute_att_stats(school_days_list: list, exc_by_date: dict, excluded_types:
         pct = max(0.0, min(100.0, ((total_days - absent_days) / total_days) * 100.0))
         return {"pct": pct, "total_days": total_days, "absent_days": absent_days}
     else:
-        # No school days defined — derive from exception records
+        # Legacy fallback (school_days_list is None): derive from per-student exception records
+        # NOTE: callers should prefer passing attendance-record dates over None
         total_days = 0
         absent_days = 0.0
         for rec in exc_by_date.values():
             am = (rec.get("am_status") or "").strip()
             pm = (rec.get("pm_status") or "").strip()
             if am or pm:
+                am_cls = _classify(am)
+                pm_cls = _classify(pm)
+                if am_cls == "excluded" and pm_cls == "excluded":
+                    continue
                 total_days += 1
-                am_abs = am and am not in PRESENT_STATUSES
-                pm_abs = pm and pm not in PRESENT_STATUSES
-                if am_abs and pm_abs:
+                if am_cls == "absent" and pm_cls == "absent":
                     absent_days += 1.0
-                elif am_abs or pm_abs:
+                elif am_cls == "absent" or pm_cls == "absent":
                     absent_days += 0.5
         if total_days == 0:
             return {"pct": 100.0, "total_days": 0, "absent_days": 0.0}
@@ -170,6 +177,13 @@ async def get_student_attendance_stats(student_id: str) -> dict:
     today_str = datetime.now(timezone.utc).date().isoformat()
     year_filter = {"year": year, "date": {"$lte": today_str}} if year else {"date": {"$lte": today_str}}
     school_days_list = await db.school_days.distinct("date", year_filter)
+    if not school_days_list:
+        total_sd = await db.school_days.count_documents({})
+        if total_sd == 0:
+            # No calendar configured — use all unique attendance dates as proxy school days
+            school_days_list = sorted(await db.attendance_records.distinct(
+                "date", {"date": {"$lte": today_str}}
+            )) or None
     excluded_types = set((settings_doc or {}).get("excluded_absence_types", []))
     exc_by_date = {r["date"]: r for r in exc_records}
     return compute_att_stats(school_days_list, exc_by_date, excluded_types)
@@ -206,10 +220,22 @@ async def get_bulk_attendance_stats(student_ids: list, school_days_list=None, ex
             year = (settings_doc or {}).get("current_year")
             today_str = datetime.now(timezone.utc).date().isoformat()
             year_filter = {"year": year, "date": {"$lte": today_str}} if year else {"date": {"$lte": today_str}}
-            school_days_list, records_by_student = await asyncio.gather(
+            db_days, records_by_student = await asyncio.gather(
                 db.school_days.distinct("date", year_filter),
                 get_bulk_attendance_records(student_ids),
             )
+            if db_days:
+                school_days_list = db_days
+            else:
+                # No school days for this year — check if any exist at all
+                total_sd = await db.school_days.count_documents({})
+                if total_sd == 0:
+                    # No calendar configured — use all unique attendance dates as proxy
+                    all_att_dates = await db.attendance_records.distinct(
+                        "date", {"date": {"$lte": today_str}}
+                    )
+                    school_days_list = sorted(all_att_dates) if all_att_dates else None
+                # else: calendar exists for other years; no data for this year → keep []
             return {
                 sid: compute_att_stats(school_days_list, {r["date"]: r for r in records_by_student.get(sid, [])}, excluded_types)
                 for sid in student_ids

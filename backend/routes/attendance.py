@@ -294,6 +294,22 @@ async def get_attendance_summary(
     students_list = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
     student_ids = [s["student_id"] for s in students_list]
     school_days_list = await db.school_days.distinct("date", day_filter)
+
+    # If no school days match — check if calendar is configured at all
+    if not school_days_list:
+        total_sd = await db.school_days.count_documents({})
+        if total_sd == 0:
+            # No calendar configured — use all unique attendance dates as proxy school days
+            att_date_filter = {}
+            if from_date:
+                att_date_filter["$gte"] = from_date
+            if to_date:
+                att_date_filter["$lte"] = to_date
+            fallback_dates = await db.attendance_records.distinct(
+                "date", {"date": att_date_filter} if att_date_filter else {"date": {"$lte": today_str}}
+            )
+            school_days_list = sorted(fallback_dates) if fallback_dates else []
+
     att_map = await get_bulk_attendance_stats(student_ids, school_days_list=school_days_list, excluded_types=excluded_types)
 
     result = []
@@ -338,6 +354,21 @@ async def get_student_attendance_detail(
         year_filter["date"] = {"$lte": today_str}
 
     school_days_list = await db.school_days.distinct("date", year_filter)
+
+    # If no school days match — check if calendar is configured at all
+    if not school_days_list:
+        total_sd = await db.school_days.count_documents({})
+        if total_sd == 0:
+            # No calendar configured — use all unique attendance dates as proxy school days
+            att_date_filter = {}
+            if from_date:
+                att_date_filter["$gte"] = from_date
+            if to_date:
+                att_date_filter["$lte"] = to_date
+            fallback_dates = await db.attendance_records.distinct(
+                "date", {"date": att_date_filter} if att_date_filter else {"date": {"$lte": today_str}}
+            )
+            school_days_list = sorted(fallback_dates) if fallback_dates else []
 
     exc_by_date = {r["date"]: r for r in records}
 
