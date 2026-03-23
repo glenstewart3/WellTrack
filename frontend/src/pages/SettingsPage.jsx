@@ -1175,6 +1175,8 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [newDay, setNewDay] = useState({ date: '', reason: '' });
+  const [addingYear, setAddingYear] = useState(false);
+  const [newYearInput, setNewYearInput] = useState('');
 
   const normalizeTerms = React.useCallback((loadedTerms, year) => {
     return [1, 2, 3, 4].map(n => {
@@ -1201,7 +1203,8 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
       setNonSchoolDays(r.data.non_school_days || []);
       setSchoolDaysCount(r.data.school_days_count || 0);
       const yrs = r.data.available_years || [activeYear];
-      setAvailableYears(yrs);
+      // Merge with existing list so unsaved new years aren't wiped
+      setAvailableYears(prev => [...new Set([...prev, ...yrs])].sort((a, b) => b - a));
       setSelectedYear(activeYear);
     } catch (e) {
       console.error(e);
@@ -1216,11 +1219,21 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
 
   const addNewYear = () => {
     const max = Math.max(...availableYears, new Date().getFullYear());
-    const next = max + 1;
-    setAvailableYears(prev => [...new Set([...prev, next])].sort((a, b) => b - a));
-    setSelectedYear(next);
-    setTerms(normalizeTerms([], next));
+    setNewYearInput(String(max + 1));
+    setAddingYear(true);
+  };
+
+  const confirmNewYear = () => {
+    const yr = parseInt(newYearInput, 10);
+    if (!yr || yr < 2000 || yr > 2100) return;
+    if (!availableYears.includes(yr)) {
+      setAvailableYears(prev => [...new Set([...prev, yr])].sort((a, b) => b - a));
+    }
+    setSelectedYear(yr);
+    setTerms(normalizeTerms([], yr));
     setSchoolDaysCount(0);
+    setAddingYear(false);
+    setNewYearInput('');
   };
 
   const updateTerm = (idx, field, value) =>
@@ -1301,10 +1314,23 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
               {y}
             </button>
           ))}
-          <button onClick={addNewYear} data-testid="add-year-btn"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold border border-dashed border-slate-300 text-slate-500 hover:border-slate-600 hover:text-slate-700 transition-colors">
-            <Plus size={14} /> New Year
-          </button>
+          {addingYear ? (
+            <div className="flex items-center gap-1.5">
+              <input
+                type="number" value={newYearInput} onChange={e => setNewYearInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') confirmNewYear(); if (e.key === 'Escape') setAddingYear(false); }}
+                className="w-24 px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400"
+                placeholder="2027" autoFocus
+              />
+              <button onClick={confirmNewYear} className="px-3 py-2 rounded-xl text-sm font-semibold bg-slate-900 text-white hover:bg-slate-700 transition-colors">Add</button>
+              <button onClick={() => setAddingYear(false)} className="px-3 py-2 rounded-xl text-sm font-semibold border border-slate-200 text-slate-500 hover:border-slate-400 transition-colors">Cancel</button>
+            </div>
+          ) : (
+            <button onClick={addNewYear} data-testid="add-year-btn"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold border border-dashed border-slate-300 text-slate-500 hover:border-slate-600 hover:text-slate-700 transition-colors">
+              <Plus size={14} /> New Year
+            </button>
+          )}
         </div>
       </div>
 
