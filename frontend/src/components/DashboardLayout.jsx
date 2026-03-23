@@ -32,6 +32,7 @@ export default function DashboardLayout() {
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   useEffect(() => { loadFullSettings(); }, [loadFullSettings]);
 
@@ -178,13 +179,58 @@ export default function DashboardLayout() {
           <NavLink to="/alerts" className="relative p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors">
             <Bell size={18} />
           </NavLink>
-          {user?.picture ? (
-            <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
-          ) : (
-            <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center">
-              <span className="text-xs font-semibold text-slate-600">{user?.name?.[0] || 'U'}</span>
-            </div>
-          )}
+          {/* User avatar + hover dropdown */}
+          <div
+            className="relative"
+            onMouseEnter={() => setUserMenuOpen(true)}
+            onMouseLeave={() => setUserMenuOpen(false)}
+          >
+            <button
+              className="rounded-full focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-slate-400"
+              data-testid="user-menu-trigger"
+            >
+              {user?.picture ? (
+                <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
+              ) : (
+                <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center">
+                  <span className="text-xs font-semibold text-slate-600">{user?.name?.[0] || 'U'}</span>
+                </div>
+              )}
+            </button>
+            {userMenuOpen && (
+              <div className="absolute right-0 top-full pt-1 z-50" data-testid="user-menu-dropdown">
+                <div className="w-52 bg-white border border-slate-200 rounded-xl shadow-xl py-1.5 overflow-hidden">
+                  <button
+                    onClick={() => { navigate('/settings'); setUserMenuOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                    data-testid="user-menu-settings"
+                  >
+                    <Settings size={15} className="text-slate-400 shrink-0" />
+                    Settings
+                  </button>
+                  {user?.role === 'admin' && (
+                    <button
+                      onClick={() => { navigate('/users'); setUserMenuOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                      data-testid="user-menu-users"
+                    >
+                      <UserCog size={15} className="text-slate-400 shrink-0" />
+                      User Management
+                    </button>
+                  )}
+                  <div className="my-1 border-t border-slate-100" />
+                  <button
+                    onClick={() => { setUserMenuOpen(false); handleLogout(); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-rose-600 hover:bg-rose-50 transition-colors"
+                    data-testid="user-menu-signout"
+                  >
+                    <LogOut size={15} className="shrink-0" />
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </header>
 
         {/* Page content */}
