@@ -1594,7 +1594,7 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Import Student Details</h3>
         <p className="text-xs text-slate-400 mb-1">Upload the Student Table Full Data export to enrich profiles with teacher, gender, EAL status, Aboriginal status, and NCCD disability. Students are matched by <strong>STUDENT_KEY</strong>.</p>
-        <p className="text-xs text-slate-400 mb-3">Accepts CSV or XLSX. EAL and Aboriginal status will appear as tags on student profiles and the student list.</p>
+        <p className="text-xs text-slate-400 mb-3">Accepts CSV. EAL and Aboriginal status will appear as tags on student profiles and the student list.</p>
         <details className="mb-4 group">
           <summary className="cursor-pointer text-xs font-medium text-indigo-600 hover:text-indigo-700 select-none list-none flex items-center gap-1.5">
             <span className="transition-transform group-open:rotate-90 inline-block">▶</span>
@@ -1610,9 +1610,9 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
           </div>
         </details>
         <div className="flex items-center gap-3 flex-wrap">
-          <input ref={detailsRef} type="file" accept=".csv,.xlsx" className="hidden" onChange={e => setDetailsFile(e.target.files?.[0] || null)} data-testid="details-file-input" />
+          <input ref={detailsRef} type="file" accept=".csv" className="hidden" onChange={e => setDetailsFile(e.target.files?.[0] || null)} data-testid="details-file-input" />
           <button onClick={() => detailsRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">
-            <FileUp size={14} /> {detailsFile ? detailsFile.name : 'Choose CSV or XLSX file'}
+            <FileUp size={14} /> {detailsFile ? detailsFile.name : 'Choose CSV file'}
           </button>
           {detailsFile && (
             <button onClick={uploadStudentDetails} disabled={importingDetails} data-testid="upload-details-btn"
