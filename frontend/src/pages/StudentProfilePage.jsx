@@ -259,7 +259,28 @@ export default function StudentProfilePage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>{displayName}</h1>
-              <p className="text-slate-500 text-sm">{student.year_level} · {student.class_name} · {student.teacher}</p>
+              <p className="text-slate-500 text-sm">{student.year_level} · {student.class_name} · {student.teacher}{student.gender ? ` · ${student.gender}` : ''}</p>
+              {/* EAL / Aboriginal / NCCD tags */}
+              {(student.eal_status && student.eal_status !== 'Not EAL') || student.aboriginal_status === 'Aboriginal' || (student.nccd_disability && student.nccd_disability !== 'No') ? (
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {student.eal_status && student.eal_status !== 'Not EAL' && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+                      {student.eal_status.includes('< 5') ? 'EAL <5yr' : student.eal_status.includes('>=5') ? 'EAL 5-7yr' : student.eal_status.includes('Fee') ? 'EAL Fee Paying' : student.eal_status}
+                    </span>
+                  )}
+                  {student.aboriginal_status === 'Aboriginal' && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-teal-100 text-teal-700">Aboriginal</span>
+                  )}
+                  {student.nccd_disability && student.nccd_disability !== 'No' && (() => {
+                    const m = student.nccd_disability.match(/Yes.*?-\s*(.+)/);
+                    if (!m) return null;
+                    const parts = m[1].split(',').map(s => s.trim());
+                    const level = parts[0], category = parts.slice(1).join(', ');
+                    const color = level.includes('Extensive') ? 'bg-red-100 text-red-700' : level.includes('Substantial') ? 'bg-orange-100 text-orange-700' : level.includes('Supplementary') ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700';
+                    return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${color}`}>NCCD: {level}{category ? ` · ${category}` : ''}</span>;
+                  })()}
+                </div>
+              ) : null}
               {alerts?.length > 0 && (
                 <p className="text-xs text-rose-600 font-medium mt-1">{alerts.length} active alert{alerts.length > 1 ? 's' : ''}</p>
               )}

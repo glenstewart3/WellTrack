@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from typing import Optional
-import uuid, zipfile, io, re, os
+import uuid, zipfile, io, re, os, csv
 from pathlib import Path
 from PIL import Image
 
@@ -354,4 +354,101 @@ async def upload_student_photos(file: UploadFile = File(...), user=Depends(get_c
         "unmatched": len(unmatched),
         "skipped_staff": len(skipped_staff),
         "unmatched_names": unmatched[:100],
+    }
+
+
+@router.post("/students/import-student-details")
+async def import_student_details(file: UploadFile = File(...), user=Depends(get_current_user)):
+    """Import student demographic details: teacher, gender, EAL, aboriginal status, NCCD."""
+    if user.get("role") not in ["admin", "leadership"]:
+        raise HTTPException(403, "Admin or leadership access required")
+
+    content = await file.read()
+    fname = (file.filename or "").lower()
+
+    if fname.endswith(".csv"):
+        text = content.decode("utf-8-sig")
+        all_rows = list(csv.reader(io.StringIO(text)))
+    elif fname.endswith(".xlsx") or fname.endswith(".xls"):
+        import openpyxl
+        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+        ws = wb.active
+        all_rows = [[str(cell.value or "").strip() for cell in row] for row in ws.iter_rows()]
+    else:
+        raise HTTPException(400, "Unsupported file format. Please upload a CSV or XLSX file.")
+
+    if not all_rows:
+        raise HTTPException(400, "File is empty.")
+
+    # Find header row — look for STUDENT_KEY
+    header_idx, headers = 0, []
+    for i, row in enumerate(all_rows[:10]):
+        cells = [str(v or "").strip().upper() for v in row]
+        if "STUDENT_KEY" in cells:
+            header_idx, headers = i, cells
+            break
+    if not headers:
+        raise HTTPException(400, "Could not find STUDENT_KEY column. Check the file format.")
+
+    def _col(*names):
+        for n in names:
+            for i, h in enumerate(headers):
+                if h == n.upper() or h.replace(" ", "_") == n.upper().replace(" ", "_"):
+                    return i
+        return None
+
+    key_c   = _col("STUDENT_KEY")
+    home_c  = _col("HOME_GROUP", "Home Group (teacher)")
+    gender_c = _col("GENDER", "Gender")
+    eal_c   = _col("EAL_STATUS", "EAL Status")
+    atsi_c  = _col("ATSI_STATUS", "Aboriginal Status")
+    nccd_c  = _col("NCCD_DISABILITY")
+
+    if key_c is None:
+        raise HTTPException(400, "STUDENT_KEY column not found in header row.")
+
+    updated, unmatched, errors = 0, [], []
+
+    for row_num, row in enumerate(all_rows[header_idx + 1:], start=header_idx + 2):
+        raw = [str(v or "").strip() for v in row]
+        if key_c >= len(raw) or not raw[key_c]:
+            continue
+        student_key = raw[key_c]
+
+        update = {}
+        if home_c is not None and home_c < len(raw) and raw[home_c]:
+            hg = raw[home_c]
+            m = re.match(r'^(\S+)\s*\(([^)]+)\)\s*$', hg)
+            if m:
+                update["class_name"] = m.group(1)
+                update["teacher"] = m.group(2).title()
+            else:
+                update["class_name"] = hg
+
+        if gender_c is not None and gender_c < len(raw) and raw[gender_c]:
+            update["gender"] = raw[gender_c]
+        if eal_c is not None and eal_c < len(raw) and raw[eal_c]:
+            update["eal_status"] = raw[eal_c]
+        if atsi_c is not None and atsi_c < len(raw) and raw[atsi_c]:
+            update["aboriginal_status"] = raw[atsi_c]
+        if nccd_c is not None and nccd_c < len(raw) and raw[nccd_c]:
+            update["nccd_disability"] = raw[nccd_c]
+
+        if not update:
+            continue
+
+        result = await db.students.update_one(
+            {"$or": [{"sussi_id": student_key}, {"external_id": student_key}]},
+            {"$set": update}
+        )
+        if result.matched_count > 0:
+            updated += 1
+        else:
+            unmatched.append(student_key)
+
+    return {
+        "updated": updated,
+        "unmatched": len(unmatched),
+        "unmatched_keys": unmatched[:20],
+        "errors": errors,
     }

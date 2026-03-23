@@ -636,9 +636,23 @@ export default function StudentsPage() {
                               : <span className="text-xs font-semibold text-slate-600">{s.first_name[0]}{s.last_name[0]}</span>
                             }
                           </div>
-                          <span className="font-medium text-slate-900 text-xs sm:text-sm leading-tight">
-                            {s.first_name}{s.preferred_name && s.preferred_name !== s.first_name ? ` (${s.preferred_name})` : ''} {s.last_name}
-                          </span>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-medium text-slate-900 text-xs sm:text-sm leading-tight">
+                              {s.first_name}{s.preferred_name && s.preferred_name !== s.first_name ? ` (${s.preferred_name})` : ''} {s.last_name}
+                            </span>
+                            {(s.eal_status && s.eal_status !== 'Not EAL') || s.aboriginal_status === 'Aboriginal' ? (
+                              <div className="flex gap-1 mt-0.5 flex-wrap">
+                                {s.eal_status && s.eal_status !== 'Not EAL' && (
+                                  <span className="inline-flex items-center px-1.5 py-px rounded text-[10px] font-semibold bg-amber-100 text-amber-700">
+                                    {s.eal_status.includes('< 5') ? 'EAL <5yr' : s.eal_status.includes('>=5') ? 'EAL 5-7yr' : s.eal_status.includes('Fee') ? 'EAL Fee' : 'EAL'}
+                                  </span>
+                                )}
+                                {s.aboriginal_status === 'Aboriginal' && (
+                                  <span className="inline-flex items-center px-1.5 py-px rounded text-[10px] font-semibold bg-teal-100 text-teal-700">Aboriginal</span>
+                                )}
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
                       </td>
                       <td className="py-3 px-4 text-slate-600 text-sm hidden sm:table-cell">{s.class_name}</td>
