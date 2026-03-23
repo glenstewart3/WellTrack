@@ -5,22 +5,14 @@ import { useAuth } from './AuthContext';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export const THEMES = {
-  default:  { name: 'Slate',    swatch: '#0f172a' },
-  ocean:    { name: 'Ocean',    swatch: '#0c4a6e' },
-  forest:   { name: 'Forest',   swatch: '#14532d' },
-  warm:     { name: 'Warm',     swatch: '#7c2d12' },
-  dark:     { name: 'Dark',     swatch: '#1e293b' },
-  midnight: { name: 'Midnight', swatch: '#1e1b4b' },
+  default: { name: 'Light', swatch: '#f8fafc' },
+  dark:    { name: 'Dark',  swatch: '#1e293b' },
 };
 
-// Per-theme active nav color (overrides school accent_color)
+// Active nav colour per theme
 export const THEME_NAV_ACTIVE = {
-  default: null,
-  ocean: '#0ea5e9',
-  forest: '#22c55e',
-  warm:   '#f97316',
-  dark:   '#3b82f6',
-  midnight: '#818cf8',
+  default: null,   // falls back to school accent_color
+  dark:    '#3b82f6',
 };
 
 const ThemeContext = createContext({ theme: 'default', setTheme: () => {} });

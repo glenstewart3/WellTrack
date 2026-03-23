@@ -6,7 +6,7 @@ import { useTheme, THEMES, THEME_NAV_ACTIVE } from '../context/ThemeContext';
 import {
   LayoutDashboard, ClipboardCheck, Users, Radar, BarChart3,
   Target, Users2, Bell, Settings, LogOut,
-  Menu, X, Shield, UserCog, CalendarDays, Check
+  Menu, X, Shield, UserCog, CalendarDays, Check, Sun, Moon
 } from 'lucide-react';
 
 const navItems = [
@@ -53,7 +53,7 @@ export default function DashboardLayout() {
   // Use theme-specific nav active color when not on default theme
   const activeNavColor = THEME_NAV_ACTIVE[theme] || accent;
   // Only apply wt-sidebar class for non-default themes (avoids overriding role badge colors on default)
-  const sidebarClass = theme !== 'default' ? 'wt-sidebar' : 'bg-white border-slate-200';
+  const sidebarClass = theme === 'dark' ? 'wt-sidebar' : 'bg-white border-slate-200';
 
   const handleLogout = async () => {
     await logout();
@@ -123,27 +123,33 @@ export default function DashboardLayout() {
             </span>
           </div>
         </div>
-        {/* Theme picker */}
+        {/* Theme toggle — Light / Dark */}
         <div className="mt-3 pt-3 border-t border-slate-100">
-          <p className="text-xs mb-2 px-1" style={{ color: 'var(--wt-sidebar-text-muted, #94a3b8)' }}>Appearance</p>
-          <div className="flex gap-1.5 flex-wrap px-1">
-            {Object.entries(THEMES).map(([key, t]) => (
-              <button
-                key={key}
-                onClick={() => setTheme(key)}
-                title={t.name}
-                data-testid={`theme-swatch-${key}`}
-                className="w-6 h-6 rounded-full transition-all duration-150 hover:scale-110 relative flex items-center justify-center"
-                style={{
-                  backgroundColor: t.swatch,
-                  outline: theme === key ? '2px solid white' : '2px solid transparent',
-                  outlineOffset: '2px',
-                  boxShadow: theme === key ? `0 0 0 3px ${t.swatch}` : 'none',
-                }}
-              >
-                {theme === key && <Check size={10} className="text-white" strokeWidth={3} />}
-              </button>
-            ))}
+          <div className="flex items-center gap-1 px-1">
+            <button
+              onClick={() => setTheme('default')}
+              title="Light mode"
+              data-testid="theme-swatch-default"
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                theme !== 'dark'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <Sun size={12} /> Light
+            </button>
+            <button
+              onClick={() => setTheme('dark')}
+              title="Dark mode"
+              data-testid="theme-swatch-dark"
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                theme === 'dark'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <Moon size={12} /> Dark
+            </button>
           </div>
         </div>
       </div>
