@@ -120,6 +120,8 @@ Example: [{{"type": "Counselling", "priority": "high", "rationale": "...", "goal
                 f"{ollama_url}/api/generate",
                 json={"model": ollama_model, "prompt": prompt, "stream": False}
             )
+            if resp.status_code == 404:
+                raise HTTPException(503, f"Model '{ollama_model}' not found on Ollama. Run: ollama pull {ollama_model}")
             resp.raise_for_status()
             content = resp.json().get("response", "")
             logger.info(f"Ollama raw response (first 400 chars): {content[:400]}")
