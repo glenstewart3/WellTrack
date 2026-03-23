@@ -265,7 +265,7 @@ async def delete_year(year: int, user=Depends(get_current_user)):
     """Remove all terms and school days for a given year."""
     if user.get("role") not in ["admin", "leadership"]:
         raise HTTPException(403, "Access denied")
-    s = await _get_settings()
+    s = await db.school_settings.find_one({}) or {}
     existing_terms = s.get("terms", [])
     kept = [t for t in existing_terms if t.get("year") != year]
     await db.school_settings.update_one(
