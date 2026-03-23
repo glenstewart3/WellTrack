@@ -245,10 +245,15 @@ async def update_role(data: dict, user=Depends(get_current_user)):
 
 @router.get("/onboarding/status")
 async def get_onboarding_status():
-    settings = await db.school_settings.find_one({}, {"_id": 0})
+    # Prefer a doc that explicitly has onboarding_complete=True, then fall back to any doc
+    settings = await db.school_settings.find_one({"onboarding_complete": True}, {"_id": 0})
+    if not settings:
+        settings = await db.school_settings.find_one({}, {"_id": 0})
     user_count = await db.users.count_documents({})
+    # Treat as complete if flag is set OR if users already exist (can't run onboarding twice)
+    complete = bool(settings and settings.get("onboarding_complete", False)) or user_count > 0
     return {
-        "complete": bool(settings and settings.get("onboarding_complete", False)),
+        "complete": complete,
         "has_users": user_count > 0,
         "school_name": settings.get("school_name", "") if settings else "",
     }

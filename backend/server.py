@@ -78,7 +78,28 @@ async def startup():
     await db.user_sessions.create_index("session_token")
     await db.school_days.create_index("year")
 
-    # ── Multi-year migration ─────────────────────────────────────────────────
+    # ── Dedup school_settings ─────────────────────────────────────────────────
+    # If multiple settings docs exist (e.g. from a botched migration), merge them
+    # into one, preserving onboarding_complete and all non-empty fields.
+    all_settings = await db.school_settings.find({}).to_list(20)
+    if len(all_settings) > 1:
+        merged = {}
+        for doc in all_settings:
+            for k, v in doc.items():
+                if k == "_id":
+                    continue
+                # Prefer truthy values; always keep onboarding_complete=True once set
+                if k == "onboarding_complete" and v:
+                    merged[k] = True
+                elif k not in merged or not merged[k]:
+                    merged[k] = v
+        keep_id = all_settings[0]["_id"]
+        await db.school_settings.replace_one({"_id": keep_id}, merged)
+        extra_ids = [d["_id"] for d in all_settings[1:]]
+        await db.school_settings.delete_many({"_id": {"$in": extra_ids}})
+        logger.info(f"Merged {len(all_settings)} duplicate school_settings docs into one.")
+
+
     # 1. school_days: add year field derived from date string (e.g. "2025-02-03" → 2025)
     await db.school_days.update_many(
         {"year": {"$exists": False}},

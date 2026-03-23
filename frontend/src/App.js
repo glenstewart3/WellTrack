@@ -53,7 +53,11 @@ function AppRouter() {
   useEffect(() => {
     axios.get(`${API}/onboarding/status`)
       .then(r => setOnboardingDone(r.data.complete))
-      .catch(() => setOnboardingDone(false));
+      .catch(() => {
+        // If the status check fails entirely, assume setup is complete to avoid
+        // locking out users with a working system due to a transient network error.
+        setOnboardingDone(true);
+      });
   }, []);
 
   if (authLoading || onboardingDone === null) return <Spinner />;
