@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
@@ -33,6 +33,19 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const handler = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [userMenuOpen]);
 
   useEffect(() => { loadFullSettings(); }, [loadFullSettings]);
 
@@ -110,15 +123,6 @@ export default function DashboardLayout() {
             </span>
           </div>
         </div>
-        <button
-          onClick={handleLogout}
-          data-testid="logout-btn"
-          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-lg transition-colors"
-        >
-          <LogOut size={15} />
-          Sign Out
-        </button>
-
         {/* Theme picker */}
         <div className="mt-3 pt-3 border-t border-slate-100">
           <p className="text-xs mb-2 px-1" style={{ color: 'var(--wt-sidebar-text-muted, #94a3b8)' }}>Appearance</p>
@@ -179,13 +183,10 @@ export default function DashboardLayout() {
           <NavLink to="/alerts" className="relative p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors">
             <Bell size={18} />
           </NavLink>
-          {/* User avatar + hover dropdown */}
-          <div
-            className="relative"
-            onMouseEnter={() => setUserMenuOpen(true)}
-            onMouseLeave={() => setUserMenuOpen(false)}
-          >
+          {/* User avatar + click dropdown */}
+          <div className="relative" ref={userMenuRef}>
             <button
+              onClick={() => setUserMenuOpen(p => !p)}
               className="rounded-full focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-slate-400"
               data-testid="user-menu-trigger"
             >
