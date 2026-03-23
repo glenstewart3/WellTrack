@@ -53,7 +53,8 @@ api_router.include_router(backups_router)
 app.include_router(api_router)
 
 # Serve student photos as static files under /api/student-photos/
-_photos_dir = Path("/app/uploads/student_photos")
+_default_photos = Path(__file__).resolve().parent / "uploads" / "student_photos"
+_photos_dir = Path(os.environ.get("PHOTOS_DIR", str(_default_photos)))
 _photos_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/api/student-photos", StaticFiles(directory=str(_photos_dir)), name="student_photos")
 

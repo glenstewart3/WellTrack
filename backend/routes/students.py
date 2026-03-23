@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from typing import Optional
-import uuid, zipfile, io, re
+import uuid, zipfile, io, re, os
 from pathlib import Path
 from PIL import Image
 
@@ -10,7 +10,9 @@ from helpers import get_current_user, get_student_attendance_pct, compute_mtss_t
     get_bulk_attendance_stats, get_latest_saebrs_bulk, get_latest_saebrs_plus_bulk
 from models import Student
 
-PHOTOS_DIR = Path("/app/uploads/student_photos")
+# Default: <backend_root>/uploads/student_photos  (works on any server without /app)
+_default_photos = Path(__file__).resolve().parent.parent / "uploads" / "student_photos"
+PHOTOS_DIR = Path(os.environ.get("PHOTOS_DIR", str(_default_photos)))
 PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
 
 router = APIRouter()
