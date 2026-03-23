@@ -93,17 +93,17 @@ code {
 .wt-sidebar .hover\:text-slate-900:hover { color: #f1f5f9 !important; }
 /* User avatar */
 .wt-sidebar .bg-slate-200 { background-color: rgba(255,255,255,0.15) !important; }
-/* Role badge — tone it down on dark background */
-.wt-sidebar [class*="bg-blue-100"],
-.wt-sidebar [class*="bg-indigo-100"],
-.wt-sidebar [class*="bg-purple-100"],
-.wt-sidebar [class*="bg-emerald-100"],
-.wt-sidebar [class*="bg-slate-100"]  { background-color: rgba(255,255,255,0.08) !important; }
-.wt-sidebar [class*="text-blue-7"],
-.wt-sidebar [class*="text-indigo-7"],
-.wt-sidebar [class*="text-purple-7"],
-.wt-sidebar [class*="text-emerald-7"],
-.wt-sidebar [class*="text-slate-7"]  { color: #94a3b8 !important; }
+/* Role badge — tone it down on dark background (exact class match only, not hover variants) */
+.wt-sidebar .bg-blue-100,
+.wt-sidebar .bg-indigo-100,
+.wt-sidebar .bg-purple-100,
+.wt-sidebar .bg-emerald-100,
+.wt-sidebar .bg-slate-100  { background-color: rgba(255,255,255,0.08) !important; }
+.wt-sidebar .text-blue-700,
+.wt-sidebar .text-indigo-700,
+.wt-sidebar .text-purple-700,
+.wt-sidebar .text-emerald-700,
+.wt-sidebar .text-slate-700  { color: #94a3b8 !important; }
 
 /* ── Dark mode — full page/content overrides ───────────────────────────────── */
 [data-theme="dark"] body { background-color: #0f172a; color: #f1f5f9; }
