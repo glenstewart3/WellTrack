@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, getRiskColors, INTERVENTION_TYPES, NOTE_TYPES } from '../utils/tierUtils';
-import { ArrowLeft, Plus, X, Loader, Edit2, Check } from 'lucide-react';
+import { ArrowLeft, Plus, X, Loader, Edit2, Check, Sparkles } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -152,6 +152,10 @@ export default function StudentProfilePage() {
   const [saebrsView, setSaebrsView] = useState('total'); // 'total' or 'domains'
   const [newIntervention, setNewIntervention] = useState({ intervention_type: '', assigned_staff: '', start_date: '', review_date: '', goals: '', frequency: '', status: 'active' });
   const [newNote, setNewNote] = useState({ note_type: 'General', notes: '', staff_member: '', date: new Date().toISOString().split('T')[0] });
+  const [aiSuggestions, setAiSuggestions] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+  const [showAiPanel, setShowAiPanel] = useState(false);
   useEffect(() => {
     const load = async () => {
       try {
@@ -163,7 +167,18 @@ export default function StudentProfilePage() {
     load();
   }, [studentId]);
 
-  const getAiSuggestions = null; // AI suggestions available on the Interventions page
+  const getAiSuggestions = async () => {
+    setAiLoading(true);
+    setAiError('');
+    setAiSuggestions(null);
+    setShowAiPanel(true);
+    try {
+      const res = await axios.post(`${API}/interventions/ai-suggest/${studentId}`, {}, { withCredentials: true });
+      setAiSuggestions(res.data.recommendations || []);
+    } catch (e) {
+      setAiError(e.response?.data?.detail || 'Failed to get suggestions');
+    } finally { setAiLoading(false); }
+  };
 
   const editIntervention = async (id, patch) => {
     try {
@@ -594,12 +609,63 @@ export default function StudentProfilePage() {
           <div className="flex justify-between items-center">
             <p className="text-sm text-slate-500">{interventions?.length || 0} intervention{interventions?.length !== 1 ? 's' : ''} recorded</p>
             <div className="flex gap-2">
+              {settings?.ai_suggestions_enabled !== false && (
+                <button onClick={getAiSuggestions} disabled={aiLoading} data-testid="get-ai-suggestions-btn"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-indigo-200 text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-60">
+                  {aiLoading ? <Loader size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                  {aiLoading ? 'Generating…' : 'AI Suggestions'}
+                </button>
+              )}
               <button onClick={() => setShowAddIntervention(true)} data-testid="add-intervention-btn"
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors">
                 <Plus size={14} /> Add Intervention
               </button>
             </div>
           </div>
+
+          {/* AI Suggestions Panel */}
+          {showAiPanel && (
+            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+              <div className="flex justify-between items-center mb-3">
+                <p className="text-sm font-semibold text-indigo-800">AI Intervention Suggestions</p>
+                <button onClick={() => setShowAiPanel(false)} className="text-indigo-400 hover:text-indigo-600"><X size={15} /></button>
+              </div>
+              {aiLoading && <div className="flex items-center gap-2 text-sm text-indigo-600 py-4 justify-center"><Loader size={16} className="animate-spin" /> Generating suggestions…</div>}
+              {aiError && <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg p-3">{aiError}</p>}
+              {aiSuggestions && (
+                <div className="grid sm:grid-cols-3 gap-3">
+                  {aiSuggestions.map((rec, i) => (
+                    <div key={i} className="bg-white rounded-xl p-4 border border-indigo-100 flex flex-col">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-semibold text-slate-900 text-sm leading-snug pr-2">{rec.type}</h4>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${rec.priority === 'high' ? 'bg-rose-100 text-rose-700' : rec.priority === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                          {rec.priority}
+                        </span>
+                      </div>
+                      {rec.rationale && <p className="text-xs text-slate-600 mb-2 leading-relaxed">{rec.rationale}</p>}
+                      {(rec.goals || rec.goal) && (
+                        <p className="text-xs text-slate-700 mb-2"><span className="font-semibold">Goal:</span> {rec.goals || rec.goal}</p>
+                      )}
+                      <p className="text-xs text-slate-400 mt-auto">{[rec.frequency, rec.timeline].filter(Boolean).join(' · ')}</p>
+                      <button
+                        onClick={() => {
+                          setNewIntervention(p => ({
+                            ...p,
+                            intervention_type: rec.type || '',
+                            goals: rec.goals || rec.goal || '',
+                            frequency: rec.frequency || '',
+                          }));
+                          setShowAddIntervention(true);
+                        }}
+                        className="mt-3 w-full text-xs text-indigo-600 hover:text-indigo-800 font-medium text-left">
+                        Use this recommendation →
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {interventions?.map(intv => (
             <InlineEditIntervention key={intv.intervention_id} intv={intv} interventionTypes={interventionTypes} onSave={editIntervention} />
@@ -631,11 +697,16 @@ export default function StudentProfilePage() {
               <button onClick={() => setShowAddIntervention(false)}><X size={18} className="text-slate-400" /></button>
             </div>
             <div className="space-y-3">
-              <select value={newIntervention.intervention_type} onChange={e => setNewIntervention(p => ({...p, intervention_type: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20">
-                <option value="">Select Intervention Type</option>
-                {INTERVENTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+              <input
+                list="profile-intervention-types"
+                value={newIntervention.intervention_type}
+                onChange={e => setNewIntervention(p => ({...p, intervention_type: e.target.value}))}
+                placeholder="Select or type intervention type"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20"
+              />
+              <datalist id="profile-intervention-types">
+                {INTERVENTION_TYPES.map(t => <option key={t} value={t} />)}
+              </datalist>
               <input placeholder="Assigned Staff" value={newIntervention.assigned_staff} onChange={e => setNewIntervention(p => ({...p, assigned_staff: e.target.value}))}
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
               <div className="grid grid-cols-2 gap-3">
