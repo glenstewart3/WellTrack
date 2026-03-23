@@ -183,7 +183,7 @@ def _generate_school_days(terms: list, non_school_days: list) -> list:
 async def get_terms(year: Optional[int] = None, user=Depends(get_current_user)):
     s = await db.school_settings.find_one({}, {"_id": 0})
     all_terms = (s or {}).get("terms", [])
-    non_school_days = (s or {}).get("non_school_days", [])
+    all_nsd = (s or {}).get("non_school_days", [])
 
     # Derive available years from stored terms + years with actual attendance data
     term_years = {t["year"] for t in all_terms if t.get("year")}
@@ -202,12 +202,14 @@ async def get_terms(year: Optional[int] = None, user=Depends(get_current_user)):
     # Which year to return — explicit param > current_year > highest available
     active_year = year or current_year or (available_years[0] if available_years else None)
     filtered_terms = [t for t in all_terms if t.get("year") == active_year] if active_year else all_terms
+    # Return only non-school days for the active year
+    filtered_nsd = [d for d in all_nsd if d.get("year") == active_year] if active_year else all_nsd
     count_filter = {"year": active_year} if active_year else {}
     count = await db.school_days.count_documents(count_filter)
 
     return {
         "terms": filtered_terms,
-        "non_school_days": non_school_days,
+        "non_school_days": filtered_nsd,
         "school_days_count": count,
         "available_years": available_years,
         "active_year": active_year,
@@ -229,17 +231,26 @@ async def save_terms(data: dict, user=Depends(get_current_user)):
         if save_year and not t.get("year"):
             t["year"] = save_year
 
+    # Stamp every non-school day with the save_year
+    for d in non_school_days:
+        if save_year and not d.get("year"):
+            d["year"] = save_year
+
     # Merge with other years' terms (preserve them)
     s = await db.school_settings.find_one({}, {"_id": 0}) or {}
     existing_terms = s.get("terms", [])
+    existing_nsd = s.get("non_school_days", [])
     if save_year is not None:
         other_terms = [t for t in existing_terms if t.get("year") != save_year]
         merged_terms = other_terms + terms
+        other_nsd = [d for d in existing_nsd if d.get("year") != save_year]
+        merged_nsd = other_nsd + non_school_days
     else:
         merged_terms = terms
+        merged_nsd = non_school_days
 
     await db.school_settings.update_one({}, {"$set": {
-        "terms": merged_terms, "non_school_days": non_school_days,
+        "terms": merged_terms, "non_school_days": merged_nsd,
     }}, upsert=True)
 
     # Regenerate school_days only for this year (or all if no year given)
@@ -268,9 +279,10 @@ async def delete_year(year: int, user=Depends(get_current_user)):
     s = await db.school_settings.find_one({}) or {}
     existing_terms = s.get("terms", [])
     kept = [t for t in existing_terms if t.get("year") != year]
+    kept_nsd = [d for d in s.get("non_school_days", []) if d.get("year") != year]
     await db.school_settings.update_one(
         {"_id": s["_id"]},
-        {"$set": {"terms": kept}}
+        {"$set": {"terms": kept, "non_school_days": kept_nsd}}
     )
     await db.school_days.delete_many({"year": year})
     return {"message": f"Year {year} deleted", "year": year}
