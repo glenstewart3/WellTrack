@@ -1177,6 +1177,7 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
   const [newDay, setNewDay] = useState({ date: '', reason: '' });
   const [addingYear, setAddingYear] = useState(false);
   const [newYearInput, setNewYearInput] = useState('');
+  const [confirmDeleteYear, setConfirmDeleteYear] = useState(null);
 
   const normalizeTerms = React.useCallback((loadedTerms, year) => {
     return [1, 2, 3, 4].map(n => {
@@ -1234,6 +1235,22 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
     setSchoolDaysCount(0);
     setAddingYear(false);
     setNewYearInput('');
+  };
+
+  const deleteYear = async (yr) => {
+    try {
+      await axios.delete(`${API}/settings/terms?year=${yr}`, { withCredentials: true });
+      const remaining = availableYears.filter(y => y !== yr);
+      setAvailableYears(remaining);
+      const next = remaining[0] || new Date().getFullYear();
+      setConfirmDeleteYear(null);
+      fetchTerms(next);
+      setMsgType('success'); setMsg(`Year ${yr} deleted`);
+      setTimeout(() => setMsg(''), 4000);
+    } catch (e) {
+      setMsgType('error'); setMsg(e.response?.data?.detail || 'Delete failed');
+      setTimeout(() => setMsg(''), 5000);
+    }
   };
 
   const updateTerm = (idx, field, value) =>
@@ -1309,10 +1326,24 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
         </div>
         <div className="flex items-center gap-2 flex-wrap" data-testid="year-selector">
           {availableYears.map(y => (
-            <button key={y} onClick={() => handleYearChange(y)} data-testid={`year-btn-${y}`}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${selectedYear === y ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
-              {y}
-            </button>
+            confirmDeleteYear === y ? (
+              <div key={y} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-rose-300 bg-rose-50 text-xs text-rose-700 font-medium">
+                <span>Delete {y}?</span>
+                <button onClick={() => deleteYear(y)} className="px-2 py-0.5 rounded bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 transition-colors">Yes, delete</button>
+                <button onClick={() => setConfirmDeleteYear(null)} className="px-2 py-0.5 rounded border border-rose-300 text-rose-600 text-xs font-semibold hover:bg-rose-100 transition-colors">Cancel</button>
+              </div>
+            ) : (
+              <div key={y} className="group relative flex items-center">
+                <button onClick={() => handleYearChange(y)} data-testid={`year-btn-${y}`}
+                  className={`px-4 py-2 pr-7 rounded-xl text-sm font-semibold border transition-all ${selectedYear === y ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
+                  {y}
+                </button>
+                <button onClick={() => setConfirmDeleteYear(y)} title={`Delete ${y}`}
+                  className={`absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-rose-100 ${selectedYear === y ? 'text-slate-300 hover:text-rose-500' : 'text-slate-400 hover:text-rose-500'}`}>
+                  <X size={11} />
+                </button>
+              </div>
+            )
           ))}
           {addingYear ? (
             <div className="flex items-center gap-1.5">

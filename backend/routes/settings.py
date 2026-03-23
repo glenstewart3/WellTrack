@@ -258,3 +258,19 @@ async def save_terms(data: dict, user=Depends(get_current_user)):
         "school_days_count": len(all_dates),
         "year": save_year,
     }
+
+
+@router.delete("/settings/terms")
+async def delete_year(year: int, user=Depends(get_current_user)):
+    """Remove all terms and school days for a given year."""
+    if user.get("role") not in ["admin", "leadership"]:
+        raise HTTPException(403, "Access denied")
+    s = await _get_settings()
+    existing_terms = s.get("terms", [])
+    kept = [t for t in existing_terms if t.get("year") != year]
+    await db.school_settings.update_one(
+        {"_id": s["_id"]},
+        {"$set": {"terms": kept}}
+    )
+    await db.school_days.delete_many({"year": year})
+    return {"message": f"Year {year} deleted", "year": year}
