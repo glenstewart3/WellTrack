@@ -1590,6 +1590,52 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
         )}
       </div>
 
+      {/* Student Details Import */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Import Student Details</h3>
+        <p className="text-xs text-slate-400 mb-1">Upload the Student Table Full Data export to enrich profiles with teacher, gender, EAL status, Aboriginal status, and NCCD disability. Students are matched by <strong>STUDENT_KEY</strong>.</p>
+        <p className="text-xs text-slate-400 mb-3">Accepts CSV or XLSX. EAL and Aboriginal status will appear as tags on student profiles and the student list.</p>
+        <details className="mb-4 group">
+          <summary className="cursor-pointer text-xs font-medium text-indigo-600 hover:text-indigo-700 select-none list-none flex items-center gap-1.5">
+            <span className="transition-transform group-open:rotate-90 inline-block">▶</span>
+            How to export from Panorama
+          </summary>
+          <div className="mt-2 p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-xs text-slate-600 space-y-1.5">
+            <ol className="list-decimal list-inside space-y-1.5">
+              <li>In Panorama, go to <strong>Your Students</strong> → <strong>Student View</strong></li>
+              <li>Click <strong>Download</strong> → <strong>Data</strong> → <strong>Full Data</strong></li>
+              <li>Select <strong>Download all rows as a text file</strong></li>
+              <li>Upload the downloaded file here</li>
+            </ol>
+          </div>
+        </details>
+        <div className="flex items-center gap-3 flex-wrap">
+          <input ref={detailsRef} type="file" accept=".csv,.xlsx" className="hidden" onChange={e => setDetailsFile(e.target.files?.[0] || null)} data-testid="details-file-input" />
+          <button onClick={() => detailsRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">
+            <FileUp size={14} /> {detailsFile ? detailsFile.name : 'Choose CSV or XLSX file'}
+          </button>
+          {detailsFile && (
+            <button onClick={uploadStudentDetails} disabled={importingDetails} data-testid="upload-details-btn"
+              className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity" style={{ backgroundColor: 'var(--wt-accent)' }}>
+              {importingDetails ? <Loader size={14} className="animate-spin" /> : <Upload size={14} />}
+              {importingDetails ? 'Importing…' : 'Import'}
+            </button>
+          )}
+        </div>
+        {detailsResult && (
+          <div className="mt-3 p-3 bg-slate-50 rounded-xl text-xs text-slate-600 space-y-1" data-testid="details-import-result">
+            <p><strong>Students updated:</strong> {detailsResult.updated}</p>
+            {detailsResult.unmatched > 0 && (
+              <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-1">
+                <p className="text-amber-800 font-semibold">⚠ {detailsResult.unmatched} STUDENT_KEY{detailsResult.unmatched !== 1 ? 's' : ''} had no match in the student database:</p>
+                <p className="text-amber-700 font-mono break-all">{detailsResult.unmatched_keys?.join(', ')}</p>
+                <p className="text-amber-600">Ensure students are imported first via <strong>Import Students</strong> above.</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Attendance Upload */}
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Upload Attendance</h3>
@@ -1637,48 +1683,6 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
                 <p className="text-amber-800 font-semibold">⚠ {attResult.unmatched_students} student ID{attResult.unmatched_students !== 1 ? 's' : ''} in the file had no match in the student database:</p>
                 <p className="text-amber-700 font-mono break-all">{attResult.unmatched_ids?.join(', ')}</p>
                 <p className="text-amber-600">Go to <strong>Import Students</strong> above and ensure these SussiId values are present.</p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Student Details Import */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6">
-        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Import Student Details</h3>
-        <p className="text-xs text-slate-400 mb-1">Upload the Student Table CSV to enrich profiles with teacher, gender, EAL status, Aboriginal status, and NCCD disability. Students are matched by <strong>STUDENT_KEY</strong> (column S).</p>
-        <p className="text-xs text-slate-400 mb-3">Accepts CSV or XLSX. EAL and Aboriginal status will appear as tags on student profiles and the student list.</p>
-        <details className="mb-4 group">
-          <summary className="cursor-pointer text-xs font-medium text-indigo-600 hover:text-indigo-700 select-none list-none flex items-center gap-1.5">
-            <span className="transition-transform group-open:rotate-90 inline-block">▶</span>
-            Where does this file come from?
-          </summary>
-          <div className="mt-2 p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-xs text-slate-600 space-y-1.5">
-            <p>This is the <strong>Student Table Full Data</strong> export from your school's data system. It must contain the <code className="bg-white px-1 rounded border">STUDENT_KEY</code> column (col S) for matching.</p>
-            <p>Columns used: <strong>C</strong> Home Group (teacher), <strong>E</strong> Gender, <strong>F</strong> EAL Status, <strong>G</strong> Aboriginal Status, <strong>J</strong> NCCD Disability, <strong>S</strong> STUDENT_KEY (match key), <strong>T</strong> StudentNameKey.</p>
-          </div>
-        </details>
-        <div className="flex items-center gap-3 flex-wrap">
-          <input ref={detailsRef} type="file" accept=".csv,.xlsx" className="hidden" onChange={e => setDetailsFile(e.target.files?.[0] || null)} data-testid="details-file-input" />
-          <button onClick={() => detailsRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">
-            <FileUp size={14} /> {detailsFile ? detailsFile.name : 'Choose CSV or XLSX file'}
-          </button>
-          {detailsFile && (
-            <button onClick={uploadStudentDetails} disabled={importingDetails} data-testid="upload-details-btn"
-              className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity" style={{ backgroundColor: 'var(--wt-accent)' }}>
-              {importingDetails ? <Loader size={14} className="animate-spin" /> : <Upload size={14} />}
-              {importingDetails ? 'Importing…' : 'Import'}
-            </button>
-          )}
-        </div>
-        {detailsResult && (
-          <div className="mt-3 p-3 bg-slate-50 rounded-xl text-xs text-slate-600 space-y-1" data-testid="details-import-result">
-            <p><strong>Students updated:</strong> {detailsResult.updated}</p>
-            {detailsResult.unmatched > 0 && (
-              <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-1">
-                <p className="text-amber-800 font-semibold">⚠ {detailsResult.unmatched} STUDENT_KEY{detailsResult.unmatched !== 1 ? 's' : ''} had no match in the student database:</p>
-                <p className="text-amber-700 font-mono break-all">{detailsResult.unmatched_keys?.join(', ')}</p>
-                <p className="text-amber-600">Ensure students are imported first via <strong>Import Students</strong> above.</p>
               </div>
             )}
           </div>
