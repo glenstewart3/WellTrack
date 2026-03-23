@@ -179,6 +179,17 @@ def _generate_school_days(terms: list, non_school_days: list) -> list:
     return sorted(days)
 
 
+def _day_year(d):
+    """Return the year for a non-school day, inferring from the date string if year field is absent."""
+    if d.get("year"):
+        return d["year"]
+    date = d.get("date", "")
+    try:
+        return int(date[:4]) if len(date) >= 4 else None
+    except (ValueError, TypeError):
+        return None
+
+
 @router.get("/settings/terms")
 async def get_terms(year: Optional[int] = None, user=Depends(get_current_user)):
     s = await db.school_settings.find_one({}, {"_id": 0})
@@ -202,8 +213,8 @@ async def get_terms(year: Optional[int] = None, user=Depends(get_current_user)):
     # Which year to return — explicit param > current_year > highest available
     active_year = year or current_year or (available_years[0] if available_years else None)
     filtered_terms = [t for t in all_terms if t.get("year") == active_year] if active_year else all_terms
-    # Return only non-school days for the active year
-    filtered_nsd = [d for d in all_nsd if d.get("year") == active_year] if active_year else all_nsd
+    # Return only non-school days for the active year (infer year from date for legacy records)
+    filtered_nsd = [d for d in all_nsd if _day_year(d) == active_year] if active_year else all_nsd
     count_filter = {"year": active_year} if active_year else {}
     count = await db.school_days.count_documents(count_filter)
 
@@ -279,7 +290,7 @@ async def delete_year(year: int, user=Depends(get_current_user)):
     s = await db.school_settings.find_one({}) or {}
     existing_terms = s.get("terms", [])
     kept = [t for t in existing_terms if t.get("year") != year]
-    kept_nsd = [d for d in s.get("non_school_days", []) if d.get("year") != year]
+    kept_nsd = [d for d in s.get("non_school_days", []) if _day_year(d) != year]
     await db.school_settings.update_one(
         {"_id": s["_id"]},
         {"$set": {"terms": kept, "non_school_days": kept_nsd}}
