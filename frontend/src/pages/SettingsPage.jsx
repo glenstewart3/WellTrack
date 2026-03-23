@@ -1571,7 +1571,7 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Upload Attendance</h3>
         <p className="text-xs text-slate-400 mb-1">Upload an exception-based attendance file. Only students with absences or exceptions need to be in the file — unlisted students are automatically marked as present.</p>
-        <p className="text-xs text-slate-400 mb-3">Supports CSV with columns: <code className="bg-slate-100 px-1 rounded">SussiId/ID, Date, AM, PM</code>. "Present" status = half-day.</p>
+        <p className="text-xs text-slate-400 mb-3">Supports CSV or XLSX with columns: <code className="bg-slate-100 px-1 rounded">SussiId/ID, Date, AM, PM</code>. XLSX files are automatically converted. "Present" status = half-day.</p>
         <details className="mb-4 group">
           <summary className="cursor-pointer text-xs font-medium text-indigo-600 hover:text-indigo-700 select-none list-none flex items-center gap-1.5">
             <span className="transition-transform group-open:rotate-90 inline-block">▶</span>
@@ -1583,17 +1583,17 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
               <li>Select your desired date range and <strong>Home Groups</strong></li>
               <li>Click <strong>Preview</strong></li>
               <li>Choose <strong>Export as XLSX</strong> and click <strong>Export</strong></li>
-              <li>Open the file in Excel and <strong>Save As → CSV</strong></li>
+              <li>Upload the <strong>.xlsx file directly</strong> — no need to convert to CSV</li>
             </ol>
             <p className="text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">
-              <strong>Note:</strong> The CSV export option in eCases is currently bugged — always export as XLSX first, then save as CSV from Excel.
+              <strong>Note:</strong> The CSV export option in eCases is currently bugged — use the XLSX export instead and upload it directly here.
             </p>
           </div>
         </details>
         <div className="flex items-center gap-3 flex-wrap">
-          <input ref={attRef} type="file" accept=".csv" className="hidden" onChange={e => setAttFile(e.target.files?.[0] || null)} data-testid="attendance-file-input" />
+          <input ref={attRef} type="file" accept=".csv,.xlsx" className="hidden" onChange={e => setAttFile(e.target.files?.[0] || null)} data-testid="attendance-file-input" />
           <button onClick={() => attRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">
-            <FileUp size={14} /> {attFile ? attFile.name : 'Choose CSV file'}
+            <FileUp size={14} /> {attFile ? attFile.name : 'Choose CSV or XLSX file'}
           </button>
           {attFile && (
             <button onClick={uploadAttendance} disabled={uploading} data-testid="upload-attendance-btn"

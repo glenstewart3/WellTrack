@@ -155,8 +155,15 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
         all_rows = list(csv.reader(io.StringIO(text)))
         records = _process_rows(all_rows)
 
+    elif fname.endswith('.xlsx') or fname.endswith('.xls'):
+        import openpyxl
+        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+        ws = wb.active
+        all_rows = [[cell.value for cell in row] for row in ws.iter_rows()]
+        records = _process_rows(all_rows)
+
     else:
-        raise HTTPException(400, "Unsupported file format. Please upload a CSV file.")
+        raise HTTPException(400, "Unsupported file format. Please upload a CSV or XLSX file.")
 
     if not records:
         raise HTTPException(400, "No valid records found in file")
