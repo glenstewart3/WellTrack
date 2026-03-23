@@ -363,6 +363,7 @@ export default function StudentProfilePage() {
                   <RadarChart data={radarData}>
                     <PolarGrid />
                     <PolarAngleAxis dataKey="domain" tick={{ fontSize: 12 }} />
+                    <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
                     <Radar dataKey="pct" stroke="#6366f1" fill="#6366f1" fillOpacity={0.2} />
                     <Tooltip formatter={(v) => [`${v}%`, 'Score']} contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
                   </RadarChart>
