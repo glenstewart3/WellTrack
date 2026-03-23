@@ -1,12 +1,44 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
-import re, httpx
+import re
+import httpx
+import json as _json
+import logging
 
 from database import db
 from helpers import get_current_user, get_school_settings_doc, get_student_attendance_pct
 from models import Intervention, CaseNote
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def _extract_json_array(text: str):
+    """Try multiple strategies to extract a JSON array from an LLM response."""
+    text = text.strip()
+    # 1. Direct parse — model returned clean JSON
+    try:
+        data = _json.loads(text)
+        if isinstance(data, list):
+            return data
+    except Exception:
+        pass
+    # 2. Markdown code block  ```json [...] ```
+    md = re.search(r'```(?:json)?\s*(\[.*?\])\s*```', text, re.DOTALL | re.IGNORECASE)
+    if md:
+        try:
+            return _json.loads(md.group(1))
+        except Exception:
+            pass
+    # 3. First [...] bracket pair
+    start = text.find('[')
+    end = text.rfind(']')
+    if start != -1 and end > start:
+        try:
+            return _json.loads(text[start:end + 1])
+        except Exception:
+            pass
+    return None
 
 
 @router.get("/interventions")
@@ -83,21 +115,23 @@ Respond with ONLY a valid JSON array of exactly 3 objects, each with:
 Example: [{{"type": "Counselling", "priority": "high", "rationale": "...", "goals": "...", "frequency": "Weekly", "timeline": "8 weeks"}}]"""
 
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=90.0) as client:
             resp = await client.post(
                 f"{ollama_url}/api/generate",
                 json={"model": ollama_model, "prompt": prompt, "stream": False}
             )
             resp.raise_for_status()
             content = resp.json().get("response", "")
-            json_match = re.search(r'\[.*\]', content, re.DOTALL)
-            if json_match:
-                import json as _json
-                recs = _json.loads(json_match.group())
+            logger.info(f"Ollama raw response (first 400 chars): {content[:400]}")
+            recs = _extract_json_array(content)
+            if recs is not None:
                 return {"recommendations": recs[:3]}
-            return {"recommendations": []}
+            logger.warning(f"Could not parse JSON from Ollama response: {content[:300]}")
+            raise HTTPException(500, f"AI returned a response but it could not be parsed as JSON. Raw output: {content[:300]}")
     except httpx.ConnectError:
-        raise HTTPException(503, f"Cannot connect to Ollama at {ollama_url}. Ensure Ollama is running.")
+        raise HTTPException(503, f"Cannot connect to Ollama at {ollama_url}. Ensure Ollama is running on the server.")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, f"AI service error: {str(e)}")
 

@@ -1637,12 +1637,11 @@ function IntegrationsTab({ settings: s, onSave, saving, msg, msgType }) {
     setTesting(true);
     setTestResult(null);
     try {
-      // Try to list models from Ollama to test connectivity
-      const res = await axios.get(`${ollamaUrl}/api/tags`, { timeout: 5000 });
-      const models = res.data?.models?.map(m => m.name) || [];
-      setTestResult({ ok: true, msg: `Connected! Available models: ${models.slice(0, 5).join(', ') || 'none found'}` });
+      const res = await axios.get(`${API}/settings/test-ollama`, { withCredentials: true });
+      const d = res.data;
+      setTestResult({ ok: d.connected, msg: d.message });
     } catch (e) {
-      setTestResult({ ok: false, msg: `Cannot connect to Ollama at ${ollamaUrl}. Is it running?` });
+      setTestResult({ ok: false, msg: e.response?.data?.detail || 'Test failed — check backend logs.' });
     } finally { setTesting(false); }
   };
 
@@ -1669,7 +1668,7 @@ function IntegrationsTab({ settings: s, onSave, saving, msg, msgType }) {
       </div>
 
       {/* Ollama config */}
-      <div className={`bg-white border border-slate-200 rounded-xl p-6 space-y-4 ${!aiEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+      <div className={`bg-white border border-slate-200 rounded-xl p-6 space-y-4 transition-opacity ${!aiEnabled ? 'opacity-50' : ''}`}>
         <div className="flex items-center gap-2 mb-2">
           <Bot size={16} className="text-slate-500" />
           <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Ollama Configuration</h3>

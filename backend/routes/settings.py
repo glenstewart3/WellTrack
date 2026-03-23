@@ -6,6 +6,7 @@ import json
 import io
 import csv
 import uuid
+import httpx
 
 from database import db, SETTINGS_DEFAULTS
 from helpers import get_current_user, get_student_attendance_pct
@@ -43,6 +44,35 @@ async def update_settings(data: dict, user=Depends(get_current_user)):
     await db.school_settings.update_one({}, {"$set": data}, upsert=True)
     result = await db.school_settings.find_one({}, {"_id": 0})
     return {**SETTINGS_DEFAULTS, **(result or {})}
+
+
+@router.get("/settings/test-ollama")
+async def test_ollama_connection(user=Depends(get_current_user)):
+    """Test Ollama connectivity from the server (not the browser)."""
+    s = await db.school_settings.find_one({}, {"_id": 0}) or {}
+    ollama_url = s.get("ollama_url", "http://localhost:11434")
+    ollama_model = s.get("ollama_model", "llama3.2")
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            tags_resp = await client.get(f"{ollama_url}/api/tags")
+            tags_resp.raise_for_status()
+            models = [m["name"] for m in tags_resp.json().get("models", [])]
+            model_available = any(m.split(":")[0] == ollama_model.split(":")[0] for m in models)
+            return {
+                "connected": True,
+                "url": ollama_url,
+                "models": models[:8],
+                "model": ollama_model,
+                "model_available": model_available,
+                "message": f"Connected to Ollama. {len(models)} model(s) found." + (
+                    f" Model '{ollama_model}' is ready." if model_available
+                    else f" Warning: model '{ollama_model}' not found — run: ollama pull {ollama_model}"
+                ),
+            }
+    except httpx.ConnectError:
+        return {"connected": False, "url": ollama_url, "message": f"Cannot connect to Ollama at {ollama_url}. Is Ollama running on this server?"}
+    except Exception as e:
+        return {"connected": False, "url": ollama_url, "message": f"Error: {str(e)}"}
 
 
 @router.delete("/settings/data")
