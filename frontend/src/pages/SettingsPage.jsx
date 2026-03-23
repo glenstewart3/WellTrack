@@ -1335,12 +1335,12 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
             ) : (
               <div key={y} className="group relative flex items-center">
                 <button onClick={() => handleYearChange(y)} data-testid={`year-btn-${y}`}
-                  className={`px-4 py-2 pr-7 rounded-xl text-sm font-semibold border transition-all ${selectedYear === y ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${selectedYear === y ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
                   {y}
                 </button>
                 <button onClick={() => setConfirmDeleteYear(y)} title={`Delete ${y}`}
-                  className={`absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-rose-100 ${selectedYear === y ? 'text-slate-300 hover:text-rose-500' : 'text-slate-400 hover:text-rose-500'}`}>
-                  <X size={11} />
+                  className={`absolute -top-1.5 -right-1.5 opacity-0 group-hover:opacity-100 transition-opacity rounded-full w-4 h-4 flex items-center justify-center bg-rose-500 hover:bg-rose-600 text-white shadow-sm`}>
+                  <X size={9} />
                 </button>
               </div>
             )
