@@ -63,23 +63,25 @@ function BrandingTab({ settings: s, onSave, saving, msg, msgType }) {
   const [welcomeMessage, setWelcomeMessage] = useState(s.welcome_message || '');
   const [accentColor, setAccentColor] = useState(s.accent_color || '#0f172a');
   const [logoBase64, setLogoBase64] = useState(s.logo_base64 || '');
+  const [logoDarkBase64, setLogoDarkBase64] = useState(s.logo_dark_base64 || '');
   const logoRef = useRef(null);
+  const logoDarkRef = useRef(null);
   const { updateSettings } = useSettings();
 
-  // Sync local state when settings load from server (fixes stale-init bug)
   useEffect(() => {
     setPlatformName(s.platform_name || 'WellTrack');
     setWelcomeMessage(s.welcome_message || '');
     setAccentColor(s.accent_color || '#0f172a');
     setLogoBase64(s.logo_base64 || '');
-  }, [s.accent_color, s.platform_name, s.welcome_message, s.logo_base64]);
+    setLogoDarkBase64(s.logo_dark_base64 || '');
+  }, [s.accent_color, s.platform_name, s.welcome_message, s.logo_base64, s.logo_dark_base64]);
 
-  const handleLogoFile = (e) => {
+  const makeLogoHandler = (setter) => (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) { alert('Logo must be under 2 MB'); return; }
     const reader = new FileReader();
-    reader.onload = ev => setLogoBase64(ev.target.result);
+    reader.onload = ev => setter(ev.target.result);
     reader.readAsDataURL(file);
   };
 
@@ -89,7 +91,7 @@ function BrandingTab({ settings: s, onSave, saving, msg, msgType }) {
   };
 
   const handleSave = () => {
-    const patch = { platform_name: platformName, welcome_message: welcomeMessage, accent_color: accentColor, logo_base64: logoBase64 };
+    const patch = { platform_name: platformName, welcome_message: welcomeMessage, accent_color: accentColor, logo_base64: logoBase64, logo_dark_base64: logoDarkBase64 };
     updateSettings(patch);
     onSave(patch);
   };
@@ -103,32 +105,65 @@ function BrandingTab({ settings: s, onSave, saving, msg, msgType }) {
         </div>
       )}
 
-      {/* Logo */}
+      {/* Logos — Light & Dark */}
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>School Logo</h3>
-        <p className="text-xs text-slate-400 mb-4">Shown in the sidebar, login screen, and report headers. PNG or SVG recommended.</p>
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center bg-slate-50 overflow-hidden">
-            {logoBase64 ? (
-              <img src={logoBase64} alt="Logo preview" className="w-full h-full object-contain" />
-            ) : (
-              <Image size={24} className="text-slate-300" />
-            )}
+        <p className="text-xs text-slate-400 mb-4">
+          Upload separate logos for light and dark mode. PNG, SVG, or WebP recommended. Max 2 MB each.
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          {/* Light logo */}
+          <div>
+            <p className="text-xs font-semibold text-slate-600 mb-2">Light mode</p>
+            <div className="rounded-xl border border-slate-200 overflow-hidden" style={{ background: '#f8fafc' }}>
+              <div className="h-24 flex items-center justify-center p-3">
+                {logoBase64
+                  ? <img src={logoBase64} alt="Light logo" className="max-h-full max-w-full object-contain" />
+                  : <Image size={28} className="text-slate-300" />
+                }
+              </div>
+              <div className="border-t border-slate-100 px-3 py-2 flex items-center gap-2">
+                <button onClick={() => logoRef.current?.click()} data-testid="upload-logo-btn"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-medium rounded-lg hover:bg-slate-50 transition-colors">
+                  <Upload size={12} /> Upload
+                </button>
+                {logoBase64 && (
+                  <button onClick={() => setLogoBase64('')}
+                    className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="Remove">
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+            <input ref={logoRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden"
+              data-testid="logo-file-input" onChange={makeLogoHandler(setLogoBase64)} />
           </div>
-          <div className="flex gap-2">
-            <button onClick={() => logoRef.current?.click()} data-testid="upload-logo-btn"
-              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors">
-              <Upload size={14} /> Upload Logo
-            </button>
-            {logoBase64 && (
-              <button onClick={() => setLogoBase64('')}
-                className="px-3 py-2 text-rose-600 text-sm border border-rose-200 rounded-lg hover:bg-rose-50 transition-colors">
-                Remove
-              </button>
-            )}
+          {/* Dark logo */}
+          <div>
+            <p className="text-xs font-semibold text-slate-600 mb-2">Dark mode</p>
+            <div className="rounded-xl border border-slate-700 overflow-hidden" style={{ background: '#1e293b' }}>
+              <div className="h-24 flex items-center justify-center p-3">
+                {logoDarkBase64
+                  ? <img src={logoDarkBase64} alt="Dark logo" className="max-h-full max-w-full object-contain" />
+                  : <Image size={28} className="text-slate-600" />
+                }
+              </div>
+              <div className="border-t border-slate-700 px-3 py-2 flex items-center gap-2" style={{ background: '#1e293b' }}>
+                <button onClick={() => logoDarkRef.current?.click()} data-testid="upload-logo-dark-btn"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-slate-700 border border-slate-600 text-slate-200 text-xs font-medium rounded-lg hover:bg-slate-600 transition-colors">
+                  <Upload size={12} /> Upload
+                </button>
+                {logoDarkBase64 && (
+                  <button onClick={() => setLogoDarkBase64('')}
+                    className="p-1.5 text-rose-400 hover:bg-slate-700 rounded-lg transition-colors" title="Remove">
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+            <input ref={logoDarkRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden"
+              data-testid="logo-dark-file-input" onChange={makeLogoHandler(setLogoDarkBase64)} />
           </div>
-          <input ref={logoRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden"
-            data-testid="logo-file-input" onChange={handleLogoFile} />
         </div>
       </div>
 

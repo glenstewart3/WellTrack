@@ -64,9 +64,14 @@ export default function DashboardLayout() {
     <div className="flex flex-col h-full">
       {/* Logo / Brand */}
       <div className="px-6 py-5 border-b border-slate-100">
-        {settings.logo_base64 && (
-          <img src={settings.logo_base64} alt="School logo" className="w-full h-14 object-contain mx-auto mb-4" />
-        )}
+        {(() => {
+          const logo = theme === 'dark'
+            ? (settings.logo_dark_base64 || settings.logo_base64)
+            : settings.logo_base64;
+          return logo ? (
+            <img src={logo} alt="School logo" className="w-full h-14 object-contain mx-auto mb-4" />
+          ) : null;
+        })()}
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: accent }}>
             <Shield size={17} className="text-white" />
