@@ -41,11 +41,18 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       const res = await axios.post(`${API}/auth/login-email`, emailForm, { withCredentials: true });
-      // Full page reload so AuthContext re-fetches the session from the new cookie
       const base = process.env.REACT_APP_BASE_PATH || '';
       window.location.href = `${base}/${res.data.redirect}`;
     } catch (err) {
-      setAccessError(err.response?.data?.detail || 'Login failed. Please try again.');
+      const detail = err.response?.data?.detail;
+      const status = err.response?.status;
+      if (detail) {
+        setAccessError(detail);
+      } else if (!err.response) {
+        setAccessError('Cannot reach the server. Check that the backend is running and ALLOWED_ORIGINS is configured correctly.');
+      } else {
+        setAccessError(`Login failed (HTTP ${status}). Please try again.`);
+      }
     } finally {
       setSubmitting(false);
     }

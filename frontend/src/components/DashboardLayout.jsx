@@ -123,35 +123,6 @@ export default function DashboardLayout() {
             </span>
           </div>
         </div>
-        {/* Theme toggle — Light / Dark */}
-        <div className="mt-3 pt-3 border-t border-slate-100">
-          <div className="flex items-center gap-1 px-1">
-            <button
-              onClick={() => setTheme('default')}
-              title="Light mode"
-              data-testid="theme-swatch-default"
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                theme !== 'dark'
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              <Sun size={12} /> Light
-            </button>
-            <button
-              onClick={() => setTheme('dark')}
-              title="Dark mode"
-              data-testid="theme-swatch-dark"
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                theme === 'dark'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              <Moon size={12} /> Dark
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -207,6 +178,38 @@ export default function DashboardLayout() {
             {userMenuOpen && (
               <div className="absolute right-0 top-full pt-1 z-50" data-testid="user-menu-dropdown">
                 <div className="w-52 bg-white border border-slate-200 rounded-xl shadow-xl py-1.5 overflow-hidden">
+                  {/* Theme selector */}
+                  <div className="px-4 py-2 border-b border-slate-100">
+                    <p className="text-xs font-medium text-slate-400 mb-2">Appearance</p>
+                    <div className="flex items-center gap-2">
+                      {[
+                        { key: 'default', label: 'Light', bg: '#f8fafc', border: '#e2e8f0', icon: <Sun size={10} /> },
+                        { key: 'dark',    label: 'Dark',  bg: '#1e293b', border: '#334155', icon: <Moon size={10} /> },
+                      ].map(({ key, label, bg, border, icon }) => (
+                        <button
+                          key={key}
+                          onClick={() => setTheme(key)}
+                          title={label}
+                          data-testid={`theme-swatch-${key}`}
+                          className="relative flex items-center gap-1.5 pl-0.5 pr-2.5 py-0.5 rounded-full text-xs font-medium transition-all hover:opacity-90"
+                          style={{
+                            backgroundColor: bg,
+                            border: `1.5px solid ${theme === key ? '#3b82f6' : border}`,
+                            color: key === 'dark' ? '#f1f5f9' : '#334155',
+                            boxShadow: theme === key ? '0 0 0 2px rgba(59,130,246,0.3)' : 'none',
+                          }}
+                        >
+                          <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: border }}>
+                            {theme === key
+                              ? <Check size={9} strokeWidth={3} style={{ color: key === 'dark' ? '#f1f5f9' : '#334155' }} />
+                              : <span style={{ color: key === 'dark' ? '#94a3b8' : '#64748b' }}>{icon}</span>
+                            }
+                          </span>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <button
                     onClick={() => { navigate('/settings'); setUserMenuOpen(false); }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"

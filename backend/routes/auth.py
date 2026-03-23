@@ -37,8 +37,9 @@ async def login_email(data: dict, response: Response):
     password = data.get("password", "")
 
     settings = await _get_settings()
-    if not settings or not settings.get("email_auth_enabled", False):
-        raise HTTPException(status_code=403, detail="Email login is not enabled for this school")
+    # Default email_auth to True — if the field was never explicitly saved, allow login
+    if not settings or settings.get("email_auth_enabled", True) is False:
+        raise HTTPException(status_code=403, detail="Email login is not enabled. Go to Settings → Integrations to enable it.")
 
     user_doc = await db.users.find_one({"email": email}, {"_id": 0})
     if not user_doc or not user_doc.get("password_hash"):
@@ -55,8 +56,10 @@ async def login_email(data: dict, response: Response):
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
     _set_session_cookie(response, session_token)
-    onboarding_complete = bool(settings and settings.get("onboarding_complete"))
-    return {"message": "Login successful", "redirect": "dashboard" if onboarding_complete else "onboarding"}
+    # Determine where to send the user — always go to dashboard if setup is done
+    is_complete = bool(settings and settings.get("onboarding_complete")) or \
+                  await db.users.count_documents({}) > 1
+    return {"message": "Login successful", "redirect": "dashboard" if is_complete else "onboarding"}
 
 
 @router.put("/auth/change-password")
