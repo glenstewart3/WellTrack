@@ -247,19 +247,31 @@ export default function InterventionsPage() {
           {aiSuggestions && (
             <div className="mt-4 grid sm:grid-cols-3 gap-3">
               {aiSuggestions.map((rec, i) => (
-                <div key={i} className="bg-white rounded-xl p-4 border border-indigo-100">
+                <div key={i} className="bg-white rounded-xl p-4 border border-indigo-100 flex flex-col">
                   <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-semibold text-slate-900 text-sm">{rec.type}</h4>
+                    <h4 className="font-semibold text-slate-900 text-sm leading-snug pr-2">{rec.type}</h4>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${rec.priority === 'high' ? 'bg-rose-100 text-rose-700' : rec.priority === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
                       {rec.priority}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-600 mb-2">{rec.rationale}</p>
-                  <p className="text-xs font-medium text-slate-700 mb-1">Goals: <span className="font-normal">{rec.goals}</span></p>
-                  <p className="text-xs text-slate-400">{rec.frequency} · {rec.timeline}</p>
+                  {rec.rationale && <p className="text-xs text-slate-600 mb-2 leading-relaxed">{rec.rationale}</p>}
+                  {(rec.goals || rec.goal) && (
+                    <p className="text-xs text-slate-700 mb-2"><span className="font-semibold">Goal:</span> {rec.goals || rec.goal}</p>
+                  )}
+                  <p className="text-xs text-slate-400 mt-auto">{[rec.frequency, rec.timeline].filter(Boolean).join(' · ')}</p>
                   <button
-                    onClick={() => { setForm(p => ({...p, intervention_type: rec.type, goals: rec.goals, frequency: rec.frequency, student_id: aiStudent || '' })); setShowAdd(true); }}
-                    className="mt-2 w-full text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                    onClick={() => {
+                      setForm(p => ({
+                        ...p,
+                        student_id: aiStudent || '',
+                        intervention_type: rec.type || '',
+                        goals: rec.goals || rec.goal || '',
+                        frequency: rec.frequency || '',
+                        progress_notes: rec.rationale ? `AI Rationale: ${rec.rationale}` : '',
+                      }));
+                      setShowAdd(true);
+                    }}
+                    className="mt-3 w-full text-xs text-indigo-600 hover:text-indigo-800 font-medium text-left">
                     Use this recommendation →
                   </button>
                 </div>
@@ -373,11 +385,16 @@ export default function InterventionsPage() {
               </div>
               <div>
                 <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Intervention Type</label>
-                <select value={form.intervention_type} onChange={e => setForm(p => ({...p, intervention_type: e.target.value}))}
-                  className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none bg-white">
-                  <option value="">Select Type</option>
-                  {interventionTypes.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                <input
+                  list="intervention-type-options"
+                  value={form.intervention_type}
+                  onChange={e => setForm(p => ({...p, intervention_type: e.target.value}))}
+                  placeholder="Select or type intervention type"
+                  className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none bg-white"
+                />
+                <datalist id="intervention-type-options">
+                  {interventionTypes.map(t => <option key={t} value={t} />)}
+                </datalist>
               </div>
               <input placeholder="Assigned Staff" value={form.assigned_staff} onChange={e => setForm(p => ({...p, assigned_staff: e.target.value}))}
                 className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none" />

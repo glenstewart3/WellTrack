@@ -131,15 +131,18 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user)):
 
 {context}
 
-Respond with ONLY a valid JSON array of exactly 3 objects, each with:
-- "type": intervention name
-- "priority": "high", "medium", or "low"
-- "rationale": brief explanation (1-2 sentences)
-- "goals": measurable goal (1 sentence)
-- "frequency": how often
-- "timeline": duration
+IMPORTANT: At least one suggestion must be creative or unconventional — something the school may not currently offer or have considered. Think outside standard reading/behavioural programs.
 
-Example: [{{"type": "Counselling", "priority": "high", "rationale": "...", "goals": "...", "frequency": "Weekly", "timeline": "8 weeks"}}]"""
+Respond with ONLY a valid JSON array of exactly 3 objects, each with these exact keys:
+- "type": short intervention name
+- "priority": "high", "medium", or "low"
+- "rationale": why this intervention suits this student (2-3 sentences)
+- "goals": one measurable goal statement
+- "frequency": how often (e.g. "Weekly", "Daily", "3x per week")
+- "timeline": duration (e.g. "8 weeks", "1 term")
+
+Return ONLY the JSON array. No extra text, no markdown, no explanation.
+Example: [{{"type": "Check-In Check-Out", "priority": "high", "rationale": "...", "goals": "...", "frequency": "Daily", "timeline": "8 weeks"}}]"""
 
     try:
         async with httpx.AsyncClient(timeout=90.0) as client:
