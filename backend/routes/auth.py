@@ -15,6 +15,12 @@ _pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 _COOKIE_SECURE = os.environ.get('COOKIE_SECURE', 'true').lower() != 'false'
 _COOKIE_SAMESITE = 'none' if _COOKIE_SECURE else 'lax'
 
+
+async def _get_settings():
+    """Return the canonical school settings doc, preferring the one with onboarding_complete=True."""
+    s = await db.school_settings.find_one({"onboarding_complete": True}, {"_id": 0})
+    return s or await db.school_settings.find_one({}, {"_id": 0})
+
 def _set_session_cookie(response, token: str):
     response.set_cookie(
         key='session_token', value=token,
@@ -30,7 +36,7 @@ async def login_email(data: dict, response: Response):
     email = data.get("email", "").lower().strip()
     password = data.get("password", "")
 
-    settings = await db.school_settings.find_one({}, {"_id": 0})
+    settings = await _get_settings()
     if not settings or not settings.get("email_auth_enabled", False):
         raise HTTPException(status_code=403, detail="Email login is not enabled for this school")
 
@@ -86,7 +92,7 @@ async def set_user_password(user_id: str, data: dict, user=Depends(get_current_u
 @router.get("/auth/google")
 async def google_login(request: Request):
     from fastapi import HTTPException
-    settings = await db.school_settings.find_one({}, {"_id": 0})
+    settings = await _get_settings()
     if settings and not settings.get("google_auth_enabled", True):
         raise HTTPException(status_code=403, detail="Google login is not enabled")
     from urllib.parse import urlencode
@@ -190,7 +196,7 @@ async def google_callback(request: Request):
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
 
-    settings_doc = await db.school_settings.find_one({}, {"_id": 0})
+    settings_doc = await _get_settings()
     onboarding_complete = bool(settings_doc and settings_doc.get("onboarding_complete"))
     redirect_target = "dashboard" if onboarding_complete else "onboarding"
 
@@ -265,7 +271,7 @@ async def onboarding_setup(data: dict):
     from fastapi import HTTPException
     from fastapi.responses import JSONResponse
     user_count = await db.users.count_documents({})
-    existing = await db.school_settings.find_one({}, {"_id": 0})
+    existing = await _get_settings()
     if user_count > 0 or (existing and existing.get("onboarding_complete")):
         raise HTTPException(status_code=400, detail="Setup has already been completed")
 
