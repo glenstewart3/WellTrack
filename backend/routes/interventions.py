@@ -16,13 +16,17 @@ logger = logging.getLogger(__name__)
 def _extract_json_array(text: str):
     """Try multiple strategies to extract a JSON array from an LLM response."""
     text = text.strip()
-    # 1. Direct parse — model returned clean JSON
+
+    # 1. Direct parse — model returned clean JSON array
     try:
         data = _json.loads(text)
         if isinstance(data, list):
             return data
+        if isinstance(data, dict):
+            return [data]
     except Exception:
         pass
+
     # 2. Markdown code block  ```json [...] ```
     md = re.search(r'```(?:json)?\s*(\[.*?\])\s*```', text, re.DOTALL | re.IGNORECASE)
     if md:
@@ -30,6 +34,7 @@ def _extract_json_array(text: str):
             return _json.loads(md.group(1))
         except Exception:
             pass
+
     # 3. First [...] bracket pair
     start = text.find('[')
     end = text.rfind(']')
@@ -38,6 +43,28 @@ def _extract_json_array(text: str):
             return _json.loads(text[start:end + 1])
         except Exception:
             pass
+
+    # 4. Collect all top-level {...} objects and wrap in array
+    objects = []
+    depth = 0
+    obj_start = None
+    for i, ch in enumerate(text):
+        if ch == '{':
+            if depth == 0:
+                obj_start = i
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0 and obj_start is not None:
+                fragment = text[obj_start:i + 1]
+                try:
+                    objects.append(_json.loads(fragment))
+                except Exception:
+                    pass
+                obj_start = None
+    if objects:
+        return objects
+
     return None
 
 
