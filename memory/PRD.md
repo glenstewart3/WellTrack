@@ -140,6 +140,7 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 |- ✅ **Student Photo Upload** (Mar 2026) — Bulk photo upload via ZIP. Filename format: `LastName, FirstName.jpg`. Staff folders auto-skipped. Strict case-insensitive exact name matching. Photos resized (max 400×400, JPEG q82) and saved to `/app/uploads/student_photos/{student_id}.jpg`. Served via FastAPI StaticFiles at `/api/student-photos/`. `photo_url` stored per student in DB. Avatars shown in Students list and Student Profile header; falls back to initials if no photo.
 |- ✅ **Remove Photo from edit modal** (Mar 2026) — Student edit modal shows photo preview (or initials if none). "Remove photo" button calls `DELETE /api/students/{student_id}/photo`, deletes file from disk, clears `photo_url` from DB. Modal updates in-place immediately.
 |- ✅ **Individual photo upload in edit modal** (Mar 2026) — Clicking the photo avatar in the edit modal opens a file picker (upload or replace). Camera icon overlay on hover. X button in corner to remove. `POST /api/students/{student_id}/photo` resizes and saves. Updates in-place instantly.
+|- ✅ **Separate Light/Dark logo upload** (Mar 2026) — Settings → Branding has two uploaders (Light logo, Dark logo). `logo_dark_base64` added to `SETTINGS_DEFAULTS` and `public_settings` endpoint. `DashboardLayout` and `LoginPage` both conditionally render the dark logo when dark theme is active, falling back to the light logo if no dark logo is set.
 
 ---
 

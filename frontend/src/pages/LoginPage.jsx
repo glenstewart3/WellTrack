@@ -17,6 +17,7 @@ export default function LoginPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { settings } = useSettings();
+  const { theme } = useTheme();
 
   const searchParams = new URLSearchParams(location.search);
   const errorCode = searchParams.get('error');
@@ -66,8 +67,12 @@ export default function LoginPage() {
         <div className="max-w-md w-full mx-auto">
           {/* Logo + Brand */}
           <div className="mb-10">
-            {settings.logo_base64 && (
-              <img src={settings.logo_base64} alt="School logo" className="h-24 w-auto object-contain mb-6 mx-auto block" />
+            {(settings.logo_base64 || settings.logo_dark_base64) && (
+              <img
+                src={theme === 'dark' ? (settings.logo_dark_base64 || settings.logo_base64) : settings.logo_base64}
+                alt="School logo"
+                className="h-24 w-auto object-contain mb-6 mx-auto block"
+              />
             )}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0" style={{ backgroundColor: accent }}>

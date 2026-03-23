@@ -26,7 +26,7 @@ DEFAULT_ABSENCE_TYPES = [
 
 SETTINGS_DEFAULTS = {
     "school_name": "", "school_type": "both", "current_term": "Term 1", "current_year": 2025,
-    "platform_name": "WellTrack", "logo_base64": "", "accent_color": "#0f172a", "welcome_message": "",
+    "platform_name": "WellTrack", "logo_base64": "", "logo_dark_base64": "", "accent_color": "#0f172a", "welcome_message": "",
     "tier_thresholds": {"saebrs_some_risk": 37, "saebrs_high_risk": 24, "attendance_some_risk": 90.0, "attendance_high_risk": 80.0},
     "modules_enabled": {"saebrs_plus": True},
     "intervention_types": ["Counselling", "Behaviour Support", "Social Skills Groups", "Mentoring", "Academic Support",
