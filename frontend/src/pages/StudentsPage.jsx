@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, getRiskColors } from '../utils/tierUtils';
-import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight, UserPlus, Archive, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
+import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight, UserPlus, Archive, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Camera } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -253,6 +253,8 @@ export default function StudentsPage() {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [removingPhoto, setRemovingPhoto] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoUploadRef = useRef(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkEditMode, setBulkEditMode] = useState(false);
   const [archiving, setArchiving] = useState(false);
@@ -359,6 +361,22 @@ export default function StudentsPage() {
       loadStudents();
     } catch (e) { setEditError(e.response?.data?.detail || 'Failed to remove photo'); }
     finally { setRemovingPhoto(false); }
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !editStudent?.student_id) return;
+    if (photoUploadRef.current) photoUploadRef.current.value = '';
+    setUploadingPhoto(true);
+    setEditError('');
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await axios.post(`${API}/students/${editStudent.student_id}/photo`, fd, { withCredentials: true });
+      setEditStudent(prev => ({ ...prev, photo_url: res.data.photo_url }));
+      loadStudents();
+    } catch (e) { setEditError(e.response?.data?.detail || 'Photo upload failed'); }
+    finally { setUploadingPhoto(false); }
   };
 
   const toggleSelect = (id, e) => {
@@ -675,26 +693,49 @@ export default function StudentsPage() {
               <button onClick={() => setEditStudent(null)}><X size={18} className="text-slate-400" /></button>
             </div>
             {editError && <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl px-4 py-3 mb-4">{editError}</div>}
-            {/* Photo preview + remove */}
-            <div className="flex items-center gap-4 mb-4 p-3 bg-slate-50 rounded-xl">
-              <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-200 flex items-center justify-center shrink-0">
-                {editStudent?.photo_url
-                  ? <img src={`${process.env.REACT_APP_BACKEND_URL}${editStudent.photo_url}`} alt="" className="w-full h-full object-cover" data-testid="edit-modal-photo" />
-                  : <span className="text-lg font-bold text-slate-500">{editForm.first_name?.[0]}{editForm.last_name?.[0]}</span>
-                }
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-700 truncate">{editForm.first_name} {editForm.last_name}</p>
-                {editStudent?.photo_url ? (
-                  <button onClick={removePhoto} disabled={removingPhoto} data-testid="remove-photo-btn"
-                    className="mt-1 flex items-center gap-1.5 text-xs text-rose-600 hover:text-rose-700 font-medium disabled:opacity-50 transition-colors">
-                    {removingPhoto ? <Loader size={11} className="animate-spin" /> : <Trash2 size={11} />}
-                    {removingPhoto ? 'Removing…' : 'Remove photo'}
+            {/* Clickable photo avatar — click to upload/replace, X to remove */}
+            <div className="flex flex-col items-center mb-5 gap-1.5">
+              <input ref={photoUploadRef} type="file" accept="image/*" className="hidden"
+                onChange={handlePhotoUpload} data-testid="edit-modal-photo-input" />
+              <div className="relative group">
+                <button
+                  onClick={() => photoUploadRef.current?.click()}
+                  disabled={uploadingPhoto || removingPhoto}
+                  className="w-20 h-20 rounded-2xl overflow-hidden block focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400 disabled:cursor-not-allowed"
+                  data-testid="edit-modal-photo-area"
+                >
+                  {editStudent?.photo_url
+                    ? <img src={`${process.env.REACT_APP_BACKEND_URL}${editStudent.photo_url}`} alt="" className="w-full h-full object-cover" data-testid="edit-modal-photo" />
+                    : <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+                        <span className="text-2xl font-bold text-slate-400">{editForm.first_name?.[0]}{editForm.last_name?.[0]}</span>
+                      </div>
+                  }
+                  {/* hover overlay */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none rounded-2xl">
+                    <Camera size={20} className="text-white" />
+                  </div>
+                  {/* uploading overlay */}
+                  {uploadingPhoto && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-2xl">
+                      <Loader size={20} className="text-white animate-spin" />
+                    </div>
+                  )}
+                </button>
+                {/* X remove button */}
+                {editStudent?.photo_url && !uploadingPhoto && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); removePhoto(); }}
+                    disabled={removingPhoto}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 hover:bg-rose-600 text-white rounded-full flex items-center justify-center transition-colors disabled:opacity-50 shadow-sm"
+                    data-testid="remove-photo-btn"
+                  >
+                    {removingPhoto ? <Loader size={9} className="animate-spin" /> : <X size={10} />}
                   </button>
-                ) : (
-                  <p className="text-xs text-slate-400 mt-0.5">No photo — upload via Settings → Imports</p>
                 )}
               </div>
+              <p className="text-xs text-slate-400">
+                {editStudent?.photo_url ? 'Click photo to replace' : 'Click to add photo'}
+              </p>
             </div>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
