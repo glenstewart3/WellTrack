@@ -20,7 +20,7 @@ const navItems = [
   { path: '/meeting', icon: Users2, label: 'MTSS Meeting' },
   { path: '/alerts', icon: Bell, label: 'Alerts' },
   { path: '/settings', icon: Settings, label: 'Settings' },
-  { path: '/users', icon: UserCog, label: 'User Management', adminOnly: true },
+  { path: '/admin', icon: UserCog, label: 'Administration', adminOnly: true },
 ];
 
 const roleLabels = { teacher: 'Teacher', screener: 'Screener', wellbeing: 'Wellbeing Staff', leadership: 'Leadership', admin: 'Administrator' };
@@ -88,6 +88,14 @@ export default function DashboardLayout() {
         <div className="space-y-0.5">
           {navItems.filter(item => {
             if (item.adminOnly && user?.role !== 'admin') return false;
+            if (user?.role === 'admin') return true;
+            // Use saved role_permissions if available
+            const rolePerms = settings?.role_permissions;
+            if (rolePerms?.[user?.role]) {
+              const pageKey = item.path.replace('/', '');
+              return rolePerms[user.role].includes(pageKey);
+            }
+            // Fallback: screener-only restriction
             if (user?.role === 'screener') return item.path === '/screening';
             if (item.roles && !item.roles.includes(user?.role)) return false;
             return true;
@@ -225,12 +233,12 @@ export default function DashboardLayout() {
                   </button>
                   {user?.role === 'admin' && (
                     <button
-                      onClick={() => { navigate('/users'); setUserMenuOpen(false); }}
+                      onClick={() => { navigate('/admin'); setUserMenuOpen(false); }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                      data-testid="user-menu-users"
+                      data-testid="user-menu-admin"
                     >
                       <UserCog size={15} className="text-slate-400 shrink-0" />
-                      User Management
+                      Administration
                     </button>
                   )}
                   <div className="my-1 border-t border-slate-100" />

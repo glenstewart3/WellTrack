@@ -19,6 +19,7 @@ import AlertsPage from './pages/AlertsPage';
 import MeetingPrepPage from './pages/MeetingPrepPage';
 import SettingsPage from './pages/SettingsPage';
 import UserManagementPage from './pages/UserManagementPage';
+import AdministrationPage from './pages/AdministrationPage';
 import AttendancePage from './pages/AttendancePage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -93,7 +94,8 @@ function AppRouter() {
         <Route path="meeting" element={<MeetingPrepPage />} />
         <Route path="reports" element={<Navigate to="/analytics" replace />} />
         <Route path="settings" element={<SettingsPage />} />
-        <Route path="users" element={<UserManagementPage />} />
+        <Route path="admin" element={<AdministrationPage />} />
+        <Route path="users" element={<Navigate to="/admin" replace />} />
       </Route>
     </Routes>
   );
