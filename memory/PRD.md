@@ -147,8 +147,10 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 ## Prioritized Backlog
 
 ### P0 — None (all critical issues resolved)
+- ✅ **Settings tabs reorganization** (Mar 2026) — Interventions tab added with intervention library. Absence Types config moved to Student Data tab. InterventionsTab wired into main render. `Target` icon import fixed.
+- ✅ **XLSX attendance upload performance** (Mar 2026) — `read_only=True` + `values_only=True` for openpyxl; batch `delete_many` + single `insert_many` replace per-record `delete_one` loops. Upload time drastically reduced.
 - ✅ **Preset Terms 1-4 UI** — Calendar tab now shows 4 fixed rows with inline date inputs; no Add/Delete Term buttons
-- ✅ **Attendance calculation fallback fix** (Mar 2026) — When no school_days in DB, uses all unique attendance record dates as proxy denominator. Old: per-student fallback gave 0% for absent students. New: 229/229 students show realistic data (avg 87.4%). `compute_att_stats` now uses `is not None` check. Excluded absence types correctly applied in all paths.
+- ✅ **Attendance calculation fallback fix** (Mar 2026) — When no school_days in DB, uses all unique attendance record dates as proxy denominator.
 
 ### P1 — Upcoming
 - Email system (deferred by user): automated alert notifications — needs email provider choice (Resend or SendGrid)
