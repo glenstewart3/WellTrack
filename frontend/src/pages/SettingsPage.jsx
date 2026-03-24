@@ -29,6 +29,7 @@ const TAB_CONFIG = [
   { key: 'General',          icon: Settings },
   { key: 'Branding',         icon: Palette },
   { key: 'MTSS & Screening', icon: Sliders },
+  { key: 'Interventions',    icon: Target },
   { key: 'Student Data',     icon: User },
   { key: 'Calendar',         icon: CalendarDays },
   { key: 'Imports',          icon: FileUp },
@@ -229,37 +230,8 @@ function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
   const DEFAULT_THRESHOLDS = { saebrs_some_risk: 37, saebrs_high_risk: 24, attendance_some_risk: 95, attendance_high_risk: 90 };
   const [thresholds, setThresholds] = useState({ ...DEFAULT_THRESHOLDS, ...s.tier_thresholds });
   const [modules, setModules] = useState({ saebrs_plus: true, ...s.modules_enabled });
-  const [intTypes, setIntTypes] = useState(s.intervention_types || []);
-  const [newType, setNewType] = useState('');
-  const [allTypes, setAllTypes] = useState([]);
-  const [excludedTypes, setExcludedTypes] = useState([]);
-  const [typesLoading, setTypesLoading] = useState(true);
-
-  const loadAbsenceTypes = async () => {
-    setTypesLoading(true);
-    try {
-      const res = await axios.get(`${API}/attendance/types`, { withCredentials: true });
-      setAllTypes(res.data.types || []);
-      setExcludedTypes(res.data.excluded_types || []);
-    } catch (e) { console.error(e); }
-    finally { setTypesLoading(false); }
-  };
-
-  useEffect(() => { loadAbsenceTypes(); }, []);
-
-  const addType = () => {
-    const v = newType.trim();
-    if (v && !intTypes.includes(v)) { setIntTypes(prev => [...prev, v]); setNewType(''); }
-  };
-  const removeType = (t) => setIntTypes(prev => prev.filter(x => x !== t));
   const resetThresholds = () => setThresholds({ ...DEFAULT_THRESHOLDS });
-
-  const handleSave = () => onSave({
-    tier_thresholds: thresholds,
-    modules_enabled: modules,
-    intervention_types: intTypes,
-    excluded_absence_types: excludedTypes,
-  });
+  const handleSave = () => onSave({ tier_thresholds: thresholds, modules_enabled: modules });
 
   return (
     <div className="space-y-5">
@@ -368,7 +340,32 @@ function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
         </div>
       </div>
 
-      {/* Intervention library */}
+      <button onClick={handleSave} disabled={saving} data-testid="save-mtss-btn"
+        className="w-full py-3.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
+        {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+        {saving ? 'Saving…' : 'Save MTSS Settings'}
+      </button>
+    </div>
+  );
+}
+
+// ── INTERVENTIONS TAB ────────────────────────────────────────────────────────
+function InterventionsTab({ settings: s, onSave, saving, msg, msgType }) {
+  const [intTypes, setIntTypes] = useState(s.intervention_types || []);
+  const [newType, setNewType] = useState('');
+  const addType = () => {
+    const v = newType.trim();
+    if (v && !intTypes.includes(v)) { setIntTypes(prev => [...prev, v]); setNewType(''); }
+  };
+  const removeType = (t) => setIntTypes(prev => prev.filter(x => x !== t));
+  return (
+    <div className="space-y-5">
+      {msg && (
+        <div className={`flex items-center gap-2 rounded-xl p-4 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+          <CheckCircle size={15} className={msgType === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
+          <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
+        </div>
+      )}
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Intervention Library</h3>
         <p className="text-xs text-slate-400 mb-4">The types of interventions available when creating or editing interventions.</p>
@@ -379,6 +376,7 @@ function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
               <button onClick={() => removeType(t)} className="text-slate-400 hover:text-rose-500 transition-colors"><X size={11} /></button>
             </span>
           ))}
+          {intTypes.length === 0 && <p className="text-sm text-slate-400">No intervention types added yet.</p>}
         </div>
         <div className="flex gap-2">
           <input type="text" value={newType} onChange={e => setNewType(e.target.value)}
@@ -392,56 +390,10 @@ function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
           </button>
         </div>
       </div>
-
-      {/* Absence Type Settings */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Absence Type Settings</h3>
-          {!typesLoading && allTypes.length > 0 && (
-            <span className="text-xs text-slate-400">{excludedTypes.length} excluded</span>
-          )}
-        </div>
-        <p className="text-xs text-slate-400 mb-4">
-          Types are auto-discovered when you upload attendance files. Toggle to control whether each type counts against attendance rate.
-          Students without any absence record are automatically counted as present — only actual absence types appear here.
-          <br /><span className="font-medium text-emerald-600">Green = counts against attendance</span> &nbsp;
-          <span className="font-medium text-slate-400">Grey = excluded (e.g. Camp, Excursion)</span>
-        </p>
-        {typesLoading ? (
-          <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-10 bg-slate-50 rounded-lg animate-pulse" />)}</div>
-        ) : allTypes.length === 0 ? (
-          <div className="text-center py-6 bg-slate-50 rounded-xl text-sm text-slate-400">
-            No absence types discovered yet — upload an attendance file first.
-          </div>
-        ) : (
-          <div className="space-y-1.5 max-h-60 overflow-y-auto">
-            {allTypes.filter(type => type.toLowerCase() !== 'present').map(type => {
-              const isExcluded = excludedTypes.includes(type);
-              return (
-                <div key={type}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl border transition-colors ${isExcluded ? 'bg-slate-50 border-slate-100' : 'bg-emerald-50/50 border-emerald-100'}`}
-                  data-testid={`absence-type-row-${type}`}>
-                  <span className={`text-sm font-medium ${isExcluded ? 'text-slate-400' : 'text-slate-700'}`}>{type}</span>
-                  <button
-                    onClick={() => setExcludedTypes(prev => isExcluded ? prev.filter(t => t !== type) : [...prev, type])}
-                    data-testid={`absence-type-toggle-${type}`}
-                    title={isExcluded ? 'Click to include' : 'Click to exclude'}>
-                    {isExcluded
-                      ? <ToggleLeft size={28} className="text-slate-300 hover:text-slate-400" />
-                      : <ToggleRight size={28} className="text-emerald-500 hover:text-emerald-600" />
-                    }
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      <button onClick={handleSave} disabled={saving} data-testid="save-mtss-btn"
+      <button onClick={() => onSave({ intervention_types: intTypes })} disabled={saving} data-testid="save-interventions-btn"
         className="w-full py-3.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
         {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-        {saving ? 'Saving…' : 'Save MTSS Settings'}
+        {saving ? 'Saving…' : 'Save Intervention Settings'}
       </button>
     </div>
   );
