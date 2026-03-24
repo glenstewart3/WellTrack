@@ -276,6 +276,7 @@ async def seed_database(student_count: int = 32):
                 "intervention_id": f"int_{uuid.uuid4().hex[:8]}", "student_id": sid,
                 "intervention_type": rng.choice(int_types_t3), "assigned_staff": rng.choice(staff_options[:3]),
                 "start_date": f"{seed_year}-04-28", "review_date": f"{seed_year}-06-09", "status": "active",
+                "rationale": "Student is presenting with multiple Tier 3 risk indicators including chronic absenteeism, disengaged behaviour and limited peer connections. Intensive support is required to stabilise school attendance and build resilience.",
                 "goals": "Reduce risk indicators, build coping strategies and improve school connectedness.",
                 "progress_notes": "Initial engagement established. Student is attending sessions. Monitoring weekly progress.",
                 "frequency": "3x weekly", "outcome_rating": None, "created_at": f"{seed_year}-04-28T09:00:00"
@@ -284,6 +285,7 @@ async def seed_database(student_count: int = 32):
                 "intervention_id": f"int_{uuid.uuid4().hex[:8]}", "student_id": sid,
                 "intervention_type": rng.choice(int_types_t3), "assigned_staff": rng.choice(staff_options[:3]),
                 "start_date": f"{seed_year}-02-03", "review_date": f"{seed_year}-03-28", "status": "completed",
+                "rationale": "Referral raised following teacher concerns about social withdrawal and heightened anxiety. Programme aimed to establish a trusting relationship and develop a clearer picture of the student's support needs.",
                 "goals": "Establish rapport and identify key risk factors.",
                 "progress_notes": "Completed 8-week programme. Student showed moderate improvement in social engagement.",
                 "frequency": "Weekly", "outcome_rating": rng.choice([3, 4, 4]), "created_at": f"{seed_year}-02-03T09:00:00"
@@ -302,6 +304,7 @@ async def seed_database(student_count: int = 32):
                 "intervention_id": f"int_{uuid.uuid4().hex[:8]}", "student_id": sid,
                 "intervention_type": rng.choice(int_types_t2), "assigned_staff": rng.choice(staff_options),
                 "start_date": f"{seed_year}-04-28", "review_date": f"{seed_year}-06-09", "status": "active",
+                "rationale": "Student has moved into Tier 2 following a pattern of irregular attendance and declining academic engagement. Proactive mentoring support has been initiated to prevent further escalation.",
                 "goals": "Monitor emerging risk factors and build protective factors through regular check-ins.",
                 "progress_notes": "Weekly check-ins established. Student is receptive to support.",
                 "frequency": "Weekly", "outcome_rating": None, "created_at": f"{seed_year}-04-28T09:00:00"
@@ -311,6 +314,7 @@ async def seed_database(student_count: int = 32):
                     "intervention_id": f"int_{uuid.uuid4().hex[:8]}", "student_id": sid,
                     "intervention_type": rng.choice(int_types_t2), "assigned_staff": rng.choice(staff_options),
                     "start_date": f"{seed_year}-02-17", "review_date": f"{seed_year}-03-28", "status": "completed",
+                    "rationale": "Early data indicated the student was beginning to disengage from learning. A short-term monitoring programme was put in place to address this before it developed into a more significant concern.",
                     "goals": "Early monitoring and prevention of further risk escalation.",
                     "progress_notes": "6-week monitoring programme complete. No escalation observed.",
                     "frequency": "Fortnightly", "outcome_rating": rng.choice([3, 4, 5]), "created_at": f"{seed_year}-02-17T09:00:00"
