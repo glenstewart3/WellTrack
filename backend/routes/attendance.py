@@ -410,7 +410,8 @@ async def get_student_attendance_detail(
     return {
         "student_id": student_id, "attendance_pct": round(att_pct, 1),
         "total_days": total_days, "absent_days": absent_days,
-        "absence_types": absence_types, "monthly_trend": monthly_trend, "records": records[:300],
+        "absence_types": absence_types, "monthly_trend": monthly_trend,
+        "records": records[:300], "excluded_absence_types": list(excluded_types),
     }
 
 

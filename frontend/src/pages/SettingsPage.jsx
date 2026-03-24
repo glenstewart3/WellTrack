@@ -403,7 +403,8 @@ function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
         </div>
         <p className="text-xs text-slate-400 mb-4">
           Types are auto-discovered when you upload attendance files. Toggle to control whether each type counts against attendance rate.
-          <span className="ml-1 font-medium text-emerald-600">Green = counts</span> &nbsp;
+          Students without any absence record are automatically counted as present — only actual absence types appear here.
+          <br /><span className="font-medium text-emerald-600">Green = counts against attendance</span> &nbsp;
           <span className="font-medium text-slate-400">Grey = excluded (e.g. Camp, Excursion)</span>
         </p>
         {typesLoading ? (
@@ -414,7 +415,7 @@ function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
           </div>
         ) : (
           <div className="space-y-1.5 max-h-60 overflow-y-auto">
-            {allTypes.map(type => {
+            {allTypes.filter(type => type.toLowerCase() !== 'present').map(type => {
               const isExcluded = excludedTypes.includes(type);
               return (
                 <div key={type}

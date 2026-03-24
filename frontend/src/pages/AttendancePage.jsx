@@ -474,10 +474,13 @@ export default function AttendancePage() {
 
                   {/* Individual absence records */}
                   {(() => {
+                    const excluded = new Set((studentDetail.excluded_absence_types || []).map(t => t.toLowerCase()));
                     const absences = (studentDetail.records || []).filter(r => {
-                      const am = (r.am_status || '').toLowerCase();
-                      const pm = (r.pm_status || '').toLowerCase();
-                      return (am && am !== 'present') || (pm && pm !== 'present');
+                      const am = (r.am_status || '').trim();
+                      const pm = (r.pm_status || '').trim();
+                      const amCounts = am && am.toLowerCase() !== 'present' && !excluded.has(am.toLowerCase());
+                      const pmCounts = pm && pm.toLowerCase() !== 'present' && !excluded.has(pm.toLowerCase());
+                      return amCounts || pmCounts;
                     }).sort((a, b) => b.date.localeCompare(a.date));
                     if (!absences.length) return null;
                     return (
