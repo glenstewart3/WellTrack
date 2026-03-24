@@ -23,7 +23,7 @@ function InlineEditIntervention({ intv, interventionTypes, onSave }) {
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave(intv.intervention_id, { progress_notes: form.progress_notes, status: form.status, goals: form.goals });
+    await onSave(intv.intervention_id, { progress_notes: form.progress_notes, status: form.status, goals: form.goals, rationale: form.rationale });
     setSaving(false);
     setEditing(false);
   };
@@ -51,6 +51,8 @@ function InlineEditIntervention({ intv, interventionTypes, onSave }) {
       </div>
       {editing ? (
         <div className="space-y-3 mt-3">
+          <textarea rows={2} value={form.rationale} onChange={e => setForm(p => ({...p, rationale: e.target.value}))}
+            placeholder="Reason for intervention..." className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none resize-none" />
           <textarea rows={3} value={form.goals} onChange={e => setForm(p => ({...p, goals: e.target.value}))}
             placeholder="Goals..." className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none resize-none" />
           <textarea rows={3} value={form.progress_notes} onChange={e => setForm(p => ({...p, progress_notes: e.target.value}))}
@@ -74,6 +76,7 @@ function InlineEditIntervention({ intv, interventionTypes, onSave }) {
         </div>
       ) : (
         <>
+          {form.rationale && <p className="text-sm text-slate-600 mb-1"><span className="font-medium">Reason:</span> {form.rationale}</p>}
           {form.goals && <p className="text-sm text-slate-600 mb-1"><span className="font-medium">Goals:</span> {form.goals}</p>}
           {form.progress_notes && <p className="text-sm text-slate-500 italic">{form.progress_notes}</p>}
           <p className="text-xs text-slate-300 mt-2">Click edit to update notes or status</p>
@@ -150,7 +153,7 @@ export default function StudentProfilePage() {
   const [showAddIntervention, setShowAddIntervention] = useState(false);
   const [showAddNote, setShowAddNote] = useState(false);
   const [saebrsView, setSaebrsView] = useState('total'); // 'total' or 'domains'
-  const [newIntervention, setNewIntervention] = useState({ intervention_type: '', assigned_staff: '', start_date: '', review_date: '', goals: '', frequency: '', status: 'active' });
+  const [newIntervention, setNewIntervention] = useState({ intervention_type: '', assigned_staff: '', start_date: '', review_date: '', goals: '', rationale: '', frequency: '', status: 'active' });
   const [newNote, setNewNote] = useState({ note_type: 'General', notes: '', staff_member: '', date: new Date().toISOString().split('T')[0] });
   const [aiSuggestions, setAiSuggestions] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -653,6 +656,7 @@ export default function StudentProfilePage() {
                             ...p,
                             intervention_type: rec.type || '',
                             goals: rec.goals || rec.goal || '',
+                            rationale: rec.rationale || '',
                             frequency: rec.frequency || '',
                           }));
                           setShowAddIntervention(true);
@@ -719,6 +723,8 @@ export default function StudentProfilePage() {
               </div>
               <input placeholder="Frequency (e.g. Weekly)" value={newIntervention.frequency} onChange={e => setNewIntervention(p => ({...p, frequency: e.target.value}))}
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+              <textarea placeholder="Reason for intervention" rows={2} value={newIntervention.rationale} onChange={e => setNewIntervention(p => ({...p, rationale: e.target.value}))}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20 resize-none" />
               <textarea placeholder="Goals" rows={3} value={newIntervention.goals} onChange={e => setNewIntervention(p => ({...p, goals: e.target.value}))}
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20 resize-none" />
             </div>

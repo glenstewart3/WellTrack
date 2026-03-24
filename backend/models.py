@@ -84,6 +84,7 @@ class Intervention(BaseModel):
     review_date: str
     status: str = "active"
     goals: str = ""
+    rationale: str = ""
     progress_notes: str = ""
     frequency: str = ""
     outcome_rating: Optional[int] = None

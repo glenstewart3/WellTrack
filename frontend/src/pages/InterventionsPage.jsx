@@ -72,6 +72,13 @@ function InterventionDetailModal({ intv, students, onClose, onUpdated }) {
             </div>
           </div>
 
+          {intv.rationale && (
+            <div className="p-3 bg-slate-50 rounded-xl">
+              <p className="text-xs text-slate-400 mb-0.5">Reason</p>
+              <p className="text-sm text-slate-700">{intv.rationale}</p>
+            </div>
+          )}
+
           {intv.goals && (
             <div className="p-3 bg-slate-50 rounded-xl">
               <p className="text-xs text-slate-400 mb-0.5">Goals</p>
@@ -133,7 +140,7 @@ export default function InterventionsPage() {
   const [aiError, setAiError] = useState('');
   const [form, setForm] = useState({
     student_id: '', intervention_type: '', assigned_staff: '',
-    start_date: '', review_date: '', goals: '', frequency: '', status: 'active', progress_notes: ''
+    start_date: '', review_date: '', goals: '', rationale: '', frequency: '', status: 'active', progress_notes: ''
   });
 
   useEffect(() => {
@@ -171,7 +178,7 @@ export default function InterventionsPage() {
       const res = await axios.post(`${API}/interventions`, form, { withCredentials: true });
       setInterventions(prev => [res.data, ...prev]);
       setShowAdd(false);
-      setForm({ student_id: '', intervention_type: '', assigned_staff: '', start_date: '', review_date: '', goals: '', frequency: '', status: 'active', progress_notes: '' });
+      setForm({ student_id: '', intervention_type: '', assigned_staff: '', start_date: '', review_date: '', goals: '', rationale: '', frequency: '', status: 'active', progress_notes: '' });
     } catch (e) { console.error(e); }
     finally { setSaving(false); }
   };
@@ -266,8 +273,9 @@ export default function InterventionsPage() {
                         student_id: aiStudent || '',
                         intervention_type: rec.type || '',
                         goals: rec.goals || rec.goal || '',
+                        rationale: rec.rationale || '',
                         frequency: rec.frequency || '',
-                        progress_notes: rec.rationale ? `AI Rationale: ${rec.rationale}` : '',
+                        progress_notes: '',
                       }));
                       setShowAdd(true);
                     }}
@@ -408,6 +416,8 @@ export default function InterventionsPage() {
               </div>
               <input placeholder="Frequency (e.g. Weekly, 3x per week)" value={form.frequency} onChange={e => setForm(p => ({...p, frequency: e.target.value}))}
                 className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none" />
+              <textarea placeholder="Reason for intervention" rows={2} value={form.rationale} onChange={e => setForm(p => ({...p, rationale: e.target.value}))}
+                className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none resize-none" />
               <textarea placeholder="Goals" rows={3} value={form.goals} onChange={e => setForm(p => ({...p, goals: e.target.value}))}
                 className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none resize-none" />
               <textarea placeholder="Initial progress notes (optional)" rows={2} value={form.progress_notes} onChange={e => setForm(p => ({...p, progress_notes: e.target.value}))}
