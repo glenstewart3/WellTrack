@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, INTERVENTION_TYPES } from '../utils/tierUtils';
 import { useSettings } from '../context/SettingsContext';
-import { Plus, X, Target, Loader, Sparkles, ChevronRight, Calendar, User, FileText, ClipboardList } from 'lucide-react';
+import { Plus, X, Target, ChevronRight, Calendar, User, FileText, ClipboardList } from 'lucide-react';
 import { exportInterventionsReport } from '../utils/pdfExport';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -126,18 +126,7 @@ export default function InterventionsPage() {
   const [interventions, setInterventions] = useState([]);
   const { settings } = useSettings();
   const interventionTypes = (settings.intervention_types?.length ? settings.intervention_types : INTERVENTION_TYPES);
-  const aiEnabled = settings.ai_suggestions_enabled !== false;
   const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState('active');
-  const [filterType, setFilterType] = useState('');
-  const [showAdd, setShowAdd] = useState(false);
-  const [detailIntv, setDetailIntv] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [aiStudent, setAiStudent] = useState('');
-  const [aiSuggestions, setAiSuggestions] = useState(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState('');
   const [form, setForm] = useState({
     student_id: '', intervention_type: '', assigned_staff: '',
     start_date: '', review_date: '', goals: '', rationale: '', frequency: '', status: 'active', progress_notes: ''
@@ -187,21 +176,6 @@ export default function InterventionsPage() {
     setInterventions(prev => prev.map(i => i.intervention_id === updated.intervention_id ? updated : i));
   };
 
-  const getAiSuggestions = async () => {
-    if (!aiStudent) return;
-    setAiLoading(true);
-    setAiError('');
-    try {
-      const res = await axios.post(`${API}/interventions/ai-suggest/${aiStudent}`, {}, { withCredentials: true });
-      setAiSuggestions(res.data.recommendations || []);
-    } catch (e) {
-      const msg = e.response?.data?.detail || 'Failed to get suggestions';
-      setAiError(msg);
-      setAiSuggestions(null);
-    }
-    finally { setAiLoading(false); }
-  };
-
   const intTypes = [...new Set(interventions.map(i => i.intervention_type))];
 
   return (
@@ -224,71 +198,6 @@ export default function InterventionsPage() {
           </button>
         </div>
       </div>
-
-      {/* AI Suggestions Panel - only if enabled */}
-      {aiEnabled && (
-        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5 mb-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <Sparkles size={18} className="text-indigo-600" />
-            <p className="text-sm font-semibold text-indigo-900">AI Intervention Suggestions</p>
-            <p className="text-xs text-indigo-500">(via Ollama)</p>
-            <select value={aiStudent} onChange={e => setAiStudent(e.target.value)}
-              data-testid="ai-student-selector"
-              className="flex-1 min-w-48 px-3 py-2 text-sm border border-indigo-200 rounded-lg focus:outline-none bg-white">
-              <option value="">Select a student...</option>
-              {students.filter(s => (s.mtss_tier || 0) >= 2).map(s => (
-                <option key={s.student_id} value={s.student_id}>
-                  {studentDisplayName(s)} — Tier {s.mtss_tier}
-                </option>
-              ))}
-            </select>
-            <button onClick={getAiSuggestions} disabled={!aiStudent || aiLoading} data-testid="get-ai-suggestions-btn"
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50">
-              {aiLoading ? <Loader size={14} className="animate-spin" /> : <Sparkles size={14} />}
-              Get Suggestions
-            </button>
-          </div>
-
-          {aiError && <p className="mt-3 text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg p-3">{aiError}</p>}
-
-          {aiSuggestions && (
-            <div className="mt-4 grid sm:grid-cols-3 gap-3">
-              {aiSuggestions.map((rec, i) => (
-                <div key={i} className="bg-white rounded-xl p-4 border border-indigo-100 flex flex-col">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-semibold text-slate-900 text-sm leading-snug pr-2">{rec.type}</h4>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${rec.priority === 'high' ? 'bg-rose-100 text-rose-700' : rec.priority === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                      {rec.priority}
-                    </span>
-                  </div>
-                  {rec.rationale && <p className="text-xs text-slate-600 mb-2 leading-relaxed">{rec.rationale}</p>}
-                  {(rec.goals || rec.goal) && (
-                    <p className="text-xs text-slate-700 mb-2"><span className="font-semibold">Goal:</span> {rec.goals || rec.goal}</p>
-                  )}
-                  <p className="text-xs text-slate-400 mt-auto">{[rec.frequency, rec.timeline].filter(Boolean).join(' · ')}</p>
-                  <button
-                    onClick={() => {
-                      setForm(p => ({
-                        ...p,
-                        student_id: aiStudent || '',
-                        intervention_type: rec.type || '',
-                        goals: rec.goals || rec.goal || '',
-                        rationale: rec.rationale || '',
-                        frequency: rec.frequency || '',
-                        progress_notes: '',
-                      }));
-                      setShowAdd(true);
-                    }}
-                    className="mt-3 w-full text-xs text-indigo-600 hover:text-indigo-800 font-medium text-left">
-                    Use this recommendation →
-                  </button>
-                </div>
-              ))}
-              {aiSuggestions.length === 0 && <p className="text-sm text-slate-400 col-span-3">No suggestions generated.</p>}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-4">
