@@ -450,11 +450,16 @@ export default function AttendancePage() {
                     <div>
                       <h4 className="text-sm font-semibold text-slate-700 mb-3">Monthly Attendance Trend</h4>
                       <ResponsiveContainer width="100%" height={180}>
-                        <LineChart data={studentDetail.monthly_trend} margin={{ left: -10, right: 10 }}>
+                        <LineChart
+                          data={studentDetail.monthly_trend.map(d => ({ ...d, attendance_pct: Math.max(70, d.attendance_pct) }))}
+                          margin={{ left: -10, right: 10 }}>
                           <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
                           <YAxis domain={[70, 100]} tick={{ fontSize: 11 }} unit="%" tickCount={7} />
                           <Tooltip
-                            formatter={(v) => [`${v}%`, 'Attendance']}
+                            formatter={(v, _, props) => {
+                              const raw = studentDetail.monthly_trend.find(d => d.label === props.payload?.label)?.attendance_pct;
+                              return [`${raw != null ? raw : v}%`, 'Attendance'];
+                            }}
                             contentStyle={{ borderRadius: '0.5rem', fontSize: '12px' }}
                           />
                           <ReferenceLine y={95} stroke="#10b981" strokeDasharray="4 2"
@@ -466,6 +471,30 @@ export default function AttendancePage() {
                       </ResponsiveContainer>
                     </div>
                   )}
+
+                  {/* Individual absence records */}
+                  {(() => {
+                    const absences = (studentDetail.records || []).filter(r => {
+                      const am = (r.am_status || '').toLowerCase();
+                      const pm = (r.pm_status || '').toLowerCase();
+                      return (am && am !== 'present') || (pm && pm !== 'present');
+                    }).sort((a, b) => b.date.localeCompare(a.date));
+                    if (!absences.length) return null;
+                    return (
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-700 mb-3">Absence Records ({absences.length})</h4>
+                        <div className="max-h-52 overflow-y-auto space-y-1 pr-1">
+                          {absences.map((r, i) => (
+                            <div key={i} className="flex items-center justify-between py-1.5 px-3 bg-slate-50 rounded-lg text-xs">
+                              <span className="font-medium text-slate-700 w-24 shrink-0">{r.date}</span>
+                              <span className="text-slate-500 flex-1">AM: <span className="font-medium text-slate-700">{r.am_status || '—'}</span></span>
+                              <span className="text-slate-500 flex-1">PM: <span className="font-medium text-slate-700">{r.pm_status || '—'}</span></span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {Object.keys(studentDetail.absence_types || {}).length > 0 && (
                     <div>
