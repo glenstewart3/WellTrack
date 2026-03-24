@@ -6,7 +6,7 @@ import { ArrowLeft, Plus, X, Loader, Edit2, Check, Sparkles } from 'lucide-react
 import { useSettings } from '../context/SettingsContext';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceArea, Legend
+  ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceArea, ReferenceLine, Legend
 } from 'recharts';
 import { exportStudentProfile } from '../utils/pdfExport';
 
@@ -159,6 +159,8 @@ export default function StudentProfilePage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
   const [showAiPanel, setShowAiPanel] = useState(false);
+  const [attendanceData, setAttendanceData] = useState(null);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
   useEffect(() => {
     const load = async () => {
       try {
@@ -170,8 +172,17 @@ export default function StudentProfilePage() {
     load();
   }, [studentId]);
 
-  const getAiSuggestions = async () => {
-    setAiLoading(true);
+  const fetchAttendance = async () => {
+    if (attendanceData || attendanceLoading) return;
+    setAttendanceLoading(true);
+    try {
+      const res = await axios.get(`${API}/attendance/student/${studentId}?term=all`, { withCredentials: true });
+      setAttendanceData(res.data);
+    } catch { /* no attendance data yet */ }
+    finally { setAttendanceLoading(false); }
+  };
+
+  const getAiSuggestions = async () => {    setAiLoading(true);
     setAiError('');
     setAiSuggestions(null);
     setShowAiPanel(true);
@@ -336,10 +347,10 @@ export default function StudentProfilePage() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 mb-6 overflow-x-auto">
-        {[['overview', 'Overview'], ['screening', 'Screening History'], ['interventions', 'Interventions'], ['notes', 'Case Notes']].map(([key, label]) => (
+        {[['overview', 'Overview'], ['attendance', 'Attendance'], ['screening', 'Screening History'], ['interventions', 'Interventions'], ['notes', 'Case Notes']].map(([key, label]) => (
           <button
             key={key}
-            onClick={() => setActiveTab(key)}
+            onClick={() => { setActiveTab(key); if (key === 'attendance') fetchAttendance(); }}
             data-testid={`tab-${key}`}
             className={`px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${activeTab === key ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
           >
@@ -484,6 +495,105 @@ export default function StudentProfilePage() {
                 ))}
               </div>
             </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'attendance' && (
+        <div className="space-y-5">
+          {attendanceLoading && (
+            <div className="flex items-center justify-center py-16 text-slate-400">
+              <Loader size={20} className="animate-spin mr-2" /> Loading attendance data…
+            </div>
+          )}
+          {!attendanceLoading && !attendanceData && (
+            <div className="bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-400">
+              <p>No attendance data recorded for this student.</p>
+            </div>
+          )}
+          {attendanceData && (
+            <>
+              {/* Summary stats */}
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { label: 'Attendance Rate', value: `${attendanceData.attendance_pct}%`, color: attendanceData.attendance_pct >= 95 ? 'text-emerald-600' : attendanceData.attendance_pct >= 90 ? 'text-amber-600' : 'text-rose-600' },
+                  { label: 'Days Absent', value: attendanceData.absent_days },
+                  { label: 'School Days', value: attendanceData.total_days },
+                ].map(s => (
+                  <div key={s.label} className="bg-white border border-slate-200 rounded-xl p-4 text-center">
+                    <p className={`text-2xl font-bold ${s.color || 'text-slate-900'}`}>{s.value}</p>
+                    <p className="text-xs text-slate-400 mt-1">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Monthly trend chart */}
+              {attendanceData.monthly_trend?.length > 1 && (
+                <div className="bg-white border border-slate-200 rounded-xl p-5">
+                  <h4 className="text-sm font-semibold text-slate-700 mb-4">Monthly Attendance Trend</h4>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <LineChart
+                      data={attendanceData.monthly_trend.map(d => ({ ...d, attendance_pct: Math.max(70, d.attendance_pct) }))}
+                      margin={{ left: -10, right: 10 }}>
+                      <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+                      <YAxis domain={[70, 100]} tick={{ fontSize: 11 }} unit="%" tickCount={7} />
+                      <Tooltip
+                        formatter={(v, _, props) => {
+                          const raw = attendanceData.monthly_trend.find(d => d.label === props?.payload?.label)?.attendance_pct;
+                          return [`${raw != null ? raw : v}%`, 'Attendance'];
+                        }}
+                        contentStyle={{ borderRadius: '0.5rem', fontSize: '12px' }}
+                      />
+                      <ReferenceLine y={95} stroke="#10b981" strokeDasharray="4 2" label={{ value: '95%', position: 'insideTopRight', fontSize: 9, fill: '#10b981' }} />
+                      <ReferenceLine y={90} stroke="#f59e0b" strokeDasharray="4 2" label={{ value: '90%', position: 'insideTopRight', fontSize: 9, fill: '#f59e0b' }} />
+                      <Line type="monotone" dataKey="attendance_pct" stroke="#0f172a" strokeWidth={2.5} dot={{ r: 3 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* Absence type breakdown */}
+              {Object.keys(attendanceData.absence_types || {}).length > 0 && (
+                <div className="bg-white border border-slate-200 rounded-xl p-5">
+                  <h4 className="text-sm font-semibold text-slate-700 mb-3">Absence Breakdown</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {Object.entries(attendanceData.absence_types).map(([type, count]) => (
+                      <div key={type} className="flex justify-between items-center px-3 py-2 bg-slate-50 rounded-lg text-xs">
+                        <span className="text-slate-600 truncate mr-2">{type}</span>
+                        <span className="font-semibold text-slate-900 shrink-0">{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Individual absence records */}
+              {(() => {
+                const excluded = new Set((attendanceData.excluded_absence_types || []).map(t => t.toLowerCase()));
+                const absences = (attendanceData.records || []).filter(r => {
+                  const am = (r.am_status || '').trim();
+                  const pm = (r.pm_status || '').trim();
+                  const amCounts = am && am.toLowerCase() !== 'present' && !excluded.has(am.toLowerCase());
+                  const pmCounts = pm && pm.toLowerCase() !== 'present' && !excluded.has(pm.toLowerCase());
+                  return amCounts || pmCounts;
+                }).sort((a, b) => b.date.localeCompare(a.date));
+                if (!absences.length) return null;
+                return (
+                  <div className="bg-white border border-slate-200 rounded-xl p-5">
+                    <h4 className="text-sm font-semibold text-slate-700 mb-3">Absence Records <span className="text-slate-400 font-normal">({absences.length})</span></h4>
+                    <div className="space-y-1 max-h-80 overflow-y-auto pr-1">
+                      {absences.map((r, i) => (
+                        <div key={i} className="flex items-center gap-4 py-1.5 px-3 bg-slate-50 rounded-lg text-xs">
+                          <span className="font-medium text-slate-700 w-24 shrink-0">{r.date}</span>
+                          <span className="text-slate-500 flex-1">AM: <span className="font-medium text-slate-700">{r.am_status || '—'}</span></span>
+                          <span className="text-slate-500 flex-1">PM: <span className="font-medium text-slate-700">{r.pm_status || '—'}</span></span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </>
           )}
         </div>
       )}
