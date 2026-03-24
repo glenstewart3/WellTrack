@@ -6,7 +6,7 @@ import {
   Settings, Trash2, Database, AlertTriangle, CheckCircle, Loader, School,
   Download, Upload, RefreshCw, Palette, Building2, Image, Plus, X,
   Sliders, ToggleLeft, ToggleRight, Tag, User, Shield, RotateCcw, Bot, Wifi, FileUp,
-  Calendar, CalendarDays, BookOpen
+  Calendar, CalendarDays, BookOpen, Target
 } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -406,6 +406,22 @@ function StudentDataTab({ settings: s, onSave, saving, msg, msgType }) {
   const [yearStartMonth, setYearStartMonth] = useState(s.year_start_month ?? 2);
   const [addingField, setAddingField] = useState(false);
   const [newField, setNewField] = useState({ label: '', type: 'text', options: '', required: false });
+  const [absenceTypes, setAbsenceTypes] = useState([]);
+  const [excludedTypes, setExcludedTypes] = useState(new Set(s.excluded_absence_types || []));
+
+  useEffect(() => {
+    axios.get(`${API}/attendance/types`, { withCredentials: true })
+      .then(r => setAbsenceTypes(r.data.types || []))
+      .catch(() => {});
+  }, []);
+
+  const toggleExclude = (type) => {
+    setExcludedTypes(prev => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type); else next.add(type);
+      return next;
+    });
+  };
 
   const confirmAddField = () => {
     if (!newField.label.trim()) return;
@@ -421,7 +437,12 @@ function StudentDataTab({ settings: s, onSave, saving, msg, msgType }) {
     setAddingField(false);
   };
 
-  const handleSave = () => onSave({ custom_student_fields: fields, risk_config: riskConfig, year_start_month: yearStartMonth });
+  const handleSave = () => onSave({
+    custom_student_fields: fields,
+    risk_config: riskConfig,
+    year_start_month: yearStartMonth,
+    excluded_absence_types: [...excludedTypes],
+  });
 
   return (
     <div className="space-y-5">
@@ -463,6 +484,39 @@ function StudentDataTab({ settings: s, onSave, saving, msg, msgType }) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Absence Types */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Absence Type Configuration</h3>
+        <p className="text-xs text-slate-400 mb-4">
+          Control which absence types count towards a student's attendance calculation.
+          Toggle off any type to exclude it — excluded types won't reduce attendance percentage.
+        </p>
+        {absenceTypes.filter(t => t !== 'Present').length === 0 ? (
+          <p className="text-sm text-slate-400 italic">No absence types found. Upload attendance data first to populate this list.</p>
+        ) : (
+          <div className="space-y-2">
+            {absenceTypes.filter(t => t !== 'Present').map(type => {
+              const isExcluded = excludedTypes.has(type);
+              return (
+                <div key={type} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                  <div>
+                    <p className={`text-sm font-medium ${isExcluded ? 'text-slate-400 line-through' : 'text-slate-700'}`}>{type}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {isExcluded ? 'Excluded from attendance calculation' : 'Counts towards absences'}
+                    </p>
+                  </div>
+                  <button onClick={() => toggleExclude(type)} data-testid={`absence-type-toggle-${type.replace(/\s+/g, '-')}`}>
+                    {isExcluded
+                      ? <ToggleLeft size={28} className="text-slate-300" />
+                      : <ToggleRight size={28} className="text-emerald-500" />}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Custom student fields */}
@@ -1895,6 +1949,7 @@ export default function SettingsPage() {
       {activeTab === 'General' && <GeneralTab {...tabProps} />}
       {activeTab === 'Branding' && <BrandingTab {...tabProps} />}
       {activeTab === 'MTSS & Screening' && <MTSSTab {...tabProps} />}
+      {activeTab === 'Interventions' && <InterventionsTab {...tabProps} />}
       {activeTab === 'Student Data' && <StudentDataTab {...tabProps} />}
       {activeTab === 'Calendar' && <CalendarTab msg={msg} msgType={msgType} setMsg={setMsg} setMsgType={setMsgType} />}
       {activeTab === 'Imports' && <ImportsTab msg={msg} msgType={msgType} setMsg={setMsg} setMsgType={setMsgType} settings={settings} onSave={saveSettings} />}

@@ -157,9 +157,10 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
 
     elif fname.endswith('.xlsx') or fname.endswith('.xls'):
         import openpyxl
-        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True, read_only=True)
         ws = wb.active
-        all_rows = [[cell.value for cell in row] for row in ws.iter_rows()]
+        all_rows = list(ws.iter_rows(values_only=True))
+        wb.close()
         records = _process_rows(all_rows)
 
     else:
@@ -192,16 +193,16 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
     matched, unmatched = [], []
     stored_count = 0
     pref_updated = 0
+    all_docs = []
     for ext_id, recs in by_ext.items():
         student_id = ext_to_student.get(ext_id)
         if student_id:
-            for r in recs:
-                await db.attendance_records.delete_one({"student_id": student_id, "date": r['date']})
+            dates = [r['date'] for r in recs]
+            await db.attendance_records.delete_many({"student_id": student_id, "date": {"$in": dates}})
             docs = [{"student_id": student_id, "external_id": ext_id, "date": r['date'],
                      "am_status": r['am_status'], "pm_status": r['pm_status']} for r in recs]
-            if docs:
-                await db.attendance_records.insert_many(docs)
-                stored_count += len(docs)
+            all_docs.extend(docs)
+            stored_count += len(docs)
             # Update preferred name if discovered from file
             if ext_id in pref_name_by_ext:
                 await db.students.update_one(
@@ -212,6 +213,9 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
             matched.append(ext_id)
         else:
             unmatched.append(ext_id)
+
+    if all_docs:
+        await db.attendance_records.insert_many(all_docs, ordered=False)
 
     # Discover new absence types
     found_types = set()
