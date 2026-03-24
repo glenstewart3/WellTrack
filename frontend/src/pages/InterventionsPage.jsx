@@ -127,6 +127,12 @@ export default function InterventionsPage() {
   const { settings } = useSettings();
   const interventionTypes = (settings.intervention_types?.length ? settings.intervention_types : INTERVENTION_TYPES);
   const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState('active');
+  const [filterType, setFilterType] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
+  const [detailIntv, setDetailIntv] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     student_id: '', intervention_type: '', assigned_staff: '',
     start_date: '', review_date: '', goals: '', rationale: '', frequency: '', status: 'active', progress_notes: ''
