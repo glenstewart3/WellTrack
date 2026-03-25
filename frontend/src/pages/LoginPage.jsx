@@ -205,9 +205,9 @@ export default function LoginPage() {
         <div>
           <div className="grid grid-cols-3 gap-3 mb-8">
             {[
-              { label: 'Tier 1', count: '68%', color: 'bg-emerald-500', desc: 'Low Risk' },
-              { label: 'Tier 2', count: '22%', color: 'bg-amber-400', desc: 'Emerging Risk' },
-              { label: 'Tier 3', count: '10%', color: 'bg-rose-500', desc: 'High Risk' },
+              { label: 'Tier 1', count: '100%', color: 'bg-emerald-500', desc: 'Universal' },
+              { label: 'Tier 2', count: '20%',  color: 'bg-amber-400',  desc: 'Targeted' },
+              { label: 'Tier 3', count: '5%',   color: 'bg-rose-500',   desc: 'Intensive' },
             ].map(item => (
               <div key={item.label} className="bg-white/10 rounded-xl p-4">
                 <div className={`w-3 h-3 rounded-full ${item.color} mb-2`} />
