@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, INTERVENTION_TYPES } from '../utils/tierUtils';
 import { useSettings } from '../context/SettingsContext';
+import { usePermissions } from '../hooks/usePermissions';
 import { Plus, X, Target, ChevronRight, Calendar, User, FileText, ClipboardList } from 'lucide-react';
 import { exportInterventionsReport } from '../utils/pdfExport';
 
@@ -123,6 +124,7 @@ function InterventionDetailModal({ intv, students, onClose, onUpdated }) {
 
 export default function InterventionsPage() {
   const navigate = useNavigate();
+  const { canDo } = usePermissions();
   const [interventions, setInterventions] = useState([]);
   const { settings } = useSettings();
   const interventionTypes = (settings.intervention_types?.length ? settings.intervention_types : INTERVENTION_TYPES);
@@ -194,14 +196,18 @@ export default function InterventionsPage() {
           <p className="text-slate-500 mt-1">{interventions.filter(i => i.status === 'active').length} active interventions</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => exportInterventionsReport(interventions, students)} data-testid="export-interventions-btn"
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors">
-            Export PDF
-          </button>
-          <button onClick={() => setShowAdd(true)} data-testid="new-intervention-btn"
-            className="flex items-center gap-2 px-4 py-2.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity" style={{ backgroundColor: 'var(--wt-accent)' }}>
-            <Plus size={16} /> New Intervention
-          </button>
+          {canDo('analytics.export') && (
+            <button onClick={() => exportInterventionsReport(interventions, students)} data-testid="export-interventions-btn"
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors">
+              Export PDF
+            </button>
+          )}
+          {canDo('interventions.add_edit') && (
+            <button onClick={() => setShowAdd(true)} data-testid="new-intervention-btn"
+              className="flex items-center gap-2 px-4 py-2.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity" style={{ backgroundColor: 'var(--wt-accent)' }}>
+              <Plus size={16} /> New Intervention
+            </button>
+          )}
         </div>
       </div>
 

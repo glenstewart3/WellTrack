@@ -4,6 +4,7 @@ import axios from 'axios';
 import { getTierColors, getRiskColors, INTERVENTION_TYPES, NOTE_TYPES } from '../utils/tierUtils';
 import { ArrowLeft, Plus, X, Loader, Edit2, Check, Sparkles } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
+import { usePermissions } from '../hooks/usePermissions';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceArea, ReferenceLine, Legend
@@ -143,6 +144,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function StudentProfilePage() {
   const { settings } = useSettings();
+  const { canDo } = usePermissions();
   const customFields = settings.custom_student_fields || [];
   const interventionTypes = settings.intervention_types?.length ? settings.intervention_types : INTERVENTION_TYPES;
   const { studentId } = useParams();
@@ -722,17 +724,19 @@ export default function StudentProfilePage() {
           <div className="flex justify-between items-center">
             <p className="text-sm text-slate-500">{interventions?.length || 0} intervention{interventions?.length !== 1 ? 's' : ''} recorded</p>
             <div className="flex gap-2">
-              {settings?.ai_suggestions_enabled !== false && (
+              {settings?.ai_suggestions_enabled !== false && canDo('interventions.ai_suggest') && (
                 <button onClick={getAiSuggestions} disabled={aiLoading} data-testid="get-ai-suggestions-btn"
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-indigo-200 text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-60">
                   {aiLoading ? <Loader size={14} className="animate-spin" /> : <Sparkles size={14} />}
                   {aiLoading ? 'Generating…' : 'AI Suggestions'}
                 </button>
               )}
-              <button onClick={() => setShowAddIntervention(true)} data-testid="add-intervention-btn"
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors">
-                <Plus size={14} /> Add Intervention
-              </button>
+              {canDo('interventions.add_edit') && (
+                <button onClick={() => setShowAddIntervention(true)} data-testid="add-intervention-btn"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors">
+                  <Plus size={14} /> Add Intervention
+                </button>
+              )}
             </div>
           </div>
 
@@ -790,10 +794,12 @@ export default function StudentProfilePage() {
       {activeTab === 'notes' && (
         <div className="space-y-4">
           <div className="flex justify-end">
-            <button onClick={() => setShowAddNote(true)} data-testid="add-note-btn"
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors">
-              <Plus size={14} /> Add Case Note
-            </button>
+            {canDo('case_notes.add_edit') && (
+              <button onClick={() => setShowAddNote(true)} data-testid="add-note-btn"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors">
+                <Plus size={14} /> Add Case Note
+              </button>
+            )}
           </div>
           {case_notes?.map(note => (
             <InlineEditNote key={note.case_id} note={note} onSave={editCaseNote} />

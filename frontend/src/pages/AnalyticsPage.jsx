@@ -11,6 +11,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
 import { exportAnalyticsReport } from '../utils/pdfExport';
+import { usePermissions } from '../hooks/usePermissions';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const COLORS = ['#22c55e', '#f59e0b', '#ef4444'];
@@ -41,6 +42,7 @@ function SectionHeader({ icon: Icon, title, sub }) {
 
 export default function AnalyticsPage() {
   const navigate = useNavigate();
+  const { canDo } = usePermissions();
   const [schoolData, setSchoolData] = useState(null);
   const [attTrends, setAttTrends] = useState(null);
   const [intOutcomes, setIntOutcomes] = useState([]);
@@ -211,6 +213,7 @@ export default function AnalyticsPage() {
           </h1>
           <p className="text-slate-500 mt-1">{sd.total_students} students · {sd.screened_students} screened · {filterLabel}</p>
         </div>
+        {canDo('analytics.export') && (
         <button
           onClick={handleExportPdf}
           disabled={pdfLoading}
@@ -220,6 +223,7 @@ export default function AnalyticsPage() {
           {pdfLoading ? <Loader size={14} className="animate-spin" /> : <Download size={14} />}
           Export PDF
         </button>
+        )}
       </div>
 
       {/* Filter Bar */}

@@ -7,8 +7,9 @@ import {
   UserCog, Plus, Trash2, X, Shield, Edit2, Loader, Mail, KeyRound,
   Eye, EyeOff, CheckCircle, Lock, LayoutDashboard, ClipboardCheck,
   Users, Radar, BarChart3, Target, CalendarDays, Users2, Bell, Settings,
-  RotateCcw,
+  RotateCcw, Zap,
 } from 'lucide-react';
+import { DEFAULT_FEATURE_PERMISSIONS } from '../hooks/usePermissions';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -35,6 +36,22 @@ const PERMISSION_PAGES = [
   { key: 'alerts',        label: 'Alerts',              icon: Bell },
   { key: 'settings',      label: 'Settings',            icon: Settings },
 ];
+
+// Feature-level actions that can be toggled per role
+const FEATURE_ACTIONS = [
+  { key: 'students.add_edit',         label: 'Add & Edit Students',           group: 'Students' },
+  { key: 'students.archive',          label: 'Archive / Reactivate Students', group: 'Students' },
+  { key: 'case_notes.add_edit',       label: 'Add & Edit Case Notes',         group: 'Students' },
+  { key: 'interventions.add_edit',    label: 'Add & Edit Interventions',      group: 'Interventions' },
+  { key: 'interventions.delete',      label: 'Delete Interventions',          group: 'Interventions' },
+  { key: 'interventions.ai_suggest',  label: 'Use AI Suggestions',            group: 'Interventions' },
+  { key: 'screenings.submit',         label: 'Submit Screenings',             group: 'Screening' },
+  { key: 'alerts.approve',            label: 'Approve / Reject Alerts',       group: 'Alerts' },
+  { key: 'attendance.upload',         label: 'Upload Attendance Data',        group: 'Attendance' },
+  { key: 'analytics.export',          label: 'Export Data (CSV / PDF)',       group: 'Analytics & Reports' },
+];
+
+const ACTION_GROUPS = [...new Set(FEATURE_ACTIONS.map(a => a.group))];
 
 // Roles that admins can configure (admin itself is always full access)
 const CONFIGURABLE_ROLES = [
@@ -434,36 +451,45 @@ function UserManagementTab() {
 function RolePermissionsTab() {
   const { settings, loadFullSettings } = useSettings();
   const [permissions, setPermissions] = useState(null);
+  const [featurePerms, setFeaturePerms] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState({ text: '', type: '' });
 
-  // Initialise from settings (or defaults)
   useEffect(() => {
     const saved = settings?.role_permissions;
-    setPermissions(
-      saved
-        ? { ...DEFAULT_PERMISSIONS, ...saved }
-        : { ...DEFAULT_PERMISSIONS }
-    );
-  }, [settings?.role_permissions]);
+    setPermissions(saved ? { ...DEFAULT_PERMISSIONS, ...saved } : { ...DEFAULT_PERMISSIONS });
+    const savedFeat = settings?.role_feature_permissions;
+    setFeaturePerms(savedFeat ? { ...DEFAULT_FEATURE_PERMISSIONS, ...savedFeat } : { ...DEFAULT_FEATURE_PERMISSIONS });
+  }, [settings?.role_permissions, settings?.role_feature_permissions]);
 
-  const toggle = (role, pageKey) => {
+  const togglePage = (role, pageKey) => {
     setPermissions(prev => {
       const current = new Set(prev[role] || []);
-      if (current.has(pageKey)) current.delete(pageKey);
-      else current.add(pageKey);
+      if (current.has(pageKey)) current.delete(pageKey); else current.add(pageKey);
       return { ...prev, [role]: [...current] };
     });
   };
 
-  const hasPermission = (role, pageKey) => (permissions?.[role] || []).includes(pageKey);
+  const toggleFeature = (role, actionKey) => {
+    setFeaturePerms(prev => {
+      const current = new Set(prev[role] || []);
+      if (current.has(actionKey)) current.delete(actionKey); else current.add(actionKey);
+      return { ...prev, [role]: [...current] };
+    });
+  };
 
-  const resetToDefaults = () => setPermissions({ ...DEFAULT_PERMISSIONS });
+  const hasPagePerm = (role, pageKey) => (permissions?.[role] || []).includes(pageKey);
+  const hasFeaturePerm = (role, actionKey) => (featurePerms?.[role] || []).includes(actionKey);
+
+  const resetToDefaults = () => {
+    setPermissions({ ...DEFAULT_PERMISSIONS });
+    setFeaturePerms({ ...DEFAULT_FEATURE_PERMISSIONS });
+  };
 
   const save = async () => {
     setSaving(true);
     try {
-      await axios.put(`${API}/settings`, { ...settings, role_permissions: permissions }, { withCredentials: true });
+      await axios.put(`${API}/settings`, { ...settings, role_permissions: permissions, role_feature_permissions: featurePerms }, { withCredentials: true });
       await loadFullSettings();
       setMsg({ text: 'Permissions saved', type: 'success' });
     } catch (e) {
@@ -474,7 +500,39 @@ function RolePermissionsTab() {
     }
   };
 
-  if (!permissions) return <div className="py-12 text-center text-slate-400 text-sm">Loading…</div>;
+  if (!permissions || !featurePerms) return <div className="py-12 text-center text-slate-400 text-sm">Loading…</div>;
+
+  // Shared column grid style
+  const gridCols = { gridTemplateColumns: '1fr repeat(4, 100px) 80px' };
+
+  // Reusable permission row
+  const PermRow = ({ label, roleKey, hasPermFn, onToggle, isLast }) => (
+    <div className={`grid items-center border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${isLast ? 'border-b-0' : ''}`} style={gridCols}>
+      <div className="px-5 py-3.5">
+        <span className="text-sm font-medium text-slate-700">{label}</span>
+      </div>
+      {CONFIGURABLE_ROLES.map(role => {
+        const allowed = hasPermFn(role.value);
+        return (
+          <div key={role.value} className="flex items-center justify-center">
+            <button onClick={() => onToggle(role.value)}
+              data-testid={`perm-${role.value}-${roleKey}`}
+              title={`${allowed ? 'Revoke' : 'Grant'} ${role.label} access`}
+              className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-all ${
+                allowed ? 'bg-emerald-500 border-emerald-500 hover:bg-emerald-600' : 'border-slate-200 hover:border-slate-400 bg-white'
+              }`}>
+              {allowed && <CheckCircle size={12} className="text-white" strokeWidth={3} />}
+            </button>
+          </div>
+        );
+      })}
+      <div className="flex items-center justify-center">
+        <div className="w-5 h-5 rounded flex items-center justify-center bg-slate-200 border-2 border-slate-200" title="Administrators always have full access">
+          <Lock size={9} className="text-slate-400" />
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-5">
@@ -488,9 +546,7 @@ function RolePermissionsTab() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Role Permissions</h2>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Control which pages each role can access. Administrators always have full access.
-          </p>
+          <p className="text-sm text-slate-500 mt-0.5">Control page access and feature actions per role. Administrators always have full access.</p>
         </div>
         <button onClick={resetToDefaults} data-testid="reset-permissions-btn"
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shrink-0 mt-1">
@@ -498,72 +554,102 @@ function RolePermissionsTab() {
         </button>
       </div>
 
-      {/* Permission matrix */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-        {/* Header row */}
-        <div className="grid border-b border-slate-200 bg-slate-50" style={{ gridTemplateColumns: '1fr repeat(4, 100px) 80px' }}>
-          <div className="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Page / Feature</div>
-          {CONFIGURABLE_ROLES.map(r => (
-            <div key={r.value} className="py-3 text-xs font-semibold text-slate-600 text-center">{r.label}</div>
-          ))}
-          <div className="py-3 flex items-center justify-center">
-            <span className="flex items-center gap-1 text-xs font-semibold text-slate-400">
-              <Lock size={10} /> Admin
-            </span>
-          </div>
+      {/* ── PAGE ACCESS ── */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <LayoutDashboard size={14} className="text-slate-400" />
+          <h3 className="text-sm font-semibold text-slate-700">Page Access</h3>
+          <span className="text-xs text-slate-400">— which pages each role can navigate to</span>
         </div>
-
-        {/* Page rows */}
-        {PERMISSION_PAGES.map((page, idx) => {
-          const Icon = page.icon;
-          return (
-            <div
-              key={page.key}
-              className={`grid items-center border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${idx === PERMISSION_PAGES.length - 1 ? 'border-b-0' : ''}`}
-              style={{ gridTemplateColumns: '1fr repeat(4, 100px) 80px' }}
-            >
-              <div className="px-5 py-3.5 flex items-center gap-2.5">
-                <Icon size={14} className="text-slate-400 shrink-0" />
-                <span className="text-sm font-medium text-slate-700">{page.label}</span>
-              </div>
-              {CONFIGURABLE_ROLES.map(role => {
-                const allowed = hasPermission(role.value, page.key);
-                return (
-                  <div key={role.value} className="flex items-center justify-center">
-                    <button
-                      onClick={() => toggle(role.value, page.key)}
-                      data-testid={`perm-${role.value}-${page.key}`}
-                      title={`${allowed ? 'Revoke' : 'Grant'} ${role.label} access to ${page.label}`}
-                      className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-all ${
-                        allowed
-                          ? 'bg-emerald-500 border-emerald-500 hover:bg-emerald-600'
-                          : 'border-slate-200 hover:border-slate-400 bg-white'
-                      }`}
-                    >
-                      {allowed && <CheckCircle size={12} className="text-white" strokeWidth={3} />}
-                    </button>
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <div className="grid border-b border-slate-200 bg-slate-50" style={gridCols}>
+            <div className="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Page</div>
+            {CONFIGURABLE_ROLES.map(r => (
+              <div key={r.value} className="py-3 text-xs font-semibold text-slate-600 text-center">{r.label}</div>
+            ))}
+            <div className="py-3 flex items-center justify-center">
+              <span className="flex items-center gap-1 text-xs font-semibold text-slate-400"><Lock size={10} /> Admin</span>
+            </div>
+          </div>
+          {PERMISSION_PAGES.map((page, idx) => {
+            const Icon = page.icon;
+            return (
+              <div key={page.key}
+                className={`grid items-center border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${idx === PERMISSION_PAGES.length - 1 ? 'border-b-0' : ''}`}
+                style={gridCols}>
+                <div className="px-5 py-3.5 flex items-center gap-2.5">
+                  <Icon size={14} className="text-slate-400 shrink-0" />
+                  <span className="text-sm font-medium text-slate-700">{page.label}</span>
+                </div>
+                {CONFIGURABLE_ROLES.map(role => {
+                  const allowed = hasPagePerm(role.value, page.key);
+                  return (
+                    <div key={role.value} className="flex items-center justify-center">
+                      <button onClick={() => togglePage(role.value, page.key)}
+                        data-testid={`perm-${role.value}-${page.key}`}
+                        title={`${allowed ? 'Revoke' : 'Grant'} ${role.label} access to ${page.label}`}
+                        className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-all ${
+                          allowed ? 'bg-emerald-500 border-emerald-500 hover:bg-emerald-600' : 'border-slate-200 hover:border-slate-400 bg-white'
+                        }`}>
+                        {allowed && <CheckCircle size={12} className="text-white" strokeWidth={3} />}
+                      </button>
+                    </div>
+                  );
+                })}
+                <div className="flex items-center justify-center">
+                  <div className="w-5 h-5 rounded flex items-center justify-center bg-slate-200 border-2 border-slate-200">
+                    <Lock size={9} className="text-slate-400" />
                   </div>
-                );
-              })}
-              {/* Admin — always locked on */}
-              <div className="flex items-center justify-center">
-                <div className="w-5 h-5 rounded flex items-center justify-center bg-slate-200 border-2 border-slate-200" title="Administrators always have full access">
-                  <Lock size={9} className="text-slate-400" />
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── FEATURE ACTIONS ── */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <Zap size={14} className="text-slate-400" />
+          <h3 className="text-sm font-semibold text-slate-700">Feature Actions</h3>
+          <span className="text-xs text-slate-400">— what each role can do within those pages</span>
+        </div>
+        <div className="space-y-3">
+          {ACTION_GROUPS.map(group => {
+            const actions = FEATURE_ACTIONS.filter(a => a.group === group);
+            return (
+              <div key={group} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                {/* Group header */}
+                <div className="grid border-b border-slate-100 bg-slate-50/70" style={gridCols}>
+                  <div className="px-5 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">{group}</div>
+                  {CONFIGURABLE_ROLES.map(r => (
+                    <div key={r.value} className="py-2.5 text-xs font-semibold text-slate-500 text-center">{r.label}</div>
+                  ))}
+                  <div className="py-2.5 flex items-center justify-center">
+                    <span className="flex items-center gap-1 text-xs text-slate-400"><Lock size={9} /> Admin</span>
+                  </div>
+                </div>
+                {actions.map((action, idx) => (
+                  <PermRow
+                    key={action.key}
+                    label={action.label}
+                    roleKey={action.key.replace('.', '-')}
+                    hasPermFn={(role) => hasFeaturePerm(role, action.key)}
+                    onToggle={(role) => toggleFeature(role, action.key)}
+                    isLast={idx === actions.length - 1}
+                  />
+                ))}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
         <Shield size={15} className="text-amber-600 mt-0.5 shrink-0" />
-        <div>
-          <p className="text-xs text-amber-700">
-            Permissions control sidebar navigation visibility. Backend access controls remain in place regardless of these settings.
-            The <strong>Screener</strong> role is always restricted to the Screening page only when used as their primary role.
-          </p>
-        </div>
+        <p className="text-xs text-amber-700">
+          Page Access controls sidebar visibility. Feature Actions hide UI elements (buttons, panels) for restricted roles — backend access controls remain in place regardless.
+        </p>
       </div>
 
       <button onClick={save} disabled={saving} data-testid="save-permissions-btn"

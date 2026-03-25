@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, getRiskColors } from '../utils/tierUtils';
 import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight, UserPlus, Archive, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Camera } from 'lucide-react';
+import { usePermissions } from '../hooks/usePermissions';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -236,6 +237,7 @@ function ImportModal({ onClose, onSuccess }) {
 
 export default function StudentsPage() {
   const navigate = useNavigate();
+  const { canDo } = usePermissions();
   const location = useLocation();
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -418,7 +420,7 @@ export default function StudentsPage() {
           <p className="text-slate-500 mt-1">{students.length} {filterStatus === 'archived' ? 'archived' : 'enrolled'} students</p>
         </div>
         <div className="flex gap-2">
-          {filterStatus === 'active' && (
+          {filterStatus === 'active' && canDo('students.add_edit') && (
             <button onClick={() => setShowAddStudent(true)} data-testid="add-student-btn"
               className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors">
               <UserPlus size={15} /> Add Student
@@ -549,7 +551,8 @@ export default function StudentsPage() {
           <option value="3">Tier 3 (High Risk)</option>
           <option value="">Not Screened</option>
         </select>
-        {/* Edit mode toggle */}
+        {/* Edit mode toggle — shown if they can edit or archive */}
+        {(canDo('students.add_edit') || canDo('students.archive')) && (
         <button
           onClick={() => { setBulkEditMode(m => !m); setSelectedIds(new Set()); }}
           data-testid="bulk-edit-toggle"
@@ -561,6 +564,7 @@ export default function StudentsPage() {
         >
           {bulkEditMode ? 'Done' : 'Edit'}
         </button>
+        )}
       </div>
 
       {/* Table */}
@@ -824,17 +828,21 @@ export default function StudentsPage() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white rounded-2xl px-5 py-3 flex items-center gap-4 shadow-xl">
           <span className="text-sm font-medium">{selectedIds.size} selected</span>
           {filterStatus === 'archived' ? (
-            <button onClick={reactivateSelected} disabled={reactivating} data-testid="bulk-reactivate-btn"
-              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-60">
-              {reactivating ? <Loader size={13} className="animate-spin" /> : <RotateCcw size={13} />}
-              {reactivating ? 'Reactivating…' : 'Reactivate'}
-            </button>
+            canDo('students.archive') && (
+              <button onClick={reactivateSelected} disabled={reactivating} data-testid="bulk-reactivate-btn"
+                className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-60">
+                {reactivating ? <Loader size={13} className="animate-spin" /> : <RotateCcw size={13} />}
+                {reactivating ? 'Reactivating…' : 'Reactivate'}
+              </button>
+            )
           ) : (
-            <button onClick={archiveSelected} disabled={archiving} data-testid="bulk-archive-btn"
-              className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-60">
-              {archiving ? <Loader size={13} className="animate-spin" /> : <Archive size={13} />}
-              {archiving ? 'Archiving…' : 'Archive'}
-            </button>
+            canDo('students.archive') && (
+              <button onClick={archiveSelected} disabled={archiving} data-testid="bulk-archive-btn"
+                className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-60">
+                {archiving ? <Loader size={13} className="animate-spin" /> : <Archive size={13} />}
+                {archiving ? 'Archiving…' : 'Archive'}
+              </button>
+            )
           )}
           <button onClick={() => setSelectedIds(new Set())} className="text-slate-400 hover:text-white transition-colors">
             <X size={16} />

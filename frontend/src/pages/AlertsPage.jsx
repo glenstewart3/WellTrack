@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { usePermissions } from '../hooks/usePermissions';
 import { Bell, CheckCircle, AlertTriangle, TrendingUp, TrendingDown, ThumbsUp, ThumbsDown, ArrowRight } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -88,8 +89,9 @@ function AlertCard({ alert, canApprove, showResolved, onMarkRead, onResolve, onA
 export default function AlertsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { canDo } = usePermissions();
   const role = user?.role || '';
-  const canApprove = ['admin', 'leadership', 'wellbeing'].includes(role);
+  const canApprove = user?.role === 'admin' || canDo('alerts.approve');
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showResolved, setShowResolved] = useState(false);
