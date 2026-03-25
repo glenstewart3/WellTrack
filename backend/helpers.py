@@ -276,7 +276,7 @@ async def get_latest_saebrs_plus_bulk(student_ids: list) -> dict:
         {"$replaceRoot": {"newRoot": "$doc"}},
         {"$project": {"_id": 0}},
     ]
-    results = await db.saebrs_plus_results.aggregate(pipeline).to_list(500)
+    results = await db.self_report_results.aggregate(pipeline).to_list(500)
     return {r["student_id"]: r for r in results}
 
 

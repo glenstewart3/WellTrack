@@ -46,6 +46,7 @@ class SAEBRSResult(BaseModel):
     result_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     student_id: str
     screening_id: str
+    screening_period: str = ""
     social_items: List[int] = []
     academic_items: List[int] = []
     emotional_items: List[int] = []
@@ -64,6 +65,7 @@ class SAEBRSPlusResult(BaseModel):
     result_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     student_id: str
     screening_id: str
+    screening_period: str = ""
     self_report_items: List[int] = []
     attendance_pct: float = 100.0
     social_domain: int = 0

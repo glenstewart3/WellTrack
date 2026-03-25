@@ -154,7 +154,7 @@ async def get_student_profile(student_id: str, user=Depends(get_current_user)):
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     saebrs_results = await db.saebrs_results.find({"student_id": student_id}, {"_id": 0}).sort("created_at", 1).to_list(20)
-    saebrs_plus = await db.saebrs_plus_results.find({"student_id": student_id}, {"_id": 0}).sort("created_at", 1).to_list(20)
+    saebrs_plus = await db.self_report_results.find({"student_id": student_id}, {"_id": 0}).sort("created_at", 1).to_list(20)
     interventions = await db.interventions.find({"student_id": student_id}, {"_id": 0}).sort("created_at", -1).to_list(20)
     case_notes = await db.case_notes.find({"student_id": student_id}, {"_id": 0}).sort("date", -1).to_list(20)
     att_pct = await get_student_attendance_pct(student_id)
@@ -176,7 +176,7 @@ async def get_student_profile(student_id: str, user=Depends(get_current_user)):
         "student": student, "mtss_tier": tier,
         "attendance_pct": round(att_pct, 1),
         "saebrs_results": saebrs_results,
-        "saebrs_plus_results": saebrs_plus,
+        "self_report_results": saebrs_plus,
         "interventions": interventions,
         "case_notes": case_notes,
         "attendance_records": attendance_records,

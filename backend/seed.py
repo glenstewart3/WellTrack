@@ -14,7 +14,7 @@ async def seed_database(student_count: int = 32):
     student_count = max(8, min(400, student_count))
 
     for col in ["students", "attendance", "attendance_records", "school_days", "screening_sessions",
-                "saebrs_results", "saebrs_plus_results", "interventions", "case_notes", "alerts"]:
+                "saebrs_results", "self_report_results", "interventions", "case_notes", "alerts"]:
         await db[col].delete_many({})
 
     await db.school_settings.update_one({}, {"$set": {
@@ -354,7 +354,7 @@ async def seed_database(student_count: int = 32):
 
     for col_data, col_name in [
         (all_s1 + all_s2, "saebrs_results"),
-        (all_p1 + all_p2, "saebrs_plus_results"),
+        (all_p1 + all_p2, "self_report_results"),
         (all_att_recs,    "attendance_records"),
         (all_int,         "interventions"),
         (all_notes,       "case_notes"),

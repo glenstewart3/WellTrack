@@ -18,7 +18,7 @@ BACKUP_DIR = Path(__file__).parent.parent / "backups"
 RETENTION_DAYS = 30
 COLLECTIONS = [
     "students", "attendance_records", "school_days",
-    "screening_sessions", "saebrs_results", "saebrs_plus_results",
+    "screening_sessions", "saebrs_results", "self_report_results",
     "interventions", "case_notes", "alerts", "school_settings", "users",
 ]
 

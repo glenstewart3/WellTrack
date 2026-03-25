@@ -39,7 +39,7 @@ async def submit_saebrs(result: SAEBRSResult, user=Depends(get_current_user)):
                "total_score": t, "risk_level": r, "social_risk": sr, "academic_risk": ar, "emotional_risk": er})
 
     prev_saebrs = await db.saebrs_results.find_one({"student_id": result.student_id}, {"_id": 0}, sort=[("created_at", -1)])
-    prev_plus = await db.saebrs_plus_results.find_one({"student_id": result.student_id}, {"_id": 0}, sort=[("created_at", -1)])
+    prev_plus = await db.self_report_results.find_one({"student_id": result.student_id}, {"_id": 0}, sort=[("created_at", -1)])
     att_pct = await get_student_attendance_pct(result.student_id)
 
     if prev_saebrs:
@@ -93,12 +93,27 @@ async def submit_saebrs_plus(result: SAEBRSPlusResult, user=Depends(get_current_
     d = result.model_dump()
     d.update({"social_domain": soc, "academic_domain": aca, "emotional_domain": emo,
                "belonging_domain": bel, "wellbeing_total": total, "wellbeing_tier": tier})
-    await db.saebrs_plus_results.insert_one({**d})
+    await db.self_report_results.insert_one({**d})
     return d
 
 
 @router.get("/screening/results/{student_id}")
 async def get_screening_results(student_id: str, user=Depends(get_current_user)):
     saebrs = await db.saebrs_results.find({"student_id": student_id}, {"_id": 0}).sort("created_at", 1).to_list(20)
-    plus = await db.saebrs_plus_results.find({"student_id": student_id}, {"_id": 0}).sort("created_at", 1).to_list(20)
+    plus = await db.self_report_results.find({"student_id": student_id}, {"_id": 0}).sort("created_at", 1).to_list(20)
     return {"saebrs": saebrs, "saebrs_plus": plus}
+
+
+@router.get("/screening/completed")
+async def get_completed_students(class_name: str, period: str, type: str = "saebrs", user=Depends(get_current_user)):
+    """Return student_ids that already have a result for this class+period."""
+    students = await db.students.find(
+        {"class_name": class_name, "enrolment_status": "active"}, {"student_id": 1, "_id": 0}
+    ).to_list(500)
+    student_ids = [s["student_id"] for s in students]
+    collection = db.saebrs_results if type == "saebrs" else db.self_report_results
+    completed = await collection.distinct("student_id", {
+        "student_id": {"$in": student_ids},
+        "screening_period": period,
+    })
+    return {"completed": completed}

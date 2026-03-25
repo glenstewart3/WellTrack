@@ -78,14 +78,14 @@ async def test_ollama_connection(user=Depends(get_current_user)):
 @router.delete("/settings/data")
 async def wipe_data(user=Depends(get_current_user)):
     for col in ["students", "attendance", "attendance_records", "school_days", "screening_sessions",
-                "saebrs_results", "saebrs_plus_results", "interventions", "case_notes", "alerts"]:
+                "saebrs_results", "self_report_results", "interventions", "case_notes", "alerts"]:
         await db[col].delete_many({})
     return {"message": "All data wiped"}
 
 
 @router.delete("/settings/data/students")
 async def delete_student_data(user=Depends(get_current_user)):
-    for col in ["students", "screening_sessions", "saebrs_results", "saebrs_plus_results",
+    for col in ["students", "screening_sessions", "saebrs_results", "self_report_results",
                 "interventions", "case_notes", "alerts"]:
         await db[col].delete_many({})
     return {"message": "Student data deleted"}
@@ -110,7 +110,7 @@ async def export_all_data(user=Depends(get_current_user)):
     backup = {}
     collections = [
         "students", "attendance_records", "school_days",
-        "screening_sessions", "saebrs_results", "saebrs_plus_results",
+        "screening_sessions", "saebrs_results", "self_report_results",
         "interventions", "case_notes", "alerts", "school_settings",
     ]
     for col in collections:
@@ -132,7 +132,7 @@ async def restore_all_data(request: Request, user=Depends(get_current_user)):
     body = await request.json()
     restorable = [
         "students", "attendance_records", "school_days",
-        "screening_sessions", "saebrs_results", "saebrs_plus_results",
+        "screening_sessions", "saebrs_results", "self_report_results",
         "interventions", "case_notes", "alerts", "school_settings",
     ]
     restored = {}

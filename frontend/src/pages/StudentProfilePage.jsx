@@ -237,17 +237,17 @@ export default function StudentProfilePage() {
   if (loading) return <div className="p-8"><div className="h-64 bg-white rounded-xl animate-pulse border border-slate-200" /></div>;
   if (!profile) return <div className="p-8 text-slate-500">Student not found</div>;
 
-  const { student, mtss_tier, attendance_pct, saebrs_results, saebrs_plus_results, interventions, case_notes, alerts } = profile;
+  const { student, mtss_tier, attendance_pct, saebrs_results, self_report_results, interventions, case_notes, alerts } = profile;
   const tierColors = getTierColors(mtss_tier);
   const latestSaebrs = saebrs_results?.slice(-1)[0];
-  const latestPlus = saebrs_plus_results?.slice(-1)[0];
+  const latestPlus = self_report_results?.slice(-1)[0];
 
   // Chart data
   const screeningChartData = saebrs_results?.map((r, i) => ({
     name: `Term ${i + 1}`, total: r.total_score, social: r.social_score, academic: r.academic_score, emotional: r.emotional_score
   })) || [];
 
-  const wellbeingChartData = saebrs_plus_results?.map((r, i) => ({
+  const wellbeingChartData = self_report_results?.map((r, i) => ({
     name: `Term ${i + 1}`, total: r.wellbeing_total, social: r.social_domain, academic: r.academic_domain
   })) || [];
 
@@ -602,7 +602,7 @@ export default function StudentProfilePage() {
 
       {activeTab === 'screening' && (
         <div className="space-y-6">
-          {saebrs_results?.length === 0 && saebrs_plus_results?.length === 0 ? (
+          {saebrs_results?.length === 0 && self_report_results?.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-400">
               <p>No screening data recorded</p>
             </div>
@@ -659,7 +659,7 @@ export default function StudentProfilePage() {
               )}
 
               {/* Wellbeing trend */}
-              {saebrs_plus_results?.length > 0 && (
+              {self_report_results?.length > 0 && (
                 <div className="bg-white border border-slate-200 rounded-xl p-6" data-testid="wellbeing-trend-chart">
                   <h3 className="font-semibold text-slate-900 mb-0.5" style={{fontFamily:'Manrope,sans-serif'}}>Student Wellbeing Trend</h3>
                   <p className="text-xs text-slate-400 mb-4">Self-reported wellbeing over time — higher score = better wellbeing</p>
@@ -680,7 +680,7 @@ export default function StudentProfilePage() {
 
               {/* Individual screening cards with change indicator */}
               {saebrs_results?.map((r, i) => {
-                const plus = saebrs_plus_results?.[i];
+                const plus = self_report_results?.[i];
                 const prev = i > 0 ? saebrs_results[i - 1] : null;
                 const change = prev !== null ? r.total_score - prev.total_score : null;
                 return (

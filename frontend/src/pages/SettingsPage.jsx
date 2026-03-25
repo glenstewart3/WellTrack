@@ -6,7 +6,7 @@ import {
   Settings, Trash2, Database, AlertTriangle, CheckCircle, Loader, School,
   Download, Upload, RefreshCw, Palette, Building2, Image, Plus, X,
   Sliders, ToggleLeft, ToggleRight, Tag, User, Shield, RotateCcw, Bot, Wifi, FileUp,
-  Calendar, CalendarDays, BookOpen, Target
+  Calendar, CalendarDays, BookOpen, Target, ClipboardCheck
 } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -26,15 +26,16 @@ const PRESET_COLOURS = ['#0f172a','#1e40af','#065f46','#7c2d12','#4a044e','#0c4a
 const FIELD_TYPES = ['text', 'select', 'boolean', 'number'];
 
 const TAB_CONFIG = [
-  { key: 'General',          icon: Settings },
-  { key: 'Branding',         icon: Palette },
-  { key: 'MTSS & Screening', icon: Sliders },
-  { key: 'Interventions',    icon: Target },
-  { key: 'Student Data',     icon: User },
-  { key: 'Calendar',         icon: CalendarDays },
-  { key: 'Imports',          icon: FileUp },
-  { key: 'Integrations',     icon: Wifi },
-  { key: 'Data',             icon: Database },
+  { key: 'General',             icon: Settings },
+  { key: 'Branding',            icon: Palette },
+  { key: 'MTSS & Screening',    icon: Sliders },
+  { key: 'Interventions',       icon: Target },
+  { key: 'Student Data',        icon: User },
+  { key: 'Screening Sessions',  icon: ClipboardCheck },
+  { key: 'Calendar',            icon: CalendarDays },
+  { key: 'Imports',             icon: FileUp },
+  { key: 'Integrations',        icon: Wifi },
+  { key: 'Data',                icon: Database },
 ];
 
 function TabNav({ active, onChange }) {
@@ -1817,6 +1818,76 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
   );
 }
 
+// ── SCREENING SESSIONS TAB ───────────────────────────────────────────────────
+const SCREENING_PERIODS = [
+  'Term 1 - P1', 'Term 1 - P2',
+  'Term 2 - P1', 'Term 2 - P2',
+  'Term 3 - P1', 'Term 3 - P2',
+  'Term 4 - P1', 'Term 4 - P2',
+];
+
+function ScreeningSessionsTab({ settings: s, onSave, saving, msg, msgType }) {
+  const [activePeriod, setActivePeriod] = useState(s.active_screening_period || '');
+
+  const handleSave = () => onSave({ active_screening_period: activePeriod });
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Active Screening Period</h3>
+        <p className="text-xs text-slate-400 mb-5">
+          Select the current screening period. Only the selected period will appear in the Screening page — staff cannot accidentally screen for the wrong term.
+        </p>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {SCREENING_PERIODS.map(period => (
+            <button
+              key={period}
+              onClick={() => setActivePeriod(prev => prev === period ? '' : period)}
+              data-testid={`period-btn-${period.replace(/\s/g, '-').replace(/-+/g, '-')}`}
+              className={`py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all text-center ${
+                activePeriod === period
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'
+              }`}
+            >
+              <span className="block text-xs font-medium opacity-60">{period.split(' - ')[0]}</span>
+              <span className="block">{period.split(' - ')[1]}</span>
+            </button>
+          ))}
+        </div>
+
+        {activePeriod ? (
+          <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-xl mb-5">
+            <CheckCircle size={16} className="text-emerald-600 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-emerald-800">Active period: {activePeriod}</p>
+              <p className="text-xs text-emerald-600 mt-0.5">Screeners will only see this period when completing a session.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl mb-5">
+            <AlertTriangle size={16} className="text-amber-600 shrink-0" />
+            <p className="text-sm text-amber-700">No active screening period selected. Screeners will see a prompt to contact their administrator.</p>
+          </div>
+        )}
+
+        {msg && (
+          <div className={`flex items-center gap-2 rounded-xl p-3 mb-4 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+            <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
+          </div>
+        )}
+
+        <button onClick={handleSave} disabled={saving} data-testid="save-screening-period-btn"
+          className="w-full py-3 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
+          {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+          {saving ? 'Saving…' : 'Save Active Period'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── INTEGRATIONS TAB ──────────────────────────────────────────────────────────
 function IntegrationsTab({ settings: s, onSave, saving, msg, msgType }) {
   const [ollamaUrl, setOllamaUrl] = useState(s.ollama_url || 'http://localhost:11434');
@@ -1951,6 +2022,7 @@ export default function SettingsPage() {
       {activeTab === 'MTSS & Screening' && <MTSSTab {...tabProps} />}
       {activeTab === 'Interventions' && <InterventionsTab {...tabProps} />}
       {activeTab === 'Student Data' && <StudentDataTab {...tabProps} />}
+      {activeTab === 'Screening Sessions' && <ScreeningSessionsTab {...tabProps} />}
       {activeTab === 'Calendar' && <CalendarTab msg={msg} msgType={msgType} setMsg={setMsg} setMsgType={setMsgType} />}
       {activeTab === 'Imports' && <ImportsTab msg={msg} msgType={msgType} setMsg={setMsg} setMsgType={setMsgType} settings={settings} onSave={saveSettings} />}
       {activeTab === 'Integrations' && <IntegrationsTab {...tabProps} />}
