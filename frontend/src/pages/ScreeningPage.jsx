@@ -187,9 +187,11 @@ function SAEBRSFlow({ className, period, onDone }) {
     load().catch(e => { console.error(e); setLoading(false); });
   }, [className, period]);
 
-  const student = current !== null ? students[current] : null;
+  useEffect(() => {
+    if (current === null) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [current]);
 
-  const saveCurrentStudent = async () => {
+  const student = current !== null ? students[current] : null;
     if (!student) return;
     setSaving(true); setSaveError('');
     try {
@@ -205,7 +207,6 @@ function SAEBRSFlow({ className, period, onDone }) {
       setCompletedStudents(prev => new Set([...prev, student.student_id]));
       setScores({ social: Array(6).fill(2), academic: Array(6).fill(2), emotional: Array(7).fill(2) });
       setCurrent(null);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
       setSaveError(e.response?.data?.detail || 'Failed to save');
     } finally { setSaving(false); }
@@ -368,6 +369,10 @@ function SelfReportFlow({ className, period, onDone }) {
     load().catch(e => { console.error(e); setLoading(false); });
   }, [className, period]);
 
+  useEffect(() => {
+    if (current === null) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [current]);
+
   const student = current !== null ? students[current] : null;
 
   const save = async () => {
@@ -386,7 +391,6 @@ function SelfReportFlow({ className, period, onDone }) {
       setCompletedStudents(prev => new Set([...prev, student.student_id]));
       setItems(Array(7).fill(1));
       setCurrent(null);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
       setSaveError(e.response?.data?.detail || 'Failed to save');
     } finally { setSaving(false); }
