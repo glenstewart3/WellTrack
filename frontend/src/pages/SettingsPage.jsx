@@ -31,7 +31,7 @@ const TAB_CONFIG = [
   { key: 'MTSS & Screening',    icon: Sliders },
   { key: 'Interventions',       icon: Target },
   { key: 'Student Data',        icon: User },
-  { key: 'Screening Sessions',  icon: ClipboardCheck },
+  { key: 'Screening',           icon: ClipboardCheck },
   { key: 'Calendar',            icon: CalendarDays },
   { key: 'Imports',             icon: FileUp },
   { key: 'Integrations',        icon: Wifi },
@@ -230,9 +230,8 @@ function BrandingTab({ settings: s, onSave, saving, msg, msgType }) {
 function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
   const DEFAULT_THRESHOLDS = { saebrs_some_risk: 37, saebrs_high_risk: 24, attendance_some_risk: 95, attendance_high_risk: 90 };
   const [thresholds, setThresholds] = useState({ ...DEFAULT_THRESHOLDS, ...s.tier_thresholds });
-  const [modules, setModules] = useState({ saebrs_plus: true, ...s.modules_enabled });
   const resetThresholds = () => setThresholds({ ...DEFAULT_THRESHOLDS });
-  const handleSave = () => onSave({ tier_thresholds: thresholds, modules_enabled: modules });
+  const handleSave = () => onSave({ tier_thresholds: thresholds });
 
   return (
     <div className="space-y-5">
@@ -313,31 +312,6 @@ function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
               </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Modules */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6">
-        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Screening Modules</h3>
-        <p className="text-xs text-slate-400 mb-4">Enable or disable screening components for your school.</p>
-        <div className="space-y-3">
-          {[
-            { key: 'saebrs_plus', label: 'Student Self-Report', desc: '7-item student self-report for social, emotional, and school belonging (completed individually with student)' },
-          ].map(({ key, label, desc }) => (
-            <div key={key} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
-              <div>
-                <p className="text-sm font-semibold text-slate-700">{label}</p>
-                <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
-              </div>
-              <button onClick={() => setModules(p => ({ ...p, [key]: !p[key] }))}
-                data-testid={`module-toggle-${key}`}
-                className="text-slate-400 hover:text-slate-900 transition-colors">
-                {modules[key]
-                  ? <ToggleRight size={28} className="text-emerald-500" />
-                  : <ToggleLeft size={28} />}
-              </button>
-            </div>
-          ))}
         </div>
       </div>
 
@@ -1818,7 +1792,7 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
   );
 }
 
-// ── SCREENING SESSIONS TAB ───────────────────────────────────────────────────
+// ── SCREENING TAB ─────────────────────────────────────────────────────────────
 const SCREENING_PERIODS = [
   'Term 1 - P1', 'Term 1 - P2',
   'Term 2 - P1', 'Term 2 - P2',
@@ -1828,8 +1802,9 @@ const SCREENING_PERIODS = [
 
 function ScreeningSessionsTab({ settings: s, onSave, saving, msg, msgType }) {
   const [activePeriod, setActivePeriod] = useState(s.active_screening_period || '');
+  const [modules, setModules] = useState({ saebrs_plus: true, ...s.modules_enabled });
 
-  const handleSave = () => onSave({ active_screening_period: activePeriod });
+  const handleSave = () => onSave({ active_screening_period: activePeriod, modules_enabled: modules });
 
   return (
     <div className="space-y-6">
@@ -1881,8 +1856,33 @@ function ScreeningSessionsTab({ settings: s, onSave, saving, msg, msgType }) {
         <button onClick={handleSave} disabled={saving} data-testid="save-screening-period-btn"
           className="w-full py-3 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
           {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-          {saving ? 'Saving…' : 'Save Active Period'}
+          {saving ? 'Saving…' : 'Save Screening Settings'}
         </button>
+      </div>
+
+      {/* Screening Modules */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Screening Modules</h3>
+        <p className="text-xs text-slate-400 mb-4">Enable or disable screening components for your school.</p>
+        <div className="space-y-3">
+          {[
+            { key: 'saebrs_plus', label: 'Student Self-Report', desc: '7-item student self-report for social, emotional, and school belonging (completed individually with student)' },
+          ].map(({ key, label, desc }) => (
+            <div key={key} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+              <div>
+                <p className="text-sm font-semibold text-slate-700">{label}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
+              </div>
+              <button onClick={() => setModules(p => ({ ...p, [key]: !p[key] }))}
+                data-testid={`module-toggle-${key}`}
+                className="text-slate-400 hover:text-slate-900 transition-colors">
+                {modules[key]
+                  ? <ToggleRight size={28} className="text-emerald-500" />
+                  : <ToggleLeft size={28} />}
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -2022,7 +2022,7 @@ export default function SettingsPage() {
       {activeTab === 'MTSS & Screening' && <MTSSTab {...tabProps} />}
       {activeTab === 'Interventions' && <InterventionsTab {...tabProps} />}
       {activeTab === 'Student Data' && <StudentDataTab {...tabProps} />}
-      {activeTab === 'Screening Sessions' && <ScreeningSessionsTab {...tabProps} />}
+      {activeTab === 'Screening' && <ScreeningSessionsTab {...tabProps} />}
       {activeTab === 'Calendar' && <CalendarTab msg={msg} msgType={msgType} setMsg={setMsg} setMsgType={setMsgType} />}
       {activeTab === 'Imports' && <ImportsTab msg={msg} msgType={msgType} setMsg={setMsg} setMsgType={setMsgType} settings={settings} onSave={saveSettings} />}
       {activeTab === 'Integrations' && <IntegrationsTab {...tabProps} />}
