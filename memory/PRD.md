@@ -146,7 +146,7 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 
 ## Prioritized Backlog
 
-### P0 — None (all critical issues resolved)
+- ✅ **Feature-level Role Permissions** (Mar 2026) — `usePermissions` hook with `canDo(action)`. 10 feature actions (students.add_edit, students.archive, case_notes.add_edit, interventions.add_edit, interventions.delete, interventions.ai_suggest, screenings.submit, alerts.approve, attendance.upload, analytics.export) configurable per role via Administration > Role Permissions. Guards applied to StudentsPage, InterventionsPage, AlertsPage, AnalyticsPage, StudentProfilePage.
 - ✅ **Settings tabs reorganization** (Mar 2026) — Interventions tab added with intervention library. Absence Types config moved to Student Data tab. InterventionsTab wired into main render. `Target` icon import fixed.
 - ✅ **XLSX attendance upload performance** (Mar 2026) — `read_only=True` + `values_only=True` for openpyxl; batch `delete_many` + single `insert_many` replace per-record `delete_one` loops. Upload time drastically reduced.
 - ✅ **Preset Terms 1-4 UI** — Calendar tab now shows 4 fixed rows with inline date inputs; no Add/Delete Term buttons
