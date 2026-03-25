@@ -192,6 +192,8 @@ function SAEBRSFlow({ className, period, onDone }) {
   }, [current]);
 
   const student = current !== null ? students[current] : null;
+
+  const saveCurrentStudent = async () => {
     if (!student) return;
     setSaving(true); setSaveError('');
     try {
