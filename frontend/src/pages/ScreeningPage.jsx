@@ -188,10 +188,15 @@ function SAEBRSFlow({ className, period, onDone }) {
   }, [className, period]);
 
   useEffect(() => {
-    if (current === null) window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (current === null) {
+      const main = document.querySelector('main');
+      if (main) main.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }, [current]);
 
   const student = current !== null ? students[current] : null;
+
+  const scrollTop = () => { const m = document.querySelector('main'); if (m) m.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   const saveCurrentStudent = async () => {
     if (!student) return;
@@ -218,7 +223,7 @@ function SAEBRSFlow({ className, period, onDone }) {
     setScores({ social: Array(6).fill(2), academic: Array(6).fill(2), emotional: Array(7).fill(2) });
     setSaveError('');
     setCurrent(i);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollTop();
   };
 
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full" /></div>;
@@ -291,7 +296,7 @@ function SAEBRSFlow({ className, period, onDone }) {
   return (
     <div className="p-6 lg:p-8 max-w-3xl mx-auto fade-in">
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => { setCurrent(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+        <button onClick={() => { setCurrent(null); scrollTop(); }}
           className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">
           <ArrowLeft size={16} /> Back to class
         </button>
@@ -372,7 +377,10 @@ function SelfReportFlow({ className, period, onDone }) {
   }, [className, period]);
 
   useEffect(() => {
-    if (current === null) window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (current === null) {
+      const main = document.querySelector('main');
+      if (main) main.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }, [current]);
 
   const student = current !== null ? students[current] : null;
@@ -430,7 +438,7 @@ function SelfReportFlow({ className, period, onDone }) {
             const done = completedStudents.has(s.student_id);
             return (
               <div key={s.student_id}
-                onClick={() => !done && (setCurrent(i), setItems(Array(7).fill(1)), window.scrollTo({ top: 0, behavior: 'smooth' }))}
+                onClick={() => !done && (setCurrent(i), setItems(Array(7).fill(1)), scrollTop())}
                 data-testid={`select-student-${s.student_id}`}
                 className={`flex items-center justify-between px-5 py-4 border-b border-slate-50 last:border-0 transition-colors ${done ? 'bg-emerald-50/40' : 'hover:bg-indigo-50 cursor-pointer'}`}>
                 <div className="flex items-center gap-3">
@@ -456,7 +464,7 @@ function SelfReportFlow({ className, period, onDone }) {
   // Self-report form
   return (
     <div className="p-6 lg:p-8 max-w-2xl mx-auto fade-in">
-      <button onClick={() => { setCurrent(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+      <button onClick={() => { setCurrent(null); scrollTop(); }}
         className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-6 transition-colors">
         <ArrowLeft size={16} /> Back to student list
       </button>
@@ -519,7 +527,7 @@ export default function ScreeningPage() {
 
   const handleModeSelect = (m) => { setMode(m); setStep('class'); };
   const handleClassSelect = (cls) => { setSelectedClass(cls); setStep('screen'); };
-  const handleDone = () => { setStep('mode'); setMode(null); setSelectedClass(''); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const handleDone = () => { setStep('mode'); setMode(null); setSelectedClass(''); scrollTop(); };
 
   if (step === 'mode') return <ModeSelect onSelect={handleModeSelect} activePeriod={activePeriod} />;
   if (step === 'class') return <ClassSelect mode={mode} activePeriod={activePeriod} onNext={handleClassSelect} onBack={() => setStep('mode')} />;
