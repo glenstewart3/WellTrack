@@ -44,6 +44,8 @@ const SELF_REPORT_ITEMS = [
 
 const RESPONSE_LABELS = ['Never', 'Sometimes', 'Often', 'Almost Always'];
 
+const scrollTop = () => { const m = document.querySelector('main'); if (m) m.scrollTo({ top: 0, behavior: 'smooth' }); };
+
 // ─── Score bar helper ─────────────────────────────────────────────────────────
 function ScoreBar({ score, max, risk }) {
   const pct = Math.round((score / max) * 100);
@@ -195,8 +197,6 @@ function SAEBRSFlow({ className, period, onDone }) {
   }, [current]);
 
   const student = current !== null ? students[current] : null;
-
-  const scrollTop = () => { const m = document.querySelector('main'); if (m) m.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   const saveCurrentStudent = async () => {
     if (!student) return;
