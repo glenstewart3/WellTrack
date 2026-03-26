@@ -244,11 +244,11 @@ export default function StudentProfilePage() {
 
   // Chart data
   const screeningChartData = saebrs_results?.map((r, i) => ({
-    name: `Term ${i + 1}`, total: r.total_score, social: r.social_score, academic: r.academic_score, emotional: r.emotional_score
+    name: r.screening_period || `Term ${i + 1}`, total: r.total_score, social: r.social_score, academic: r.academic_score, emotional: r.emotional_score
   })) || [];
 
   const wellbeingChartData = self_report_results?.map((r, i) => ({
-    name: `Term ${i + 1}`, total: r.wellbeing_total, social: r.social_domain, academic: r.academic_domain
+    name: r.screening_period || `Term ${i + 1}`, total: r.wellbeing_total, social: r.social_domain, academic: r.academic_domain
   })) || [];
 
   // Radar: include attendance domain
