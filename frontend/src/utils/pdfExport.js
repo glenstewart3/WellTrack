@@ -15,14 +15,42 @@ function getAccentRgb() {
   return [r || 15, g || 23, b || 42];
 }
 
-export function exportStudentProfile(profileData) {
+/** Fetch an image URL and return a circular PNG data URL (size × size canvas). */
+async function circularDataUrl(url, size = 120) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(img, 0, 0, size, size);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+export async function exportStudentProfile(profileData) {
   const { student, saebrs_results, saebrs_plus_results, interventions, case_notes, attendance_pct, mtss_tier } = profileData;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const accent = getAccentRgb();
   const W = doc.internal.pageSize.getWidth();
   let y = 20;
 
-  // Header
+  // Load circular photo (if available)
+  let photoDataUrl = null;
+  if (student.photo_url) {
+    const fullUrl = `${process.env.REACT_APP_BACKEND_URL}${student.photo_url}`;
+    photoDataUrl = await circularDataUrl(fullUrl, 160);
+  }
+
+  // Header bar
   doc.setFillColor(...accent);
   doc.rect(0, 0, W, 16, 'F');
   doc.setTextColor(255, 255, 255);
@@ -31,31 +59,43 @@ export function exportStudentProfile(profileData) {
   doc.text('WellTrack — Student Profile Report', W / 2, 10, { align: 'center' });
   doc.setTextColor(0, 0, 0);
 
-  y = 25;
+  // Photo + student info block
+  const PHOTO_MM = 26;        // photo size in mm
+  const PHOTO_X = 14;
+  const INFO_X = photoDataUrl ? PHOTO_X + PHOTO_MM + 5 : 14;
+
+  y = 26;
+
+  if (photoDataUrl) {
+    doc.addImage(photoDataUrl, 'PNG', PHOTO_X, y - 3, PHOTO_MM, PHOTO_MM);
+  }
+
   const name = `${student.first_name}${student.preferred_name ? ` (${student.preferred_name})` : ''} ${student.last_name}`;
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text(name, 14, y);
+  doc.text(name, INFO_X, y);
   y += 7;
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 100, 100);
-  doc.text(`${student.year_level} · ${student.class_name} · ${student.teacher || '—'}`, 14, y);
+  doc.text(`${student.year_level} · ${student.class_name} · ${student.teacher || '—'}`, INFO_X, y);
   doc.text(`Generated: ${new Date().toLocaleDateString()}`, W - 14, y, { align: 'right' });
-  y += 8;
+  y += 7;
 
   // Tier badge
   const tierColors = { 1: [34, 197, 94], 2: [245, 158, 11], 3: [239, 68, 68] };
   const tc = tierColors[mtss_tier] || [100, 100, 100];
   doc.setFillColor(...tc);
-  doc.roundedRect(14, y, 30, 7, 2, 2, 'F');
+  doc.roundedRect(INFO_X, y, 30, 7, 2, 2, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.text(`MTSS Tier ${mtss_tier}`, 29, y + 4.5, { align: 'center' });
+  doc.text(`MTSS Tier ${mtss_tier}`, INFO_X + 15, y + 4.5, { align: 'center' });
   doc.setTextColor(0, 0, 0);
-  y += 13;
+
+  // Ensure y clears the photo
+  y = Math.max(y + 13, (photoDataUrl ? 26 - 3 + PHOTO_MM : 0) + 8);
 
   // Latest SAEBRS
   const latestSaebrs = saebrs_results?.[saebrs_results.length - 1];

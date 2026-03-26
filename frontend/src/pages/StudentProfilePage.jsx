@@ -323,7 +323,7 @@ export default function StudentProfilePage() {
               <p className={`text-lg font-bold ${attendance_pct < 80 ? 'text-rose-600' : attendance_pct < 90 ? 'text-amber-600' : 'text-emerald-600'}`}>{attendance_pct}%</p>
               <p className="text-xs text-slate-400">Attendance</p>
             </div>
-            <button onClick={() => exportStudentProfile(profile)} data-testid="export-profile-pdf-btn"
+            <button onClick={async () => { await exportStudentProfile(profile); }} data-testid="export-profile-pdf-btn"
               className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-medium hover:bg-slate-50 transition-colors">
               Export PDF
             </button>
