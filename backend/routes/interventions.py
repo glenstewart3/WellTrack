@@ -119,24 +119,74 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user)):
     pref = student.get('preferred_name')
     display_name = f"{first}{(' (' + pref + ')') if pref and pref != first else ''} {student.get('last_name', '')}".strip()
 
-    context = f"Student: {display_name.strip()}, Year Level: {student.get('year_level', 'Unknown')}\n"
-    if latest_saebrs:
-        context += f"SAEBRS: {latest_saebrs['total_score']}/57 ({latest_saebrs['risk_level']}) - Social: {latest_saebrs.get('social_score', 0)}, Academic: {latest_saebrs.get('academic_score', 0)}, Emotional: {latest_saebrs.get('emotional_score', 0)}\n"
-    else:
-        context += "SAEBRS: Not screened\n"
-    context += f"Attendance: {att_pct:.1f}%\n"
-    context += f"Current interventions: {[i['intervention_type'] for i in active_ints] or ['None']}\n"
+    # ── Build context ────────────────────────────────────────────────────────
+    context = f"Student: {display_name}, Year Level: {student.get('year_level', 'Unknown')}"
+    if student.get('gender'):
+        context += f", {student.get('gender')}"
+    context += "\n"
 
-    prompt = f"""You are an MTSS specialist. Based on this student's data, suggest 3 evidence-based interventions.
+    if latest_saebrs:
+        domains = {
+            'Social':    (latest_saebrs.get('social_score', 0),    18),
+            'Academic':  (latest_saebrs.get('academic_score', 0),  18),
+            'Emotional': (latest_saebrs.get('emotional_score', 0), 21),
+        }
+        weakest = min(domains, key=lambda k: domains[k][0] / domains[k][1])
+        context += f"SAEBRS Score: {latest_saebrs['total_score']}/57 ({latest_saebrs['risk_level']})\n"
+        context += f"  - Social: {domains['Social'][0]}/18, Academic: {domains['Academic'][0]}/18, Emotional: {domains['Emotional'][0]}/21\n"
+        context += f"  - Area of greatest concern: {weakest} ({domains[weakest][0]}/{domains[weakest][1]})\n"
+    else:
+        context += "SAEBRS: Not yet screened\n"
+
+    context += f"Attendance: {att_pct:.1f}%\n"
+
+    # Additional context (EAL, Aboriginal, NCCD)
+    extras = []
+    eal = str(student.get('eal_status') or '').strip().lower()
+    if eal and eal not in ('no', 'none', 'n/a', '', 'false'):
+        extras.append("EAL/D student (English as an Additional Language or Dialect)")
+    aboriginal = str(student.get('aboriginal_status') or '').strip().lower()
+    if aboriginal and aboriginal not in ('no', 'none', 'n/a', '', 'false', 'non-indigenous'):
+        extras.append(f"Aboriginal and/or Torres Strait Islander student")
+    nccd_cat = student.get('nccd_category', '')
+    nccd_lvl = student.get('nccd_level', '')
+    if nccd_cat and str(nccd_cat).lower() not in ('none', '', 'n/a'):
+        label = f"NCCD: {nccd_cat}"
+        if nccd_lvl and str(nccd_lvl).lower() not in ('none', '', 'n/a'):
+            label += f" — {nccd_lvl}"
+        extras.append(label)
+    if extras:
+        context += "Additional context:\n" + "".join(f"  - {e}\n" for e in extras)
+
+    active_types = [i['intervention_type'] for i in active_ints]
+    context += f"Current active interventions: {', '.join(active_types) if active_types else 'None'}\n"
+
+    # Intervention library from settings
+    available = settings_doc.get("intervention_types") or []
+    if available:
+        context += f"\nYour school's available interventions: {', '.join(available)}\n"
+
+    # ── Prompt ───────────────────────────────────────────────────────────────
+    library_rule = (
+        "- Suggestions 1 and 2 MUST come from the school's available interventions list above and must not already be active\n"
+        "- Suggestion 3 can be from the list OR a new intervention that is practical and achievable in a school "
+        "setting (no specialist equipment or significant external funding required) — choose whichever would most benefit this student\n"
+    ) if available else (
+        "- All 3 suggestions should be practical, evidence-based interventions achievable in a school setting\n"
+    )
+
+    prompt = f"""You are a school wellbeing coordinator writing an MTSS student support plan.
 
 {context}
-
-IMPORTANT: At least one suggestion must be creative or unconventional — something the school may not currently offer or have considered. Think outside standard reading/behavioural programs.
+Suggest exactly 3 interventions for this student:
+{library_rule}- Do NOT suggest interventions already listed as currently active
+- All suggestions must be realistic, evidence-based, and appropriate for the student's year level
+- Where relevant, reference the student's EAL/D status, Aboriginal/Torres Strait Islander background, NCCD classification, attendance, or weakest SAEBRS domain in the rationale
 
 Respond with ONLY a valid JSON array of exactly 3 objects, each with these exact keys:
 - "type": short intervention name
 - "priority": "high", "medium", or "low"
-- "rationale": why this intervention suits this student (2-3 sentences)
+- "rationale": why this specific intervention suits this student based on their data (2-3 sentences)
 - "goals": one measurable goal statement
 - "frequency": how often (e.g. "Weekly", "Daily", "3x per week")
 - "timeline": duration (e.g. "8 weeks", "1 term")
