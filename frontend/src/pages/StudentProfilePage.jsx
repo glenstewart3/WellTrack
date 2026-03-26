@@ -17,10 +17,11 @@ function TierBadge({ tier }) {
 }
 
 // Inline editable intervention card
-function InlineEditIntervention({ intv, interventionTypes, onSave }) {
+function InlineEditIntervention({ intv, interventionTypes, onSave, onDelete, canDelete }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ ...intv });
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
@@ -37,6 +38,12 @@ function InlineEditIntervention({ intv, interventionTypes, onSave }) {
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${intv.status === 'active' ? 'bg-emerald-100 text-emerald-700' : intv.status === 'completed' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
             {form.status}
           </span>
+          {!editing && canDelete && !confirmDelete && (
+            <button onClick={() => setConfirmDelete(true)} data-testid={`delete-intervention-${intv.intervention_id}`}
+              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+              <Trash2 size={14} />
+            </button>
+          )}
           {!editing && (
             <button onClick={() => setEditing(true)} data-testid={`edit-intervention-${intv.intervention_id}`}
               className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
@@ -45,6 +52,13 @@ function InlineEditIntervention({ intv, interventionTypes, onSave }) {
           )}
         </div>
       </div>
+      {confirmDelete && (
+        <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 mb-3">
+          <span className="text-xs text-rose-700 flex-1">Delete this intervention?</span>
+          <button onClick={() => onDelete(intv.intervention_id)} className="text-xs font-semibold text-rose-700 hover:text-rose-900">Delete</button>
+          <button onClick={() => setConfirmDelete(false)} className="text-xs text-slate-500 hover:text-slate-700">Cancel</button>
+        </div>
+      )}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-slate-600 mb-3">
         <div><span className="text-slate-400">Staff:</span> {intv.assigned_staff}</div>
         <div><span className="text-slate-400">Frequency:</span> {intv.frequency || '—'}</div>
@@ -213,6 +227,14 @@ export default function StudentProfilePage() {
   const editIntervention = async (id, patch) => {
     try {
       await axios.put(`${API}/interventions/${id}`, patch, { withCredentials: true });
+      const res = await axios.get(`${API}/students/${studentId}/profile`, { withCredentials: true });
+      setProfile(res.data);
+    } catch (e) { console.error(e); }
+  };
+
+  const deleteIntervention = async (id) => {
+    try {
+      await axios.delete(`${API}/interventions/${id}`, { withCredentials: true });
       const res = await axios.get(`${API}/students/${studentId}/profile`, { withCredentials: true });
       setProfile(res.data);
     } catch (e) { console.error(e); }
@@ -814,7 +836,7 @@ export default function StudentProfilePage() {
           )}
 
           {interventions?.map(intv => (
-            <InlineEditIntervention key={intv.intervention_id} intv={intv} interventionTypes={interventionTypes} onSave={editIntervention} />
+            <InlineEditIntervention key={intv.intervention_id} intv={intv} interventionTypes={interventionTypes} onSave={editIntervention} onDelete={deleteIntervention} canDelete={canDo('interventions.delete')} />
           ))}
         </div>
       )}
