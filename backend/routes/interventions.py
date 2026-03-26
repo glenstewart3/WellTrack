@@ -100,121 +100,118 @@ async def delete_intervention(iid: str, user=Depends(get_current_user)):
 
 @router.post("/interventions/ai-suggest/{student_id}")
 async def get_ai_suggestions(student_id: str, user=Depends(get_current_user)):
-    settings_doc = await get_school_settings_doc()
-    if not settings_doc.get("ai_suggestions_enabled", True):
-        raise HTTPException(403, "AI suggestions are disabled. Enable in Settings > Integrations.")
-
-    ollama_url = settings_doc.get("ollama_url", "http://localhost:11434")
-    ollama_model = settings_doc.get("ollama_model", "llama3.2")
-
-    student = await db.students.find_one({"student_id": student_id}, {"_id": 0})
-    if not student:
-        raise HTTPException(404, "Student not found")
-
-    latest_saebrs = await db.saebrs_results.find_one({"student_id": student_id}, {"_id": 0}, sort=[("created_at", -1)])
-    att_pct = await get_student_attendance_pct(student_id)
-    active_ints = await db.interventions.find({"student_id": student_id, "status": "active"}, {"_id": 0}).to_list(10)
-
-    first = student.get('first_name', '')
-    pref = student.get('preferred_name')
-    display_name = f"{first}{(' (' + pref + ')') if pref and pref != first else ''} {student.get('last_name', '')}".strip()
-
-    # ── Build context ────────────────────────────────────────────────────────
-    context = f"Student: {display_name}, Year Level: {student.get('year_level', 'Unknown')}"
-    if student.get('gender'):
-        context += f", {student.get('gender')}"
-    context += "\n"
-
-    if latest_saebrs:
-        domains = {
-            'Social':    (latest_saebrs.get('social_score', 0),    18),
-            'Academic':  (latest_saebrs.get('academic_score', 0),  18),
-            'Emotional': (latest_saebrs.get('emotional_score', 0), 21),
-        }
-        weakest = min(domains, key=lambda k: domains[k][0] / domains[k][1])
-        context += f"SAEBRS Score: {latest_saebrs['total_score']}/57 ({latest_saebrs['risk_level']})\n"
-        context += f"  - Social: {domains['Social'][0]}/18, Academic: {domains['Academic'][0]}/18, Emotional: {domains['Emotional'][0]}/21\n"
-        context += f"  - Area of greatest concern: {weakest} ({domains[weakest][0]}/{domains[weakest][1]})\n"
-    else:
-        context += "SAEBRS: Not yet screened\n"
-
-    context += f"Attendance: {att_pct:.1f}%\n"
-
-    # Additional context (EAL, Aboriginal, NCCD)
-    extras = []
-    eal = str(student.get('eal_status') or '').strip().lower()
-    if eal and eal not in ('no', 'none', 'n/a', '', 'false'):
-        extras.append("EAL/D student (English as an Additional Language or Dialect)")
-    aboriginal = str(student.get('aboriginal_status') or '').strip().lower()
-    if aboriginal and aboriginal not in ('no', 'none', 'n/a', '', 'false', 'non-indigenous'):
-        extras.append(f"Aboriginal and/or Torres Strait Islander student")
-    nccd_cat = student.get('nccd_category', '')
-    nccd_lvl = student.get('nccd_level', '')
-    if nccd_cat and str(nccd_cat).lower() not in ('none', '', 'n/a'):
-        label = f"NCCD: {nccd_cat}"
-        if nccd_lvl and str(nccd_lvl).lower() not in ('none', '', 'n/a'):
-            label += f" — {nccd_lvl}"
-        extras.append(label)
-    if extras:
-        context += "Additional context:\n" + "".join(f"  - {e}\n" for e in extras)
-
-    active_types = [i['intervention_type'] for i in active_ints]
-    context += f"Current active interventions: {', '.join(active_types) if active_types else 'None'}\n"
-
-    # Intervention library from settings
-    available = settings_doc.get("intervention_types") or []
-    if available:
-        context += f"\nYour school's available interventions: {', '.join(available)}\n"
-
-    # ── Prompt ───────────────────────────────────────────────────────────────
-    library_rule = (
-        "- Suggestions 1 and 2 MUST come from the school's available interventions list above and must not already be active\n"
-        "- Suggestion 3 can be from the list OR a new intervention that is practical and achievable in a school "
-        "setting (no specialist equipment or significant external funding required) — choose whichever would most benefit this student\n"
-    ) if available else (
-        "- All 3 suggestions should be practical, evidence-based interventions achievable in a school setting\n"
-    )
-
-    prompt = f"""You are a school wellbeing coordinator writing an MTSS student support plan.
-
-{context}
-Suggest exactly 3 interventions for this student:
-{library_rule}- Do NOT suggest interventions already listed as currently active
-- All suggestions must be realistic, evidence-based, and appropriate for the student's year level
-- Where relevant, reference the student's EAL/D status, Aboriginal/Torres Strait Islander background, NCCD classification, attendance, or weakest SAEBRS domain in the rationale
-
-Respond with ONLY a valid JSON array of exactly 3 objects, each with these exact keys:
-- "type": short intervention name
-- "priority": "high", "medium", or "low"
-- "rationale": why this specific intervention suits this student based on their data (2-3 sentences)
-- "goals": one measurable goal statement
-- "frequency": how often (e.g. "Weekly", "Daily", "3x per week")
-- "timeline": duration (e.g. "8 weeks", "1 term")
-
-Return ONLY the JSON array. No extra text, no markdown, no explanation.
-Example: [{{"type": "Check-In Check-Out", "priority": "high", "rationale": "...", "goals": "...", "frequency": "Daily", "timeline": "8 weeks"}}]"""
-
+    import traceback
     try:
+        settings_doc = await get_school_settings_doc()
+        if not settings_doc.get("ai_suggestions_enabled", True):
+            raise HTTPException(403, "AI suggestions are disabled. Enable in Settings > Integrations.")
+
+        ollama_url = settings_doc.get("ollama_url", "http://localhost:11434")
+        ollama_model = settings_doc.get("ollama_model", "llama3.2")
+
+        student = await db.students.find_one({"student_id": student_id}, {"_id": 0})
+        if not student:
+            raise HTTPException(404, "Student not found")
+
+        latest_saebrs = await db.saebrs_results.find_one({"student_id": student_id}, {"_id": 0}, sort=[("created_at", -1)])
+        att_pct = await get_student_attendance_pct(student_id)
+        active_ints = await db.interventions.find({"student_id": student_id, "status": "active"}, {"_id": 0}).to_list(10)
+
+        first = student.get('first_name', '')
+        pref = student.get('preferred_name')
+        display_name = f"{first}{(' (' + pref + ')') if pref and pref != first else ''} {student.get('last_name', '')}".strip()
+
+        # Build context
+        context = f"Student: {display_name}, Year Level: {student.get('year_level', 'Unknown')}"
+        if student.get('gender'):
+            context += f", {student.get('gender')}"
+        context += "\n"
+
+        if latest_saebrs:
+            domains = {
+                'Social':    (int(latest_saebrs.get('social_score') or 0),    18),
+                'Academic':  (int(latest_saebrs.get('academic_score') or 0),  18),
+                'Emotional': (int(latest_saebrs.get('emotional_score') or 0), 21),
+            }
+            weakest = min(domains, key=lambda k: domains[k][0] / domains[k][1])
+            total = int(latest_saebrs.get('total_score') or 0)
+            context += f"SAEBRS Score: {total}/57 ({latest_saebrs.get('risk_level', 'Unknown')})\n"
+            context += f"  - Social: {domains['Social'][0]}/18, Academic: {domains['Academic'][0]}/18, Emotional: {domains['Emotional'][0]}/21\n"
+            context += f"  - Area of greatest concern: {weakest} ({domains[weakest][0]}/{domains[weakest][1]})\n"
+        else:
+            context += "SAEBRS: Not yet screened\n"
+
+        context += f"Attendance: {(att_pct or 0):.1f}%\n"
+
+        # EAL / Aboriginal / NCCD context
+        extras = []
+        eal = str(student.get('eal_status') or '').strip().lower()
+        if eal and eal not in ('no', 'none', 'n/a', '', 'false'):
+            extras.append("EAL/D student (English as an Additional Language or Dialect)")
+        aboriginal = str(student.get('aboriginal_status') or '').strip().lower()
+        if aboriginal and aboriginal not in ('no', 'none', 'n/a', '', 'false', 'non-indigenous'):
+            extras.append("Aboriginal and/or Torres Strait Islander student")
+        nccd_cat = str(student.get('nccd_category') or '').strip()
+        nccd_lvl = str(student.get('nccd_level') or '').strip()
+        if nccd_cat and nccd_cat.lower() not in ('none', '', 'n/a'):
+            label = f"NCCD: {nccd_cat}"
+            if nccd_lvl and nccd_lvl.lower() not in ('none', '', 'n/a'):
+                label += f" - {nccd_lvl}"
+            extras.append(label)
+        if extras:
+            context += "Additional context:\n" + "".join(f"  - {e}\n" for e in extras)
+
+        active_types = [i.get('intervention_type', '') for i in active_ints if i.get('intervention_type')]
+        context += f"Current active interventions: {', '.join(active_types) if active_types else 'None'}\n"
+
+        available = settings_doc.get("intervention_types") or []
+        if available:
+            context += f"\nAvailable interventions at this school: {', '.join(available)}\n"
+
+        library_rule = (
+            "- Suggestions 1 and 2 MUST come from the available interventions list above and must not be currently active\n"
+            "- Suggestion 3 can be from the list OR a new practical school-based intervention\n"
+        ) if available else (
+            "- All 3 should be practical, evidence-based interventions achievable in a school setting\n"
+        )
+
+        prompt = (
+            f"You are a school wellbeing coordinator writing an MTSS student support plan.\n\n"
+            f"{context}\n"
+            f"Suggest exactly 3 interventions for this student:\n"
+            f"{library_rule}"
+            f"- Do NOT suggest interventions already listed as currently active\n"
+            f"- Keep suggestions realistic and appropriate for the student's year level\n"
+            f"- Where relevant, mention EAL/D, Aboriginal/ATSI background, NCCD, attendance or weakest SAEBRS domain in the rationale\n\n"
+            f"Respond with ONLY a valid JSON array of exactly 3 objects with keys: "
+            f"type, priority (high/medium/low), rationale, goals, frequency, timeline.\n"
+            f"Return ONLY the JSON array. No markdown, no explanation.\n"
+            f'Example: [{{"type":"Check-In Check-Out","priority":"high","rationale":"...","goals":"...","frequency":"Daily","timeline":"8 weeks"}}]'
+        )
+
+        logger.info(f"AI suggest for {student_id}: prompt length={len(prompt)}, model={ollama_model}, url={ollama_url}")
+
         async with httpx.AsyncClient(timeout=90.0) as client:
             resp = await client.post(
                 f"{ollama_url}/api/generate",
                 json={"model": ollama_model, "prompt": prompt, "stream": False}
             )
             if resp.status_code == 404:
-                raise HTTPException(503, f"Model '{ollama_model}' not found on Ollama. Run: ollama pull {ollama_model}")
+                raise HTTPException(503, f"Model '{ollama_model}' not found. Run: ollama pull {ollama_model}")
             resp.raise_for_status()
             content = resp.json().get("response", "")
-            logger.info(f"Ollama raw response (first 400 chars): {content[:400]}")
+            logger.info(f"Ollama response (first 400 chars): {content[:400]}")
             recs = _extract_json_array(content)
             if recs is not None:
                 return {"recommendations": recs[:3]}
-            logger.warning(f"Could not parse JSON from Ollama response: {content[:300]}")
-            raise HTTPException(500, f"AI returned a response but it could not be parsed as JSON. Raw output: {content[:300]}")
+            raise HTTPException(500, f"Could not parse AI response as JSON. Raw: {content[:200]}")
+
     except httpx.ConnectError:
-        raise HTTPException(503, f"Cannot connect to Ollama at {ollama_url}. Ensure Ollama is running on the server.")
+        raise HTTPException(503, f"Cannot connect to Ollama at {ollama_url}. Ensure Ollama is running.")
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"AI suggest error for {student_id}:\n{traceback.format_exc()}")
         raise HTTPException(500, f"AI service error: {str(e)}")
 
 
