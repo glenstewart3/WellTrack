@@ -751,26 +751,31 @@ export default function StudentProfilePage() {
               {aiError && <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg p-3">{aiError}</p>}
               {aiSuggestions && (
                 <div className="grid sm:grid-cols-3 gap-3">
-                  {aiSuggestions.map((rec, i) => (
+                  {aiSuggestions.map((rec, i) => {
+                    const title = rec.type || rec.intervention_type || rec.name || rec.title || `Suggestion ${i + 1}`;
+                    const rationale = rec.rationale || rec.reason || rec.description || '';
+                    const goals = rec.goals || rec.goal || rec.objectives || rec.objective || '';
+                    const priority = rec.priority || 'medium';
+                    return (
                     <div key={i} className="bg-white rounded-xl p-4 border border-indigo-100 flex flex-col">
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold text-slate-900 text-sm leading-snug pr-2">{rec.type}</h4>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${rec.priority === 'high' ? 'bg-rose-100 text-rose-700' : rec.priority === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                          {rec.priority}
+                        <h4 className="font-semibold text-slate-900 text-sm leading-snug pr-2">{title}</h4>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${priority === 'high' ? 'bg-rose-100 text-rose-700' : priority === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                          {priority}
                         </span>
                       </div>
-                      {rec.rationale && <p className="text-xs text-slate-600 mb-2 leading-relaxed">{rec.rationale}</p>}
-                      {(rec.goals || rec.goal) && (
-                        <p className="text-xs text-slate-700 mb-2"><span className="font-semibold">Goal:</span> {rec.goals || rec.goal}</p>
+                      {rationale && <p className="text-xs text-slate-600 mb-2 leading-relaxed">{rationale}</p>}
+                      {goals && (
+                        <p className="text-xs text-slate-700 mb-2"><span className="font-semibold">Goal:</span> {goals}</p>
                       )}
                       <p className="text-xs text-slate-400 mt-auto">{[rec.frequency, rec.timeline].filter(Boolean).join(' · ')}</p>
                       <button
                         onClick={() => {
                           setNewIntervention(p => ({
                             ...p,
-                            intervention_type: rec.type || '',
-                            goals: rec.goals || rec.goal || '',
-                            rationale: rec.rationale || '',
+                            intervention_type: title,
+                            goals: goals,
+                            rationale: rationale,
                             frequency: rec.frequency || '',
                           }));
                           setShowAddIntervention(true);
@@ -779,7 +784,8 @@ export default function StudentProfilePage() {
                         Use this recommendation →
                       </button>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

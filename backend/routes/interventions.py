@@ -13,6 +13,51 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+def _normalize_rec(rec: dict) -> dict:
+    """Normalise keys that small models commonly vary, mapping to the expected schema."""
+    # type
+    for alt in ('intervention_type', 'name', 'title', 'intervention', 'strategy'):
+        if not rec.get('type') and rec.get(alt):
+            rec['type'] = rec[alt]
+            break
+    # priority
+    for alt in ('urgency', 'level', 'importance', 'severity'):
+        if not rec.get('priority') and rec.get(alt):
+            rec['priority'] = rec[alt]
+            break
+    # rationale
+    for alt in ('reason', 'description', 'explanation', 'justification', 'context'):
+        if not rec.get('rationale') and rec.get(alt):
+            rec['rationale'] = rec[alt]
+            break
+    # goals
+    for alt in ('goal', 'objectives', 'objective', 'outcomes', 'outcome', 'aims'):
+        if not rec.get('goals') and rec.get(alt):
+            rec['goals'] = rec[alt]
+            break
+    # frequency
+    for alt in ('schedule', 'sessions', 'session', 'how_often', 'cadence'):
+        if not rec.get('frequency') and rec.get(alt):
+            rec['frequency'] = rec[alt]
+            break
+    # timeline
+    for alt in ('duration', 'weeks', 'length', 'time', 'period'):
+        if not rec.get('timeline') and rec.get(alt):
+            rec['timeline'] = rec[alt]
+            break
+    # Normalise priority to low/medium/high
+    p = str(rec.get('priority') or '').lower()
+    if p in ('h', 'hi', '1', 'critical', 'urgent'):
+        rec['priority'] = 'high'
+    elif p in ('m', 'med', '2', 'moderate'):
+        rec['priority'] = 'medium'
+    elif p in ('l', 'lo', '3', 'low priority'):
+        rec['priority'] = 'low'
+    if rec.get('priority') not in ('high', 'medium', 'low'):
+        rec['priority'] = 'medium'
+    return rec
+
+
 def _extract_json_array(text: str):
     """Try multiple strategies to extract a JSON array from an LLM response."""
     text = text.strip()
@@ -203,7 +248,9 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user)):
             logger.info(f"Ollama response (first 400 chars): {content[:400]}")
             recs = _extract_json_array(content)
             if recs is not None:
-                return {"recommendations": recs[:3]}
+                normalized = [_normalize_rec(r) for r in recs[:3]]
+                logger.info(f"Parsed {len(normalized)} recommendations, keys: {[list(r.keys()) for r in normalized]}")
+                return {"recommendations": normalized}
             raise HTTPException(500, f"Could not parse AI response as JSON. Raw: {content[:200]}")
 
     except httpx.ConnectError:
