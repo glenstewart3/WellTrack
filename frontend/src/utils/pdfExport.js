@@ -15,8 +15,8 @@ function getAccentRgb() {
   return [r || 15, g || 23, b || 42];
 }
 
-/** Fetch an image URL and return a circular PNG data URL (size × size canvas). */
-async function circularDataUrl(url, size = 120) {
+/** Fetch an image URL and return a circular PNG data URL — center-cropped, full resolution. */
+async function circularDataUrl(url, size = 400) {
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -24,11 +24,16 @@ async function circularDataUrl(url, size = 120) {
       const canvas = document.createElement('canvas');
       canvas.width = size; canvas.height = size;
       const ctx = canvas.getContext('2d');
+      // Circular clip
       ctx.beginPath();
       ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
       ctx.closePath();
       ctx.clip();
-      ctx.drawImage(img, 0, 0, size, size);
+      // Center-crop: use the shorter dimension as the crop square
+      const minDim = Math.min(img.width, img.height);
+      const sx = (img.width - minDim) / 2;
+      const sy = (img.height - minDim) / 2;
+      ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
       resolve(canvas.toDataURL('image/png'));
     };
     img.onerror = () => resolve(null);
@@ -47,7 +52,7 @@ export async function exportStudentProfile(profileData) {
   let photoDataUrl = null;
   if (student.photo_url) {
     const fullUrl = `${process.env.REACT_APP_BACKEND_URL}${student.photo_url}`;
-    photoDataUrl = await circularDataUrl(fullUrl, 160);
+    photoDataUrl = await circularDataUrl(fullUrl);
   }
 
   // Header bar
