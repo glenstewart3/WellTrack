@@ -77,9 +77,9 @@ async def seed_database(student_count: int = 32):
     await db.students.insert_many(students)
 
     await db.screening_sessions.insert_many([
-        {"screening_id": f"scr_term1_{seed_year}", "screening_period": "Term 1", "year": seed_year,
+        {"screening_id": f"scr_term1_{seed_year}", "screening_period": "Term 1 - P1", "year": seed_year,
          "date": f"{seed_year}-02-15", "teacher_id": "demo", "class_name": "all", "status": "completed"},
-        {"screening_id": f"scr_term2_{seed_year}", "screening_period": "Term 2", "year": seed_year,
+        {"screening_id": f"scr_term2_{seed_year}", "screening_period": "Term 2 - P1", "year": seed_year,
          "date": f"{seed_year}-05-10", "teacher_id": "demo", "class_name": "all", "status": "completed"},
     ])
 
@@ -167,16 +167,17 @@ async def seed_database(student_count: int = 32):
         s_t1, a_t1, e_t1, sr_t1 = prof(risk_t1)
         s_t2, a_t2, e_t2, sr_t2 = prof(risk_t2)
 
-        def make_saebrs(s_items, a_items, e_items, screening_id, ts):
+        def make_saebrs(s_items, a_items, e_items, screening_id, screening_period, ts):
             s = sum(s_items); a = sum(a_items); e = sum(e_items); t = s + a + e
             r, sr, ar, er = compute_saebrs_risk(t, s, a, e)
             return {"result_id": str(uuid.uuid4()), "student_id": sid, "screening_id": screening_id,
+                    "screening_period": screening_period,
                     "social_items": s_items, "academic_items": a_items, "emotional_items": e_items,
                     "social_score": s, "academic_score": a, "emotional_score": e, "total_score": t,
                     "risk_level": r, "social_risk": sr, "academic_risk": ar, "emotional_risk": er,
                     "created_at": ts}
 
-        def make_plus(saebrs_doc, sr_items, screening_id, att, ts):
+        def make_plus(saebrs_doc, sr_items, screening_id, screening_period, att, ts):
             soc = saebrs_doc["social_score"]; aca = saebrs_doc["academic_score"]
             rev = 3 - sr_items[0]
             emo = rev + sr_items[1] + sr_items[2]
@@ -185,18 +186,19 @@ async def seed_database(student_count: int = 32):
             att_d = att_s * 3
             total = soc + aca + emo + bel + att_d
             return {"result_id": str(uuid.uuid4()), "student_id": sid, "screening_id": screening_id,
+                    "screening_period": screening_period,
                     "self_report_items": sr_items, "attendance_pct": att * 100,
                     "social_domain": soc, "academic_domain": aca, "emotional_domain": emo,
                     "belonging_domain": bel, "attendance_domain": att_d,
                     "wellbeing_total": total, "wellbeing_tier": compute_wellbeing_tier(total),
                     "created_at": ts}
 
-        s1 = make_saebrs(vary(s_t1), vary(a_t1), vary(e_t1), f"scr_term1_{seed_year}", f"{seed_year}-02-15T09:00:00")
-        s2 = make_saebrs(vary(s_t2, 2), vary(a_t2, 2), vary(e_t2, 2), f"scr_term2_{seed_year}", f"{seed_year}-05-10T09:00:00")
+        s1 = make_saebrs(vary(s_t1), vary(a_t1), vary(e_t1), f"scr_term1_{seed_year}", "Term 1 - P1", f"{seed_year}-02-15T09:00:00")
+        s2 = make_saebrs(vary(s_t2, 2), vary(a_t2, 2), vary(e_t2, 2), f"scr_term2_{seed_year}", "Term 2 - P1", f"{seed_year}-05-10T09:00:00")
         all_s1.append(s1); all_s2.append(s2)
 
-        p1 = make_plus(s1, vary(sr_t1), f"scr_term1_{seed_year}", att_frac, f"{seed_year}-02-15T10:00:00")
-        p2 = make_plus(s2, vary(sr_t2, 2), f"scr_term2_{seed_year}", att_frac, f"{seed_year}-05-10T10:00:00")
+        p1 = make_plus(s1, vary(sr_t1), f"scr_term1_{seed_year}", "Term 1 - P1", att_frac, f"{seed_year}-02-15T10:00:00")
+        p2 = make_plus(s2, vary(sr_t2, 2), f"scr_term2_{seed_year}", "Term 2 - P1", att_frac, f"{seed_year}-05-10T10:00:00")
         all_p1.append(p1); all_p2.append(p2)
 
         total_days = len(all_school_days)
