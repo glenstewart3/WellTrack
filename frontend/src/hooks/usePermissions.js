@@ -6,8 +6,8 @@ import { useSettings } from '../context/SettingsContext';
 export const DEFAULT_FEATURE_PERMISSIONS = {
   teacher:    ['students.add_edit', 'case_notes.add_edit', 'interventions.add_edit', 'interventions.ai_suggest', 'screenings.submit', 'analytics.export'],
   screener:   ['screenings.submit'],
-  wellbeing:  ['students.add_edit', 'case_notes.add_edit', 'interventions.add_edit', 'interventions.ai_suggest', 'screenings.submit', 'alerts.approve', 'analytics.export'],
-  leadership: ['students.add_edit', 'students.archive', 'case_notes.add_edit', 'alerts.approve', 'attendance.upload', 'analytics.export'],
+  wellbeing:  ['students.add_edit', 'case_notes.add_edit', 'case_notes.delete', 'interventions.add_edit', 'interventions.delete', 'interventions.ai_suggest', 'screenings.submit', 'alerts.approve', 'analytics.export'],
+  leadership: ['students.add_edit', 'students.archive', 'case_notes.add_edit', 'case_notes.delete', 'alerts.approve', 'attendance.upload', 'analytics.export'],
 };
 
 export function usePermissions() {

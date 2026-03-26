@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, getRiskColors, INTERVENTION_TYPES, NOTE_TYPES } from '../utils/tierUtils';
-import { ArrowLeft, Plus, X, Loader, Edit2, Check, Sparkles } from 'lucide-react';
+import { ArrowLeft, Plus, X, Loader, Edit2, Check, Sparkles, Trash2 } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { usePermissions } from '../hooks/usePermissions';
 import {
@@ -88,10 +88,11 @@ function InlineEditIntervention({ intv, interventionTypes, onSave }) {
 }
 
 // Inline editable case note card
-function InlineEditNote({ note, onSave }) {
+function InlineEditNote({ note, onSave, onDelete, canDelete }) {
   const [editing, setEditing] = useState(false);
   const [notes, setNotes] = useState(note.notes || '');
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
@@ -109,6 +110,12 @@ function InlineEditNote({ note, onSave }) {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-400">{note.date}</span>
+          {!editing && canDelete && !confirmDelete && (
+            <button onClick={() => setConfirmDelete(true)} data-testid={`delete-note-${note.case_id}`}
+              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+              <Trash2 size={14} />
+            </button>
+          )}
           {!editing && (
             <button onClick={() => setEditing(true)} data-testid={`edit-note-${note.case_id}`}
               className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
@@ -117,6 +124,13 @@ function InlineEditNote({ note, onSave }) {
           )}
         </div>
       </div>
+      {confirmDelete && (
+        <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 mb-3">
+          <span className="text-xs text-rose-700 flex-1">Delete this case note?</span>
+          <button onClick={() => onDelete(note.case_id)} className="text-xs font-semibold text-rose-700 hover:text-rose-900">Delete</button>
+          <button onClick={() => setConfirmDelete(false)} className="text-xs text-slate-500 hover:text-slate-700">Cancel</button>
+        </div>
+      )}
       {editing ? (
         <div className="space-y-2">
           <textarea rows={4} value={notes} onChange={e => setNotes(e.target.value)}
@@ -207,6 +221,14 @@ export default function StudentProfilePage() {
   const editCaseNote = async (id, patch) => {
     try {
       await axios.put(`${API}/case-notes/${id}`, patch, { withCredentials: true });
+      const res = await axios.get(`${API}/students/${studentId}/profile`, { withCredentials: true });
+      setProfile(res.data);
+    } catch (e) { console.error(e); }
+  };
+
+  const deleteCaseNote = async (id) => {
+    try {
+      await axios.delete(`${API}/case-notes/${id}`, { withCredentials: true });
       const res = await axios.get(`${API}/students/${studentId}/profile`, { withCredentials: true });
       setProfile(res.data);
     } catch (e) { console.error(e); }
@@ -808,7 +830,7 @@ export default function StudentProfilePage() {
             )}
           </div>
           {case_notes?.map(note => (
-            <InlineEditNote key={note.case_id} note={note} onSave={editCaseNote} />
+            <InlineEditNote key={note.case_id} note={note} onSave={editCaseNote} onDelete={deleteCaseNote} canDelete={canDo('case_notes.delete')} />
           ))}
           {case_notes?.length === 0 && <div className="bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-400">No case notes recorded</div>}
         </div>

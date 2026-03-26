@@ -42,6 +42,7 @@ const FEATURE_ACTIONS = [
   { key: 'students.add_edit',         label: 'Add & Edit Students',           group: 'Students' },
   { key: 'students.archive',          label: 'Archive / Reactivate Students', group: 'Students' },
   { key: 'case_notes.add_edit',       label: 'Add & Edit Case Notes',         group: 'Students' },
+  { key: 'case_notes.delete',         label: 'Delete Case Notes',             group: 'Students' },
   { key: 'interventions.add_edit',    label: 'Add & Edit Interventions',      group: 'Interventions' },
   { key: 'interventions.delete',      label: 'Delete Interventions',          group: 'Interventions' },
   { key: 'interventions.ai_suggest',  label: 'Use AI Suggestions',            group: 'Interventions' },
