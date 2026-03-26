@@ -281,7 +281,7 @@ export default function StudentProfilePage() {
 
       <div className={`bg-white border ${tierColors.border} rounded-xl p-6 mb-6`}>
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
             <div className={`w-24 h-24 ${tierColors.bg} rounded-full flex items-center justify-center overflow-hidden shrink-0`}>
               {student.photo_url
                 ? <img src={`${process.env.REACT_APP_BACKEND_URL}${student.photo_url}`} alt={displayName} className="w-full h-full object-cover rounded-full" />
