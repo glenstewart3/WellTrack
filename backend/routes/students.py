@@ -316,7 +316,7 @@ async def upload_student_photos(file: UploadFile = File(...), user=Depends(get_c
                 unmatched.append(stem_raw)
                 continue
 
-            # Strict case-insensitive exact match
+            # Match 1: legal first name
             student = await db.students.find_one(
                 {
                     "last_name": re.compile(f"^{re.escape(last_name)}$", re.IGNORECASE),
@@ -325,6 +325,17 @@ async def upload_student_photos(file: UploadFile = File(...), user=Depends(get_c
                 },
                 {"_id": 0, "student_id": 1},
             )
+
+            # Match 2: preferred name (e.g. "Kettels, Lulu" where legal name is "Lucile")
+            if not student:
+                student = await db.students.find_one(
+                    {
+                        "last_name": re.compile(f"^{re.escape(last_name)}$", re.IGNORECASE),
+                        "preferred_name": re.compile(f"^{re.escape(first_name)}$", re.IGNORECASE),
+                        "enrolment_status": "active",
+                    },
+                    {"_id": 0, "student_id": 1},
+                )
 
             if not student:
                 unmatched.append(f"{last_name}, {first_name}")
