@@ -188,19 +188,26 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user)):
 
         context += f"Attendance: {(att_pct or 0):.1f}%\n"
 
-        # EAL / Aboriginal / NCCD context
+        # EAL / Aboriginal / NCCD — opt-in only (must be a clearly affirmative value)
+        _EAL_YES = {'yes', 'y', 'true', '1', 'eal', 'eal/d', 'eald', 'lbote', 'lote',
+                    'english as additional language', 'english as an additional language',
+                    'language background other than english'}
+        _ATSI_YES = {'yes', 'y', 'true', '1', 'aboriginal', 'torres strait islander',
+                     'atsi', 'indigenous', 'aboriginal and torres strait islander',
+                     'aboriginal/torres strait islander', 'aboriginal and/or torres strait islander'}
         extras = []
         eal = str(student.get('eal_status') or '').strip().lower()
-        if eal and eal not in ('no', 'none', 'n/a', '', 'false'):
+        if eal in _EAL_YES:
             extras.append("EAL/D student (English as an Additional Language or Dialect)")
         aboriginal = str(student.get('aboriginal_status') or '').strip().lower()
-        if aboriginal and aboriginal not in ('no', 'none', 'n/a', '', 'false', 'non-indigenous'):
+        if aboriginal in _ATSI_YES:
             extras.append("Aboriginal and/or Torres Strait Islander student")
         nccd_cat = str(student.get('nccd_category') or '').strip()
         nccd_lvl = str(student.get('nccd_level') or '').strip()
-        if nccd_cat and nccd_cat.lower() not in ('none', '', 'n/a'):
+        _NCCD_NO = {'', 'none', 'n/a', 'not applicable', 'no', 'false', '0'}
+        if nccd_cat and nccd_cat.lower() not in _NCCD_NO:
             label = f"NCCD: {nccd_cat}"
-            if nccd_lvl and nccd_lvl.lower() not in ('none', '', 'n/a'):
+            if nccd_lvl and nccd_lvl.lower() not in _NCCD_NO:
                 label += f" - {nccd_lvl}"
             extras.append(label)
         if extras:
@@ -223,15 +230,17 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user)):
         prompt = (
             f"You are a school wellbeing coordinator writing an MTSS student support plan.\n\n"
             f"{context}\n"
-            f"Suggest exactly 3 interventions for this student:\n"
+            f"Suggest exactly 3 separate interventions for this student. Each must be a fully independent recommendation.\n"
             f"{library_rule}"
             f"- Do NOT suggest interventions already listed as currently active\n"
             f"- Keep suggestions realistic and appropriate for the student's year level\n"
-            f"- Where relevant, mention EAL/D, Aboriginal/ATSI background, NCCD, attendance or weakest SAEBRS domain in the rationale\n\n"
-            f"Respond with ONLY a valid JSON array of exactly 3 objects with keys: "
-            f"type, priority (high/medium/low), rationale, goals, frequency, timeline.\n"
-            f"Return ONLY the JSON array. No markdown, no explanation.\n"
-            f'Example: [{{"type":"Check-In Check-Out","priority":"high","rationale":"...","goals":"...","frequency":"Daily","timeline":"8 weeks"}}]'
+            f"- Only mention EAL/D, Aboriginal/ATSI, NCCD, or other demographic context in the rationale "
+            f"if those details are explicitly listed above under 'Additional context'. Do not assume or invent any demographic details.\n\n"
+            f"Return ONLY a valid JSON array containing exactly 3 objects. Each object must have ALL of these keys with non-empty values: "
+            f"type, priority (must be exactly 'high', 'medium', or 'low'), rationale, goals, frequency, timeline.\n"
+            f"Do NOT put multiple interventions inside a single object. Each object = one intervention.\n"
+            f"No markdown, no explanation, no text before or after the JSON array.\n"
+            f'Example (3 separate objects): [{{"type":"Check-In Check-Out","priority":"high","rationale":"Student shows high emotional risk.","goals":"Build self-regulation strategies.","frequency":"Daily","timeline":"8 weeks"}},{{"type":"Social Skills Group","priority":"medium","rationale":"Peer interaction is a key area of concern.","goals":"Improve cooperative play.","frequency":"Weekly","timeline":"10 weeks"}},{{"type":"Academic Support","priority":"low","rationale":"Below benchmark in literacy.","goals":"Improve reading fluency.","frequency":"3x per week","timeline":"Term 2"}}]'
         )
 
         logger.info(f"AI suggest for {student_id}: prompt length={len(prompt)}, model={ollama_model}, url={ollama_url}")
