@@ -406,11 +406,47 @@ const F2_QUESTIONS = [
   },
 ];
 
-// ── F-2 Self Report Form ──────────────────────────────────────────────────────
+// ── Web Speech ────────────────────────────────────────────────────────────────
+function useSpeech() {
+  const [speaking, setSpeaking] = useState(false);
+
+  const speak = (text) => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    if (speaking) { setSpeaking(false); return; }
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.85;
+    u.pitch = 1.1;
+    u.onstart = () => setSpeaking(true);
+    u.onend = () => setSpeaking(false);
+    u.onerror = () => setSpeaking(false);
+    window.speechSynthesis.speak(u);
+  };
+
+  const stop = () => { window.speechSynthesis.cancel(); setSpeaking(false); };
+
+  return { speaking, speak, stop };
+}
 export function F2SelfReportForm({ student, period, screeningId, onSave, onBack }) {
   const [answers, setAnswers] = useState(Array(7).fill(null));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const { speaking, speak, stop } = useSpeech();
+  const [activeQ, setActiveQ] = useState(null);
+
+  // Stop speech when navigating away
+  const handleBack = () => { stop(); onBack(); };
+
+  const handleSpeak = (qIdx, q) => {
+    const text = `${q.question} ${q.support}`;
+    if (activeQ === qIdx && speaking) {
+      stop();
+      setActiveQ(null);
+    } else {
+      setActiveQ(qIdx);
+      speak(text);
+    }
+  };
 
   const answeredCount = answers.filter(a => a !== null).length;
   const allAnswered = answeredCount === 7;
@@ -449,7 +485,7 @@ export function F2SelfReportForm({ student, period, screeningId, onSave, onBack 
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-slate-100">
         <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-between">
-          <button onClick={onBack} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition-colors font-medium">
+          <button onClick={handleBack} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition-colors font-medium">
             <ArrowLeft size={16} /> Back
           </button>
           <div className="text-center">
@@ -489,13 +525,19 @@ export function F2SelfReportForm({ student, period, screeningId, onSave, onBack 
                 {/* Question header */}
                 <div className="flex justify-between items-start mb-3">
                   <span className="text-xs font-bold text-slate-400 tracking-wider uppercase">Question {q.id}</span>
-                  {/* Audio placeholder — reserved for future implementation */}
+                  {/* Audio button */}
                   <button
-                    disabled
-                    title="Audio coming soon"
-                    className="flex items-center gap-1 text-xs text-slate-300 border border-slate-200 rounded-full px-2 py-1 cursor-not-allowed"
+                    onClick={() => handleSpeak(qIdx, q)}
+                    data-testid={`f2-listen-q${q.id}`}
+                    title={activeQ === qIdx && speaking ? 'Stop' : 'Listen to question'}
+                    className={`flex items-center gap-1 text-xs font-semibold border rounded-full px-2.5 py-1 transition-all ${
+                      activeQ === qIdx && speaking
+                        ? 'bg-indigo-100 border-indigo-400 text-indigo-700 animate-pulse'
+                        : 'border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500'
+                    }`}
                   >
-                    <Volume2 size={12} /> Listen
+                    <Volume2 size={12} />
+                    {activeQ === qIdx && speaking ? 'Stop' : 'Listen'}
                   </button>
                 </div>
 
