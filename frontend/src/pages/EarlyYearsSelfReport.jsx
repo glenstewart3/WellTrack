@@ -532,11 +532,14 @@ export function F2SelfReportForm({ student, period, screeningId, onSave, onBack 
                     title={activeQ === qIdx && speaking ? 'Stop' : 'Listen to question'}
                     className={`flex items-center justify-center gap-1 text-xs font-semibold border rounded-full w-16 py-1 transition-colors ${
                       activeQ === qIdx && speaking
-                        ? 'bg-indigo-100 border-indigo-400 text-indigo-700 animate-pulse'
+                        ? 'bg-indigo-100 border-indigo-400 text-indigo-700'
                         : 'border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500'
                     }`}
                   >
-                    <Volume2 size={12} />
+                    <Volume2
+                      size={12}
+                      className={activeQ === qIdx && speaking ? 'animate-bounce' : ''}
+                    />
                     {activeQ === qIdx && speaking ? 'Stop' : 'Listen'}
                   </button>
                 </div>
