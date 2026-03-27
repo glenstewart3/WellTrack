@@ -245,43 +245,67 @@ function IllTeacherChild() {
   );
 }
 
-function IllSchoolGates() {
+function IllSafetyBubble() {
   return (
     <svg viewBox="0 0 240 148" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
-      <rect width="240" height="148" fill="#E1F5FE"/>
-      <circle cx="195" cy="30" r="22" fill="#FDD835" opacity="0.9"/>
-      <ellipse cx="50" cy="28" rx="30" ry="14" fill="white" opacity="0.9"/>
-      <ellipse cx="72" cy="21" rx="18" ry="10" fill="white" opacity="0.9"/>
-      <rect y="118" width="240" height="30" fill="#C8E6C9"/>
-      {/* Path between gates */}
-      <rect x="97" y="85" width="46" height="63" fill="#EDE0CF" opacity="0.9"/>
-      {/* Left pillar */}
-      <rect x="72" y="52" width="16" height="70" rx="5" fill="#78909C"/>
-      <rect x="68" y="48" width="24" height="10" rx="4" fill="#607D8B"/>
-      {/* Right pillar */}
-      <rect x="152" y="52" width="16" height="70" rx="5" fill="#78909C"/>
-      <rect x="148" y="48" width="24" height="10" rx="4" fill="#607D8B"/>
-      {/* Left gate bars (open, angled left) */}
-      <rect x="40" y="62" width="32" height="52" rx="4" fill="#90A4AE" opacity="0.9" transform="rotate(-8 56 88)"/>
-      <rect x="44" y="65" width="4" height="45" rx="2" fill="#78909C" transform="rotate(-8 46 87)"/>
-      <rect x="54" y="65" width="4" height="45" rx="2" fill="#78909C" transform="rotate(-8 56 87)"/>
-      <rect x="64" y="65" width="4" height="45" rx="2" fill="#78909C" transform="rotate(-8 66 87)"/>
-      {/* Right gate bars (open, angled right) */}
-      <rect x="168" y="62" width="32" height="52" rx="4" fill="#90A4AE" opacity="0.9" transform="rotate(8 184 88)"/>
-      <rect x="172" y="65" width="4" height="45" rx="2" fill="#78909C" transform="rotate(8 174 87)"/>
-      <rect x="182" y="65" width="4" height="45" rx="2" fill="#78909C" transform="rotate(8 184 87)"/>
-      <rect x="192" y="65" width="4" height="45" rx="2" fill="#78909C" transform="rotate(8 194 87)"/>
-      {/* School sign */}
-      <rect x="87" y="22" width="66" height="22" rx="5" fill="#FFF9C4" stroke="#FFD54F" strokeWidth="1.5"/>
-      <rect x="93" y="28" width="54" height="3" rx="1.5" fill="#F9A825" opacity="0.6"/>
-      <rect x="97" y="35" width="46" height="3" rx="1.5" fill="#F9A825" opacity="0.45"/>
-      {/* Child walking through */}
-      <rect x="108" y="95" width="24" height="25" rx="8" fill="#CE93D8"/>
-      <circle cx="120" cy="82" r="14" fill="#FFCCBC"/>
-      <ellipse cx="120" cy="71" rx="14" ry="7" fill="#FDD835"/>
-      <circle cx="115" cy="81" r="2" fill="#424242"/>
-      <circle cx="125" cy="81" r="2" fill="#424242"/>
-      <path d="M 115 89 Q 120 94 125 89" fill="none" stroke="#424242" strokeWidth="1.5" strokeLinecap="round"/>
+      {/* Classroom background */}
+      <rect width="240" height="148" fill="#FFFDE7"/>
+      <rect y="122" width="240" height="26" fill="#F3E5C3"/>
+      {/* Wall posters */}
+      <rect x="12" y="10" width="36" height="44" rx="5" fill="#B3E5FC"/>
+      <rect x="17" y="18" width="26" height="3" rx="1.5" fill="#4FC3F7" opacity="0.6"/>
+      <rect x="17" y="26" width="18" height="3" rx="1.5" fill="#4FC3F7" opacity="0.6"/>
+      <rect x="192" y="10" width="36" height="44" rx="5" fill="#DCEDC8"/>
+      <circle cx="210" cy="32" r="10" fill="#AED581" opacity="0.8"/>
+      {/* Glow bubble — layered warm radial glow */}
+      <circle cx="120" cy="84" r="52" fill="#FFFDE7" opacity="0.4"/>
+      <circle cx="120" cy="84" r="42" fill="#FFF9C4" opacity="0.5"/>
+      <circle cx="120" cy="84" r="33" fill="#FFF8E1" opacity="0.7"/>
+      <circle cx="120" cy="84" r="24" fill="white" opacity="0.85"/>
+      {/* Bubble ring */}
+      <circle cx="120" cy="84" r="33" fill="none" stroke="#FFD54F" strokeWidth="2.5" opacity="0.9"/>
+      <circle cx="120" cy="84" r="42" fill="none" stroke="#FFE082" strokeWidth="1.5" opacity="0.5"/>
+      {/* Sparkles */}
+      <circle cx="93" cy="54" r="3" fill="#FFE082"/>
+      <circle cx="149" cy="50" r="3" fill="#FFE082"/>
+      <circle cx="88" cy="106" r="2.5" fill="#FFCC02"/>
+      <circle cx="154" cy="110" r="2.5" fill="#FFCC02"/>
+      <circle cx="78" cy="80" r="2" fill="#FFD54F"/>
+      <circle cx="163" cy="78" r="2" fill="#FFD54F"/>
+      {/* Child in centre of bubble */}
+      <rect x="108" y="91" width="24" height="22" rx="8" fill="#FFA726"/>
+      <circle cx="120" cy="79" r="13" fill="#FFCCBC"/>
+      <path d="M 107 79 Q 107 63 120 63 Q 133 63 133 79 Q 130 70 120 68 Q 110 70 107 79 Z" fill="#FDD835"/>
+      <circle cx="115" cy="78" r="2" fill="#424242"/>
+      <circle cx="125" cy="78" r="2" fill="#424242"/>
+      <path d="M 115 85 Q 120 90 125 85" fill="none" stroke="#424242" strokeWidth="1.8" strokeLinecap="round"/>
+      <circle cx="111" cy="83" r="4" fill="#FF8A65" opacity="0.25"/>
+      <circle cx="129" cy="83" r="4" fill="#FF8A65" opacity="0.25"/>
+      {/* Surrounding kind faces */}
+      {/* Face — top left */}
+      <circle cx="62" cy="44" r="17" fill="#FFCC80"/>
+      <circle cx="57" cy="42" r="2.2" fill="#424242"/>
+      <circle cx="67" cy="42" r="2.2" fill="#424242"/>
+      <path d="M 57 49 Q 62 54 67 49" fill="none" stroke="#424242" strokeWidth="1.8" strokeLinecap="round"/>
+      <circle cx="53" cy="46" r="4" fill="#FF8A65" opacity="0.25"/>
+      <circle cx="71" cy="46" r="4" fill="#FF8A65" opacity="0.25"/>
+      {/* Face — top right */}
+      <circle cx="178" cy="44" r="17" fill="#A5D6A7"/>
+      <circle cx="173" cy="42" r="2.2" fill="#424242"/>
+      <circle cx="183" cy="42" r="2.2" fill="#424242"/>
+      <path d="M 173 49 Q 178 54 183 49" fill="none" stroke="#424242" strokeWidth="1.8" strokeLinecap="round"/>
+      <circle cx="169" cy="46" r="4" fill="#66BB6A" opacity="0.2"/>
+      <circle cx="187" cy="46" r="4" fill="#66BB6A" opacity="0.2"/>
+      {/* Face — left */}
+      <circle cx="36" cy="86" r="15" fill="#F48FB1"/>
+      <circle cx="31" cy="84" r="2" fill="#424242"/>
+      <circle cx="41" cy="84" r="2" fill="#424242"/>
+      <path d="M 31 90 Q 36 95 41 90" fill="none" stroke="#424242" strokeWidth="1.8" strokeLinecap="round"/>
+      {/* Face — right */}
+      <circle cx="204" cy="86" r="15" fill="#80DEEA"/>
+      <circle cx="199" cy="84" r="2" fill="#424242"/>
+      <circle cx="209" cy="84" r="2" fill="#424242"/>
+      <path d="M 199 90 Q 204 95 209 90" fill="none" stroke="#424242" strokeWidth="1.8" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -327,7 +351,7 @@ const F2_QUESTIONS = [
   {
     id: 7, question: "Do you feel safe at school?",
     support: "Do you feel okay and safe when you are here?",
-    Illustration: IllSchoolGates,
+    Illustration: IllSafetyBubble,
     options: [{ label: 'Never', emoji: '🙁', value: 2 }, { label: 'Sometimes', emoji: '😐', value: 1 }, { label: 'Always', emoji: '😊', value: 0 }],
   },
 ];
