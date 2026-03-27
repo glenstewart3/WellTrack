@@ -65,7 +65,7 @@ export default function AnalyticsPage() {
       : { class_name: filterValue };
 
   const filterLabel = filterType === 'school' ? 'Whole School'
-    : filterType === 'year_level' ? `Year ${filterValue}`
+    : filterType === 'year_level' ? filterValue
       : filterValue;
 
   const qs = (params) => {
@@ -244,7 +244,7 @@ export default function AnalyticsPage() {
         {filterType === 'year_level' && (
           <select data-testid="filter-year-select" value={filterValue} onChange={e => setFilterValue(e.target.value)}
             className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-slate-300">
-            {filterOptions.year_levels.map(y => <option key={y} value={y}>Year {y}</option>)}
+            {filterOptions.year_levels.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
         )}
         {filterType === 'class' && (
