@@ -30,10 +30,10 @@ async def seed_database(student_count: int = 32):
     rng = random.Random(42)
 
     classes_data = [
-        {"class": "3A", "teacher": "Ms Thompson", "year": "Year 3"},
-        {"class": "5B", "teacher": "Mr Rodriguez", "year": "Year 5"},
-        {"class": "7C", "teacher": "Ms Chen", "year": "Year 7"},
-        {"class": "9A", "teacher": "Mr Williams", "year": "Year 9"},
+        {"class": "F/1A", "teacher": "Ms Patel",     "year": "Foundation"},
+        {"class": "1/2B", "teacher": "Ms Lee",        "year": "Year 1"},
+        {"class": "3A",   "teacher": "Ms Thompson",   "year": "Year 3"},
+        {"class": "5B",   "teacher": "Mr Rodriguez",  "year": "Year 5"},
     ]
     # Distribute student_count evenly across 4 classes; first (student_count % 4) classes get one extra
     base_per_class = student_count // 4

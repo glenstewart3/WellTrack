@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useSettings } from '../context/SettingsContext';
 import { ClipboardCheck, User, ChevronRight, CheckCircle, ArrowLeft, X, AlertTriangle } from 'lucide-react';
+import { F2SelfReportForm, isF2Student } from './EarlyYearsSelfReport';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -448,6 +449,8 @@ function SelfReportFlow({ className, period, onDone }) {
                   <div>
                     <p className="text-sm font-semibold text-slate-900">{s.first_name} {s.last_name}</p>
                     <p className="text-xs text-slate-400">{s.year_level}</p>
+                    {isF2Student(s.year_level) && <span className="inline-block ml-1.5 text-xs text-violet-500 font-semibold">· F–2</span>}
+
                   </div>
                 </div>
                 {done
@@ -461,7 +464,24 @@ function SelfReportFlow({ className, period, onDone }) {
     );
   }
 
-  // Self-report form
+  // F-2 route: Foundation / Year 1 / Year 2 students get the illustrated screener
+  if (current !== null && isF2Student(student?.year_level)) {
+    return (
+      <F2SelfReportForm
+        student={student}
+        period={period}
+        screeningId={screeningId}
+        onSave={(studentId) => {
+          setCompletedStudents(prev => new Set([...prev, studentId]));
+          setCurrent(null);
+          scrollTop();
+        }}
+        onBack={() => { setCurrent(null); scrollTop(); }}
+      />
+    );
+  }
+
+  // Self-report form (Year 3–6)
   return (
     <div className="p-6 lg:p-8 max-w-2xl mx-auto fade-in">
       <button onClick={() => { setCurrent(null); scrollTop(); }}
