@@ -530,7 +530,7 @@ export function F2SelfReportForm({ student, period, screeningId, onSave, onBack 
                     onClick={() => handleSpeak(qIdx, q)}
                     data-testid={`f2-listen-q${q.id}`}
                     title={activeQ === qIdx && speaking ? 'Stop' : 'Listen to question'}
-                    className={`flex items-center gap-1 text-xs font-semibold border rounded-full px-2.5 py-1 transition-all ${
+                    className={`flex items-center justify-center gap-1 text-xs font-semibold border rounded-full w-16 py-1 transition-colors ${
                       activeQ === qIdx && speaking
                         ? 'bg-indigo-100 border-indigo-400 text-indigo-700 animate-pulse'
                         : 'border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500'
