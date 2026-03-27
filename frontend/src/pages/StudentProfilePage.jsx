@@ -305,15 +305,33 @@ export default function StudentProfilePage() {
     ? Math.round(5 + (attPct - 90) / 5 * 2)
     : Math.round((attPct / 90) * 4);
 
+  const radarUsingSaebrs = !latestPlus && !!latestSaebrs;
+
   const radarData = [
-    { domain: 'Social',     score: latestPlus?.social_domain    ?? 0, max: 18 },
-    { domain: 'Academic',   score: latestPlus?.academic_domain  ?? 0, max: 18 },
-    { domain: 'Emotional',  score: latestPlus?.emotional_domain ?? 0, max: 9  },
-    { domain: 'Belonging',  score: latestPlus?.belonging_domain ?? 0, max: 12 },
-    { domain: 'Attendance', score: Math.min(10, attScore),            max: 10 },
+    {
+      domain: 'Social',
+      score: latestPlus?.social_domain ?? (latestSaebrs?.social_score ?? 0),
+      max: 18,
+    },
+    {
+      domain: 'Academic',
+      score: latestPlus?.academic_domain ?? (latestSaebrs?.academic_score ?? 0),
+      max: 18,
+    },
+    {
+      domain: 'Emotional',
+      score: latestPlus?.emotional_domain ?? (latestSaebrs?.emotional_score ?? 0),
+      max: latestPlus ? 9 : (latestSaebrs ? 21 : 9),
+    },
+    { domain: 'Belonging', score: latestPlus?.belonging_domain ?? 0, max: 12 },
+    { domain: 'Attendance', score: Math.min(10, attScore), max: 10 },
   ].map(d => ({ ...d, pct: Math.round((d.score / d.max) * 100) }));
 
-  const radarMissing = !latestPlus ? ['Student Self-Report'] : [];
+  const radarMissing = !latestPlus
+    ? (radarUsingSaebrs
+        ? 'Student Self-Report not yet completed — showing SAEBRS teacher scores for Social, Academic & Emotional. Belonging shows as 0.'
+        : 'Student Self-Report not yet completed — Social, Academic, Emotional & Belonging domains show as 0.')
+    : null;
 
   // Display name with optional preferred name
   const displayName = `${student.first_name}${student.preferred_name && student.preferred_name !== student.first_name ? ` (${student.preferred_name})` : ''} ${student.last_name}`;
@@ -455,10 +473,10 @@ export default function StudentProfilePage() {
           {/* Wellbeing Radar */}
           <div className="bg-white border border-slate-200 rounded-xl p-6">
             <h3 className="font-semibold text-slate-900 mb-3" style={{fontFamily:'Manrope,sans-serif'}}>Wellbeing Domain Profile</h3>
-            {radarMissing.length > 0 && (
+            {radarMissing && (
               <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg mb-4 text-xs text-amber-800">
                 <AlertTriangle size={13} className="shrink-0 mt-0.5 text-amber-500" />
-                <span><span className="font-semibold">{radarMissing.join(', ')}</span> not yet completed — those domains show as 0.</span>
+                <span>{radarMissing}</span>
               </div>
             )}
             <ResponsiveContainer width="100%" height={200}>
