@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
 import { ClipboardCheck, User, ChevronRight, CheckCircle, ArrowLeft, X, AlertTriangle } from 'lucide-react';
 import { F2SelfReportForm, isF2Student } from './EarlyYearsSelfReport';
@@ -173,7 +174,7 @@ function SAEBRSFlow({ className, period, onDone }) {
   const [current, setCurrent] = useState(null);
   const [screeningId] = useState(`scr_${Date.now()}`);
   const [completedStudents, setCompletedStudents] = useState(new Set());
-  const [scores, setScores] = useState({ social: Array(6).fill(2), academic: Array(6).fill(2), emotional: Array(7).fill(2) });
+  const [scores, setScores] = useState({ social: Array(6).fill(null), academic: Array(6).fill(null), emotional: Array(7).fill(null) });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [touched, setTouched] = useState(new Set());
@@ -214,7 +215,7 @@ function SAEBRSFlow({ className, period, onDone }) {
         social_score: 0, academic_score: 0, emotional_score: 0, total_score: 0,
       }, { withCredentials: true });
       setCompletedStudents(prev => new Set([...prev, student.student_id]));
-      setScores({ social: Array(6).fill(2), academic: Array(6).fill(2), emotional: Array(7).fill(2) });
+      setScores({ social: Array(6).fill(null), academic: Array(6).fill(null), emotional: Array(7).fill(null) });
       setTouched(new Set());
       setCurrent(null);
     } catch (e) {
@@ -223,7 +224,7 @@ function SAEBRSFlow({ className, period, onDone }) {
   };
 
   const openStudent = (i) => {
-    setScores({ social: Array(6).fill(2), academic: Array(6).fill(2), emotional: Array(7).fill(2) });
+    setScores({ social: Array(6).fill(null), academic: Array(6).fill(null), emotional: Array(7).fill(null) });
     setTouched(new Set());
     setSaveError('');
     setCurrent(i);
@@ -367,10 +368,10 @@ function SAEBRSFlow({ className, period, onDone }) {
         {saveError && <p className="text-sm text-rose-600 mt-3">{saveError}</p>}
       </div>
 
-      <button onClick={saveCurrentStudent} disabled={saving} data-testid="save-saebrs-btn"
-        className="w-full py-3.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 disabled:opacity-60 transition-colors flex items-center justify-center gap-2">
+      <button onClick={saveCurrentStudent} disabled={saving || touchedCount < 19} data-testid="save-saebrs-btn"
+        className="w-full py-3.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
         {saving ? <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <CheckCircle size={16} />}
-        {saving ? 'Saving…' : 'Save & Return to List'}
+        {saving ? 'Saving…' : touchedCount < 19 ? `Rate all questions (${touchedCount}/19)` : 'Save & Return to List'}
       </button>
       </div>
     </>
@@ -384,7 +385,7 @@ function SelfReportFlow({ className, period, onDone }) {
   const [current, setCurrent] = useState(null);
   const [screeningId] = useState(`scr_sr_${Date.now()}`);
   const [completedStudents, setCompletedStudents] = useState(new Set());
-  const [items, setItems] = useState(Array(7).fill(1));
+  const [items, setItems] = useState(Array(7).fill(null));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [srTouched, setSrTouched] = useState(new Set());
@@ -425,7 +426,7 @@ function SelfReportFlow({ className, period, onDone }) {
         wellbeing_total: 0, wellbeing_tier: 1,
       }, { withCredentials: true });
       setCompletedStudents(prev => new Set([...prev, student.student_id]));
-      setItems(Array(7).fill(1));
+      setItems(Array(7).fill(null));
       setSrTouched(new Set());
       setCurrent(null);
     } catch (e) {
@@ -465,7 +466,7 @@ function SelfReportFlow({ className, period, onDone }) {
             const done = completedStudents.has(s.student_id);
             return (
               <div key={s.student_id}
-                onClick={() => !done && (setCurrent(i), setItems(Array(7).fill(1)), setSrTouched(new Set()), scrollTop())}
+                onClick={() => !done && (setCurrent(i), setItems(Array(7).fill(null)), setSrTouched(new Set()), scrollTop())}
                 data-testid={`select-student-${s.student_id}`}
                 className={`flex items-center justify-between px-5 py-4 border-b border-slate-50 last:border-0 transition-colors ${done ? 'bg-emerald-50/40' : 'hover:bg-indigo-50 cursor-pointer'}`}>
                 <div className="flex items-center gap-3">
@@ -571,10 +572,10 @@ function SelfReportFlow({ className, period, onDone }) {
 
         {saveError && <p className="text-sm text-rose-600 mt-4">{saveError}</p>}
 
-        <button onClick={save} disabled={saving} data-testid="save-self-report-btn"
-          className="w-full mt-6 py-3.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-2">
+        <button onClick={save} disabled={saving || srTouchedCount < 7} data-testid="save-self-report-btn"
+          className="w-full mt-6 py-3.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
           {saving ? <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <CheckCircle size={16} />}
-          {saving ? 'Saving…' : 'Save & Return to List'}
+          {saving ? 'Saving…' : srTouchedCount < 7 ? `Answer all questions (${srTouchedCount}/7)` : 'Save & Return to List'}
         </button>
       </div>
       </div>
@@ -585,10 +586,19 @@ function SelfReportFlow({ className, period, onDone }) {
 // ─── Main Screening Page ──────────────────────────────────────────────────────
 export default function ScreeningPage() {
   const { settings } = useSettings();
+  const location = useLocation();
   const activePeriod = settings?.active_screening_period || '';
   const [step, setStep] = useState('mode');
   const [mode, setMode] = useState(null);
   const [selectedClass, setSelectedClass] = useState('');
+
+  // Reset to mode-select whenever the nav button is clicked (resetKey changes)
+  useEffect(() => {
+    setStep('mode');
+    setMode(null);
+    setSelectedClass('');
+    scrollTop();
+  }, [location.state?.resetKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleModeSelect = (m) => { setMode(m); setStep('class'); };
   const handleClassSelect = (cls) => { setSelectedClass(cls); setStep('screen'); };

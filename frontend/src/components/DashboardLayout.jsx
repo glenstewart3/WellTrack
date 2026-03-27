@@ -103,7 +103,13 @@ export default function DashboardLayout() {
             <NavLink
               key={path}
               to={path}
-              onClick={() => setMobileOpen(false)}
+              onClick={(e) => {
+                if (path === '/screening') {
+                  e.preventDefault();
+                  navigate('/screening', { state: { resetKey: Date.now() } });
+                }
+                setMobileOpen(false);
+              }}
               data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
               style={({ isActive }) => isActive ? { backgroundColor: activeNavColor } : {}}
               className={({ isActive }) =>
