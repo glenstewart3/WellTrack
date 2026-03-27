@@ -138,21 +138,21 @@ function IllAngryClassroom() {
       <rect x="157" y="109" width="9" height="20" rx="3" fill="#BCAAA4"/>
       {/* Child body */}
       <rect x="93" y="74" width="34" height="26" rx="10" fill="#EF9A9A"/>
-      {/* Steam from left ear — two wavy S-curves curling up */}
-      <path d="M 93 60 C 84 54 90 46 83 40" fill="none" stroke="#B0BEC5" strokeWidth="3" strokeLinecap="round"/>
-      <path d="M 95 65 C 86 58 91 50 85 44" fill="none" stroke="#CFD8DC" strokeWidth="2.5" strokeLinecap="round" opacity="0.7"/>
-      <path d="M 91 57 C 82 51 88 44 81 38" fill="none" stroke="#ECEFF1" strokeWidth="2" strokeLinecap="round" opacity="0.5"/>
-      {/* Steam from right ear */}
-      <path d="M 127 60 C 136 54 130 46 137 40" fill="none" stroke="#B0BEC5" strokeWidth="3" strokeLinecap="round"/>
-      <path d="M 125 65 C 134 58 129 50 135 44" fill="none" stroke="#CFD8DC" strokeWidth="2.5" strokeLinecap="round" opacity="0.7"/>
-      <path d="M 129 57 C 138 51 132 44 139 38" fill="none" stroke="#ECEFF1" strokeWidth="2" strokeLinecap="round" opacity="0.5"/>
+      {/* Steam from left ear — horizontal cartoon jets */}
+      <line x1="93" y1="56" x2="70" y2="56" stroke="#B0BEC5" strokeWidth="3.5" strokeLinecap="round"/>
+      <line x1="93" y1="62" x2="73" y2="62" stroke="#CFD8DC" strokeWidth="3" strokeLinecap="round"/>
+      <line x1="93" y1="68" x2="76" y2="68" stroke="#ECEFF1" strokeWidth="2.5" strokeLinecap="round"/>
+      {/* Steam from right ear — horizontal cartoon jets */}
+      <line x1="127" y1="56" x2="150" y2="56" stroke="#B0BEC5" strokeWidth="3.5" strokeLinecap="round"/>
+      <line x1="127" y1="62" x2="147" y2="62" stroke="#CFD8DC" strokeWidth="3" strokeLinecap="round"/>
+      <line x1="127" y1="68" x2="144" y2="68" stroke="#ECEFF1" strokeWidth="2.5" strokeLinecap="round"/>
       {/* Red flushed head */}
       <circle cx="110" cy="61" r="16" fill="#EF5350"/>
       {/* Hair */}
       <path d="M 94 61 Q 94 42 110 42 Q 126 42 126 61 Q 123 52 110 50 Q 97 52 94 61 Z" fill="#5D4037"/>
-      {/* Very furrowed brows — deep V */}
-      <path d="M 100 54 Q 105 49 108 54" fill="none" stroke="#1A237E" strokeWidth="3" strokeLinecap="round"/>
-      <path d="M 112 54 Q 115 49 120 54" fill="none" stroke="#1A237E" strokeWidth="3" strokeLinecap="round"/>
+      {/* Sharply slanted angry brows — inner ends low, outer ends high */}
+      <line x1="108" y1="57" x2="100" y2="49" stroke="#1A237E" strokeWidth="3.5" strokeLinecap="round"/>
+      <line x1="112" y1="57" x2="120" y2="49" stroke="#1A237E" strokeWidth="3.5" strokeLinecap="round"/>
       {/* Squinting angry eyes */}
       <ellipse cx="105" cy="59" rx="3" ry="2.5" fill="#37474F"/>
       <ellipse cx="115" cy="59" rx="3" ry="2.5" fill="#37474F"/>
