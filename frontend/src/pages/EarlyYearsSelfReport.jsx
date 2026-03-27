@@ -84,19 +84,36 @@ function IllButterflyTummy() {
       {/* Tummy window — see-through belly */}
       <rect x="99" y="83" width="28" height="26" rx="12" fill="#F1F8E9" opacity="0.75"/>
       <rect x="99" y="83" width="28" height="26" rx="12" fill="none" stroke="#A5D6A7" strokeWidth="2"/>
-      {/* Butterflies inside tummy */}
-      {/* Butterfly 1 — orange top-left */}
-      <path d="M 108 90 Q 103 85 100 90 Q 103 95 108 90 Z" fill="#FFAB91"/>
-      <path d="M 108 90 Q 113 85 116 90 Q 113 95 108 90 Z" fill="#FF7043"/>
-      <circle cx="108" cy="90" r="1.5" fill="#BF360C"/>
-      {/* Butterfly 2 — teal lower-right */}
-      <path d="M 121 101 Q 116 96 113 101 Q 116 106 121 101 Z" fill="#80DEEA"/>
-      <path d="M 121 101 Q 126 96 129 101 Q 126 106 121 101 Z" fill="#26C6DA"/>
-      <circle cx="121" cy="101" r="1.5" fill="#006064"/>
-      {/* Butterfly 3 — purple lower-left */}
-      <path d="M 108 103 Q 103 98 100 103 Q 103 108 108 103 Z" fill="#CE93D8"/>
-      <path d="M 108 103 Q 113 98 116 103 Q 113 108 108 103 Z" fill="#AB47BC"/>
-      <circle cx="108" cy="103" r="1.5" fill="#4A148C"/>
+      {/* Butterfly 1 — orange, upper-centre */}
+      <path d="M 108 92 C 107 84 99 84 100 92 Z" fill="#FFAB91"/>
+      <path d="M 108 92 C 109 84 117 84 116 92 Z" fill="#FF7043"/>
+      <path d="M 108 92 C 107 97 101 96 102 92 Z" fill="#FFAB91" opacity="0.85"/>
+      <path d="M 108 92 C 109 97 115 96 114 92 Z" fill="#FF7043" opacity="0.85"/>
+      <ellipse cx="108" cy="92" rx="1.5" ry="4" fill="#BF360C"/>
+      <line x1="108" y1="88" x2="104" y2="84" stroke="#BF360C" strokeWidth="0.9" strokeLinecap="round"/>
+      <circle cx="104" cy="83.5" r="1" fill="#BF360C"/>
+      <line x1="108" y1="88" x2="112" y2="84" stroke="#BF360C" strokeWidth="0.9" strokeLinecap="round"/>
+      <circle cx="112" cy="83.5" r="1" fill="#BF360C"/>
+      {/* Butterfly 2 — teal, lower-right */}
+      <path d="M 118 100 C 117 92 109 92 110 100 Z" fill="#80DEEA"/>
+      <path d="M 118 100 C 119 92 127 92 126 100 Z" fill="#26C6DA"/>
+      <path d="M 118 100 C 117 105 111 104 112 100 Z" fill="#80DEEA" opacity="0.85"/>
+      <path d="M 118 100 C 119 105 125 104 124 100 Z" fill="#26C6DA" opacity="0.85"/>
+      <ellipse cx="118" cy="100" rx="1.5" ry="4" fill="#006064"/>
+      <line x1="118" y1="96" x2="114" y2="92" stroke="#006064" strokeWidth="0.9" strokeLinecap="round"/>
+      <circle cx="113.5" cy="91.5" r="1" fill="#006064"/>
+      <line x1="118" y1="96" x2="122" y2="92" stroke="#006064" strokeWidth="0.9" strokeLinecap="round"/>
+      <circle cx="122.5" cy="91.5" r="1" fill="#006064"/>
+      {/* Butterfly 3 — purple, lower-left */}
+      <path d="M 108 103 C 107 95 99 95 100 103 Z" fill="#CE93D8"/>
+      <path d="M 108 103 C 109 95 117 95 116 103 Z" fill="#AB47BC"/>
+      <path d="M 108 103 C 107 108 101 107 102 103 Z" fill="#CE93D8" opacity="0.85"/>
+      <path d="M 108 103 C 109 108 115 107 114 103 Z" fill="#AB47BC" opacity="0.85"/>
+      <ellipse cx="108" cy="103" rx="1.5" ry="4" fill="#4A148C"/>
+      <line x1="108" y1="99" x2="104" y2="95" stroke="#4A148C" strokeWidth="0.9" strokeLinecap="round"/>
+      <circle cx="103.5" cy="94.5" r="1" fill="#4A148C"/>
+      <line x1="108" y1="99" x2="112" y2="95" stroke="#4A148C" strokeWidth="0.9" strokeLinecap="round"/>
+      <circle cx="112.5" cy="94.5" r="1" fill="#4A148C"/>
       {/* Arms */}
       <rect x="76" y="77" width="16" height="9" rx="4" fill="#FFCCBC" transform="rotate(-15 76 82)"/>
       <rect x="132" y="77" width="16" height="9" rx="4" fill="#FFCCBC" transform="rotate(15 148 82)"/>
