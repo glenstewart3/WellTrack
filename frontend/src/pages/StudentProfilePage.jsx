@@ -327,14 +327,25 @@ export default function StudentProfilePage() {
     { domain: 'Attendance', score: Math.min(10, attScore), max: 10 },
   ].map(d => ({ ...d, pct: Math.round((d.score / d.max) * 100) }));
 
+  // Alert checks: use the active screening period so a student with old data
+  // still gets flagged if they haven't been screened in the current period.
+  const activePeriod = settings?.active_screening_period || '';
+  const saebrsForPeriod = activePeriod
+    ? (saebrs_results || []).find(r => r.screening_period === activePeriod)
+    : latestSaebrs;
+  const selfReportForPeriod = activePeriod
+    ? (self_report_results || []).find(r => r.screening_period === activePeriod)
+    : latestPlus;
+  const periodLabel = activePeriod ? ` for ${activePeriod}` : '';
+
   const radarAlerts = [
-    !latestSaebrs
-      ? 'SAEBRS Screener not yet completed.'
+    !saebrsForPeriod
+      ? `SAEBRS Screener not yet completed${periodLabel}.`
       : null,
-    !latestPlus
+    !selfReportForPeriod
       ? (radarUsingSaebrs
-          ? 'Student Self-Report not yet completed — showing SAEBRS teacher scores for Social, Academic & Emotional. Belonging shows as 0.'
-          : 'Student Self-Report not yet completed — Social, Academic, Emotional & Belonging domains show as 0.')
+          ? `Student Self-Report not yet completed${periodLabel} — showing most recent SAEBRS scores for Social, Academic & Emotional. Belonging shows as 0.`
+          : `Student Self-Report not yet completed${periodLabel} — Social, Academic, Emotional & Belonging domains show as 0.`)
       : null,
     attendance_pct == null
       ? 'No attendance data recorded — Attendance domain shows as 0.'
