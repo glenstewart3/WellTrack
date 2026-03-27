@@ -269,8 +269,12 @@ function SAEBRSFlow({ className, period, onDone }) {
                 onClick={() => !done && openStudent(i)}
                 data-testid={`student-saebrs-row-${s.student_id}`}>
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${done ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}>
-                    {done ? <CheckCircle size={16} /> : s.first_name[0]}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden ${done ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}>
+                    {done
+                      ? <CheckCircle size={16} />
+                      : s.photo_url
+                        ? <img src={`${process.env.REACT_APP_BACKEND_URL}${s.photo_url}`} alt={s.first_name} className="w-full h-full object-cover" />
+                        : s.first_name[0]}
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-slate-900">{s.first_name} {s.last_name}</p>
@@ -332,8 +336,10 @@ function SAEBRSFlow({ className, period, onDone }) {
 
       <div className="bg-white border border-slate-200 rounded-2xl p-7 mb-5">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center">
-            <span className="text-lg font-bold text-white">{student.first_name[0]}{student.last_name[0]}</span>
+          <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center overflow-hidden">
+            {student.photo_url
+              ? <img src={`${process.env.REACT_APP_BACKEND_URL}${student.photo_url}`} alt={student.first_name} className="w-full h-full object-cover" />
+              : <span className="text-lg font-bold text-white">{student.first_name[0]}{student.last_name[0]}</span>}
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{student.first_name} {student.last_name}</h2>
@@ -470,8 +476,12 @@ function SelfReportFlow({ className, period, onDone }) {
                 data-testid={`select-student-${s.student_id}`}
                 className={`flex items-center justify-between px-5 py-4 border-b border-slate-50 last:border-0 transition-colors ${done ? 'bg-emerald-50/40' : 'hover:bg-indigo-50 cursor-pointer'}`}>
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${done ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-100 text-indigo-600'}`}>
-                    {done ? <CheckCircle size={16} /> : s.first_name[0]}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden ${done ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-100 text-indigo-600'}`}>
+                    {done
+                      ? <CheckCircle size={16} />
+                      : s.photo_url
+                        ? <img src={`${process.env.REACT_APP_BACKEND_URL}${s.photo_url}`} alt={s.first_name} className="w-full h-full object-cover" />
+                        : s.first_name[0]}
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-slate-900">{s.first_name} {s.last_name}</p>
@@ -536,8 +546,10 @@ function SelfReportFlow({ className, period, onDone }) {
 
       <div className="bg-white border border-slate-200 rounded-2xl p-7">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center">
-            <span className="text-lg font-bold text-white">{student.first_name[0]}{student.last_name[0]}</span>
+          <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center overflow-hidden">
+            {student.photo_url
+              ? <img src={`${process.env.REACT_APP_BACKEND_URL}${student.photo_url}`} alt={student.first_name} className="w-full h-full object-cover" />
+              : <span className="text-lg font-bold text-white">{student.first_name[0]}{student.last_name[0]}</span>}
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{student.first_name} {student.last_name}</h2>
