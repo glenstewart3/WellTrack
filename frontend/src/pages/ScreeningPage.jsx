@@ -176,6 +176,7 @@ function SAEBRSFlow({ className, period, onDone }) {
   const [scores, setScores] = useState({ social: Array(6).fill(2), academic: Array(6).fill(2), emotional: Array(7).fill(2) });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [touched, setTouched] = useState(new Set());
 
   useEffect(() => {
     const load = async () => {
@@ -214,6 +215,7 @@ function SAEBRSFlow({ className, period, onDone }) {
       }, { withCredentials: true });
       setCompletedStudents(prev => new Set([...prev, student.student_id]));
       setScores({ social: Array(6).fill(2), academic: Array(6).fill(2), emotional: Array(7).fill(2) });
+      setTouched(new Set());
       setCurrent(null);
     } catch (e) {
       setSaveError(e.response?.data?.detail || 'Failed to save');
@@ -222,6 +224,7 @@ function SAEBRSFlow({ className, period, onDone }) {
 
   const openStudent = (i) => {
     setScores({ social: Array(6).fill(2), academic: Array(6).fill(2), emotional: Array(7).fill(2) });
+    setTouched(new Set());
     setSaveError('');
     setCurrent(i);
     scrollTop();
@@ -285,8 +288,10 @@ function SAEBRSFlow({ className, period, onDone }) {
   }
 
   // SAEBRS form for current student
-  const setItem = (domain, idx, val) =>
+  const setItem = (domain, idx, val) => {
     setScores(p => ({ ...p, [domain]: p[domain].map((v, i) => (i === idx ? val : v)) }));
+    setTouched(p => new Set([...p, `${domain}-${idx}`]));
+  };
 
   const sections = [
     { key: 'social', label: 'Social Behavior', items: SOCIAL_ITEMS, max: 18 },
@@ -294,17 +299,35 @@ function SAEBRSFlow({ className, period, onDone }) {
     { key: 'emotional', label: 'Emotional Behavior', items: EMOTIONAL_ITEMS, max: 21 },
   ];
 
+  const touchedCount = touched.size;
+  const allTouched = touchedCount === 19;
+
   return (
-    <div className="p-6 lg:p-8 max-w-3xl mx-auto fade-in">
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => { setCurrent(null); scrollTop(); }}
-          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">
-          <ArrowLeft size={16} /> Back to class
-        </button>
-        <span className="text-slate-300">·</span>
-        <span className="text-sm text-slate-500">{current + 1} / {students.length}</span>
-        <span className="ml-auto px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full">{period}</span>
+    <>
+      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-slate-100">
+        <div className="max-w-3xl mx-auto px-6 lg:px-8 py-3 flex items-center justify-between">
+          <span className="text-sm font-semibold text-slate-700">{student.first_name} {student.last_name}</span>
+          <span className={`text-xs font-bold px-3 py-1 rounded-full ${allTouched ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+            {touchedCount}/19
+          </span>
+        </div>
+        <div className="h-1 bg-slate-100">
+          <div className="h-full transition-all duration-500 ease-out"
+            style={{ width: `${(touchedCount / 19) * 100}%`, background: allTouched ? '#10B981' : '#475569' }}
+          />
+        </div>
       </div>
+
+      <div className="p-6 lg:p-8 max-w-3xl mx-auto fade-in">
+        <div className="flex items-center gap-3 mb-6">
+          <button onClick={() => { setCurrent(null); scrollTop(); }}
+            className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">
+            <ArrowLeft size={16} /> Back to class
+          </button>
+          <span className="text-slate-300">·</span>
+          <span className="text-sm text-slate-500">{current + 1} / {students.length}</span>
+          <span className="ml-auto px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full">{period}</span>
+        </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl p-7 mb-5">
         <div className="flex items-center gap-4 mb-6">
@@ -349,7 +372,8 @@ function SAEBRSFlow({ className, period, onDone }) {
         {saving ? <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <CheckCircle size={16} />}
         {saving ? 'Saving…' : 'Save & Return to List'}
       </button>
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -363,6 +387,7 @@ function SelfReportFlow({ className, period, onDone }) {
   const [items, setItems] = useState(Array(7).fill(1));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [srTouched, setSrTouched] = useState(new Set());
 
   useEffect(() => {
     const load = async () => {
@@ -401,6 +426,7 @@ function SelfReportFlow({ className, period, onDone }) {
       }, { withCredentials: true });
       setCompletedStudents(prev => new Set([...prev, student.student_id]));
       setItems(Array(7).fill(1));
+      setSrTouched(new Set());
       setCurrent(null);
     } catch (e) {
       setSaveError(e.response?.data?.detail || 'Failed to save');
@@ -439,7 +465,7 @@ function SelfReportFlow({ className, period, onDone }) {
             const done = completedStudents.has(s.student_id);
             return (
               <div key={s.student_id}
-                onClick={() => !done && (setCurrent(i), setItems(Array(7).fill(1)), scrollTop())}
+                onClick={() => !done && (setCurrent(i), setItems(Array(7).fill(1)), setSrTouched(new Set()), scrollTop())}
                 data-testid={`select-student-${s.student_id}`}
                 className={`flex items-center justify-between px-5 py-4 border-b border-slate-50 last:border-0 transition-colors ${done ? 'bg-emerald-50/40' : 'hover:bg-indigo-50 cursor-pointer'}`}>
                 <div className="flex items-center gap-3">
@@ -482,12 +508,30 @@ function SelfReportFlow({ className, period, onDone }) {
   }
 
   // Self-report form (Year 3–6)
+  const srTouchedCount = srTouched.size;
+  const allSrTouched = srTouchedCount === 7;
+
   return (
-    <div className="p-6 lg:p-8 max-w-2xl mx-auto fade-in">
-      <button onClick={() => { setCurrent(null); scrollTop(); }}
-        className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-6 transition-colors">
-        <ArrowLeft size={16} /> Back to student list
-      </button>
+    <>
+      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-slate-100">
+        <div className="max-w-2xl mx-auto px-6 lg:px-8 py-3 flex items-center justify-between">
+          <span className="text-sm font-semibold text-slate-700">{student.first_name} {student.last_name}</span>
+          <span className={`text-xs font-bold px-3 py-1 rounded-full ${allSrTouched ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'}`}>
+            {srTouchedCount}/7
+          </span>
+        </div>
+        <div className="h-1 bg-slate-100">
+          <div className="h-full transition-all duration-500 ease-out"
+            style={{ width: `${(srTouchedCount / 7) * 100}%`, background: allSrTouched ? '#10B981' : '#4F46E5' }}
+          />
+        </div>
+      </div>
+
+      <div className="p-6 lg:p-8 max-w-2xl mx-auto fade-in">
+        <button onClick={() => { setCurrent(null); scrollTop(); }}
+          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-6 transition-colors">
+          <ArrowLeft size={16} /> Back to student list
+        </button>
 
       <div className="bg-white border border-slate-200 rounded-2xl p-7">
         <div className="flex items-center gap-4 mb-6">
@@ -514,7 +558,7 @@ function SelfReportFlow({ className, period, onDone }) {
               <p className="text-sm text-slate-700 mb-2 font-medium">{idx + 1}. {item.q}</p>
               <div className="flex gap-2">
                 {[0, 1, 2, 3].map(v => (
-                  <button key={v} onClick={() => setItems(p => p.map((x, i) => i === idx ? v : x))}
+                  <button key={v} onClick={() => { setItems(p => p.map((x, i) => i === idx ? v : x)); setSrTouched(p => new Set([...p, idx])); }}
                     className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition-all ${items[idx] === v ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}>
                     <span className="block">{v}</span>
                     <span className="block text-xs opacity-60">{RESPONSE_LABELS[v]}</span>
@@ -533,7 +577,8 @@ function SelfReportFlow({ className, period, onDone }) {
           {saving ? 'Saving…' : 'Save & Return to List'}
         </button>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

@@ -151,6 +151,8 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 - ✅ **XLSX attendance upload performance** (Mar 2026) — `read_only=True` + `values_only=True` for openpyxl; batch `delete_many` + single `insert_many` replace per-record `delete_one` loops. Upload time drastically reduced.
 - ✅ **Preset Terms 1-4 UI** — Calendar tab now shows 4 fixed rows with inline date inputs; no Add/Delete Term buttons
 - ✅ **Attendance calculation fallback fix** (Mar 2026) — When no school_days in DB, uses all unique attendance record dates as proxy denominator.
+- ✅ **Early Years (F-2) Visual Screener** (Mar 2026) — 7-question illustrated self-report screener for Foundation–Year 2 with custom SVGs, emoji responses (0/1.5/3 rescaling), and Web Speech API TTS. Sticky progress bar (0/7, indigo). Listen/Stop button with `ring-2 ring-indigo-300` active ring and `animate-bounce` icon (no opacity pulse).
+- ✅ **Progress Bar for all screener types** (Mar 2026) — Sticky full-width progress bar added to SAEBRS teacher form (0/19, slate/dark theme) and Y3-6 Self Report form (0/7, indigo theme). Tracks "touched" questions (explicitly clicked) since both start with pre-filled defaults. Resets on student switch. Turns emerald when all questions touched.
 
 ### P1 — Upcoming
 - Email system (deferred by user): automated alert notifications — needs email provider choice (Resend or SendGrid)

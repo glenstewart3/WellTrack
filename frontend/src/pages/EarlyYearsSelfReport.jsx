@@ -532,7 +532,7 @@ export function F2SelfReportForm({ student, period, screeningId, onSave, onBack 
                     title={activeQ === qIdx && speaking ? 'Stop' : 'Listen to question'}
                     className={`flex items-center justify-center gap-1 text-xs font-semibold border rounded-full w-16 py-1 transition-colors ${
                       activeQ === qIdx && speaking
-                        ? 'bg-indigo-100 border-indigo-400 text-indigo-700'
+                        ? 'bg-indigo-100 border-indigo-400 text-indigo-700 ring-2 ring-indigo-300'
                         : 'border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500'
                     }`}
                   >
