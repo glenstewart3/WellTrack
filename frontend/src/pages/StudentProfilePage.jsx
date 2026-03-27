@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getTierColors, getRiskColors, INTERVENTION_TYPES, NOTE_TYPES } from '../utils/tierUtils';
-import { ArrowLeft, Plus, X, Loader, Edit2, Check, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, X, Loader, Edit2, Check, Sparkles, Trash2, AlertTriangle } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { usePermissions } from '../hooks/usePermissions';
 import {
@@ -305,13 +305,15 @@ export default function StudentProfilePage() {
     ? Math.round(5 + (attPct - 90) / 5 * 2)
     : Math.round((attPct / 90) * 4);
 
-  const radarData = latestPlus ? [
-    { domain: 'Social', score: latestPlus.social_domain, max: 18 },
-    { domain: 'Academic', score: latestPlus.academic_domain, max: 18 },
-    { domain: 'Emotional', score: latestPlus.emotional_domain, max: 9 },
-    { domain: 'Belonging', score: latestPlus.belonging_domain, max: 12 },
-    { domain: 'Attendance', score: Math.min(10, attScore), max: 10 },
-  ].map(d => ({ ...d, pct: Math.round((d.score / d.max) * 100) })) : [];
+  const radarData = [
+    { domain: 'Social',     score: latestPlus?.social_domain    ?? 0, max: 18 },
+    { domain: 'Academic',   score: latestPlus?.academic_domain  ?? 0, max: 18 },
+    { domain: 'Emotional',  score: latestPlus?.emotional_domain ?? 0, max: 9  },
+    { domain: 'Belonging',  score: latestPlus?.belonging_domain ?? 0, max: 12 },
+    { domain: 'Attendance', score: Math.min(10, attScore),            max: 10 },
+  ].map(d => ({ ...d, pct: Math.round((d.score / d.max) * 100) }));
+
+  const radarMissing = !latestPlus ? ['Student Self-Report'] : [];
 
   // Display name with optional preferred name
   const displayName = `${student.first_name}${student.preferred_name && student.preferred_name !== student.first_name ? ` (${student.preferred_name})` : ''} ${student.last_name}`;
@@ -452,28 +454,30 @@ export default function StudentProfilePage() {
 
           {/* Wellbeing Radar */}
           <div className="bg-white border border-slate-200 rounded-xl p-6">
-            <h3 className="font-semibold text-slate-900 mb-4" style={{fontFamily:'Manrope,sans-serif'}}>Wellbeing Domain Profile</h3>
-            {radarData.length > 0 ? (
-              <>
-                <ResponsiveContainer width="100%" height={200}>
-                  <RadarChart data={radarData}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="domain" tick={{ fontSize: 12 }} />
-                    <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-                    <Radar dataKey="pct" stroke="#6366f1" fill="#6366f1" fillOpacity={0.2} />
-                    <Tooltip formatter={(v) => [`${v}%`, 'Score']} contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
-                  </RadarChart>
-                </ResponsiveContainer>
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  {radarData.map(d => (
-                    <div key={d.domain} className="text-center">
-                      <p className="text-sm font-bold text-slate-900">{d.score}<span className="text-xs text-slate-400">/{d.max}</span></p>
-                      <p className="text-xs text-slate-400">{d.domain}</p>
-                    </div>
-                  ))}
+            <h3 className="font-semibold text-slate-900 mb-3" style={{fontFamily:'Manrope,sans-serif'}}>Wellbeing Domain Profile</h3>
+            {radarMissing.length > 0 && (
+              <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg mb-4 text-xs text-amber-800">
+                <AlertTriangle size={13} className="shrink-0 mt-0.5 text-amber-500" />
+                <span><span className="font-semibold">{radarMissing.join(', ')}</span> not yet completed — those domains show as 0.</span>
+              </div>
+            )}
+            <ResponsiveContainer width="100%" height={200}>
+              <RadarChart data={radarData}>
+                <PolarGrid />
+                <PolarAngleAxis dataKey="domain" tick={{ fontSize: 12 }} />
+                <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+                <Radar dataKey="pct" stroke="#6366f1" fill="#6366f1" fillOpacity={0.2} />
+                <Tooltip formatter={(v) => [`${v}%`, 'Score']} contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
+              </RadarChart>
+            </ResponsiveContainer>
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              {radarData.map(d => (
+                <div key={d.domain} className="text-center">
+                  <p className="text-sm font-bold text-slate-900">{d.score}<span className="text-xs text-slate-400">/{d.max}</span></p>
+                  <p className="text-xs text-slate-400">{d.domain}</p>
                 </div>
-              </>
-            ) : <p className="text-sm text-slate-400 py-8 text-center">No wellbeing data available</p>}
+              ))}
+            </div>
           </div>
 
           {/* SAEBRS detail */}
