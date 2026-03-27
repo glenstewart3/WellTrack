@@ -67,67 +67,100 @@ function IllChildDesk() {
   );
 }
 
-function IllThoughtBubble() {
+function IllButterflyTummy() {
   return (
     <svg viewBox="0 0 240 148" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
       <rect width="240" height="148" fill="#E8F4FD"/>
-      <rect y="118" width="240" height="30" fill="#C8E6C9"/>
-      {/* Thought bubble */}
-      <ellipse cx="158" cy="54" rx="58" ry="42" fill="white" opacity="0.96"/>
-      <ellipse cx="158" cy="54" rx="58" ry="42" fill="none" stroke="#B0BEC5" strokeWidth="2"/>
-      <circle cx="122" cy="93" r="6" fill="white" stroke="#B0BEC5" strokeWidth="1.5"/>
-      <circle cx="113" cy="105" r="4.5" fill="white" stroke="#B0BEC5" strokeWidth="1.5"/>
-      <circle cx="106" cy="114" r="3" fill="white" stroke="#B0BEC5" strokeWidth="1.5"/>
-      {/* Butterflies */}
-      <path d="M 133 44 Q 127 37 121 44 Q 127 51 133 44 Z" fill="#FFAB91"/>
-      <path d="M 133 44 Q 139 37 145 44 Q 139 51 133 44 Z" fill="#FF7043"/>
-      <circle cx="133" cy="44" r="2" fill="#BF360C"/>
-      <path d="M 168 34 Q 162 27 156 34 Q 162 41 168 34 Z" fill="#80DEEA"/>
-      <path d="M 168 34 Q 174 27 180 34 Q 174 41 168 34 Z" fill="#26C6DA"/>
-      <circle cx="168" cy="34" r="2" fill="#00838F"/>
-      {/* Squiggly lines */}
-      <path d="M 130 62 Q 136 57 142 62 Q 148 67 154 62 Q 160 57 166 62 Q 172 67 178 62 Q 184 57 190 62" fill="none" stroke="#CFD8DC" strokeWidth="2" strokeLinecap="round"/>
-      <path d="M 125 72 Q 131 67 137 72 Q 143 77 149 72 Q 155 67 161 72 Q 167 77 173 72 Q 179 67 185 72" fill="none" stroke="#CFD8DC" strokeWidth="2" strokeLinecap="round"/>
-      {/* Child */}
-      <rect x="60" y="94" width="30" height="28" rx="10" fill="#81C784"/>
-      <circle cx="75" cy="81" r="15" fill="#FFCCBC"/>
-      <path d="M 60 81 Q 60 63 75 63 Q 90 63 90 81 Q 87 72 75 70 Q 63 72 60 81 Z" fill="#FF8A65"/>
-      <circle cx="70" cy="80" r="2.5" fill="#424242"/>
-      <circle cx="80" cy="80" r="2.5" fill="#424242"/>
-      <path d="M 71 87 Q 75 84 79 87" fill="none" stroke="#424242" strokeWidth="1.8" strokeLinecap="round"/>
+      <rect y="122" width="240" height="26" fill="#C8E6C9"/>
+      <path d="M 18 122 Q 21 115 24 122" fill="#A5D6A7"/>
+      <path d="M 52 122 Q 55 116 58 122" fill="#A5D6A7"/>
+      <path d="M 180 122 Q 183 116 186 122" fill="#A5D6A7"/>
+      <path d="M 215 122 Q 218 116 221 122" fill="#A5D6A7"/>
+      {/* Legs */}
+      <rect x="99" y="107" width="13" height="20" rx="5" fill="#5C6BC0"/>
+      <rect x="115" y="107" width="13" height="20" rx="5" fill="#5C6BC0"/>
+      {/* Shirt body */}
+      <rect x="92" y="73" width="42" height="36" rx="12" fill="#81C784"/>
+      {/* Tummy window — see-through belly */}
+      <rect x="99" y="83" width="28" height="26" rx="12" fill="#F1F8E9" opacity="0.75"/>
+      <rect x="99" y="83" width="28" height="26" rx="12" fill="none" stroke="#A5D6A7" strokeWidth="2"/>
+      {/* Butterflies inside tummy */}
+      {/* Butterfly 1 — orange top-left */}
+      <path d="M 108 90 Q 103 85 100 90 Q 103 95 108 90 Z" fill="#FFAB91"/>
+      <path d="M 108 90 Q 113 85 116 90 Q 113 95 108 90 Z" fill="#FF7043"/>
+      <circle cx="108" cy="90" r="1.5" fill="#BF360C"/>
+      {/* Butterfly 2 — teal lower-right */}
+      <path d="M 121 101 Q 116 96 113 101 Q 116 106 121 101 Z" fill="#80DEEA"/>
+      <path d="M 121 101 Q 126 96 129 101 Q 126 106 121 101 Z" fill="#26C6DA"/>
+      <circle cx="121" cy="101" r="1.5" fill="#006064"/>
+      {/* Butterfly 3 — purple lower-left */}
+      <path d="M 108 103 Q 103 98 100 103 Q 103 108 108 103 Z" fill="#CE93D8"/>
+      <path d="M 108 103 Q 113 98 116 103 Q 113 108 108 103 Z" fill="#AB47BC"/>
+      <circle cx="108" cy="103" r="1.5" fill="#4A148C"/>
+      {/* Arms */}
+      <rect x="76" y="77" width="16" height="9" rx="4" fill="#FFCCBC" transform="rotate(-15 76 82)"/>
+      <rect x="132" y="77" width="16" height="9" rx="4" fill="#FFCCBC" transform="rotate(15 148 82)"/>
+      {/* Head */}
+      <circle cx="113" cy="60" r="16" fill="#FFCCBC"/>
+      {/* Hair */}
+      <path d="M 97 60 Q 97 41 113 41 Q 129 41 129 60 Q 126 51 113 49 Q 100 51 97 60 Z" fill="#FF8A65"/>
+      {/* Worried inner brows */}
+      <path d="M 104 54 Q 107 50 111 54" fill="none" stroke="#37474F" strokeWidth="2.2" strokeLinecap="round"/>
+      <path d="M 115 54 Q 119 50 122 54" fill="none" stroke="#37474F" strokeWidth="2.2" strokeLinecap="round"/>
+      {/* Wide worried eyes */}
+      <circle cx="108" cy="59" r="3.2" fill="#424242"/>
+      <circle cx="118" cy="59" r="3.2" fill="#424242"/>
+      <circle cx="109.5" cy="57.5" r="1.2" fill="white"/>
+      <circle cx="119.5" cy="57.5" r="1.2" fill="white"/>
+      {/* Worried downturned mouth */}
+      <path d="M 108 68 Q 113 65 118 68" fill="none" stroke="#424242" strokeWidth="2" strokeLinecap="round"/>
     </svg>
   );
 }
 
-function IllAngryPlayground() {
+function IllAngryClassroom() {
   return (
     <svg viewBox="0 0 240 148" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
-      <rect width="240" height="148" fill="#FFF3E0"/>
-      <rect y="118" width="240" height="30" fill="#A5D6A7"/>
-      {/* Clouds */}
-      <ellipse cx="52" cy="28" rx="30" ry="14" fill="white" opacity="0.85"/>
-      <ellipse cx="73" cy="22" rx="20" ry="11" fill="white" opacity="0.85"/>
-      <ellipse cx="182" cy="35" rx="26" ry="12" fill="white" opacity="0.85"/>
-      {/* Play equipment */}
-      <rect x="175" y="78" width="8" height="42" rx="3" fill="#BCAAA4"/>
-      <rect x="200" y="78" width="8" height="42" rx="3" fill="#BCAAA4"/>
-      <rect x="173" y="76" width="37" height="7" rx="3" fill="#FF8A80"/>
+      {/* Classroom */}
+      <rect width="240" height="148" fill="#FFF8F0"/>
+      <rect y="116" width="240" height="32" fill="#F2DFC0"/>
+      {/* Window */}
+      <rect x="168" y="12" width="56" height="64" rx="6" fill="#B3E5FC"/>
+      <rect x="194" y="12" width="3" height="64" fill="white" opacity="0.6"/>
+      <rect x="168" y="43" width="56" height="3" fill="white" opacity="0.6"/>
+      <circle cx="182" cy="28" r="11" fill="#FDD835" opacity="0.85"/>
+      {/* Posters */}
+      <rect x="14" y="14" width="34" height="42" rx="4" fill="#FFCC80"/>
+      <rect x="55" y="14" width="34" height="42" rx="4" fill="#A5D6A7"/>
+      {/* Desk */}
+      <rect x="50" y="98" width="130" height="11" rx="5" fill="#D7CCC8"/>
+      <rect x="65" y="109" width="9" height="20" rx="3" fill="#BCAAA4"/>
+      <rect x="157" y="109" width="9" height="20" rx="3" fill="#BCAAA4"/>
       {/* Child body */}
-      <rect x="94" y="92" width="32" height="28" rx="10" fill="#EF9A9A"/>
-      {/* Arms / fists */}
-      <rect x="76" y="97" width="18" height="9" rx="4" fill="#FFCCBC" transform="rotate(-20 76 102)"/>
-      <rect x="110" y="97" width="18" height="9" rx="4" fill="#FFCCBC" transform="rotate(20 128 102)"/>
-      <rect x="73" y="106" width="12" height="10" rx="4" fill="#FFAB91"/>
-      <rect x="114" y="106" width="12" height="10" rx="4" fill="#FFAB91"/>
-      {/* Child head */}
-      <circle cx="110" cy="81" r="15" fill="#FFCCBC"/>
-      <path d="M 95 81 Q 95 63 110 63 Q 125 63 125 81 Q 122 72 110 70 Q 98 72 95 81 Z" fill="#5D4037"/>
-      {/* Furrowed brows */}
-      <path d="M 101 76 Q 106 72 108 75" fill="none" stroke="#37474F" strokeWidth="2.5" strokeLinecap="round"/>
-      <path d="M 112 75 Q 114 72 119 76" fill="none" stroke="#37474F" strokeWidth="2.5" strokeLinecap="round"/>
-      <circle cx="105" cy="79" r="2.5" fill="#424242"/>
-      <circle cx="115" cy="79" r="2.5" fill="#424242"/>
-      <path d="M 105 87 Q 110 83 115 87" fill="none" stroke="#424242" strokeWidth="2" strokeLinecap="round"/>
+      <rect x="93" y="74" width="34" height="26" rx="10" fill="#EF9A9A"/>
+      {/* Steam from left ear — two wavy S-curves curling up */}
+      <path d="M 93 60 C 84 54 90 46 83 40" fill="none" stroke="#B0BEC5" strokeWidth="3" strokeLinecap="round"/>
+      <path d="M 95 65 C 86 58 91 50 85 44" fill="none" stroke="#CFD8DC" strokeWidth="2.5" strokeLinecap="round" opacity="0.7"/>
+      <path d="M 91 57 C 82 51 88 44 81 38" fill="none" stroke="#ECEFF1" strokeWidth="2" strokeLinecap="round" opacity="0.5"/>
+      {/* Steam from right ear */}
+      <path d="M 127 60 C 136 54 130 46 137 40" fill="none" stroke="#B0BEC5" strokeWidth="3" strokeLinecap="round"/>
+      <path d="M 125 65 C 134 58 129 50 135 44" fill="none" stroke="#CFD8DC" strokeWidth="2.5" strokeLinecap="round" opacity="0.7"/>
+      <path d="M 129 57 C 138 51 132 44 139 38" fill="none" stroke="#ECEFF1" strokeWidth="2" strokeLinecap="round" opacity="0.5"/>
+      {/* Red flushed head */}
+      <circle cx="110" cy="61" r="16" fill="#EF5350"/>
+      {/* Hair */}
+      <path d="M 94 61 Q 94 42 110 42 Q 126 42 126 61 Q 123 52 110 50 Q 97 52 94 61 Z" fill="#5D4037"/>
+      {/* Very furrowed brows — deep V */}
+      <path d="M 100 54 Q 105 49 108 54" fill="none" stroke="#1A237E" strokeWidth="3" strokeLinecap="round"/>
+      <path d="M 112 54 Q 115 49 120 54" fill="none" stroke="#1A237E" strokeWidth="3" strokeLinecap="round"/>
+      {/* Squinting angry eyes */}
+      <ellipse cx="105" cy="59" rx="3" ry="2.5" fill="#37474F"/>
+      <ellipse cx="115" cy="59" rx="3" ry="2.5" fill="#37474F"/>
+      {/* Deep frown */}
+      <path d="M 104 69 Q 110 64 116 69" fill="none" stroke="#37474F" strokeWidth="2.8" strokeLinecap="round"/>
+      {/* Red flush on cheeks */}
+      <circle cx="100" cy="65" r="6" fill="#C62828" opacity="0.25"/>
+      <circle cx="120" cy="65" r="6" fill="#C62828" opacity="0.25"/>
     </svg>
   );
 }
@@ -321,13 +354,13 @@ const F2_QUESTIONS = [
   {
     id: 2, question: "Do you feel worried at school?",
     support: "Does your tummy feel funny or scared at school?",
-    Illustration: IllThoughtBubble,
+    Illustration: IllButterflyTummy,
     options: [{ label: 'Never', emoji: '😊', value: 0 }, { label: 'Sometimes', emoji: '😐', value: 1 }, { label: 'Always', emoji: '😟', value: 2 }],
   },
   {
     id: 3, question: "Do you feel angry at school?",
     support: "Do you feel like you want to yell or cry at school?",
-    Illustration: IllAngryPlayground,
+    Illustration: IllAngryClassroom,
     options: [{ label: 'Never', emoji: '😊', value: 0 }, { label: 'Sometimes', emoji: '😐', value: 1 }, { label: 'Always', emoji: '😠', value: 2 }],
   },
   {
