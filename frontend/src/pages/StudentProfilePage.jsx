@@ -438,7 +438,7 @@ export default function StudentProfilePage() {
                 ) : (
                   <LineChart data={screeningChartData}>
                     <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
+                    <YAxis domain={[0, 21]} tick={{ fontSize: 11 }} />
                     <Tooltip contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
                     <Legend wrapperStyle={{ fontSize: '11px' }} />
                     <Line type="monotone" dataKey="social" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} name="Social (0–18)" />
