@@ -177,7 +177,7 @@ export default function AlertsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex overflow-x-auto border-b border-slate-200 mb-0 -mx-6 px-6 sm:mx-0 sm:px-0">
+      <div className="flex overflow-x-auto overflow-y-hidden border-b border-slate-200 mb-0 -mx-6 px-6 sm:mx-0 sm:px-0">
         {[
           { key: 'early_warning', label: 'Early Warnings', short: 'Warnings', count: unreadEW, Icon: AlertTriangle },
           { key: 'tier_change', label: 'Tier Changes', short: 'Tier Chg', count: unreadTC, Icon: TrendingUp },
