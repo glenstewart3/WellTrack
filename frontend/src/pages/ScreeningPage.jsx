@@ -449,7 +449,7 @@ function SelfReportFlow({ className, period, onDone }) {
                   <div>
                     <p className="text-sm font-semibold text-slate-900">{s.first_name} {s.last_name}</p>
                     <p className="text-xs text-slate-400">{s.year_level}</p>
-                    {isF2Student(s.year_level) && <span className="inline-block ml-1.5 text-xs text-violet-500 font-semibold">· F–2</span>}
+
 
                   </div>
                 </div>
