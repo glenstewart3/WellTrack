@@ -327,11 +327,19 @@ export default function StudentProfilePage() {
     { domain: 'Attendance', score: Math.min(10, attScore), max: 10 },
   ].map(d => ({ ...d, pct: Math.round((d.score / d.max) * 100) }));
 
-  const radarMissing = !latestPlus
-    ? (radarUsingSaebrs
-        ? 'Student Self-Report not yet completed — showing SAEBRS teacher scores for Social, Academic & Emotional. Belonging shows as 0.'
-        : 'Student Self-Report not yet completed — Social, Academic, Emotional & Belonging domains show as 0.')
-    : null;
+  const radarAlerts = [
+    !latestSaebrs
+      ? 'SAEBRS Screener not yet completed.'
+      : null,
+    !latestPlus
+      ? (radarUsingSaebrs
+          ? 'Student Self-Report not yet completed — showing SAEBRS teacher scores for Social, Academic & Emotional. Belonging shows as 0.'
+          : 'Student Self-Report not yet completed — Social, Academic, Emotional & Belonging domains show as 0.')
+      : null,
+    attendance_pct == null
+      ? 'No attendance data recorded — Attendance domain shows as 0.'
+      : null,
+  ].filter(Boolean);
 
   // Display name with optional preferred name
   const displayName = `${student.first_name}${student.preferred_name && student.preferred_name !== student.first_name ? ` (${student.preferred_name})` : ''} ${student.last_name}`;
@@ -473,10 +481,14 @@ export default function StudentProfilePage() {
           {/* Wellbeing Radar */}
           <div className="bg-white border border-slate-200 rounded-xl p-6">
             <h3 className="font-semibold text-slate-900 mb-3" style={{fontFamily:'Manrope,sans-serif'}}>Wellbeing Domain Profile</h3>
-            {radarMissing && (
-              <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg mb-4 text-xs text-amber-800">
-                <AlertTriangle size={13} className="shrink-0 mt-0.5 text-amber-500" />
-                <span>{radarMissing}</span>
+            {radarAlerts.length > 0 && (
+              <div className="flex flex-col gap-1.5 mb-4">
+                {radarAlerts.map((msg, i) => (
+                  <div key={i} className="flex items-start gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                    <AlertTriangle size={13} className="shrink-0 mt-0.5 text-amber-500" />
+                    <span>{msg}</span>
+                  </div>
+                ))}
               </div>
             )}
             <ResponsiveContainer width="100%" height={200}>
