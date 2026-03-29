@@ -77,7 +77,7 @@ export default function ClassroomRadarPage() {
     return 'unscreened';
   };
 
-  const tierRowColors = { 3: 'border-l-4 border-l-rose-400 bg-rose-50/30', 2: 'border-l-4 border-l-amber-400 bg-amber-50/30', 1: '', 0: 'opacity-60' };
+  const tierRowColors = { 3: 'border-l-4 border-l-rose-400 bg-rose-50', 2: 'border-l-4 border-l-amber-400 bg-amber-50', 1: '', 0: 'opacity-60' };
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto fade-in">

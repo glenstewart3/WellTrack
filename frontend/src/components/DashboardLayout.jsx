@@ -6,7 +6,7 @@ import { useTheme, THEMES, THEME_NAV_ACTIVE } from '../context/ThemeContext';
 import {
   LayoutDashboard, ClipboardCheck, Users, Radar, BarChart3,
   Target, Users2, Bell, Settings, LogOut,
-  Menu, X, Shield, UserCog, CalendarDays, Check, Sun, Moon
+  Menu, X, Shield, UserCog, CalendarDays, Check, Sun, Moon, Monitor
 } from 'lucide-react';
 
 const navItems = [
@@ -202,9 +202,10 @@ export default function DashboardLayout() {
                     <p className="text-xs font-medium text-slate-400 mb-2">Appearance</p>
                     <div className="flex items-center gap-2">
                       {[
-                        { key: 'default', label: 'Light', bg: '#f8fafc', border: '#e2e8f0', icon: <Sun size={10} /> },
-                        { key: 'dark',    label: 'Dark',  bg: '#1e293b', border: '#334155', icon: <Moon size={10} /> },
-                      ].map(({ key, label, bg, border, icon }) => (
+                        { key: 'default', label: 'Light',  bg: '#f8fafc', border: '#e2e8f0', icon: <Sun size={10} />,     textColor: '#334155' },
+                        { key: 'dark',    label: 'Dark',   bg: '#1e293b', border: '#334155', icon: <Moon size={10} />,    textColor: '#f1f5f9' },
+                        { key: 'system',  label: 'System', bg: '#f1f5f9', border: '#94a3b8', icon: <Monitor size={10} />, textColor: '#475569' },
+                      ].map(({ key, label, bg, border, icon, textColor }) => (
                         <button
                           key={key}
                           onClick={() => setTheme(key)}
@@ -214,13 +215,13 @@ export default function DashboardLayout() {
                           style={{
                             backgroundColor: bg,
                             border: `1.5px solid ${theme === key ? '#3b82f6' : border}`,
-                            color: key === 'dark' ? '#f1f5f9' : '#334155',
+                            color: textColor,
                             boxShadow: theme === key ? '0 0 0 2px rgba(59,130,246,0.3)' : 'none',
                           }}
                         >
                           <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: border }}>
                             {theme === key
-                              ? <Check size={9} strokeWidth={3} style={{ color: key === 'dark' ? '#f1f5f9' : '#334155' }} />
+                              ? <Check size={9} strokeWidth={3} style={{ color: textColor }} />
                               : <span style={{ color: key === 'dark' ? '#94a3b8' : '#64748b' }}>{icon}</span>
                             }
                           </span>
