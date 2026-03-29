@@ -262,6 +262,7 @@ export default function StudentsPage() {
   const [filterStatus, setFilterStatus] = useState('active');
   const [sortField, setSortField] = useState(null);
   const [sortDir, setSortDir] = useState('asc');
+  const [filterChronicOnly, setFilterChronicOnly] = useState(false);
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -301,7 +302,8 @@ export default function StudentsPage() {
     const matchSearch = !search || name.includes(search.toLowerCase());
     const matchClass = !filterClass || s.class_name === filterClass;
     const matchTier = !filterTier || String(s.mtss_tier) === filterTier;
-    return matchSearch && matchClass && matchTier;
+    const matchChronic = !filterChronicOnly || (s.attendance_pct !== null && s.attendance_pct < 90);
+    return matchSearch && matchClass && matchTier && matchChronic;
   }).sort((a, b) => {
     if (!sortField) return (b.mtss_tier || 0) - (a.mtss_tier || 0);
     let aVal, bVal;
@@ -415,7 +417,22 @@ export default function StudentsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>Students</h1>
-          <p className="text-slate-500 mt-1">{students.length} {filterStatus === 'archived' ? 'archived' : 'enrolled'} students</p>
+          <div className="flex items-center gap-3 mt-1 flex-wrap">
+            <p className="text-slate-500">{students.length} {filterStatus === 'archived' ? 'archived' : 'enrolled'} students</p>
+            {filterStatus === 'active' && (() => {
+              const chronicCount = students.filter(s => s.attendance_pct !== null && s.attendance_pct < 90).length;
+              return chronicCount > 0 ? (
+                <button
+                  onClick={() => setFilterChronicOnly(f => !f)}
+                  data-testid="chronic-absentee-summary-chip"
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${filterChronicOnly ? 'bg-rose-600 text-white border-rose-600' : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'}`}
+                >
+                  <AlertTriangle size={12} />
+                  {chronicCount} chronic absentee{chronicCount !== 1 ? 's' : ''}
+                </button>
+              ) : null;
+            })()}
+          </div>
         </div>
         <div className="flex gap-2">
           {filterStatus === 'active' && canDo('students.add_edit') && (
@@ -549,6 +566,19 @@ export default function StudentsPage() {
           <option value="3">Tier 3 (High Risk)</option>
           <option value="">Not Screened</option>
         </select>
+        <button
+          onClick={() => setFilterChronicOnly(f => !f)}
+          data-testid="filter-chronic-toggle"
+          title="Show only students with attendance below 90%"
+          className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition-colors shrink-0 hidden sm:flex ${
+            filterChronicOnly
+              ? 'bg-rose-600 text-white border-rose-600'
+              : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          <AlertTriangle size={14} />
+          Chronic Absence
+        </button>
         {/* Edit mode toggle — shown if they can edit or archive */}
         {(canDo('students.add_edit') || canDo('students.archive')) && (
         <button
@@ -679,9 +709,21 @@ export default function StudentsPage() {
                         ) : <span className="text-xs text-slate-400">—</span>}
                       </td>
                       <td className="py-3 px-4">
-                        <span className={`text-sm font-medium ${s.attendance_pct < 80 ? 'text-rose-600' : s.attendance_pct < 90 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                          {s.attendance_pct}%
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`text-sm font-medium ${s.attendance_pct !== null && s.attendance_pct < 80 ? 'text-rose-600' : s.attendance_pct !== null && s.attendance_pct < 90 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                            {s.attendance_pct !== null ? `${s.attendance_pct}%` : '—'}
+                          </span>
+                          {s.attendance_pct !== null && s.attendance_pct < 90 && (
+                            <span
+                              className="inline-flex items-center gap-0.5 px-1.5 py-px rounded text-[10px] font-bold bg-rose-100 text-rose-700 leading-none"
+                              data-testid={`chronic-badge-${s.student_id}`}
+                              title={`Chronic absence: ${s.attendance_pct}% attendance (below 90%)`}
+                            >
+                              <AlertTriangle size={9} />
+                              CA
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-4 hidden sm:table-cell">
                         {s.active_interventions > 0 ? (
