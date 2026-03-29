@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { ArrowLeft, Volume2, CheckCircle } from 'lucide-react';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // ── Year level detection ──────────────────────────────────────────────────────
 export function isF2Student(yearLevel) {
@@ -495,7 +493,7 @@ export function F2SelfReportForm({ student, period, screeningId, onSave, onBack 
     setSaveError('');
     try {
       const backendItems = buildF2BackendItems(answers);
-      await axios.post(`${API}/screening/saebrs-plus`, {
+      await api.post('/screening/saebrs-plus', {
         student_id: student.student_id,
         screening_id: screeningId,
         screening_period: period,
@@ -503,7 +501,7 @@ export function F2SelfReportForm({ student, period, screeningId, onSave, onBack 
         attendance_pct: 100,
         social_domain: 0, academic_domain: 0, emotional_domain: 0, belonging_domain: 0,
         wellbeing_total: 0, wellbeing_tier: 1,
-      }, { withCredentials: true });
+      });
       onSave(student.student_id);
     } catch (e) {
       setSaveError(e.response?.data?.detail || 'Failed to save. Please try again.');

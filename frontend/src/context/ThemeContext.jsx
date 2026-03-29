@@ -1,8 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useAuth } from './AuthContext';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export const THEMES = {
   default: { name: 'Light', swatch: '#f8fafc' },
@@ -35,7 +33,7 @@ export function ThemeProvider({ children }) {
     setThemeState(newTheme);
     applyTheme(newTheme);
     try {
-      await axios.put(`${API}/auth/preferences`, { theme: newTheme }, { withCredentials: true });
+      await api.put('/auth/preferences', { theme: newTheme });
     } catch (e) {}
   }, []);
 

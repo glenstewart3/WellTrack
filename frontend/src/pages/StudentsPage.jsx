@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { getTierColors, getRiskColors } from '../utils/tierUtils';
 import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight, UserPlus, Archive, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Camera } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const CSV_TEMPLATE = `first_name,last_name,year_level,class_name,teacher,gender,date_of_birth
 Emma,Smith,Year 3,Year 3A,Ms Thompson,Female,2014-03-15
@@ -73,7 +71,7 @@ function ImportModal({ onClose, onSuccess }) {
     if (!parsed) return;
     setImporting(true);
     try {
-      const res = await axios.post(`${API}/students/import`, { students: parsed.rows }, { withCredentials: true });
+      const res = await api.post('/students/import', { students: parsed.rows });
       setResult(res.data);
       if (res.data.imported > 0) onSuccess();
     } catch (e) {
@@ -287,8 +285,8 @@ export default function StudentsPage() {
   const loadStudents = async () => {
     try {
       const [studRes, clsRes] = await Promise.all([
-        axios.get(`${API}/students/summary?status=${filterStatus}`, { withCredentials: true }),
-        axios.get(`${API}/classes`, { withCredentials: true }),
+        api.get(`/students/summary?status=${filterStatus}`),
+        api.get('/classes'),
       ]);
       setStudents(studRes.data);
       setClasses(clsRes.data);
@@ -328,7 +326,7 @@ export default function StudentsPage() {
     }
     setAddStudentSaving(true); setAddStudentError('');
     try {
-      await axios.post(`${API}/students`, addStudentForm, { withCredentials: true });
+      await api.post('/students', addStudentForm);
       setShowAddStudent(false);
       setAddStudentForm({ first_name: '', last_name: '', year_level: '', class_name: '', teacher: '', gender: '', date_of_birth: '' });
       loadStudents();
@@ -347,7 +345,7 @@ export default function StudentsPage() {
     if (!editForm.first_name || !editForm.last_name) { setEditError('First and last name are required'); return; }
     setEditSaving(true); setEditError('');
     try {
-      await axios.put(`${API}/students/${editStudent.student_id}`, editForm, { withCredentials: true });
+      await api.put(`/students/${editStudent.student_id}`, editForm);
       setEditStudent(null);
       loadStudents();
     } catch (e) { setEditError(e.response?.data?.detail || 'Update failed'); }
@@ -358,7 +356,7 @@ export default function StudentsPage() {
     if (!editStudent?.student_id) return;
     setRemovingPhoto(true);
     try {
-      await axios.delete(`${API}/students/${editStudent.student_id}/photo`, { withCredentials: true });
+      await api.delete(`/students/${editStudent.student_id}/photo`);
       setEditStudent(prev => ({ ...prev, photo_url: null }));
       loadStudents();
     } catch (e) { setEditError(e.response?.data?.detail || 'Failed to remove photo'); }
@@ -374,7 +372,7 @@ export default function StudentsPage() {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await axios.post(`${API}/students/${editStudent.student_id}/photo`, fd, { withCredentials: true });
+      const res = await api.post(`/students/${editStudent.student_id}/photo`, fd);
       setEditStudent(prev => ({ ...prev, photo_url: res.data.photo_url }));
       loadStudents();
     } catch (e) { setEditError(e.response?.data?.detail || 'Photo upload failed'); }
@@ -394,7 +392,7 @@ export default function StudentsPage() {
     if (!window.confirm(`Archive ${selectedIds.size} student(s)? They will be hidden from the active list.`)) return;
     setArchiving(true);
     try {
-      await axios.put(`${API}/students/bulk-archive`, { student_ids: [...selectedIds] }, { withCredentials: true });
+      await api.put('/students/bulk-archive', { student_ids: [...selectedIds] });
       setSelectedIds(new Set());
       loadStudents();
     } catch (e) { console.error(e); }
@@ -405,7 +403,7 @@ export default function StudentsPage() {
     if (!window.confirm(`Reactivate ${selectedIds.size} student(s)? They will return to the active list.`)) return;
     setReactivating(true);
     try {
-      await axios.put(`${API}/students/bulk-reactivate`, { student_ids: [...selectedIds] }, { withCredentials: true });
+      await api.put('/students/bulk-reactivate', { student_ids: [...selectedIds] });
       setSelectedIds(new Set());
       loadStudents();
     } catch (e) { console.error(e); }

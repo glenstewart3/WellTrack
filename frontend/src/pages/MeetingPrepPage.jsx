@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { getTierColors, getRiskColors } from '../utils/tierUtils';
 import { Users2, Download, ChevronRight, TrendingUp, TrendingDown, ArrowRight, FileText } from 'lucide-react';
 import { exportMeetingReport } from '../utils/pdfExport';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 function studentDisplayName(s) {
   if (!s) return '';
@@ -23,7 +21,7 @@ export default function MeetingPrepPage() {
   const [activeTab, setActiveTab] = useState('students');
 
   useEffect(() => {
-    axios.get(`${API}/meeting-prep`, { withCredentials: true })
+    api.get('/meeting-prep')
       .then(r => {
         // Handle both old (array) and new (object with students + tier_changes)
         if (Array.isArray(r.data)) {

@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useLocation } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
 import { ClipboardCheck, User, ChevronRight, CheckCircle, ArrowLeft, X, AlertTriangle } from 'lucide-react';
 import { F2SelfReportForm, isF2Student } from './EarlyYearsSelfReport';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // ─── SAEBRS question banks ───────────────────────────────────────────────────
 const SOCIAL_ITEMS = [
@@ -115,7 +113,7 @@ function ClassSelect({ mode, activePeriod, onNext, onBack }) {
   const [loadingClasses, setLoadingClasses] = useState(true);
 
   useEffect(() => {
-    axios.get(`${API}/classes`, { withCredentials: true })
+    api.get('/classes')
       .then(r => setClasses(r.data))
       .catch(e => console.error(e))
       .finally(() => setLoadingClasses(false));
@@ -182,8 +180,8 @@ function SAEBRSFlow({ className, period, onDone }) {
   useEffect(() => {
     const load = async () => {
       const [studRes, compRes] = await Promise.all([
-        axios.get(`${API}/students?class_name=${encodeURIComponent(className)}&enrolment_status=active`, { withCredentials: true }),
-        axios.get(`${API}/screening/completed?class_name=${encodeURIComponent(className)}&period=${encodeURIComponent(period)}&type=saebrs`, { withCredentials: true }),
+        api.get(`/students?class_name=${encodeURIComponent(className)}&enrolment_status=active`),
+        api.get(`/screening/completed?class_name=${encodeURIComponent(className)}&period=${encodeURIComponent(period)}&type=saebrs`),
       ]);
       setStudents(studRes.data);
       setCompletedStudents(new Set(compRes.data.completed || []));
@@ -205,7 +203,7 @@ function SAEBRSFlow({ className, period, onDone }) {
     if (!student) return;
     setSaving(true); setSaveError('');
     try {
-      await axios.post(`${API}/screening/saebrs`, {
+      await api.post('/screening/saebrs', {
         student_id: student.student_id,
         screening_id: screeningId,
         screening_period: period,
@@ -213,7 +211,7 @@ function SAEBRSFlow({ className, period, onDone }) {
         academic_items: scores.academic,
         emotional_items: scores.emotional,
         social_score: 0, academic_score: 0, emotional_score: 0, total_score: 0,
-      }, { withCredentials: true });
+      });
       setCompletedStudents(prev => new Set([...prev, student.student_id]));
       setScores({ social: Array(6).fill(null), academic: Array(6).fill(null), emotional: Array(7).fill(null) });
       setTouched(new Set());
@@ -399,8 +397,8 @@ function SelfReportFlow({ className, period, onDone }) {
   useEffect(() => {
     const load = async () => {
       const [studRes, compRes] = await Promise.all([
-        axios.get(`${API}/students?class_name=${encodeURIComponent(className)}&enrolment_status=active`, { withCredentials: true }),
-        axios.get(`${API}/screening/completed?class_name=${encodeURIComponent(className)}&period=${encodeURIComponent(period)}&type=self_report`, { withCredentials: true }),
+        api.get(`/students?class_name=${encodeURIComponent(className)}&enrolment_status=active`),
+        api.get(`/screening/completed?class_name=${encodeURIComponent(className)}&period=${encodeURIComponent(period)}&type=self_report`),
       ]);
       setStudents(studRes.data);
       setCompletedStudents(new Set(compRes.data.completed || []));
@@ -422,7 +420,7 @@ function SelfReportFlow({ className, period, onDone }) {
     if (!student) return;
     setSaving(true); setSaveError('');
     try {
-      await axios.post(`${API}/screening/saebrs-plus`, {
+      await api.post('/screening/saebrs-plus', {
         student_id: student.student_id,
         screening_id: screeningId,
         screening_period: period,
@@ -430,7 +428,7 @@ function SelfReportFlow({ className, period, onDone }) {
         attendance_pct: 100,
         social_domain: 0, academic_domain: 0, emotional_domain: 0, belonging_domain: 0,
         wellbeing_total: 0, wellbeing_tier: 1,
-      }, { withCredentials: true });
+      });
       setCompletedStudents(prev => new Set([...prev, student.student_id]));
       setItems(Array(7).fill(null));
       setSrTouched(new Set());

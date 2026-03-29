@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { getTierColors, getRiskColors, RISK_INDICATOR_LABELS, RISK_INDICATOR_COLORS } from '../utils/tierUtils';
 import { Radar, ChevronUp, ChevronDown } from 'lucide-react';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function ClassroomRadarPage() {
   const navigate = useNavigate();
@@ -16,7 +14,7 @@ export default function ClassroomRadarPage() {
   const [sortDir, setSortDir] = useState('desc');
 
   useEffect(() => {
-    axios.get(`${API}/classes`, { withCredentials: true }).then(r => {
+    api.get('/classes').then(r => {
       setClasses(r.data);
       if (r.data.length > 0) setSelectedClass(r.data[0].class_name);
     }).catch(console.error);
@@ -25,7 +23,7 @@ export default function ClassroomRadarPage() {
   useEffect(() => {
     if (!selectedClass) return;
     setLoading(true);
-    axios.get(`${API}/analytics/classroom-radar/${encodeURIComponent(selectedClass)}`, { withCredentials: true })
+    api.get(`/analytics/classroom-radar/${encodeURIComponent(selectedClass)}`)
       .then(r => setRadarData(r.data))
       .catch(console.error)
       .finally(() => setLoading(false));

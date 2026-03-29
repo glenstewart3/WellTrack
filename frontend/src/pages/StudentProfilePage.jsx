@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { getTierColors, getRiskColors, INTERVENTION_TYPES, NOTE_TYPES } from '../utils/tierUtils';
 import { ArrowLeft, Plus, X, Loader, Edit2, Check, Sparkles, Trash2, AlertTriangle } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
@@ -25,9 +25,14 @@ function InlineEditIntervention({ intv, interventionTypes, onSave, onDelete, can
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave(intv.intervention_id, { progress_notes: form.progress_notes, status: form.status, goals: form.goals, rationale: form.rationale });
-    setSaving(false);
-    setEditing(false);
+    try {
+      await onSave(intv.intervention_id, { progress_notes: form.progress_notes, status: form.status, goals: form.goals, rationale: form.rationale });
+      setEditing(false);
+    } catch (e) {
+      console.error('Failed to save intervention:', e);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -110,9 +115,14 @@ function InlineEditNote({ note, onSave, onDelete, canDelete }) {
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave(note.case_id, { notes });
-    setSaving(false);
-    setEditing(false);
+    try {
+      await onSave(note.case_id, { notes });
+      setEditing(false);
+    } catch (e) {
+      console.error('Failed to save note:', e);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -168,8 +178,6 @@ function InlineEditNote({ note, onSave, onDelete, canDelete }) {
   );
 }
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-
 export default function StudentProfilePage() {
   const { settings } = useSettings();
   const { canDo } = usePermissions();
@@ -194,7 +202,7 @@ export default function StudentProfilePage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await axios.get(`${API}/students/${studentId}/profile`, { withCredentials: true });
+        const res = await api.get(`/students/${studentId}/profile`);
         setProfile(res.data);
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
@@ -206,7 +214,7 @@ export default function StudentProfilePage() {
     if (attendanceData || attendanceLoading) return;
     setAttendanceLoading(true);
     try {
-      const res = await axios.get(`${API}/attendance/student/${studentId}?term=all`, { withCredentials: true });
+      const res = await api.get(`/attendance/student/${studentId}?term=all`);
       setAttendanceData(res.data);
     } catch { /* no attendance data yet */ }
     finally { setAttendanceLoading(false); }
@@ -217,7 +225,7 @@ export default function StudentProfilePage() {
     setAiSuggestions(null);
     setShowAiPanel(true);
     try {
-      const res = await axios.post(`${API}/interventions/ai-suggest/${studentId}`, {}, { withCredentials: true });
+      const res = await api.post(`/interventions/ai-suggest/${studentId}`, {});
       setAiSuggestions(res.data.recommendations || []);
     } catch (e) {
       setAiError(e.response?.data?.detail || 'Failed to get suggestions');
@@ -226,32 +234,32 @@ export default function StudentProfilePage() {
 
   const editIntervention = async (id, patch) => {
     try {
-      await axios.put(`${API}/interventions/${id}`, patch, { withCredentials: true });
-      const res = await axios.get(`${API}/students/${studentId}/profile`, { withCredentials: true });
+      await api.put(`/interventions/${id}`, patch);
+      const res = await api.get(`/students/${studentId}/profile`);
       setProfile(res.data);
     } catch (e) { console.error(e); }
   };
 
   const deleteIntervention = async (id) => {
     try {
-      await axios.delete(`${API}/interventions/${id}`, { withCredentials: true });
-      const res = await axios.get(`${API}/students/${studentId}/profile`, { withCredentials: true });
+      await api.delete(`/interventions/${id}`);
+      const res = await api.get(`/students/${studentId}/profile`);
       setProfile(res.data);
     } catch (e) { console.error(e); }
   };
 
   const editCaseNote = async (id, patch) => {
     try {
-      await axios.put(`${API}/case-notes/${id}`, patch, { withCredentials: true });
-      const res = await axios.get(`${API}/students/${studentId}/profile`, { withCredentials: true });
+      await api.put(`/case-notes/${id}`, patch);
+      const res = await api.get(`/students/${studentId}/profile`);
       setProfile(res.data);
     } catch (e) { console.error(e); }
   };
 
   const deleteCaseNote = async (id) => {
     try {
-      await axios.delete(`${API}/case-notes/${id}`, { withCredentials: true });
-      const res = await axios.get(`${API}/students/${studentId}/profile`, { withCredentials: true });
+      await api.delete(`/case-notes/${id}`);
+      const res = await api.get(`/students/${studentId}/profile`);
       setProfile(res.data);
     } catch (e) { console.error(e); }
   };
@@ -259,8 +267,8 @@ export default function StudentProfilePage() {
   const addIntervention = async () => {
     if (!newIntervention.intervention_type || !newIntervention.assigned_staff) return;
     try {
-      await axios.post(`${API}/interventions`, { ...newIntervention, student_id: studentId }, { withCredentials: true });
-      const res = await axios.get(`${API}/students/${studentId}/profile`, { withCredentials: true });
+      await api.post('/interventions', { ...newIntervention, student_id: studentId });
+      const res = await api.get(`/students/${studentId}/profile`);
       setProfile(res.data);
       setShowAddIntervention(false);
       setNewIntervention({ intervention_type: '', assigned_staff: '', start_date: '', review_date: '', goals: '', frequency: '', status: 'active' });
@@ -270,8 +278,8 @@ export default function StudentProfilePage() {
   const addNote = async () => {
     if (!newNote.notes || !newNote.staff_member) return;
     try {
-      await axios.post(`${API}/case-notes`, { ...newNote, student_id: studentId }, { withCredentials: true });
-      const res = await axios.get(`${API}/students/${studentId}/profile`, { withCredentials: true });
+      await api.post('/case-notes', { ...newNote, student_id: studentId });
+      const res = await api.get(`/students/${studentId}/profile`);
       setProfile(res.data);
       setShowAddNote(false);
       setNewNote({ note_type: 'General', notes: '', staff_member: '', date: new Date().toISOString().split('T')[0] });

@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { CalendarDays, AlertTriangle, Users, TrendingDown, Loader, X, Info } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 function TierBadge({ tier }) {
   const c = tier === 1
@@ -107,7 +105,7 @@ export default function AttendancePage() {
     setLoading(true);
     const qs = buildQS(year, period, month, week, termsArr);
     try {
-      const res = await axios.get(`${API}/attendance/summary?${qs}`, { withCredentials: true });
+      const res = await api.get(`/attendance/summary?${qs}`);
       setSummary(res.data);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -115,7 +113,7 @@ export default function AttendancePage() {
 
   const fetchTermsForYear = async (year) => {
     try {
-      const r = await axios.get(`${API}/settings/terms?year=${year}`, { withCredentials: true });
+      const r = await api.get(`/settings/terms?year=${year}`);
       const t = r.data.terms || [];
       setTerms(t);
       setSchoolDaysCount(r.data.school_days_count ?? 0);
@@ -126,7 +124,7 @@ export default function AttendancePage() {
   useEffect(() => {
     const init = async () => {
       try {
-        const r = await axios.get(`${API}/settings/terms`, { withCredentials: true });
+        const r = await api.get('/settings/terms');
         const yrs = (r.data.available_years || [r.data.active_year]).filter(Boolean).sort((a, b) => b - a);
         const activeYear = r.data.active_year || yrs[0];
         const loadedTerms = r.data.terms || [];
@@ -173,7 +171,7 @@ export default function AttendancePage() {
     setDetailLoading(true);
     const qs = buildQS(viewYear, periodType, filterMonth, filterWeek, terms);
     try {
-      const res = await axios.get(`${API}/attendance/student/${s.student_id}?${qs}`, { withCredentials: true });
+      const res = await api.get(`/attendance/student/${s.student_id}?${qs}`);
       setStudentDetail(res.data);
     } catch (e) { console.error(e); }
     finally { setDetailLoading(false); }

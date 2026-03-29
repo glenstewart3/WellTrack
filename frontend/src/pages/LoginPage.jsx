@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Shield, AlertCircle, Eye, EyeOff, Mail, Lock, ArrowLeft } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { useTheme } from '../context/ThemeContext';
-import axios from 'axios';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import api from '../api';
 
 const ERROR_MESSAGES = {
   access_denied: 'Access denied. Your account has not been registered. Please contact your school administrator.',
@@ -15,7 +13,6 @@ const ERROR_MESSAGES = {
 
 export default function LoginPage() {
   const location = useLocation();
-  const navigate = useNavigate();
   const { settings } = useSettings();
   const { theme } = useTheme();
 
@@ -42,7 +39,7 @@ export default function LoginPage() {
     setAccessError('');
     setSubmitting(true);
     try {
-      const res = await axios.post(`${API}/auth/login-email`, emailForm, { withCredentials: true });
+      const res = await api.post('/auth/login-email', emailForm);
       const base = process.env.REACT_APP_BASE_PATH || '';
       window.location.href = `${base}/${res.data.redirect}`;
     } catch (err) {

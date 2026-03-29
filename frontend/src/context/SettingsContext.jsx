@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import api from '../api';
 
 const DEFAULTS = {
   platform_name: 'WellTrack',
@@ -28,7 +26,7 @@ export function SettingsProvider({ children }) {
 
   useEffect(() => {
     // Public fetch — no auth needed, loads branding immediately
-    axios.get(`${API}/public-settings`)
+    api.get('/public-settings')
       .then(r => {
         setSettings(prev => ({ ...prev, ...r.data }));
         applyAccent(r.data.accent_color);
@@ -38,7 +36,7 @@ export function SettingsProvider({ children }) {
 
   const loadFullSettings = useCallback(async () => {
     try {
-      const r = await axios.get(`${API}/settings`, { withCredentials: true });
+      const r = await api.get('/settings');
       setSettings(prev => ({ ...prev, ...r.data }));
       applyAccent(r.data.accent_color);
     } catch (e) {}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { getTierColors, INTERVENTION_TYPES } from '../utils/tierUtils';
 import { useSettings } from '../context/SettingsContext';
 import { usePermissions } from '../hooks/usePermissions';
@@ -11,8 +11,7 @@ import {
 } from 'lucide-react';
 import { exportInterventionsReport } from '../utils/pdfExport';
 
-const API  = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const BURL =  process.env.REACT_APP_BACKEND_URL;
+const BURL = process.env.REACT_APP_BACKEND_URL;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -101,9 +100,8 @@ function InterventionDetailModal({ intv, students, onClose, onUpdated, canEdit }
   const save = async () => {
     setSaving(true);
     try {
-      const res = await axios.put(`${API}/interventions/${intv.intervention_id}`,
-        { status, progress_notes: notes, progress_status: progressStatus },
-        { withCredentials: true });
+      const res = await api.put(`/interventions/${intv.intervention_id}`,
+        { status, progress_notes: notes, progress_status: progressStatus });
       onUpdated(res.data);
       onClose();
     } catch (e) { console.error(e); }
@@ -291,8 +289,8 @@ export default function InterventionsPage() {
     (async () => {
       try {
         const [intRes, studRes] = await Promise.all([
-          axios.get(`${API}/interventions`, { withCredentials: true }),
-          axios.get(`${API}/students/summary`, { withCredentials: true }),
+          api.get('/interventions'),
+          api.get('/students/summary'),
         ]);
         setInterventions(intRes.data);
         setStudents(studRes.data);
@@ -342,7 +340,7 @@ export default function InterventionsPage() {
     e.stopPropagation();
     const newStatus = intv.status === 'active' ? 'completed' : 'active';
     try {
-      await axios.put(`${API}/interventions/${intv.intervention_id}`, { status: newStatus }, { withCredentials: true });
+      await api.put(`/interventions/${intv.intervention_id}`, { status: newStatus });
       setInterventions(prev => prev.map(i => i.intervention_id === intv.intervention_id ? { ...i, status: newStatus } : i));
     } catch (e) { console.error(e); }
   };
@@ -351,7 +349,7 @@ export default function InterventionsPage() {
     if (!form.student_id || !form.intervention_type || !form.assigned_staff) return;
     setSaving(true);
     try {
-      const res = await axios.post(`${API}/interventions`, form, { withCredentials: true });
+      const res = await api.post('/interventions', form);
       setInterventions(prev => [res.data, ...prev]);
       setShowAdd(false);
       setForm({ student_id: '', intervention_type: '', assigned_staff: '', start_date: '', review_date: '', goals: '', rationale: '', frequency: '', status: 'active', progress_notes: '' });

@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { getTierColors } from '../utils/tierUtils';
 import { AlertTriangle, Users, Target, Bell, TrendingUp, ArrowRight, CheckCircle } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -21,9 +19,9 @@ export default function DashboardPage() {
     const load = async () => {
       try {
         const [tierRes, alertRes, studRes] = await Promise.all([
-          axios.get(`${API}/analytics/tier-distribution`, { withCredentials: true }),
-          axios.get(`${API}/alerts?resolved=false`, { withCredentials: true }),
-          axios.get(`${API}/students/summary`, { withCredentials: true }),
+          api.get('/analytics/tier-distribution'),
+          api.get('/alerts?resolved=false'),
+          api.get('/students/summary'),
         ]);
         setStats(tierRes.data);
         const allAlerts = alertRes.data;

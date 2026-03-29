@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
 import './App.css';
+import api from './api';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -18,11 +18,8 @@ import InterventionsPage from './pages/InterventionsPage';
 import AlertsPage from './pages/AlertsPage';
 import MeetingPrepPage from './pages/MeetingPrepPage';
 import SettingsPage from './pages/SettingsPage';
-import UserManagementPage from './pages/UserManagementPage';
 import AdministrationPage from './pages/AdministrationPage';
 import AttendancePage from './pages/AttendancePage';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 function Spinner() {
   return (
@@ -52,7 +49,7 @@ function AppRouter() {
   const [onboardingDone, setOnboardingDone] = useState(null);
 
   useEffect(() => {
-    axios.get(`${API}/onboarding/status`)
+    api.get('/onboarding/status')
       .then(r => setOnboardingDone(r.data.complete))
       .catch(() => {
         // If the status check fails entirely, assume setup is complete to avoid

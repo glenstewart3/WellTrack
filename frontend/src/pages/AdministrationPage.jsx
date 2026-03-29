@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import { useNavigate } from 'react-router-dom';
@@ -10,8 +10,6 @@ import {
   RotateCcw, Zap,
 } from 'lucide-react';
 import { DEFAULT_FEATURE_PERMISSIONS } from '../hooks/usePermissions';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const ROLE_OPTIONS = [
   { value: 'teacher',    label: 'Teacher',          color: 'bg-blue-100 text-blue-700' },
@@ -117,7 +115,7 @@ function UserManagementTab() {
 
   const loadUsers = async () => {
     try {
-      const res = await axios.get(`${API}/users`, { withCredentials: true });
+      const res = await api.get('/users');
       setUsers(res.data);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -132,7 +130,7 @@ function UserManagementTab() {
     if (!form.email || !form.name) return;
     setSaving(true);
     try {
-      await axios.post(`${API}/users`, form, { withCredentials: true });
+      await api.post('/users', form);
       await loadUsers();
       setShowAdd(false);
       setForm({ email: '', name: '', role: 'teacher' });
@@ -144,7 +142,7 @@ function UserManagementTab() {
 
   const updateRole = async (userId, role) => {
     try {
-      await axios.put(`${API}/users/${userId}/role`, { role }, { withCredentials: true });
+      await api.put(`/users/${userId}/role`, { role });
       setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, role } : u));
       setEditUser(null);
       showMsg('Role updated');
@@ -158,7 +156,7 @@ function UserManagementTab() {
     if (passwordForm.password.length < 8) { showMsg('Password must be at least 8 characters', 'error'); return; }
     setPwSaving(true);
     try {
-      await axios.post(`${API}/users/${setPasswordUser.user_id}/set-password`, { password: passwordForm.password }, { withCredentials: true });
+      await api.post(`/users/${setPasswordUser.user_id}/set-password`, { password: passwordForm.password });
       showMsg(`Password set for ${setPasswordUser.name}`);
       setSetPasswordUser(null); setPasswordForm({ password: '', confirm: '' });
     } catch (e) { showMsg(e.response?.data?.detail || 'Failed to set password', 'error'); }
@@ -167,7 +165,7 @@ function UserManagementTab() {
 
   const deleteUser = async (userId) => {
     try {
-      await axios.delete(`${API}/users/${userId}`, { withCredentials: true });
+      await api.delete(`/users/${userId}`);
       setUsers(prev => prev.filter(u => u.user_id !== userId));
       setDeleteConfirm(null);
       showMsg('User removed');
@@ -490,7 +488,7 @@ function RolePermissionsTab() {
   const save = async () => {
     setSaving(true);
     try {
-      await axios.put(`${API}/settings`, { ...settings, role_permissions: permissions, role_feature_permissions: featurePerms }, { withCredentials: true });
+      await api.put('/settings', { ...settings, role_permissions: permissions, role_feature_permissions: featurePerms });
       await loadFullSettings();
       setMsg({ text: 'Permissions saved', type: 'success' });
     } catch (e) {

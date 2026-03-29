@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { Bell, CheckCircle, AlertTriangle, TrendingUp, TrendingDown, ThumbsUp, ThumbsDown, ArrowRight } from 'lucide-react';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const ALERT_TYPE_LABELS = {
   high_risk_saebrs: 'High Risk SAEBRS',
@@ -99,7 +97,7 @@ export default function AlertsPage() {
 
   const load = async (resolved = false) => {
     try {
-      const res = await axios.get(`${API}/alerts?resolved=${resolved}`, { withCredentials: true });
+      const res = await api.get(`/alerts?resolved=${resolved}`);
       setAlerts(res.data);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -108,27 +106,27 @@ export default function AlertsPage() {
   useEffect(() => { load(showResolved); }, [showResolved]);
 
   const markRead = async (id) => {
-    await axios.put(`${API}/alerts/${id}/read`, {}, { withCredentials: true });
+    await api.put(`/alerts/${id}/read`, {});
     setAlerts(prev => prev.map(a => a.alert_id === id ? { ...a, is_read: true } : a));
   };
 
   const resolve = async (id) => {
-    await axios.put(`${API}/alerts/${id}/resolve`, {}, { withCredentials: true });
+    await api.put(`/alerts/${id}/resolve`, {});
     setAlerts(prev => prev.filter(a => a.alert_id !== id));
   };
 
   const approveAlert = async (id) => {
-    await axios.put(`${API}/alerts/${id}/approve`, {}, { withCredentials: true });
+    await api.put(`/alerts/${id}/approve`, {});
     setAlerts(prev => prev.filter(a => a.alert_id !== id));
   };
 
   const rejectAlert = async (id) => {
-    await axios.put(`${API}/alerts/${id}/reject`, {}, { withCredentials: true });
+    await api.put(`/alerts/${id}/reject`, {});
     setAlerts(prev => prev.filter(a => a.alert_id !== id));
   };
 
   const markAllRead = async () => {
-    await axios.put(`${API}/alerts/read-all`, {}, { withCredentials: true });
+    await api.put('/alerts/read-all', {});
     setAlerts(prev => prev.map(a => ({ ...a, is_read: true })));
   };
 

@@ -8,11 +8,13 @@ import autoTable from 'jspdf-autotable';
 const brandColor = [15, 23, 42]; // Slate-900 default; will be overridden
 
 function getAccentRgb() {
-  const hex = getComputedStyle(document.documentElement).getPropertyValue('--wt-accent').trim() || '#0f172a';
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return [r || 15, g || 23, b || 42];
+  const raw = getComputedStyle(document.documentElement).getPropertyValue('--wt-accent').trim();
+  const hex = /^#[0-9a-fA-F]{6}$/.test(raw) ? raw : '#0f172a';
+  return [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
+  ];
 }
 
 /** Fetch an image URL and return a circular PNG data URL — center-cropped, full resolution. */

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useNavigate } from 'react-router-dom';
 import {
   BarChart2, TrendingDown, Users, Target, Download, Calendar,
@@ -13,7 +13,6 @@ import {
 import { exportAnalyticsReport } from '../utils/pdfExport';
 import { usePermissions } from '../hooks/usePermissions';
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const COLORS = ['#22c55e', '#f59e0b', '#ef4444'];
 const DOMAIN_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#3b82f6', '#ec4899'];
 const RISK_COLORS = { 'Low Risk': '#22c55e', 'Some Risk': '#f59e0b', 'High Risk': '#ef4444' };
@@ -75,14 +74,14 @@ export default function AnalyticsPage() {
 
   // Load filter options once
   useEffect(() => {
-    axios.get(`${API}/reports/filter-options`, { withCredentials: true })
+    api.get('/reports/filter-options')
       .then(r => setFilterOptions(r.data))
       .catch(console.error);
   }, []);
 
   // Staff load (whole-school, not filtered)
   useEffect(() => {
-    axios.get(`${API}/reports/staff-load`, { withCredentials: true })
+    api.get('/reports/staff-load')
       .then(r => setStaffLoad(r.data))
       .catch(console.error);
   }, []);
@@ -94,12 +93,12 @@ export default function AnalyticsPage() {
       const q = qs(filterParams);
       try {
         const [sw, at, io, abs, cov, gaps] = await Promise.all([
-          axios.get(`${API}/analytics/school-wide${q}`, { withCredentials: true }),
-          axios.get(`${API}/analytics/attendance-trends${q}`, { withCredentials: true }),
-          axios.get(`${API}/analytics/intervention-outcomes${q}`, { withCredentials: true }),
-          axios.get(`${API}/reports/absence-types${q}`, { withCredentials: true }),
-          axios.get(`${API}/reports/screening-coverage${q}`, { withCredentials: true }),
-          axios.get(`${API}/reports/support-gaps${q}`, { withCredentials: true }),
+          api.get(`/analytics/school-wide${q}`),
+          api.get(`/analytics/attendance-trends${q}`),
+          api.get(`/analytics/intervention-outcomes${q}`),
+          api.get(`/reports/absence-types${q}`),
+          api.get(`/reports/screening-coverage${q}`),
+          api.get(`/reports/support-gaps${q}`),
         ]);
         setSchoolData(sw.data);
         setAttTrends(at.data);
@@ -117,7 +116,7 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (activeTab !== 'cohort') return;
     setCohortLoading(true);
-    axios.get(`${API}/analytics/cohort-comparison?group_by=${cohortGroupBy}`, { withCredentials: true })
+    api.get(`/analytics/cohort-comparison?group_by=${cohortGroupBy}`)
       .then(r => { setCohortData(r.data); setCohortLoading(false); })
       .catch(e => { console.error(e); setCohortLoading(false); });
   }, [activeTab, cohortGroupBy]);

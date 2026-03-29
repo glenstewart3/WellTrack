@@ -1,12 +1,11 @@
 import React, { useState, useRef } from 'react';
-import axios from 'axios';
+import api from '../api';
 import {
   Shield, CheckCircle, Loader, AlertTriangle,
   Upload, Database, FileJson, ArrowRight, Building2,
   User, Mail, Lock, Eye, EyeOff,
 } from 'lucide-react';
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const STEP_LABELS = ['Admin Account', 'Your School', 'Data Setup', 'Ready'];
 
 function StepProgress({ stepIndex }) {
@@ -82,7 +81,7 @@ export default function OnboardingPage({ onComplete }) {
     setError('');
     try {
       // Create admin account + save school settings + get session cookie
-      await axios.post(`${API}/onboarding/setup`, {
+      await api.post('/onboarding/setup', {
         admin_name: adminName.trim(),
         admin_email: adminEmail.trim(),
         admin_password: adminPassword,
@@ -94,11 +93,11 @@ export default function OnboardingPage({ onComplete }) {
 
       // Now authenticated — seed/restore if needed
       if (dataChoice === 'demo') {
-        await axios.post(`${API}/settings/seed`, { student_count: demoStudentCount }, { withCredentials: true });
+        await api.post('/settings/seed', { student_count: demoStudentCount });
       } else if (dataChoice === 'restore' && restoreFile) {
         const text = await restoreFile.text();
         const data = JSON.parse(text);
-        await axios.post(`${API}/settings/restore`, data, { withCredentials: true });
+        await api.post('/settings/restore', data);
       }
       setStep('complete');
     } catch (e) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import {
@@ -8,8 +8,6 @@ import {
   Sliders, ToggleLeft, ToggleRight, Tag, User, Shield, RotateCcw, Bot, Wifi, FileUp,
   Calendar, CalendarDays, BookOpen, Target, ClipboardCheck
 } from 'lucide-react';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const ROLE_OPTIONS = [
   { value: 'teacher', label: 'Teacher', desc: 'Can complete screenings & view class data' },
@@ -385,7 +383,7 @@ function StudentDataTab({ settings: s, onSave, saving, msg, msgType }) {
   const [excludedTypes, setExcludedTypes] = useState(new Set(s.excluded_absence_types || []));
 
   useEffect(() => {
-    axios.get(`${API}/attendance/types`, { withCredentials: true })
+    api.get('/attendance/types')
       .then(r => setAbsenceTypes(r.data.types || []))
       .catch(() => {});
   }, []);
@@ -604,7 +602,7 @@ function GeneralTab({ settings: s, onSave, saving, msg, msgType }) {
     }
     setPwSaving(true);
     try {
-      await axios.put(`${API}/auth/change-password`, { current_password: pwForm.current_password, new_password: pwForm.new_password }, { withCredentials: true });
+      await api.put('/auth/change-password', { current_password: pwForm.current_password, new_password: pwForm.new_password });
       setPwMsg({ text: 'Password updated successfully', type: 'success' });
       setPwForm({ current_password: '', new_password: '', confirm: '' });
     } catch (e) {
@@ -738,7 +736,7 @@ function RoleSection() {
 
   const updateRole = async (role) => {
     try {
-      await axios.put(`${API}/auth/role`, { role }, { withCredentials: true });
+      await api.put('/auth/role', { role });
       setUser(prev => ({ ...prev, role }));
       setMsg(`Role updated to ${role}`);
       setTimeout(() => setMsg(''), 3000);
@@ -797,7 +795,7 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
 
   const fetchBackups = async () => {
     try {
-      const res = await axios.get(`${API}/backups`, { withCredentials: true });
+      const res = await api.get('/backups');
       setBackups(res.data.backups || []);
     } catch (e) { console.error(e); }
     finally { setBackupsLoading(false); }
@@ -808,7 +806,7 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
   const triggerBackup = async () => {
     setTriggeringBackup(true);
     try {
-      const res = await axios.post(`${API}/backups/trigger`, {}, { withCredentials: true });
+      const res = await api.post('/backups/trigger', {});
       setMsgType('success');
       setMsg(`Backup created: ${res.data.filename} (${res.data.size_kb} KB)`);
       setTimeout(() => setMsg(''), 4000);
@@ -820,7 +818,7 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
 
   const downloadBackup = (filename) => {
     const a = document.createElement('a');
-    a.href = `${API}/backups/download/${filename}`;
+    a.href = `${process.env.REACT_APP_BACKEND_URL}/api/backups/download/${filename}`;
     a.download = filename;
     a.click();
   };
@@ -828,7 +826,7 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
   const deleteBackup = async (filename) => {
     setDeletingBackup(filename);
     try {
-      await axios.delete(`${API}/backups/${filename}`, { withCredentials: true });
+      await api.delete(`/backups/${filename}`);
       setBackups(prev => prev.filter(b => b.filename !== filename));
     } catch (e) {
       setMsgType('error'); setMsg('Delete failed'); setTimeout(() => setMsg(''), 3000);
@@ -838,7 +836,7 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
   const downloadCSV = async (endpoint, filename) => {
     setCsvLoading(prev => ({ ...prev, [endpoint]: true }));
     try {
-      const res = await axios.get(`${API}/${endpoint}`, { withCredentials: true, responseType: 'blob' });
+      const res = await api.get(`/${endpoint}`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }));
       const a = document.createElement('a'); a.href = url; a.download = filename;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
@@ -853,7 +851,7 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
     setSeedStudentCount(String(count));
     setSeeding(true);
     try {
-      const res = await axios.post(`${API}/settings/seed`, { student_count: count }, { withCredentials: true });
+      const res = await api.post('/settings/seed', { student_count: count });
       setMsgType('success'); setMsg(`Demo data loaded: ${res.data.students} students, ${res.data.interventions} interventions`);
       setTimeout(() => setMsg(''), 5000);
     } catch (e) { console.error(e); } finally { setSeeding(false); }
@@ -862,7 +860,7 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
   const exportData = async () => {
     setExporting(true);
     try {
-      const res = await axios.get(`${API}/settings/export-all`, { withCredentials: true, responseType: 'blob' });
+      const res = await api.get('/settings/export-all', { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/json' }));
       const a = document.createElement('a'); a.href = url;
       a.download = `welltrack_backup_${new Date().toISOString().split('T')[0]}.json`;
@@ -877,7 +875,7 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
     setRestoring(true);
     try {
       const text = await file.text(); const data = JSON.parse(text);
-      const res = await axios.post(`${API}/settings/restore`, data, { withCredentials: true });
+      const res = await api.post('/settings/restore', data);
       const counts = Object.entries(res.data.restored || {}).map(([k, v]) => `${v} ${k}`).join(', ');
       setMsgType('success'); setMsg(`Restored: ${counts}`); setTimeout(() => setMsg(''), 5000);
     } catch (e) {
@@ -889,7 +887,7 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
     if (wipeInput !== 'DELETE') return;
     setWiping(true);
     try {
-      await axios.delete(`${API}/settings/data`, { withCredentials: true });
+      await api.delete('/settings/data');
       setShowWipeConfirm(false); setWipeInput('');
       setMsgType('success'); setMsg('All data wiped'); setTimeout(() => setMsg(''), 4000);
     } catch (e) { console.error(e); } finally { setWiping(false); }
@@ -899,7 +897,7 @@ function DataTab({ msg, msgType, setMsg, setMsgType }) {
     if (deleteInput !== 'DELETE' || !deleteTarget) return;
     setDeleting(true);
     try {
-      await axios.delete(`${API}/settings/data/${deleteTarget}`, { withCredentials: true });
+      await api.delete(`/settings/data/${deleteTarget}`);
       setDeleteTarget(null); setDeleteInput('');
       const label = deleteTarget === 'students' ? 'Student data' : 'Attendance data';
       setMsgType('success'); setMsg(`${label} deleted`); setTimeout(() => setMsg(''), 4000);
@@ -1179,8 +1177,8 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
   const fetchTerms = React.useCallback(async (year) => {
     setLoading(true);
     try {
-      const url = year ? `${API}/settings/terms?year=${year}` : `${API}/settings/terms`;
-      const r = await axios.get(url, { withCredentials: true });
+      const url = year ? `/settings/terms?year=${year}` : '/settings/terms';
+      const r = await api.get(url);
       const activeYear = r.data.active_year || year || initYear;
       setTerms(normalizeTerms(r.data.terms || [], activeYear));
       setNonSchoolDays(r.data.non_school_days || []);
@@ -1221,7 +1219,7 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
 
   const deleteYear = async (yr) => {
     try {
-      await axios.delete(`${API}/settings/terms?year=${yr}`, { withCredentials: true });
+      await api.delete(`/settings/terms?year=${yr}`);
       const remaining = availableYears.filter(y => y !== yr);
       setAvailableYears(remaining);
       const next = remaining[0] || new Date().getFullYear();
@@ -1269,9 +1267,9 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
     }
     setSaving(true);
     try {
-      const res = await axios.put(`${API}/settings/terms`, {
+      const res = await api.put('/settings/terms', {
         terms: filledTerms, non_school_days: nonSchoolDays, year: selectedYear,
-      }, { withCredentials: true });
+      });
       setSchoolDaysCount(res.data.school_days_count || 0);
       setMsgType('success'); setMsg(res.data.message || 'Calendar saved');
       setTimeout(() => setMsg(''), 6000);
@@ -1501,7 +1499,7 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
       } else {
         throw new Error('Please upload a CSV file');
       }
-      const res = await axios.post(`${API}/students/import`, { students: rows }, { withCredentials: true });
+      const res = await api.post('/students/import', { students: rows });
       setImportResult(res.data);
       setImportFile(null);
       if (importRef.current) importRef.current.value = '';
@@ -1521,7 +1519,7 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
     try {
       const fd = new FormData();
       fd.append('file', attFile);
-      const res = await axios.post(`${API}/attendance/upload`, fd, { withCredentials: true });
+      const res = await api.post('/attendance/upload', fd);
       setAttResult(res.data);
       setAttFile(null);
       if (attRef.current) attRef.current.value = '';
@@ -1541,7 +1539,7 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
     try {
       const fd = new FormData();
       fd.append('file', detailsFile);
-      const res = await axios.post(`${API}/students/import-student-details`, fd, { withCredentials: true });
+      const res = await api.post('/students/import-student-details', fd);
       setDetailsResult(res.data);
       setDetailsFile(null);
       if (detailsRef.current) detailsRef.current.value = '';
@@ -1561,8 +1559,7 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
     try {
       const fd = new FormData();
       fd.append('file', photoZip);
-      const res = await axios.post(`${API}/students/upload-photos`, fd, {
-        withCredentials: true,
+      const res = await api.post('/students/upload-photos', fd, {
         onUploadProgress: () => {},
       });
       setPhotoResult(res.data);
@@ -1908,7 +1905,7 @@ function IntegrationsTab({ settings: s, onSave, saving, msg, msgType }) {
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await axios.get(`${API}/settings/test-ollama`, { withCredentials: true });
+      const res = await api.get('/settings/test-ollama');
       const d = res.data;
       setTestResult({ ok: d.connected, msg: d.message });
     } catch (e) {
@@ -1993,7 +1990,7 @@ export default function SettingsPage() {
   const saveSettings = async (patch) => {
     setSaving(true);
     try {
-      await axios.put(`${API}/settings`, { ...settings, ...patch }, { withCredentials: true });
+      await api.put('/settings', { ...settings, ...patch });
       await loadFullSettings();
       setMsgType('success'); setMsg('Saved successfully');
       setTimeout(() => setMsg(''), 3000);
