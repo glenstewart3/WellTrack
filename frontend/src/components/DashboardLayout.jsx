@@ -6,7 +6,7 @@ import { useTheme, THEMES, THEME_NAV_ACTIVE } from '../context/ThemeContext';
 import {
   LayoutDashboard, ClipboardCheck, Users, Radar, BarChart3,
   Target, Users2, Bell, Settings, LogOut,
-  Menu, X, Shield, UserCog, CalendarDays, Check, Sun, Moon, Monitor
+  Menu, X, Shield, UserCog, CalendarDays, Check, Sun, Moon
 } from 'lucide-react';
 
 const navItems = [
@@ -202,30 +202,25 @@ export default function DashboardLayout() {
                     <p className="text-xs font-medium text-slate-400 mb-2">Appearance</p>
                     <div className="flex items-center gap-2">
                       {[
-                        { key: 'default', label: 'Light',  bg: '#f8fafc', border: '#e2e8f0', icon: <Sun size={10} />,     textColor: '#334155' },
-                        { key: 'dark',    label: 'Dark',   bg: '#1e293b', border: '#334155', icon: <Moon size={10} />,    textColor: '#f1f5f9' },
-                        { key: 'system',  label: 'System', bg: '#f1f5f9', border: '#94a3b8', icon: <Monitor size={10} />, textColor: '#475569' },
-                      ].map(({ key, label, bg, border, icon, textColor }) => (
+                        { key: 'system',  title: 'System (follows device)',   background: 'linear-gradient(135deg, #f8fafc 50%, #1e293b 50%)', border: '#94a3b8', checkColor: '#3b82f6' },
+                        { key: 'default', title: 'Light',                     background: '#f8fafc',                                            border: '#e2e8f0', checkColor: '#1e293b', icon: <Sun  size={11} color="#94a3b8" /> },
+                        { key: 'dark',    title: 'Dark',                      background: '#1e293b',                                            border: '#334155', checkColor: '#f1f5f9', icon: <Moon size={11} color="#94a3b8" /> },
+                      ].map(({ key, title, background, border, checkColor, icon }) => (
                         <button
                           key={key}
                           onClick={() => setTheme(key)}
-                          title={label}
+                          title={title}
                           data-testid={`theme-swatch-${key}`}
-                          className="relative flex items-center gap-1.5 pl-0.5 pr-2.5 py-0.5 rounded-full text-xs font-medium transition-all hover:opacity-90"
+                          className="w-7 h-7 rounded-full flex items-center justify-center transition-all hover:scale-110 overflow-hidden shrink-0"
                           style={{
-                            backgroundColor: bg,
-                            border: `1.5px solid ${theme === key ? '#3b82f6' : border}`,
-                            color: textColor,
-                            boxShadow: theme === key ? '0 0 0 2px rgba(59,130,246,0.3)' : 'none',
+                            background,
+                            border: `2px solid ${theme === key ? '#3b82f6' : border}`,
+                            boxShadow: theme === key ? '0 0 0 2.5px rgba(59,130,246,0.25)' : 'none',
                           }}
                         >
-                          <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: border }}>
-                            {theme === key
-                              ? <Check size={9} strokeWidth={3} style={{ color: textColor }} />
-                              : <span style={{ color: key === 'dark' ? '#94a3b8' : '#64748b' }}>{icon}</span>
-                            }
-                          </span>
-                          {label}
+                          {theme === key
+                            ? <Check size={10} strokeWidth={3.5} color={checkColor} />
+                            : (icon ?? null)}
                         </button>
                       ))}
                     </div>

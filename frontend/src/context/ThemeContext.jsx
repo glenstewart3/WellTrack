@@ -30,7 +30,7 @@ export function ThemeProvider({ children }) {
   const [theme, setThemeState] = useState('default');
 
   useEffect(() => {
-    const t = user?.theme || 'default';
+    const t = user?.theme || 'system';
     setThemeState(t);
     applyTheme(t);
   }, [user]);
