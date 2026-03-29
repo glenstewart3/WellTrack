@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { ArrowLeft, Volume2, CheckCircle } from 'lucide-react';
 
@@ -409,16 +409,51 @@ const F2_QUESTIONS = [
 // ── Web Speech ────────────────────────────────────────────────────────────────
 function useSpeech() {
   const [speaking, setSpeaking] = useState(false);
+  const voiceRef = useRef(null);
+
+  // Pick the highest-quality English voice available on this device/browser.
+  // Priority: Google neural (Chrome) → Microsoft Natural/Online (Edge) →
+  //           Apple Siri voices (Safari) → any local en voice → first en voice.
+  const pickVoice = () => {
+    const voices = window.speechSynthesis?.getVoices() || [];
+    const en = voices.filter(v => v.lang.startsWith('en'));
+    if (!en.length) return voices[0] || null;
+
+    const SIRI_NAMES = ['Samantha', 'Karen', 'Moira', 'Tessa', 'Veena', 'Serena', 'Nicky'];
+    const checks = [
+      v => /google/i.test(v.name) && !/hindi/i.test(v.name),
+      v => /(natural|online)/i.test(v.name) && !v.localService,
+      v => SIRI_NAMES.some(n => v.name.includes(n)),
+      v => v.localService,
+      () => true,
+    ];
+    for (const check of checks) {
+      const match = en.find(check);
+      if (match) return match;
+    }
+    return en[0];
+  };
+
+  useEffect(() => {
+    if (!window.speechSynthesis) return;
+    const load = () => { voiceRef.current = pickVoice(); };
+    load(); // available immediately on Firefox/Safari
+    window.speechSynthesis.onvoiceschanged = load; // Chrome fires this async
+    return () => { window.speechSynthesis.onvoiceschanged = null; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const speak = (text) => {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     if (speaking) { setSpeaking(false); return; }
     const u = new SpeechSynthesisUtterance(text);
-    u.rate = 0.85;
-    u.pitch = 1.1;
+    const voice = voiceRef.current || pickVoice();
+    if (voice) u.voice = voice;
+    u.rate   = 0.82;  // slightly slower — better for F-2 comprehension
+    u.pitch  = 1.05;  // warm, natural — avoids robotic or chipmunk extremes
+    u.volume = 1;
     u.onstart = () => setSpeaking(true);
-    u.onend = () => setSpeaking(false);
+    u.onend   = () => setSpeaking(false);
     u.onerror = () => setSpeaking(false);
     window.speechSynthesis.speak(u);
   };
