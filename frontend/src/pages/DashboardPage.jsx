@@ -137,7 +137,7 @@ export default function DashboardPage() {
                 <div
                   key={alert.alert_id}
                   onClick={() => navigate(`/students/${alert.student_id}`)}
-                  className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors ${!alert.is_read ? 'bg-rose-50/50' : ''}`}
+                  className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors ${!alert.is_read ? 'bg-rose-50' : ''}`}
                   data-testid={`alert-item-${alert.alert_id}`}
                 >
                   <div className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${alert.severity === 'high' ? 'bg-rose-500' : 'bg-amber-400'}`} />

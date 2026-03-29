@@ -132,7 +132,7 @@ code {
 [data-theme="dark"] .text-slate-800 { color: #e2e8f0 !important; }
 [data-theme="dark"] .text-slate-700 { color: #cbd5e1 !important; }
 [data-theme="dark"] .text-slate-600 { color: #94a3b8 !important; }
-[data-theme="dark"] .text-slate-500 { color: #64748b !important; }
+[data-theme="dark"] .text-slate-500 { color: #94a3b8 !important; }
 
 /* Inputs & selects */
 [data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
