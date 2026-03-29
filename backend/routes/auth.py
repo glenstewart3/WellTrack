@@ -211,7 +211,7 @@ async def google_callback(request: Request):
 @router.put("/auth/preferences")
 async def update_preferences(data: dict, user=Depends(get_current_user)):
     from fastapi import HTTPException
-    allowed = {"default", "dark"}
+    allowed = {"default", "dark", "system"}
     theme = data.get("theme")
     if theme is not None and theme not in allowed:
         raise HTTPException(status_code=400, detail="Invalid theme")
