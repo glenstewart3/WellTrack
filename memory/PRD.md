@@ -160,7 +160,7 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 - Email system (deferred by user): automated alert notifications — needs email provider choice (Resend or SendGrid)
 
 ### P2 — Medium Priority
-- **Chronic absentee badge** on Students page (>10% absence within a term)
+- ~~**Chronic absentee badge** on Students page~~ ✅ Done (Mar 2026)
 - **Wellbeing Check-in**: Simple daily wellbeing check-in for students (on hold by user)
 - **Automated Weekly Backups**: Email a weekly data backup to the admin
 
