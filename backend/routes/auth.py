@@ -233,7 +233,7 @@ async def logout(request: Request, response: Response):
     token = request.cookies.get("session_token")
     if token:
         await db.user_sessions.delete_one({"session_token": token})
-    response.delete_cookie("session_token", path="/", samesite="none", secure=True)
+    response.delete_cookie("session_token", path="/", samesite=_COOKIE_SAMESITE, secure=_COOKIE_SECURE)
     return {"message": "Logged out"}
 
 
@@ -244,7 +244,7 @@ async def update_role(data: dict, user=Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Only administrators can change user roles")
     target_user_id = data.get("user_id", user["user_id"])
     role = data.get("role")
-    if role not in ["teacher", "wellbeing", "leadership", "admin"]:
+    if role not in ["teacher", "wellbeing", "leadership", "admin", "screener"]:
         raise HTTPException(status_code=400, detail="Invalid role")
     await db.users.update_one({"user_id": target_user_id}, {"$set": {"role": role}})
     return {"message": "Role updated", "role": role}
@@ -325,7 +325,7 @@ async def complete_onboarding(data: dict, user=Depends(get_current_user)):
             "school_name": data.get("school_name", "My School"),
             "school_type": data.get("school_type", "both"),
             "current_term": data.get("current_term", "Term 1"),
-            "current_year": data.get("current_year", 2025),
+            "current_year": data.get("current_year", datetime.now(timezone.utc).year),
             "onboarding_complete": True,
         }},
         upsert=True
@@ -351,6 +351,9 @@ async def create_user(data: dict, user=Depends(get_current_user)):
     email = data.get("email", "").lower().strip()
     name = data.get("name", "")
     role = data.get("role", "teacher")
+    _valid_roles = {"teacher", "wellbeing", "leadership", "admin", "screener"}
+    if role not in _valid_roles:
+        raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {', '.join(sorted(_valid_roles))}")
     if not email:
         raise HTTPException(status_code=400, detail="Email is required")
     if await db.users.find_one({"email": email}):

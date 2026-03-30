@@ -1,5 +1,8 @@
 import axios from 'axios';
 
+const _basePath = (process.env.REACT_APP_BASE_PATH || '').replace(/\/$/, '');
+const _loginPath = `${_basePath}/login`;
+
 const api = axios.create({
   baseURL: `${process.env.REACT_APP_BACKEND_URL}/api`,
   withCredentials: true,
@@ -13,9 +16,9 @@ api.interceptors.response.use(
     if (
       err.response?.status === 401 &&
       err.config?.url !== '/auth/me' &&
-      window.location.pathname !== '/login'
+      window.location.pathname !== _loginPath
     ) {
-      window.location.href = '/login';
+      window.location.href = _loginPath;
     }
     return Promise.reject(err);
   }

@@ -39,6 +39,9 @@ async def get_settings(user=Depends(get_current_user)):
 
 @router.put("/settings")
 async def update_settings(data: dict, user=Depends(get_current_user)):
+    from fastapi import HTTPException
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
     data.pop("_id", None)
     data.pop("onboarding_complete", None)
     await db.school_settings.update_one({}, {"$set": data}, upsert=True)
@@ -77,6 +80,9 @@ async def test_ollama_connection(user=Depends(get_current_user)):
 
 @router.delete("/settings/data")
 async def wipe_data(user=Depends(get_current_user)):
+    from fastapi import HTTPException
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
     for col in ["students", "attendance", "attendance_records", "school_days", "screening_sessions",
                 "saebrs_results", "self_report_results", "interventions", "case_notes", "alerts"]:
         await db[col].delete_many({})
@@ -85,6 +91,9 @@ async def wipe_data(user=Depends(get_current_user)):
 
 @router.delete("/settings/data/students")
 async def delete_student_data(user=Depends(get_current_user)):
+    from fastapi import HTTPException
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
     for col in ["students", "screening_sessions", "saebrs_results", "self_report_results",
                 "interventions", "case_notes", "alerts"]:
         await db[col].delete_many({})
@@ -93,6 +102,9 @@ async def delete_student_data(user=Depends(get_current_user)):
 
 @router.delete("/settings/data/attendance")
 async def delete_attendance_data(user=Depends(get_current_user)):
+    from fastapi import HTTPException
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
     for col in ["attendance_records", "attendance"]:
         await db[col].delete_many({})
     return {"message": "Attendance data deleted"}
@@ -100,6 +112,9 @@ async def delete_attendance_data(user=Depends(get_current_user)):
 
 @router.post("/settings/seed")
 async def seed_data_endpoint(data: dict = None, user=Depends(get_current_user)):
+    from fastapi import HTTPException
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
     from seed import seed_database
     student_count = int((data or {}).get("student_count", 32))
     return await seed_database(student_count=student_count)
@@ -107,6 +122,9 @@ async def seed_data_endpoint(data: dict = None, user=Depends(get_current_user)):
 
 @router.get("/settings/export-all")
 async def export_all_data(user=Depends(get_current_user)):
+    from fastapi import HTTPException
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
     backup = {}
     collections = [
         "students", "attendance_records", "school_days",

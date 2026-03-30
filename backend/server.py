@@ -13,7 +13,6 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 import os, logging
-from pathlib import Path
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -33,6 +32,13 @@ scheduler = AsyncIOScheduler()
 
 # Middleware
 _cors_origins = [o.strip() for o in os.environ.get('ALLOWED_ORIGINS', '*').split(',') if o.strip()]
+if '*' in _cors_origins:
+    import logging as _log
+    _log.warning(
+        "CORS: ALLOWED_ORIGINS='*' with allow_credentials=True — Starlette will echo the "
+        "request Origin header, which permits any origin to make credentialed requests. "
+        "Set ALLOWED_ORIGINS to a comma-separated list of explicit origins in production."
+    )
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=_cors_origins,
                    allow_methods=["*"], allow_headers=["*"])
 app.add_middleware(SessionMiddleware, secret_key=os.environ['SESSION_SECRET'])
