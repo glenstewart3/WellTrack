@@ -27,6 +27,7 @@ from routes.attendance import router as attendance_router
 from routes.settings import router as settings_router
 from routes.screening import router as screening_router
 from routes.appointments import router as appointments_router
+from routes.audit import router as audit_router
 
 app = FastAPI(title="WellTrack API")
 scheduler = AsyncIOScheduler()
@@ -57,6 +58,7 @@ api_router.include_router(settings_router)
 api_router.include_router(reports_router)
 api_router.include_router(backups_router)
 api_router.include_router(appointments_router)
+api_router.include_router(audit_router)
 
 app.include_router(api_router)
 

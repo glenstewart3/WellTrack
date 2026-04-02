@@ -5,6 +5,7 @@ import uuid
 
 from database import db
 from helpers import get_current_user, create_alert
+from utils.audit import log_audit
 
 router = APIRouter()
 
@@ -410,6 +411,9 @@ async def create_appointment(data: dict, user=Depends(get_current_user)):
     await _update_intervention_on_completion(apt, cfg)
     await _generate_alerts(apt["student_id"], itype, cfg)
     await _log_audit(user, apt["appointment_id"], "create", {"created": apt})
+    await log_audit(user, "created", "appointment", apt["appointment_id"],
+                    f"{apt.get('intervention_type','')} — {apt.get('student_id','')}",
+                    metadata={"student_id": apt.get("student_id"), "date": apt.get("date")})
 
     return apt
 
@@ -443,6 +447,8 @@ async def update_appointment(appointment_id: str, data: dict, user=Depends(get_c
         await _update_intervention_on_completion(updated, cfg)
     await _generate_alerts(existing["student_id"], existing.get("intervention_type", ""), cfg)
     await _log_audit(user, appointment_id, "update", changes)
+    await log_audit(user, "updated", "appointment", appointment_id,
+                    f"{existing.get('intervention_type','')} — {existing.get('student_id','')}", changes=changes)
 
     return _clean(updated)
 
@@ -459,6 +465,8 @@ async def delete_appointment(appointment_id: str, user=Depends(get_current_user)
     await db.appointments.delete_one({"appointment_id": appointment_id})
     await _log_audit(user, appointment_id, "delete", {"deleted": existing})
     return {"message": "Appointment deleted"}
+    await log_audit(user, "deleted", "appointment", appointment_id,
+                    f"{existing.get('intervention_type','')} — {existing.get('student_id','')}")
 
 
 # ── Per-type appointment config ───────────────────────────────────────────────

@@ -7,6 +7,7 @@ from passlib.context import CryptContext
 
 from database import db
 from helpers import get_current_user, get_school_settings_doc
+from utils.audit import log_audit
 
 router = APIRouter()
 _pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -364,6 +365,7 @@ async def create_user(data: dict, user=Depends(get_current_user)):
                 "picture": "", "role": role,
                 "created_at": datetime.now(timezone.utc).isoformat()}
     await db.users.insert_one({**new_user})
+    await log_audit(user, "created", "user", user_id, f"{name} ({email})", metadata={"role": role})
     return new_user
 
 
@@ -376,6 +378,10 @@ async def update_user_role(user_id: str, data: dict, user=Depends(get_current_us
     if role not in ["teacher", "wellbeing", "leadership", "admin", "screener", "professional"]:
         raise HTTPException(status_code=400, detail="Invalid role")
     await db.users.update_one({"user_id": user_id}, {"$set": {"role": role}})
+    target = await db.users.find_one({"user_id": user_id}, {"name": 1, "email": 1, "_id": 0})
+    await log_audit(user, "updated", "user", user_id,
+                    f"{target.get('name','?')} ({target.get('email','?')})" if target else user_id,
+                    changes={"role": {"new": role}})
     return {"message": "Role updated"}
 
 
@@ -386,8 +392,11 @@ async def delete_user(user_id: str, user=Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Admin access required")
     if user_id == user["user_id"]:
         raise HTTPException(status_code=400, detail="Cannot delete your own account")
+    target = await db.users.find_one({"user_id": user_id}, {"name": 1, "email": 1, "_id": 0})
     await db.users.delete_one({"user_id": user_id})
     await db.user_sessions.delete_many({"user_id": user_id})
+    await log_audit(user, "deleted", "user", user_id,
+                    f"{target.get('name','?')} ({target.get('email','?')})" if target else user_id)
     return {"message": "User deleted"}
 
 
@@ -405,4 +414,7 @@ async def update_user_professional(user_id: str, data: dict, user=Depends(get_cu
         raise HTTPException(status_code=400, detail="No valid fields to update")
     await db.users.update_one({"user_id": user_id}, {"$set": update})
     updated = await db.users.find_one({"user_id": user_id}, {"_id": 0, "hashed_password": 0, "password_hash": 0})
+    await log_audit(user, "updated", "user", user_id,
+                    f"{updated.get('name','?')} — professional settings" if updated else user_id,
+                    changes={k: v for k, v in update.items()})
     return updated

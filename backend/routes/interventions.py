@@ -8,6 +8,7 @@ import logging
 from database import db
 from helpers import get_current_user, get_school_settings_doc, get_student_attendance_pct
 from models import Intervention, CaseNote
+from utils.audit import log_audit
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -128,18 +129,33 @@ async def get_interventions(student_id: Optional[str] = None, status: Optional[s
 async def create_intervention(intervention: Intervention, user=Depends(get_current_user)):
     d = intervention.model_dump()
     await db.interventions.insert_one({**d})
+    student = await db.students.find_one({"student_id": d.get("student_id")}, {"first_name": 1, "last_name": 1, "_id": 0})
+    sname = f"{student.get('first_name','')} {student.get('last_name','')}".strip() if student else d.get("student_id","")
+    await log_audit(user, "created", "intervention", d.get("intervention_id",""),
+                    f"{d.get('intervention_type','')} — {sname}",
+                    metadata={"intervention_type": d.get("intervention_type"), "student_id": d.get("student_id")})
     return d
 
 
 @router.put("/interventions/{iid}")
 async def update_intervention(iid: str, data: dict, user=Depends(get_current_user)):
+    existing = await db.interventions.find_one({"intervention_id": iid}, {"_id": 0})
     await db.interventions.update_one({"intervention_id": iid}, {"$set": data})
-    return await db.interventions.find_one({"intervention_id": iid}, {"_id": 0})
+    updated = await db.interventions.find_one({"intervention_id": iid}, {"_id": 0})
+    changes = {k: {"old": existing.get(k), "new": v} for k, v in data.items() if existing and existing.get(k) != v}
+    student = await db.students.find_one({"student_id": updated.get("student_id")}, {"first_name": 1, "last_name": 1, "_id": 0})
+    sname = f"{student.get('first_name','')} {student.get('last_name','')}".strip() if student else ""
+    await log_audit(user, "updated", "intervention", iid,
+                    f"{updated.get('intervention_type','')} — {sname}", changes=changes)
+    return updated
 
 
 @router.delete("/interventions/{iid}")
 async def delete_intervention(iid: str, user=Depends(get_current_user)):
+    existing = await db.interventions.find_one({"intervention_id": iid}, {"_id": 0})
     await db.interventions.delete_one({"intervention_id": iid})
+    name = f"{existing.get('intervention_type','')} — {existing.get('student_id','')}" if existing else iid
+    await log_audit(user, "deleted", "intervention", iid, name)
     return {"message": "Deleted"}
 
 
@@ -285,6 +301,10 @@ async def get_case_notes(student_id: Optional[str] = None, user=Depends(get_curr
 async def add_case_note(note: CaseNote, user=Depends(get_current_user)):
     d = note.model_dump()
     await db.case_notes.insert_one({**d})
+    student = await db.students.find_one({"student_id": d.get("student_id")}, {"first_name": 1, "last_name": 1, "_id": 0})
+    sname = f"{student.get('first_name','')} {student.get('last_name','')}".strip() if student else d.get("student_id","")
+    await log_audit(user, "created", "case_note", d.get("case_id",""),
+                    f"Case note — {sname}", metadata={"note_type": d.get("note_type"), "student_id": d.get("student_id")})
     return d
 
 
@@ -293,10 +313,16 @@ async def update_case_note(case_id: str, data: dict, user=Depends(get_current_us
     data.pop("_id", None)
     data.pop("case_id", None)
     await db.case_notes.update_one({"case_id": case_id}, {"$set": data})
-    return await db.case_notes.find_one({"case_id": case_id}, {"_id": 0})
+    updated = await db.case_notes.find_one({"case_id": case_id}, {"_id": 0})
+    await log_audit(user, "updated", "case_note", case_id,
+                    f"Case note — {updated.get('student_id','')}" if updated else case_id)
+    return updated
 
 
 @router.delete("/case-notes/{case_id}")
 async def delete_case_note(case_id: str, user=Depends(get_current_user)):
+    existing = await db.case_notes.find_one({"case_id": case_id}, {"_id": 0})
     await db.case_notes.delete_one({"case_id": case_id})
+    await log_audit(user, "deleted", "case_note", case_id,
+                    f"Case note — {existing.get('student_id','')}" if existing else case_id)
     return {"message": "Deleted"}

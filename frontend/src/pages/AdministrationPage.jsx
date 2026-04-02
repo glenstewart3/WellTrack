@@ -852,113 +852,208 @@ function RolePermissionsTab() {
 }
 
 // ── AUDIT LOG TAB ─────────────────────────────────────────────────────────────
+const ENTITY_META = {
+  student:     { label: 'Student',     color: 'bg-blue-100 text-blue-700' },
+  intervention:{ label: 'Intervention',color: 'bg-purple-100 text-purple-700' },
+  case_note:   { label: 'Case Note',   color: 'bg-indigo-100 text-indigo-700' },
+  appointment: { label: 'Appointment', color: 'bg-violet-100 text-violet-700' },
+  user:        { label: 'User',        color: 'bg-emerald-100 text-emerald-700' },
+  setting:     { label: 'Settings',    color: 'bg-amber-100 text-amber-700' },
+  attendance:  { label: 'Attendance',  color: 'bg-cyan-100 text-cyan-700' },
+};
+
+const ACTION_META = {
+  created:          { label: 'Created',    color: 'bg-emerald-100 text-emerald-700' },
+  updated:          { label: 'Updated',    color: 'bg-blue-100 text-blue-700' },
+  deleted:          { label: 'Deleted',    color: 'bg-rose-100 text-rose-700' },
+  bulk_import:      { label: 'Bulk Import',color: 'bg-violet-100 text-violet-700' },
+  bulk_archive:     { label: 'Archived',   color: 'bg-amber-100 text-amber-700' },
+  bulk_reactivate:  { label: 'Reactivated',color: 'bg-teal-100 text-teal-700' },
+  uploaded:         { label: 'Uploaded',   color: 'bg-cyan-100 text-cyan-700' },
+  data_wipe:        { label: 'Data Wipe',  color: 'bg-red-200 text-red-800' },
+};
+
 function AuditLogTab() {
   const [logs, setLogs] = useState([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
-  const PAGE_SIZE = 30;
+  const [filters, setFilters] = useState({ entity_type: '', action: '', date_from: '', date_to: '' });
+  const PER_PAGE = 50;
 
-  useEffect(() => {
-    api.get('/appointments/audit')
-      .then(r => setLogs((r.data && r.data.entries) ? r.data.entries : (Array.isArray(r.data) ? r.data : [])))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
-
-  const ACTION_COLORS = {
-    created:  'bg-emerald-100 text-emerald-700',
-    updated:  'bg-blue-100 text-blue-700',
-    deleted:  'bg-rose-100 text-rose-700',
-    default:  'bg-slate-100 text-slate-600',
+  const load = async (p = 0, f = filters) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page: p, per_page: PER_PAGE });
+      if (f.entity_type) params.set('entity_type', f.entity_type);
+      if (f.action) params.set('action', f.action);
+      if (f.date_from) params.set('date_from', f.date_from);
+      if (f.date_to) params.set('date_to', f.date_to);
+      const res = await api.get(`/audit?${params}`);
+      setLogs(res.data.entries || []);
+      setTotal(res.data.total || 0);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
-  const pageLogs = logs.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const totalPages = Math.ceil(logs.length / PAGE_SIZE);
+  useEffect(() => { load(0); }, []);
 
-  if (loading) return (
-    <div className="space-y-2">
-      {[1,2,3,4,5].map(i => <div key={i} className="h-14 bg-white rounded-xl animate-pulse border border-slate-100" />)}
-    </div>
-  );
+  const applyFilters = () => { setPage(0); load(0); };
+  const clearFilters = () => {
+    const reset = { entity_type: '', action: '', date_from: '', date_to: '' };
+    setFilters(reset); setPage(0); load(0, reset);
+  };
 
-  if (!logs.length) return (
-    <div className="py-20 text-center">
-      <FileText size={32} className="mx-auto mb-3 text-slate-300" />
-      <p className="text-slate-500 font-medium">No audit entries yet</p>
-      <p className="text-xs text-slate-400 mt-1">Appointment create, update, and delete actions will appear here</p>
-    </div>
-  );
+  const goPage = async (p) => { setPage(p); await load(p); };
+
+  const totalPages = Math.ceil(total / PER_PAGE);
+  const setF = (k, v) => setFilters(p => ({ ...p, [k]: v }));
+
+  const hasFilters = Object.values(filters).some(Boolean);
 
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Appointment Audit Log</h2>
-          <p className="text-sm text-slate-500 mt-0.5">{logs.length} entries — all appointment changes are recorded here</p>
+          <h2 className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Platform Audit Log</h2>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Every change across students, interventions, appointments, users and settings
+          </p>
         </div>
+        <span className="text-xs text-slate-400 mt-1">{total.toLocaleString()} entries</span>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-        <div className="grid border-b border-slate-200 bg-slate-50" style={{ gridTemplateColumns: '160px 120px 1fr 140px' }}>
-          {['Timestamp', 'Action', 'Details', 'User'].map(h => (
-            <div key={h} className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{h}</div>
-          ))}
+      {/* Filters */}
+      <div className="flex flex-wrap items-end gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+        <div>
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Type</label>
+          <select value={filters.entity_type} onChange={e => setF('entity_type', e.target.value)}
+            className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none">
+            <option value="">All types</option>
+            {Object.entries(ENTITY_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          </select>
         </div>
-        {pageLogs.map((entry, idx) => (
-          <div key={entry.audit_id || idx}
-            className={`grid items-start border-b border-slate-50 hover:bg-slate-50/60 transition-colors ${idx === pageLogs.length - 1 ? 'border-b-0' : ''}`}
-            style={{ gridTemplateColumns: '160px 120px 1fr 140px' }}
-            data-testid={`audit-entry-${idx}`}>
-            <div className="px-4 py-3">
-              <p className="text-xs font-mono text-slate-600">{entry.timestamp?.split('T')[0]}</p>
-              <p className="text-xs font-mono text-slate-400">{entry.timestamp?.split('T')[1]?.slice(0,8)}</p>
+        <div>
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Action</label>
+          <select value={filters.action} onChange={e => setF('action', e.target.value)}
+            className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none">
+            <option value="">All actions</option>
+            {Object.entries(ACTION_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">From</label>
+          <input type="date" value={filters.date_from} onChange={e => setF('date_from', e.target.value)}
+            className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none" />
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">To</label>
+          <input type="date" value={filters.date_to} onChange={e => setF('date_to', e.target.value)}
+            className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none" />
+        </div>
+        <button onClick={applyFilters}
+          className="px-4 py-2 text-sm font-semibold bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+          style={{ backgroundColor: 'var(--wt-accent)' }}>
+          Apply
+        </button>
+        {hasFilters && (
+          <button onClick={clearFilters}
+            className="px-3 py-2 text-sm text-slate-500 hover:text-slate-800 rounded-lg hover:bg-white transition-colors border border-slate-200">
+            Clear
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="space-y-2">
+          {[1,2,3,4,5].map(i => <div key={i} className="h-14 bg-white rounded-xl animate-pulse border border-slate-100" />)}
+        </div>
+      ) : !logs.length ? (
+        <div className="py-20 text-center">
+          <FileText size={32} className="mx-auto mb-3 text-slate-300" />
+          <p className="text-slate-500 font-medium">No audit entries {hasFilters ? 'matching filters' : 'yet'}</p>
+          {!hasFilters && <p className="text-xs text-slate-400 mt-1">Create, edit, or delete any record to see it appear here</p>}
+        </div>
+      ) : (
+        <>
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+            {/* Header */}
+            <div className="grid border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-400 uppercase tracking-wider"
+              style={{ gridTemplateColumns: '150px 110px 110px 1fr 130px' }}>
+              {['Timestamp', 'Type', 'Action', 'Details', 'User'].map(h => (
+                <div key={h} className="px-4 py-3">{h}</div>
+              ))}
             </div>
-            <div className="px-4 py-3">
-              <span className={`text-xs px-2 py-1 rounded-full font-semibold capitalize ${ACTION_COLORS[entry.action] || ACTION_COLORS.default}`}>
-                {entry.action}
-              </span>
-            </div>
-            <div className="px-4 py-3">
-              {entry.appointment_id && (
-                <p className="text-xs font-mono text-slate-400 mb-0.5">#{entry.appointment_id}</p>
-              )}
-              {entry.changes && Object.keys(entry.changes).length > 0 ? (
-                <div className="space-y-0.5">
-                  {Object.entries(entry.changes).slice(0, 4).map(([k, v]) => (
-                    <p key={k} className="text-xs text-slate-600">
-                      <span className="font-medium text-slate-700">{k}:</span>{' '}
-                      <span className="text-slate-400">{String(v?.old ?? '—')}</span>
-                      {' → '}
-                      <span className="text-slate-700">{String(v?.new ?? '—')}</span>
-                    </p>
-                  ))}
-                  {Object.keys(entry.changes).length > 4 && (
-                    <p className="text-xs text-slate-400">+{Object.keys(entry.changes).length - 4} more fields</p>
-                  )}
+
+            {logs.map((entry, idx) => {
+              const em = ENTITY_META[entry.entity_type] || { label: entry.entity_type, color: 'bg-slate-100 text-slate-600' };
+              const am = ACTION_META[entry.action] || { label: entry.action, color: 'bg-slate-100 text-slate-600' };
+              return (
+                <div key={entry.audit_id || idx}
+                  className={`grid items-start border-b border-slate-50 last:border-b-0 hover:bg-slate-50/60 transition-colors`}
+                  style={{ gridTemplateColumns: '150px 110px 110px 1fr 130px' }}
+                  data-testid={`audit-entry-${idx}`}>
+                  <div className="px-4 py-3">
+                    <p className="text-xs font-mono text-slate-600">{entry.timestamp?.split('T')[0]}</p>
+                    <p className="text-xs font-mono text-slate-400">{entry.timestamp?.split('T')[1]?.slice(0,8)}</p>
+                  </div>
+                  <div className="px-4 py-3">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${em.color}`}>{em.label}</span>
+                  </div>
+                  <div className="px-4 py-3">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${am.color}`}>{am.label}</span>
+                    {entry.bulk_count != null && (
+                      <p className="text-[10px] text-slate-400 mt-0.5">{entry.bulk_count} records</p>
+                    )}
+                  </div>
+                  <div className="px-4 py-3">
+                    {entry.entity_name && (
+                      <p className="text-xs font-semibold text-slate-800 mb-0.5">{entry.entity_name}</p>
+                    )}
+                    {Object.keys(entry.changes || {}).length > 0 && (
+                      <div className="space-y-0.5">
+                        {Object.entries(entry.changes).slice(0, 3).map(([k, v]) => (
+                          <p key={k} className="text-[11px] text-slate-500">
+                            <span className="font-medium text-slate-600">{k}:</span>{' '}
+                            {v?.old !== undefined && <><span className="line-through text-slate-400">{String(v.old ?? '—')}</span> → </>}
+                            <span className="text-slate-700">{String(v?.new ?? v ?? '—')}</span>
+                          </p>
+                        ))}
+                        {Object.keys(entry.changes).length > 3 && (
+                          <p className="text-[10px] text-slate-400">+{Object.keys(entry.changes).length - 3} more</p>
+                        )}
+                      </div>
+                    )}
+                    {entry.metadata && Object.keys(entry.metadata).length > 0 && !Object.keys(entry.changes || {}).length && (
+                      <p className="text-[11px] text-slate-400 italic">
+                        {Object.entries(entry.metadata).slice(0, 2).map(([k, v]) => `${k}: ${v}`).join(' · ')}
+                      </p>
+                    )}
+                  </div>
+                  <div className="px-4 py-3">
+                    <p className="text-xs font-medium text-slate-700 truncate">{entry.user_name || '—'}</p>
+                    <p className="text-[10px] text-slate-400 capitalize">{entry.user_role}</p>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-xs text-slate-400 italic">No field changes recorded</p>
-              )}
-            </div>
-            <div className="px-4 py-3">
-              <p className="text-xs font-medium text-slate-700">{entry.user_name || entry.professional_name_fallback || '—'}</p>
-              {entry.user_id && <p className="text-[10px] text-slate-400 font-mono mt-0.5">{entry.user_id}</p>}
-            </div>
+              );
+            })}
           </div>
-        ))}
-      </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-slate-400">Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, logs.length)} of {logs.length}</p>
-          <div className="flex gap-1">
-            <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
-              className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors">Prev</button>
-            <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
-              className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors">Next</button>
-          </div>
-        </div>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-slate-400">
+                Showing {page * PER_PAGE + 1}–{Math.min((page + 1) * PER_PAGE, total)} of {total.toLocaleString()}
+              </p>
+              <div className="flex gap-1">
+                <button onClick={() => goPage(Math.max(0, page - 1))} disabled={page === 0}
+                  className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors">Prev</button>
+                <button onClick={() => goPage(Math.min(totalPages - 1, page + 1))} disabled={page >= totalPages - 1}
+                  className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors">Next</button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -10,6 +10,7 @@ import re
 from database import db, DEFAULT_ABSENCE_TYPES, PRESENT_STATUSES, FULL_PRESENT_STATUSES
 from helpers import get_current_user, get_student_attendance_pct, get_student_attendance_stats, \
     get_bulk_attendance_stats, compute_att_stats
+from utils.audit import log_audit
 
 router = APIRouter()
 
@@ -272,13 +273,17 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
         )
         alerts_created += 1
 
-    return {
+    result = {
         "processed": len(records), "absence_dates_in_file": absence_date_count,
         "matched_students": len(matched), "unmatched_students": len(unmatched),
         "stored_records": stored_count, "alerts_generated": alerts_created,
         "preferred_names_updated": pref_updated,
         "unmatched_ids": unmatched[:30],
     }
+    await log_audit(user, "uploaded", "attendance", "", f"Attendance upload — {file.filename}",
+                    bulk_count=stored_count,
+                    metadata={"matched": len(matched), "unmatched": len(unmatched), "alerts": alerts_created})
+    return result
 
 
 @router.get("/attendance/summary")

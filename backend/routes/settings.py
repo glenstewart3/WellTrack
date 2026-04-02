@@ -10,6 +10,7 @@ import httpx
 
 from database import db, SETTINGS_DEFAULTS
 from helpers import get_current_user, get_student_attendance_pct
+from utils.audit import log_audit
 
 router = APIRouter()
 
@@ -46,6 +47,8 @@ async def update_settings(data: dict, user=Depends(get_current_user)):
     data.pop("onboarding_complete", None)
     await db.school_settings.update_one({}, {"$set": data}, upsert=True)
     result = await db.school_settings.find_one({}, {"_id": 0})
+    await log_audit(user, "updated", "setting", "school_settings", "School Settings",
+                    metadata={"keys_changed": list(data.keys())})
     return {**SETTINGS_DEFAULTS, **(result or {})}
 
 
@@ -86,6 +89,7 @@ async def wipe_data(user=Depends(get_current_user)):
     for col in ["students", "attendance", "attendance_records", "school_days", "screening_sessions",
                 "saebrs_results", "self_report_results", "interventions", "case_notes", "alerts"]:
         await db[col].delete_many({})
+    await log_audit(user, "data_wipe", "setting", "all", "Full data wipe")
     return {"message": "All data wiped"}
 
 
@@ -97,6 +101,7 @@ async def delete_student_data(user=Depends(get_current_user)):
     for col in ["students", "screening_sessions", "saebrs_results", "self_report_results",
                 "interventions", "case_notes", "alerts"]:
         await db[col].delete_many({})
+    await log_audit(user, "data_wipe", "student", "all", "Student data wipe")
     return {"message": "Student data deleted"}
 
 
@@ -107,6 +112,7 @@ async def delete_attendance_data(user=Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Admin access required")
     for col in ["attendance_records", "attendance"]:
         await db[col].delete_many({})
+    await log_audit(user, "data_wipe", "attendance", "all", "Attendance data wipe")
     return {"message": "Attendance data deleted"}
 
 

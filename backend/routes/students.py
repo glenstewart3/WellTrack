@@ -9,6 +9,7 @@ import asyncio
 from helpers import get_current_user, get_student_attendance_pct, compute_mtss_tier, \
     get_bulk_attendance_stats, get_latest_saebrs_bulk, get_latest_saebrs_plus_bulk
 from models import Student
+from utils.audit import log_audit
 
 # Default: <backend_root>/uploads/student_photos  (works on any server without /app)
 _default_photos = Path(__file__).resolve().parent.parent / "uploads" / "student_photos"
@@ -34,6 +35,8 @@ async def get_students(class_name: Optional[str] = None, year_level: Optional[st
 async def create_student(student: Student, user=Depends(get_current_user)):
     d = student.model_dump()
     await db.students.insert_one({**d})
+    await log_audit(user, "created", "student", d.get("student_id", ""),
+                    f"{d.get('first_name', '')} {d.get('last_name', '')}".strip())
     return d
 
 
@@ -85,6 +88,9 @@ async def import_students(data: dict, user=Depends(get_current_user)):
             await db.students.insert_one({**student_doc})
             imported.append(student_doc)
 
+    await log_audit(user, "bulk_import", "student", "", "Student bulk import",
+                    bulk_count=len(imported) + len(updated),
+                    metadata={"imported": len(imported), "updated": len(updated), "errors": len(errors)})
     return {"imported": len(imported), "updated": len(updated), "errors": errors, "total": len(rows)}
 
 
@@ -204,6 +210,7 @@ async def bulk_archive_students(data: dict, user=Depends(get_current_user)):
         {"student_id": {"$in": ids}},
         {"$set": {"enrolment_status": "archived"}}
     )
+    await log_audit(user, "bulk_archive", "student", "", "Bulk archive students", bulk_count=result.modified_count)
     return {"archived": result.modified_count}
 
 
@@ -218,6 +225,7 @@ async def bulk_reactivate_students(data: dict, user=Depends(get_current_user)):
         {"student_id": {"$in": ids}},
         {"$set": {"enrolment_status": "active"}}
     )
+    await log_audit(user, "bulk_reactivate", "student", "", "Bulk reactivate students", bulk_count=result.modified_count)
     return {"reactivated": result.modified_count}
 
 
@@ -233,6 +241,9 @@ async def update_student(student_id: str, data: dict, user=Depends(get_current_u
     if result.matched_count == 0:
         raise HTTPException(404, "Student not found")
     updated = await db.students.find_one({"student_id": student_id}, {"_id": 0})
+    await log_audit(user, "updated", "student", student_id,
+                    f"{updated.get('first_name','')} {updated.get('last_name','')}".strip(),
+                    changes={k: v for k, v in update_data.items()})
     return updated
 
 
