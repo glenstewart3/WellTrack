@@ -5,14 +5,17 @@ It is fire-and-forget safe — errors are silently ignored so they
 never break the primary operation.
 """
 import uuid
+import logging
 from datetime import datetime, timezone
 from database import db
+
+logger = logging.getLogger(__name__)
 
 
 async def log_audit(
     user: dict,
-    action: str,          # created | updated | deleted | bulk_import | bulk_archive | bulk_reactivate | uploaded | data_wipe | restored
-    entity_type: str,     # student | intervention | case_note | appointment | user | setting | attendance | screening
+    action: str,          # created | updated | deleted | bulk_import | bulk_archive | bulk_reactivate | uploaded | data_wipe
+    entity_type: str,     # student | intervention | case_note | appointment | user | setting | attendance
     entity_id: str = "",
     entity_name: str = "",
     changes: dict = None,
@@ -36,5 +39,5 @@ async def log_audit(
             "metadata": metadata or {},
         }
         await db.audit_log.insert_one(entry)
-    except Exception:
-        pass  # audit must never break the primary operation
+    except Exception as exc:
+        logger.warning("Audit log write failed: %s", exc)
