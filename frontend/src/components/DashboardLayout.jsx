@@ -6,7 +6,7 @@ import { useTheme, THEMES, THEME_NAV_ACTIVE } from '../context/ThemeContext';
 import {
   LayoutDashboard, ClipboardCheck, Users, Radar, BarChart3,
   Target, Users2, Bell, Settings, LogOut,
-  Menu, X, Shield, UserCog, CalendarDays, Check, Sun, Moon
+  Menu, X, Shield, UserCog, CalendarDays, Check, Sun, Moon, Stethoscope
 } from 'lucide-react';
 
 const navItems = [
@@ -16,6 +16,7 @@ const navItems = [
   { path: '/radar', icon: Radar, label: 'Class Risk Radar' },
   { path: '/analytics', icon: BarChart3, label: 'Analytics & Reports' },
   { path: '/interventions', icon: Target, label: 'Interventions' },
+  { path: '/appointments', icon: Stethoscope, label: 'Appointments' },
   { path: '/attendance', icon: CalendarDays, label: 'Attendance', roles: ['leadership', 'admin'] },
   { path: '/meeting', icon: Users2, label: 'MTSS Meeting' },
   { path: '/alerts', icon: Bell, label: 'Alerts' },

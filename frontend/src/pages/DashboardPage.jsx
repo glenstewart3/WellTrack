@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { getTierColors } from '../utils/tierUtils';
-import { AlertTriangle, Users, Target, Bell, TrendingUp, ArrowRight, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Users, Target, Bell, TrendingUp, ArrowRight, CheckCircle, Stethoscope, Clock, AlertCircle } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function DashboardPage() {
@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const [totalAlerts, setTotalAlerts] = useState(0);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [aptAlerts, setAptAlerts] = useState({ overdue: 0, approaching: 0, caseReview: 0, dna: 0 });
 
   useEffect(() => {
     const load = async () => {
@@ -28,6 +29,25 @@ export default function DashboardPage() {
         setTotalAlerts(allAlerts.length);
         setAlerts(allAlerts.slice(0, 5));
         setStudents(studRes.data.filter(s => (s.mtss_tier || 0) >= 2).slice(0, 6));
+
+        // Load appointment alerts if user has access
+        if (user?.appointment_access || user?.role === 'admin') {
+          try {
+            const ongoingRes = await api.get('/appointments/ongoing');
+            const ongoing = ongoingRes.data || [];
+            const today = new Date().toISOString().split('T')[0];
+            const in7days = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+            setAptAlerts({
+              overdue:     ongoing.filter(i => i.review_overdue).length,
+              approaching: ongoing.filter(i => {
+                const rd = i.review_date;
+                return rd && rd > today && rd <= in7days;
+              }).length,
+              caseReview:  ongoing.filter(i => i.case_review_recommended).length,
+              dna:         allAlerts.filter(a => a.alert_type === 'dna_consecutive' && a.status !== 'resolved').length,
+            });
+          } catch { /* appointments access may not be enabled */ }
+        }
       } catch (e) {
         console.error(e);
       } finally {
@@ -92,6 +112,55 @@ export default function DashboardPage() {
           </button>
         ))}
       </div>
+
+      {/* Appointment Alerts (only if user has appointment access) */}
+      {(user?.appointment_access || user?.role === 'admin') && (aptAlerts.overdue + aptAlerts.approaching + aptAlerts.caseReview + aptAlerts.dna) > 0 && (
+        <div className="bg-white border border-slate-200 rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Stethoscope size={16} className="text-slate-500" />
+              <h2 className="text-sm font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Appointment Alerts</h2>
+            </div>
+            <button onClick={() => navigate('/appointments')} className="text-xs text-slate-500 hover:text-slate-900 flex items-center gap-1">
+              View <ArrowRight size={12} />
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {aptAlerts.overdue > 0 && (
+              <button onClick={() => navigate('/appointments?tab=ongoing')}
+                data-testid="apt-alert-overdue"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs font-medium hover:bg-rose-100 transition-colors">
+                <AlertCircle size={12} />
+                {aptAlerts.overdue} Review{aptAlerts.overdue > 1 ? 's' : ''} Overdue
+              </button>
+            )}
+            {aptAlerts.approaching > 0 && (
+              <button onClick={() => navigate('/appointments?tab=ongoing')}
+                data-testid="apt-alert-approaching"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-100 transition-colors">
+                <Clock size={12} />
+                {aptAlerts.approaching} Review{aptAlerts.approaching > 1 ? 's' : ''} Due Soon
+              </button>
+            )}
+            {aptAlerts.caseReview > 0 && (
+              <button onClick={() => navigate('/appointments?tab=ongoing')}
+                data-testid="apt-alert-case-review"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 border border-violet-200 text-violet-700 rounded-lg text-xs font-medium hover:bg-violet-100 transition-colors">
+                <Target size={12} />
+                {aptAlerts.caseReview} Case Review Recommended
+              </button>
+            )}
+            {aptAlerts.dna > 0 && (
+              <button onClick={() => navigate('/alerts')}
+                data-testid="apt-alert-dna"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 border border-orange-200 text-orange-700 rounded-lg text-xs font-medium hover:bg-orange-100 transition-colors">
+                <AlertTriangle size={12} />
+                {aptAlerts.dna} DNA Alert{aptAlerts.dna > 1 ? 's' : ''}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Charts + Alerts row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

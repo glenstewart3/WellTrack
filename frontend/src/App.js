@@ -20,6 +20,7 @@ import MeetingPrepPage from './pages/MeetingPrepPage';
 import SettingsPage from './pages/SettingsPage';
 import AdministrationPage from './pages/AdministrationPage';
 import AttendancePage from './pages/AttendancePage';
+import AppointmentsPage from './pages/AppointmentsPage';
 
 function Spinner() {
   return (
@@ -91,6 +92,7 @@ function AppRouter() {
         <Route path="meeting" element={<MeetingPrepPage />} />
         <Route path="reports" element={<Navigate to="/analytics" replace />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="appointments" element={<AppointmentsPage />} />
         <Route path="admin" element={<AdministrationPage />} />
         <Route path="users" element={<Navigate to="/admin" replace />} />
       </Route>

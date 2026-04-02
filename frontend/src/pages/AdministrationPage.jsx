@@ -7,7 +7,7 @@ import {
   UserCog, Plus, Trash2, X, Shield, Edit2, Loader, Mail, KeyRound,
   Eye, EyeOff, CheckCircle, Lock, LayoutDashboard, ClipboardCheck,
   Users, Radar, BarChart3, Target, CalendarDays, Users2, Bell, Settings,
-  RotateCcw, Zap,
+  RotateCcw, Zap, Stethoscope, Settings2,
 } from 'lucide-react';
 import { DEFAULT_FEATURE_PERMISSIONS } from '../hooks/usePermissions';
 
@@ -29,6 +29,7 @@ const PERMISSION_PAGES = [
   { key: 'radar',         label: 'Class Risk Radar',    icon: Radar },
   { key: 'analytics',     label: 'Analytics & Reports', icon: BarChart3 },
   { key: 'interventions', label: 'Interventions',       icon: Target },
+  { key: 'appointments',  label: 'Appointments',        icon: Stethoscope },
   { key: 'attendance',    label: 'Attendance',          icon: CalendarDays },
   { key: 'meeting',       label: 'MTSS Meeting',        icon: Users2 },
   { key: 'alerts',        label: 'Alerts',              icon: Bell },
@@ -63,7 +64,7 @@ const CONFIGURABLE_ROLES = [
 const DEFAULT_PERMISSIONS = {
   teacher:    ['dashboard', 'screening', 'students', 'radar', 'analytics', 'interventions', 'meeting', 'alerts'],
   screener:   ['screening'],
-  wellbeing:  ['dashboard', 'screening', 'students', 'radar', 'analytics', 'interventions', 'meeting', 'alerts'],
+  wellbeing:  ['dashboard', 'screening', 'students', 'radar', 'analytics', 'interventions', 'appointments', 'meeting', 'alerts'],
   leadership: ['dashboard', 'screening', 'students', 'radar', 'analytics', 'interventions', 'attendance', 'meeting', 'alerts'],
 };
 
@@ -95,6 +96,8 @@ function TabNav({ active, onChange }) {
   );
 }
 
+const VISIT_DAY_OPTIONS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+
 // ── USER MANAGEMENT TAB ──────────────────────────────────────────────────────
 function UserManagementTab() {
   const { user } = useAuth();
@@ -110,6 +113,11 @@ function UserManagementTab() {
   const [passwordForm, setPasswordForm] = useState({ password: '', confirm: '' });
   const [showPw, setShowPw] = useState(false);
   const [pwSaving, setPwSaving] = useState(false);
+  // Professional settings modal
+  const [profUser, setProfUser] = useState(null);
+  const [profForm, setProfForm] = useState({});
+  const [profInterventionTypes, setProfInterventionTypes] = useState([]);
+  const [profSaving, setProfSaving] = useState(false);
 
   useEffect(() => { loadUsers(); }, []);
 
@@ -173,6 +181,52 @@ function UserManagementTab() {
       showMsg(e.response?.data?.detail || 'Failed to delete user', 'error');
     }
   };
+
+  const openProfSettings = async (u) => {
+    setProfUser(u);
+    setProfForm({
+      appointment_access: u.appointment_access || false,
+      professional_type: u.professional_type || '',
+      visit_days: u.visit_days || [],
+      accessible_intervention_types: u.accessible_intervention_types || [],
+      cross_professional_view: u.cross_professional_view || false,
+    });
+    try {
+      const res = await api.get('/settings');
+      const types = (res.data.intervention_types || [])
+        .map(t => typeof t === 'string' ? t : t.name)
+        .filter(Boolean);
+      setProfInterventionTypes(types);
+    } catch { setProfInterventionTypes([]); }
+  };
+
+  const saveProfSettings = async () => {
+    setProfSaving(true);
+    try {
+      const updated = await api.put(`/users/${profUser.user_id}/professional`, profForm);
+      setUsers(prev => prev.map(u => u.user_id === profUser.user_id ? { ...u, ...updated.data } : u));
+      setProfUser(null);
+      showMsg('Professional settings saved');
+    } catch (e) {
+      showMsg(e.response?.data?.detail || 'Failed to save', 'error');
+    } finally { setProfSaving(false); }
+  };
+
+  const toggleProfDay = (day) =>
+    setProfForm(p => ({
+      ...p,
+      visit_days: p.visit_days.includes(day)
+        ? p.visit_days.filter(d => d !== day)
+        : [...p.visit_days, day],
+    }));
+
+  const toggleProfType = (type) =>
+    setProfForm(p => ({
+      ...p,
+      accessible_intervention_types: p.accessible_intervention_types.includes(type)
+        ? p.accessible_intervention_types.filter(t => t !== type)
+        : [...p.accessible_intervention_types, type],
+    }));
 
   return (
     <div className="space-y-5">
@@ -254,6 +308,11 @@ function UserManagementTab() {
                     <td className="py-3.5 px-4 text-slate-400 text-xs">{u.created_at?.split('T')[0] || '—'}</td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-1">
+                        <button onClick={() => openProfSettings(u)}
+                          data-testid={`prof-settings-${u.user_id}`}
+                          className="p-1.5 text-slate-300 hover:text-violet-500 hover:bg-violet-50 rounded-lg transition-colors" title="Professional / Appointment settings">
+                          <Settings2 size={14} />
+                        </button>
                         <button onClick={() => { setSetPasswordUser(u); setPasswordForm({ password: '', confirm: '' }); setShowPw(false); }}
                           data-testid={`set-password-${u.user_id}`}
                           className="p-1.5 text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors" title="Set password">
@@ -309,6 +368,11 @@ function UserManagementTab() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      <button onClick={() => openProfSettings(u)}
+                        data-testid={`prof-settings-mobile-${u.user_id}`}
+                        className="p-2 text-slate-300 hover:text-violet-500 hover:bg-violet-50 rounded-lg transition-colors">
+                        <Settings2 size={15} />
+                      </button>
                       <button onClick={() => { setSetPasswordUser(u); setPasswordForm({ password: '', confirm: '' }); setShowPw(false); }}
                         data-testid={`set-password-${u.user_id}`}
                         className="p-2 text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors">
@@ -418,6 +482,125 @@ function UserManagementTab() {
               </button>
               <button onClick={() => setSetPasswordUser(null)}
                 className="flex-1 bg-slate-100 text-slate-700 py-3 text-sm font-medium rounded-xl hover:bg-slate-200 transition-colors">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Professional Settings Modal */}
+      {profUser && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0">
+              <div>
+                <h3 className="font-bold text-slate-900 text-lg" style={{ fontFamily: 'Manrope,sans-serif' }}>Professional Settings</h3>
+                <p className="text-xs text-slate-400 mt-0.5">{profUser.name}</p>
+              </div>
+              <button onClick={() => setProfUser(null)}><X size={18} className="text-slate-400" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
+              {/* Appointment Access */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Appointment System Access</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Allow this user to use the Appointments module</p>
+                </div>
+                <button
+                  onClick={() => setProfForm(p => ({ ...p, appointment_access: !p.appointment_access }))}
+                  data-testid="toggle-appointment-access"
+                  className={`relative inline-flex h-6 w-11 rounded-full transition-colors shrink-0 ${
+                    profForm.appointment_access ? 'bg-emerald-500' : 'bg-slate-200'
+                  }`}>
+                  <span className={`inline-block w-4 h-4 bg-white rounded-full shadow transform transition-transform mt-1 ${
+                    profForm.appointment_access ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
+
+              {/* Professional Type */}
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Professional Type</label>
+                <input value={profForm.professional_type} onChange={e => setProfForm(p => ({ ...p, professional_type: e.target.value }))}
+                  placeholder="e.g. School Counsellor, Psychologist..."
+                  data-testid="professional-type-input"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-200" />
+              </div>
+
+              {/* Visit Days */}
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-2">Visit Days</label>
+                <div className="flex gap-2 flex-wrap">
+                  {VISIT_DAY_OPTIONS.map(day => (
+                    <button key={day} onClick={() => toggleProfDay(day)}
+                      data-testid={`visit-day-${day}`}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+                        profForm.visit_days.includes(day)
+                          ? 'bg-slate-900 text-white border-slate-900'
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                      }`}>
+                      {day}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Accessible Intervention Types */}
+              {profInterventionTypes.length > 0 && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">
+                    Accessible Intervention Types
+                  </label>
+                  <p className="text-xs text-slate-400 mb-2">Leave all unchecked to allow access to all types</p>
+                  <div className="space-y-1.5">
+                    {profInterventionTypes.map(type => (
+                      <label key={type} className="flex items-center gap-2.5 cursor-pointer group">
+                        <button onClick={() => toggleProfType(type)}
+                          className={`w-4.5 h-4.5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${
+                            profForm.accessible_intervention_types.includes(type)
+                              ? 'bg-emerald-500 border-emerald-500'
+                              : 'border-slate-200 bg-white group-hover:border-slate-400'
+                          }`}>
+                          {profForm.accessible_intervention_types.includes(type) && (
+                            <CheckCircle size={10} className="text-white" strokeWidth={3} />
+                          )}
+                        </button>
+                        <span className="text-sm text-slate-700">{type}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Cross-Professional View */}
+              <div className="flex items-center justify-between pb-1">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Cross-Professional View</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Can view other professionals' sessions</p>
+                </div>
+                <button
+                  onClick={() => setProfForm(p => ({ ...p, cross_professional_view: !p.cross_professional_view }))}
+                  data-testid="toggle-cross-professional"
+                  className={`relative inline-flex h-6 w-11 rounded-full transition-colors shrink-0 ${
+                    profForm.cross_professional_view ? 'bg-emerald-500' : 'bg-slate-200'
+                  }`}>
+                  <span className={`inline-block w-4 h-4 bg-white rounded-full shadow transform transition-transform mt-1 ${
+                    profForm.cross_professional_view ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex gap-2 shrink-0">
+              <button onClick={saveProfSettings} disabled={profSaving}
+                data-testid="save-prof-settings-btn"
+                className="flex-1 bg-slate-900 text-white py-3 text-sm font-semibold rounded-xl hover:bg-slate-800 disabled:opacity-60 flex items-center justify-center gap-2 transition-colors"
+                style={{ backgroundColor: 'var(--wt-accent)' }}>
+                {profSaving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                {profSaving ? 'Saving…' : 'Save Settings'}
+              </button>
+              <button onClick={() => setProfUser(null)}
+                className="flex-1 bg-slate-100 text-slate-700 py-3 text-sm font-medium rounded-xl hover:bg-slate-200 transition-colors">
+                Cancel
+              </button>
             </div>
           </div>
         </div>
