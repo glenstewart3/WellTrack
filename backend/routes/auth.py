@@ -244,10 +244,11 @@ async def update_role(data: dict, user=Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Only administrators can change user roles")
     target_user_id = data.get("user_id", user["user_id"])
     role = data.get("role")
-    if role not in ["teacher", "wellbeing", "leadership", "admin", "screener"]:
+    if role not in ["teacher", "wellbeing", "leadership", "admin", "screener", "professional"]:
         raise HTTPException(status_code=400, detail="Invalid role")
     await db.users.update_one({"user_id": target_user_id}, {"$set": {"role": role}})
     return {"message": "Role updated", "role": role}
+
 
 
 # ── Onboarding ──────────────────────────────────────────────────────────────
