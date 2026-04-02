@@ -323,31 +323,164 @@ function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
 }
 
 // ── INTERVENTIONS TAB ────────────────────────────────────────────────────────
+function normalizeType(t) {
+  if (typeof t === 'string') return {
+    name: t, appointment_scheduling_enabled: false,
+    appointment_config: { session_types: [], flags: [], rooms: [], outcome_ratings: [], statuses: [] },
+  };
+  const cfg = t.appointment_config || {};
+  return {
+    ...t,
+    appointment_config: {
+      session_types: cfg.session_types || [],
+      flags: cfg.flags || [],
+      rooms: cfg.rooms || [],
+      outcome_ratings: cfg.outcome_ratings || [],
+      statuses: cfg.statuses || [],
+    },
+  };
+}
+
+function ConfigList({ label, items, onChange, semanticKey }) {
+  const [newVal, setNewVal] = useState('');
+  const add = () => {
+    const v = newVal.trim();
+    if (!v) return;
+    onChange([...items, { value: v }]);
+    setNewVal('');
+  };
+  const remove = (i) => onChange(items.filter((_, idx) => idx !== i));
+  const toggleTag = (i, tag) => onChange(items.map((item, idx) =>
+    idx === i ? { ...item, [tag]: !item[tag] } : item
+  ));
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">{label}</p>
+      <div className="space-y-1">
+        {items.map((item, i) => (
+          <div key={i} className="flex items-center gap-1.5 flex-wrap">
+            <span className="flex-1 min-w-0 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded text-xs text-slate-700 truncate">
+              {item.value}
+            </span>
+            {semanticKey && (
+              <button
+                onClick={() => toggleTag(i, semanticKey)}
+                title={`Mark as ${semanticKey === 'is_completed_equivalent' ? '"Completed" equivalent' : '"Improved" equivalent'}`}
+                className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors shrink-0 ${
+                  item[semanticKey]
+                    ? 'bg-emerald-100 border-emerald-300 text-emerald-700'
+                    : 'bg-white border-slate-200 text-slate-400 hover:border-slate-400'
+                }`}
+              >
+                {item[semanticKey] ? '✓ Canonical' : 'Set canonical'}
+              </button>
+            )}
+            <button onClick={() => remove(i)} className="text-slate-300 hover:text-rose-500 transition-colors shrink-0">
+              <X size={12} />
+            </button>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-1.5">
+        <input value={newVal} onChange={e => setNewVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()}
+          placeholder={`Add to ${label.toLowerCase()}…`}
+          className="flex-1 px-2 py-1 text-xs border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-slate-400" />
+        <button onClick={add} className="px-2 py-1 bg-slate-900 text-white rounded text-xs hover:bg-slate-800 transition-colors">
+          <Plus size={11} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function InterventionsTab({ settings: s, onSave, saving, msg, msgType }) {
-  const [intTypes, setIntTypes] = useState(s.intervention_types || []);
+  const [intTypes, setIntTypes] = useState(() => (s.intervention_types || []).map(normalizeType));
   const [newType, setNewType] = useState('');
+  const [expanded, setExpanded] = useState({});
+
   const addType = () => {
     const v = newType.trim();
-    if (v && !intTypes.includes(v)) { setIntTypes(prev => [...prev, v]); setNewType(''); }
+    if (!v || intTypes.some(t => t.name === v)) return;
+    setIntTypes(prev => [...prev, normalizeType(v)]);
+    setNewType('');
   };
-  const removeType = (t) => setIntTypes(prev => prev.filter(x => x !== t));
+
+  const removeType = (name) => setIntTypes(prev => prev.filter(t => t.name !== name));
+
+  const toggleScheduling = (name) => setIntTypes(prev => prev.map(t =>
+    t.name === name ? { ...t, appointment_scheduling_enabled: !t.appointment_scheduling_enabled } : t
+  ));
+
+  const updateConfig = (name, key, items) => setIntTypes(prev => prev.map(t =>
+    t.name === name ? { ...t, appointment_config: { ...t.appointment_config, [key]: items } } : t
+  ));
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {msg && (
         <div className={`flex items-center gap-2 rounded-xl p-4 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
           <CheckCircle size={15} className={msgType === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
           <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
         </div>
       )}
-      <div className="bg-white border border-slate-200 rounded-xl p-6">
+
+      <div className="bg-white border border-slate-200 rounded-xl p-5">
         <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Intervention Library</h3>
-        <p className="text-xs text-slate-400 mb-4">The types of interventions available when creating or editing interventions.</p>
-        <div className="flex flex-wrap gap-2 mb-3">
+        <p className="text-xs text-slate-400 mb-4">Configure types and appointment scheduling per type.</p>
+        <div className="space-y-2 mb-4">
           {intTypes.map(t => (
-            <span key={t} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-medium rounded-lg">
-              {t}
-              <button onClick={() => removeType(t)} className="text-slate-400 hover:text-rose-500 transition-colors"><X size={11} /></button>
-            </span>
+            <div key={t.name} className="border border-slate-200 rounded-lg overflow-hidden">
+              <div className="flex items-center gap-3 px-4 py-3 bg-slate-50">
+                <button onClick={() => setExpanded(p => ({ ...p, [t.name]: !p[t.name] }))}
+                  className="flex-1 text-left text-sm font-semibold text-slate-800 flex items-center gap-2">
+                  <span>{t.name}</span>
+                  {t.appointment_scheduling_enabled && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-px bg-blue-100 text-blue-700 rounded text-[10px] font-bold">
+                      <CalendarDays size={9} /> Scheduling
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => toggleScheduling(t.name)}
+                  title="Enable/disable appointment scheduling for this type"
+                  className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${
+                    t.appointment_scheduling_enabled
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-slate-500 border-slate-300 hover:border-slate-500'
+                  }`}
+                >
+                  <CalendarDays size={11} />
+                  {t.appointment_scheduling_enabled ? 'Scheduling On' : 'Scheduling Off'}
+                </button>
+                <button onClick={() => removeType(t.name)} className="text-slate-300 hover:text-rose-500 transition-colors shrink-0">
+                  <X size={14} />
+                </button>
+              </div>
+              {t.appointment_scheduling_enabled && expanded[t.name] && (
+                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-5 border-t border-slate-100">
+                  <ConfigList label="Session Types" items={t.appointment_config.session_types}
+                    onChange={items => updateConfig(t.name, 'session_types', items)} />
+                  <ConfigList label="Rooms / Locations" items={t.appointment_config.rooms}
+                    onChange={items => updateConfig(t.name, 'rooms', items)} />
+                  <ConfigList label="Flags / Tags" items={t.appointment_config.flags}
+                    onChange={items => updateConfig(t.name, 'flags', items)} />
+                  <ConfigList label="Statuses"
+                    items={t.appointment_config.statuses}
+                    onChange={items => updateConfig(t.name, 'statuses', items)}
+                    semanticKey="is_completed_equivalent" />
+                  <ConfigList label="Outcome Ratings"
+                    items={t.appointment_config.outcome_ratings}
+                    onChange={items => updateConfig(t.name, 'outcome_ratings', items)}
+                    semanticKey="is_improved_equivalent" />
+                </div>
+              )}
+              {t.appointment_scheduling_enabled && !expanded[t.name] && (
+                <button onClick={() => setExpanded(p => ({ ...p, [t.name]: true }))}
+                  className="w-full text-xs text-blue-600 py-2 hover:bg-blue-50 transition-colors">
+                  Configure session types, flags, rooms, outcomes, statuses →
+                </button>
+              )}
+            </div>
           ))}
           {intTypes.length === 0 && <p className="text-sm text-slate-400">No intervention types added yet.</p>}
         </div>
@@ -363,8 +496,11 @@ function InterventionsTab({ settings: s, onSave, saving, msg, msgType }) {
           </button>
         </div>
       </div>
-      <button onClick={() => onSave({ intervention_types: intTypes })} disabled={saving} data-testid="save-interventions-btn"
-        className="w-full py-3.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
+
+      <button onClick={() => onSave({ intervention_types: intTypes })} disabled={saving}
+        data-testid="save-interventions-btn"
+        className="w-full py-3.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2"
+        style={{ backgroundColor: 'var(--wt-accent)' }}>
         {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
         {saving ? 'Saving…' : 'Save Intervention Settings'}
       </button>

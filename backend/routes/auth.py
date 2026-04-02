@@ -388,3 +388,20 @@ async def delete_user(user_id: str, user=Depends(get_current_user)):
     await db.users.delete_one({"user_id": user_id})
     await db.user_sessions.delete_many({"user_id": user_id})
     return {"message": "User deleted"}
+
+
+@router.put("/users/{user_id}/professional")
+async def update_user_professional(user_id: str, data: dict, user=Depends(get_current_user)):
+    from fastapi import HTTPException
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    allowed = {
+        "professional_type", "appointment_access",
+        "visit_days", "accessible_intervention_types", "cross_professional_view",
+    }
+    update = {k: v for k, v in data.items() if k in allowed}
+    if not update:
+        raise HTTPException(status_code=400, detail="No valid fields to update")
+    await db.users.update_one({"user_id": user_id}, {"$set": update})
+    updated = await db.users.find_one({"user_id": user_id}, {"_id": 0, "hashed_password": 0, "password_hash": 0})
+    return updated

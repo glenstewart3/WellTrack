@@ -18,14 +18,15 @@ from apscheduler.triggers.cron import CronTrigger
 
 from routes.auth import router as auth_router
 from routes.students import router as students_router
-from routes.screening import router as screening_router
 from routes.interventions import router as interventions_router
+from routes.backups import router as backups_router
 from routes.alerts import router as alerts_router
+from routes.reports import router as reports_router
 from routes.analytics import router as analytics_router
 from routes.attendance import router as attendance_router
 from routes.settings import router as settings_router
-from routes.reports import router as reports_router
-from routes.backups import router as backups_router
+from routes.screening import router as screening_router
+from routes.appointments import router as appointments_router
 
 app = FastAPI(title="WellTrack API")
 scheduler = AsyncIOScheduler()
@@ -55,6 +56,7 @@ api_router.include_router(attendance_router)
 api_router.include_router(settings_router)
 api_router.include_router(reports_router)
 api_router.include_router(backups_router)
+api_router.include_router(appointments_router)
 
 app.include_router(api_router)
 
