@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import { useTheme, THEMES, THEME_NAV_ACTIVE } from '../context/ThemeContext';
@@ -60,6 +61,14 @@ export default function DashboardLayout() {
     await logout();
     navigate('/login');
   };
+
+  const [alertCount, setAlertCount] = useState(0);
+
+  useEffect(() => {
+    api.get('/alerts?resolved=false')
+      .then(r => setAlertCount(Array.isArray(r.data) ? r.data.length : 0))
+      .catch(() => {});
+  }, []);
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -177,8 +186,16 @@ export default function DashboardLayout() {
           </button>
           <div className="flex-1" />
           {/* Alert indicator */}
-          <NavLink to="/alerts" className="relative p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors">
+          <NavLink to="/alerts" className="relative p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors" data-testid="alert-bell">
             <Bell size={18} />
+            {alertCount > 0 && (
+              <span
+                data-testid="alert-badge"
+                className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none"
+              >
+                {alertCount > 99 ? '99+' : alertCount}
+              </span>
+            )}
           </NavLink>
           {/* User avatar + click dropdown */}
           <div className="relative" ref={userMenuRef}>
