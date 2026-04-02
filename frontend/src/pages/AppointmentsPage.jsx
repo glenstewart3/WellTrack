@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import {
   Plus, X, Eye, EyeOff, ChevronLeft, ChevronRight, Loader,
-  CheckCircle, RefreshCw, Target, AlertTriangle, Clock,
+  CheckCircle, RefreshCw, Target, AlertTriangle, Users2,
 } from 'lucide-react';
 
 // ── Date helpers ─────────────────────────────────────────────────────────────
@@ -30,15 +29,22 @@ function addDays(date, n) {
 
 // ── Tab Nav ───────────────────────────────────────────────────────────────────
 
+const TABS = [
+  { key: 'schedule',     label: 'Schedule' },
+  { key: 'ongoing',      label: 'Ongoing' },
+  { key: 'completed',    label: 'Completed' },
+  { key: 'availability', label: 'Availability' },
+];
+
 function TabNav({ active, onChange }) {
   return (
     <div className="flex gap-1 p-1.5 bg-slate-100 rounded-2xl w-fit mb-6">
-      {['schedule', 'ongoing', 'completed'].map(key => (
+      {TABS.map(({ key, label }) => (
         <button key={key} onClick={() => onChange(key)} data-testid={`appointments-tab-${key}`}
-          className={`px-5 py-2 text-sm font-medium rounded-xl transition-all capitalize whitespace-nowrap ${
+          className={`px-5 py-2 text-sm font-medium rounded-xl transition-all whitespace-nowrap ${
             active === key ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
           }`}>
-          {key}
+          {label}
         </button>
       ))}
     </div>
@@ -586,6 +592,162 @@ function CompletedTab({ confidential }) {
   );
 }
 
+// ── Availability Tab ──────────────────────────────────────────────────────────
+
+function AvailabilityTab({ students, onAddSession }) {
+  const [professionals, setProfessionals] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [weekStart, setWeekStart] = useState(getWeekStart());
+  const [loading, setLoading] = useState(true);
+
+  const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map((key, i) => ({
+    key, label: DAY_FULL[i],
+    date: addDays(weekStart, i),
+    dateStr: formatDate(addDays(weekStart, i)),
+  }));
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [profsRes, schedRes] = await Promise.all([
+        api.get('/users/professionals'),
+        api.get(`/appointments/schedule?week_start=${formatDate(weekStart)}`),
+      ]);
+      setProfessionals(profsRes.data || []);
+      setAppointments((schedRes.data.appointments) || []);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  }, [weekStart]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const formatWeekRange = () => {
+    const opts = { month: 'short', day: 'numeric' };
+    return `${weekStart.toLocaleDateString('en-AU', opts)} – ${addDays(weekStart, 6).toLocaleDateString('en-AU', { ...opts, year: 'numeric' })}`;
+  };
+
+  const getProApts = (profId, dateStr) =>
+    appointments.filter(a => a.professional_user_id === profId && a.date === dateStr);
+
+  const studentName = (studentId) => {
+    const s = students.find(s => s.student_id === studentId);
+    return s ? `${s.first_name} ${s.last_name}` : studentId;
+  };
+
+  if (!loading && !professionals.length) return (
+    <div className="py-20 text-center text-slate-400">
+      <Users2 size={32} className="mx-auto mb-3 opacity-30" />
+      <p className="text-sm font-medium">No professional staff configured yet</p>
+      <p className="text-xs mt-1 text-slate-300">Add users with the Professional role in Administration to see their availability here</p>
+    </div>
+  );
+
+  return (
+    <div>
+      {/* Week navigation */}
+      <div className="flex items-center gap-2 mb-5">
+        <button onClick={() => setWeekStart(d => addDays(d, -7))}
+          className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+          <ChevronLeft size={16} className="text-slate-600" />
+        </button>
+        <span className="text-sm font-semibold text-slate-700 min-w-[190px] text-center">{formatWeekRange()}</span>
+        <button onClick={() => setWeekStart(d => addDays(d, 7))}
+          className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+          <ChevronRight size={16} className="text-slate-600" />
+        </button>
+        <button onClick={load} className="ml-auto p-2 hover:bg-slate-100 rounded-lg transition-colors" title="Refresh">
+          <RefreshCw size={14} className="text-slate-400" />
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => <div key={i} className="h-20 bg-white rounded-xl animate-pulse border border-slate-100" />)}
+        </div>
+      ) : (
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          {/* Header row */}
+          <div className="grid border-b border-slate-200 bg-slate-50" style={{ gridTemplateColumns: '210px repeat(5, 1fr)' }}>
+            <div className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider border-r border-slate-200">
+              Professional
+            </div>
+            {weekDays.map(d => {
+              const isToday = d.dateStr === formatDate(new Date());
+              return (
+                <div key={d.key} className={`px-3 py-3 text-center border-r border-slate-100 last:border-r-0 ${isToday ? 'bg-indigo-50' : ''}`}>
+                  <p className={`text-xs font-semibold uppercase tracking-wider ${isToday ? 'text-indigo-600' : 'text-slate-400'}`}>{d.key}</p>
+                  <p className={`text-sm font-bold mt-0.5 ${isToday ? 'text-indigo-800' : 'text-slate-600'}`}>
+                    {d.date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Professional rows */}
+          {professionals.map((prof) => (
+            <div key={prof.user_id}
+              className="grid border-b border-slate-100 last:border-b-0 hover:bg-slate-50/40 transition-colors"
+              style={{ gridTemplateColumns: '210px repeat(5, 1fr)' }}
+              data-testid={`availability-row-${prof.user_id}`}>
+
+              {/* Name + type */}
+              <div className="px-4 py-4 flex items-center gap-3 border-r border-slate-100">
+                <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
+                  <span className="text-xs font-bold text-violet-700">{prof.name?.[0] || '?'}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 truncate">{prof.name}</p>
+                  {prof.professional_type && (
+                    <p className="text-xs text-slate-400 truncate">{prof.professional_type}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Day cells */}
+              {weekDays.map(d => {
+                const isVisitDay = (prof.visit_days || []).length === 0 || (prof.visit_days || []).includes(d.key);
+                const apts = getProApts(prof.user_id, d.dateStr);
+                const isToday = d.dateStr === formatDate(new Date());
+                return (
+                  <div key={d.key}
+                    className={`px-2 py-2.5 flex flex-col gap-1 min-h-[68px] border-r border-slate-50 last:border-r-0 ${
+                      !isVisitDay ? 'bg-slate-50/70' : isToday ? 'bg-indigo-50/30' : ''
+                    }`}>
+                    {isVisitDay ? (
+                      <>
+                        {apts.map(apt => (
+                          <button key={apt.appointment_id} onClick={() => onAddSession(apt)}
+                            className="w-full text-left px-2 py-1 rounded-lg bg-white hover:bg-slate-100 border border-slate-100 transition-colors">
+                            <p className="text-[10px] font-semibold text-slate-700 truncate leading-tight">
+                              {studentName(apt.student_id)}
+                            </p>
+                            {apt.time && <p className="text-[9px] text-slate-400">{apt.time}</p>}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => onAddSession({ date: d.dateStr })}
+                          data-testid={`availability-add-${prof.user_id}-${d.key}`}
+                          className="w-full flex items-center justify-center gap-1 py-1 text-[10px] text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg border border-dashed border-slate-200 hover:border-slate-400 transition-all mt-auto">
+                          <Plus size={9} /> Add
+                        </button>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-center flex-1">
+                        <span className="text-[10px] text-slate-300 select-none">—</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function AppointmentsPage() {
@@ -658,6 +820,9 @@ export default function AppointmentsPage() {
       )}
       {tab === 'completed' && (
         <CompletedTab key={`cmp-${refreshKey}`} confidential={confidential} />
+      )}
+      {tab === 'availability' && (
+        <AvailabilityTab key={`avl-${refreshKey}`} students={students} onAddSession={setSessionModal} />
       )}
 
       {sessionModal !== null && (
