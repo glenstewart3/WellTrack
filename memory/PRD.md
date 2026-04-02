@@ -180,3 +180,5 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 - PDF export uses browser-side jsPDF (no server dependency)
 - The `school_days` collection is populated via Settings → Calendar terms, not from attendance uploads
 - ✅ **AI suggestion blank cards fixed** (Feb 2026) — `_normalize_rec()` added to backend to remap 25+ alternative field names small models use (e.g. `intervention_type`→`type`, `reason`→`rationale`). Frontend also adds same fallbacks client-side.
+
+- ✅ **Availability Calendar tab** (Apr 2026) — New 4th tab in Appointments: week grid showing all Professional-role users as rows, Mon-Fri as columns. Greys out non-visit days. Shows booked sessions per day with student name + time. 'Add' button per cell pre-fills the Session Modal with that date. Week navigation. Nav icon changed to CalendarCheck2.
