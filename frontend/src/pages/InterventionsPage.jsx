@@ -279,6 +279,7 @@ export default function InterventionsPage() {
   const [showAdd, setShowAdd]       = useState(false);
   const [detailIntv, setDetailIntv] = useState(null);
   const [saving, setSaving]         = useState(false);
+  const [professionals, setProfessionals] = useState([]);
   const [form, setForm] = useState({
     student_id: '', intervention_type: '', assigned_staff: '',
     start_date: '', review_date: '', goals: '', rationale: '',
@@ -298,6 +299,14 @@ export default function InterventionsPage() {
       finally { setLoading(false); }
     })();
   }, []);
+
+  const loadProfessionals = async () => {
+    if (professionals.length) return;
+    try {
+      const res = await api.get('/users/professionals');
+      setProfessionals(res.data || []);
+    } catch { /* not critical */ }
+  };
 
   const getStudent = sid => students.find(s => s.student_id === sid);
   const getName = sid => { const s = getStudent(sid); return s ? studentDisplayName(s) : sid; };
@@ -506,7 +515,7 @@ export default function InterventionsPage() {
             </button>
           )}
           {canDo('interventions.add_edit') && (
-            <button onClick={() => setShowAdd(true)} data-testid="new-intervention-btn"
+            <button onClick={() => { setShowAdd(true); loadProfessionals(); }} data-testid="new-intervention-btn"
               className="flex items-center gap-2 px-4 py-2.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
               style={{ backgroundColor: 'var(--wt-accent)' }}>
               <Plus size={16} /> New Intervention
@@ -672,9 +681,22 @@ export default function InterventionsPage() {
                   {interventionTypes.map(t => <option key={t} value={t} />)}
                 </datalist>
               </div>
-              <input placeholder="Assigned Staff" value={form.assigned_staff}
-                onChange={e => setForm(p => ({ ...p, assigned_staff: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none" />
+              {professionals.length > 0 ? (
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Assigned Staff</label>
+                  <select value={form.assigned_staff} onChange={e => setForm(p => ({ ...p, assigned_staff: e.target.value }))}
+                    className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none bg-white">
+                    <option value="">Select Assigned Staff…</option>
+                    {professionals.map(p => (
+                      <option key={p.user_id} value={p.name}>{p.name}{p.professional_type ? ` — ${p.professional_type}` : ''}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <input placeholder="Assigned Staff" value={form.assigned_staff}
+                  onChange={e => setForm(p => ({ ...p, assigned_staff: e.target.value }))}
+                  className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none" />
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-slate-400 block mb-1">Start Date</label>

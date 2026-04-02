@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { getTierColors, getRiskColors, INTERVENTION_TYPES, NOTE_TYPES } from '../utils/tierUtils';
-import { ArrowLeft, Plus, X, Loader, Edit2, Check, Sparkles, Trash2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Plus, X, Loader, Edit2, Check, Sparkles, Trash2, AlertTriangle, Stethoscope } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { usePermissions } from '../hooks/usePermissions';
 import {
@@ -199,6 +199,9 @@ export default function StudentProfilePage() {
   const [showAiPanel, setShowAiPanel] = useState(false);
   const [attendanceData, setAttendanceData] = useState(null);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [sessions, setSessions] = useState(null);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [professionals, setProfessionals] = useState([]);
   useEffect(() => {
     const load = async () => {
       try {
@@ -218,6 +221,24 @@ export default function StudentProfilePage() {
       setAttendanceData(res.data);
     } catch { /* no attendance data yet */ }
     finally { setAttendanceLoading(false); }
+  };
+
+  const fetchSessions = async () => {
+    if (sessions || sessionsLoading) return;
+    setSessionsLoading(true);
+    try {
+      const res = await api.get(`/appointments/student/${studentId}`);
+      setSessions(res.data || []);
+    } catch { setSessions([]); }
+    finally { setSessionsLoading(false); }
+  };
+
+  const fetchProfessionals = async () => {
+    if (professionals.length) return;
+    try {
+      const res = await api.get('/users/professionals');
+      setProfessionals(res.data || []);
+    } catch { /* not critical */ }
   };
 
   const getAiSuggestions = async () => {    setAiLoading(true);
@@ -440,10 +461,15 @@ export default function StudentProfilePage() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 mb-6 overflow-x-auto">
-        {[['overview', 'Overview'], ['attendance', 'Attendance'], ['screening', 'Screening History'], ['interventions', 'Interventions'], ['notes', 'Case Notes']].map(([key, label]) => (
+        {[['overview', 'Overview'], ['attendance', 'Attendance'], ['screening', 'Screening History'], ['interventions', 'Interventions'], ['notes', 'Case Notes'], ['sessions', 'Sessions']].map(([key, label]) => (
           <button
             key={key}
-            onClick={() => { setActiveTab(key); if (key === 'attendance') fetchAttendance(); }}
+            onClick={() => {
+              setActiveTab(key);
+              if (key === 'attendance') fetchAttendance();
+              if (key === 'sessions') fetchSessions();
+              if (key === 'interventions') fetchProfessionals();
+            }}
             data-testid={`tab-${key}`}
             className={`px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${activeTab === key ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
           >
@@ -829,7 +855,7 @@ export default function StudentProfilePage() {
                 </button>
               )}
               {canDo('interventions.add_edit') && (
-                <button onClick={() => setShowAddIntervention(true)} data-testid="add-intervention-btn"
+                <button onClick={() => { setShowAddIntervention(true); fetchProfessionals(); }} data-testid="add-intervention-btn"
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors">
                   <Plus size={14} /> Add Intervention
                 </button>
@@ -911,6 +937,73 @@ export default function StudentProfilePage() {
         </div>
       )}
 
+      {activeTab === 'sessions' && (
+        <div className="space-y-4">
+          {sessionsLoading && (
+            <div className="py-16 text-center text-slate-400">
+              <Loader size={20} className="animate-spin mx-auto mb-2" />
+              Loading sessions…
+            </div>
+          )}
+          {!sessionsLoading && sessions !== null && sessions.length === 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-400">
+              <Stethoscope size={28} className="mx-auto mb-3 opacity-30" />
+              <p className="font-medium">No appointment sessions recorded for this student</p>
+              <p className="text-xs mt-1 text-slate-300">Sessions logged in Appointments will appear here</p>
+            </div>
+          )}
+          {sessions?.map((s, idx) => {
+            const statusColors = {
+              completed: 'bg-emerald-100 text-emerald-700',
+              dna: 'bg-rose-100 text-rose-700',
+              scheduled: 'bg-blue-100 text-blue-700',
+              cancelled: 'bg-slate-100 text-slate-500',
+            };
+            return (
+              <div key={s.appointment_id || idx} className="bg-white border border-slate-200 rounded-xl p-5"
+                data-testid={`session-entry-${s.appointment_id}`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="font-semibold text-slate-900 text-sm">{s.intervention_type}</span>
+                      {s.session_type && <span className="text-xs text-slate-500">· {s.session_type}</span>}
+                      {s.status && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[s.status?.toLowerCase()] || 'bg-slate-100 text-slate-600'}`}>
+                          {s.status}
+                        </span>
+                      )}
+                      {s.flags?.length > 0 && s.flags.map(f => (
+                        <span key={f} className="text-xs px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-100 font-medium">{f}</span>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-slate-400 flex-wrap">
+                      <span>{s.date}{s.time ? ` at ${s.time}` : ''}</span>
+                      {s.room && <span>· {s.room}</span>}
+                      {s.professional_name_fallback && <span>· {s.professional_name_fallback}</span>}
+                    </div>
+                    {s.reason_for_visit && (
+                      <p className="text-sm text-slate-600 mt-2"><span className="font-medium">Reason:</span> {s.reason_for_visit}</p>
+                    )}
+                    {s.session_notes && (
+                      <p className="text-sm text-slate-600 mt-1 leading-relaxed">{s.session_notes}</p>
+                    )}
+                    {s.outcome_rating && (
+                      <p className="text-xs text-slate-500 mt-2">Outcome: <span className="font-medium text-slate-700">{s.outcome_rating}</span></p>
+                    )}
+                    {s.follow_up_date && (
+                      <p className="text-xs text-amber-600 mt-1">Follow-up: {s.follow_up_date}</p>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs text-slate-400">{idx === 0 ? 'Latest' : `#${sessions.length - idx}`}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Add Intervention Modal */}
       {showAddIntervention && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -930,8 +1023,18 @@ export default function StudentProfilePage() {
               <datalist id="profile-intervention-types">
                 {INTERVENTION_TYPES.map(t => <option key={t} value={t} />)}
               </datalist>
-              <input placeholder="Assigned Staff" value={newIntervention.assigned_staff} onChange={e => setNewIntervention(p => ({...p, assigned_staff: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+              {professionals.length > 0 ? (
+                <select value={newIntervention.assigned_staff} onChange={e => setNewIntervention(p => ({...p, assigned_staff: e.target.value}))}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20 bg-white">
+                  <option value="">Select Assigned Staff…</option>
+                  {professionals.map(p => (
+                    <option key={p.user_id} value={p.name}>{p.name}{p.professional_type ? ` — ${p.professional_type}` : ''}</option>
+                  ))}
+                </select>
+              ) : (
+                <input placeholder="Assigned Staff" value={newIntervention.assigned_staff} onChange={e => setNewIntervention(p => ({...p, assigned_staff: e.target.value}))}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="text-xs text-slate-400 block mb-1">Start Date</label>
                   <input type="date" value={newIntervention.start_date} onChange={e => setNewIntervention(p => ({...p, start_date: e.target.value}))}

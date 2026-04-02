@@ -351,7 +351,7 @@ async def create_user(data: dict, user=Depends(get_current_user)):
     email = data.get("email", "").lower().strip()
     name = data.get("name", "")
     role = data.get("role", "teacher")
-    _valid_roles = {"teacher", "wellbeing", "leadership", "admin", "screener"}
+    _valid_roles = {"teacher", "wellbeing", "leadership", "admin", "screener", "professional"}
     if role not in _valid_roles:
         raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {', '.join(sorted(_valid_roles))}")
     if not email:
@@ -372,7 +372,7 @@ async def update_user_role(user_id: str, data: dict, user=Depends(get_current_us
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     role = data.get("role")
-    if role not in ["teacher", "wellbeing", "leadership", "admin", "screener"]:
+    if role not in ["teacher", "wellbeing", "leadership", "admin", "screener", "professional"]:
         raise HTTPException(status_code=400, detail="Invalid role")
     await db.users.update_one({"user_id": user_id}, {"$set": {"role": role}})
     return {"message": "Role updated"}

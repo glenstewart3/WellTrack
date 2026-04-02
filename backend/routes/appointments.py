@@ -45,7 +45,7 @@ def _improved_values(cfg: dict):
 
 
 def _can_access_type(user: dict, itype: str) -> bool:
-    if user.get("role") == "admin":
+    if user.get("role") in ("admin", "professional"):
         return True
     if not user.get("appointment_access"):
         return False
@@ -148,7 +148,7 @@ async def list_appointments(
     status: Optional[str] = None,
     user=Depends(get_current_user),
 ):
-    if not user.get("appointment_access") and user.get("role") != "admin":
+    if not user.get("appointment_access") and user.get("role") not in ("admin", "professional"):
         raise HTTPException(403, "Appointment access not enabled for this account")
 
     query = {}
@@ -183,7 +183,7 @@ async def get_schedule(
     professional_id: Optional[str] = None,
     user=Depends(get_current_user),
 ):
-    if not user.get("appointment_access") and user.get("role") != "admin":
+    if not user.get("appointment_access") and user.get("role") not in ("admin", "professional"):
         raise HTTPException(403, "Appointment access not enabled")
 
     if not week_start:
@@ -213,7 +213,7 @@ async def get_schedule(
 
 @router.get("/appointments/ongoing")
 async def get_ongoing(user=Depends(get_current_user)):
-    if not user.get("appointment_access") and user.get("role") != "admin":
+    if not user.get("appointment_access") and user.get("role") not in ("admin", "professional"):
         raise HTTPException(403, "Appointment access not enabled")
 
     settings = await db.school_settings.find_one({}, {"_id": 0, "intervention_types": 1})
@@ -280,7 +280,7 @@ async def get_ongoing(user=Depends(get_current_user)):
 
 @router.get("/appointments/completed")
 async def get_completed(user=Depends(get_current_user)):
-    if not user.get("appointment_access") and user.get("role") != "admin":
+    if not user.get("appointment_access") and user.get("role") not in ("admin", "professional"):
         raise HTTPException(403, "Appointment access not enabled")
 
     settings = await db.school_settings.find_one({}, {"_id": 0, "intervention_types": 1})
@@ -351,7 +351,7 @@ async def get_audit_log(
 
 @router.get("/appointments/student/{student_id}")
 async def get_student_appointments(student_id: str, user=Depends(get_current_user)):
-    if not user.get("appointment_access") and user.get("role") != "admin":
+    if not user.get("appointment_access") and user.get("role") not in ("admin", "professional"):
         raise HTTPException(403, "Appointment access not enabled")
 
     query = {"student_id": student_id}
@@ -364,7 +364,7 @@ async def get_student_appointments(student_id: str, user=Depends(get_current_use
 
 @router.get("/appointments/{appointment_id}")
 async def get_appointment(appointment_id: str, user=Depends(get_current_user)):
-    if not user.get("appointment_access") and user.get("role") != "admin":
+    if not user.get("appointment_access") and user.get("role") not in ("admin", "professional"):
         raise HTTPException(403, "Appointment access not enabled")
     doc = await db.appointments.find_one({"appointment_id": appointment_id}, {"_id": 0})
     if not doc:
@@ -374,7 +374,7 @@ async def get_appointment(appointment_id: str, user=Depends(get_current_user)):
 
 @router.post("/appointments")
 async def create_appointment(data: dict, user=Depends(get_current_user)):
-    if not user.get("appointment_access") and user.get("role") != "admin":
+    if not user.get("appointment_access") and user.get("role") not in ("admin", "professional"):
         raise HTTPException(403, "Appointment access not enabled")
 
     itype = data.get("intervention_type", "")
@@ -416,7 +416,7 @@ async def create_appointment(data: dict, user=Depends(get_current_user)):
 
 @router.put("/appointments/{appointment_id}")
 async def update_appointment(appointment_id: str, data: dict, user=Depends(get_current_user)):
-    if not user.get("appointment_access") and user.get("role") != "admin":
+    if not user.get("appointment_access") and user.get("role") not in ("admin", "professional"):
         raise HTTPException(403, "Appointment access not enabled")
 
     existing = await db.appointments.find_one({"appointment_id": appointment_id}, {"_id": 0})
@@ -449,7 +449,7 @@ async def update_appointment(appointment_id: str, data: dict, user=Depends(get_c
 
 @router.delete("/appointments/{appointment_id}")
 async def delete_appointment(appointment_id: str, user=Depends(get_current_user)):
-    if not user.get("appointment_access") and user.get("role") != "admin":
+    if not user.get("appointment_access") and user.get("role") not in ("admin", "professional"):
         raise HTTPException(403, "Appointment access not enabled")
 
     existing = await db.appointments.find_one({"appointment_id": appointment_id}, {"_id": 0})
@@ -506,8 +506,11 @@ async def list_professionals(
     intervention_type: Optional[str] = None,
     user=Depends(get_current_user),
 ):
-    query = {"appointment_access": True}
-    docs = await db.users.find(query, {"_id": 0, "hashed_password": 0}).to_list(None)
+    # Include users with appointment_access flag OR the professional role
+    docs = await db.users.find(
+        {"$or": [{"appointment_access": True}, {"role": "professional"}]},
+        {"_id": 0, "hashed_password": 0}
+    ).to_list(None)
     if intervention_type:
         docs = [d for d in docs if not d.get("accessible_intervention_types")
                 or intervention_type in d.get("accessible_intervention_types", [])]

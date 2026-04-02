@@ -31,7 +31,7 @@ export default function DashboardPage() {
         setStudents(studRes.data.filter(s => (s.mtss_tier || 0) >= 2).slice(0, 6));
 
         // Load appointment alerts if user has access
-        if (user?.appointment_access || user?.role === 'admin') {
+        if (user?.appointment_access || user?.role === 'admin' || user?.role === 'professional') {
           try {
             const ongoingRes = await api.get('/appointments/ongoing');
             const ongoing = ongoingRes.data || [];
@@ -114,7 +114,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Appointment Alerts (only if user has appointment access) */}
-      {(user?.appointment_access || user?.role === 'admin') && (aptAlerts.overdue + aptAlerts.approaching + aptAlerts.caseReview + aptAlerts.dna) > 0 && (
+      {(user?.appointment_access || user?.role === 'admin' || user?.role === 'professional') && (aptAlerts.overdue + aptAlerts.approaching + aptAlerts.caseReview + aptAlerts.dna) > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">

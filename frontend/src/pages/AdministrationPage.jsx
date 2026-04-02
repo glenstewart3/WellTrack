@@ -7,16 +7,17 @@ import {
   UserCog, Plus, Trash2, X, Shield, Edit2, Loader, Mail, KeyRound,
   Eye, EyeOff, CheckCircle, Lock, LayoutDashboard, ClipboardCheck,
   Users, Radar, BarChart3, Target, CalendarDays, Users2, Bell, Settings,
-  RotateCcw, Zap, Stethoscope, Settings2,
+  RotateCcw, Zap, Stethoscope, Settings2, FileText,
 } from 'lucide-react';
 import { DEFAULT_FEATURE_PERMISSIONS } from '../hooks/usePermissions';
 
 const ROLE_OPTIONS = [
-  { value: 'teacher',    label: 'Teacher',          color: 'bg-blue-100 text-blue-700' },
-  { value: 'screener',   label: 'Screener',         color: 'bg-indigo-100 text-indigo-700' },
-  { value: 'wellbeing',  label: 'Wellbeing Staff',  color: 'bg-purple-100 text-purple-700' },
-  { value: 'leadership', label: 'Leadership',       color: 'bg-emerald-100 text-emerald-700' },
-  { value: 'admin',      label: 'Administrator',    color: 'bg-slate-900 text-white' },
+  { value: 'teacher',      label: 'Teacher',          color: 'bg-blue-100 text-blue-700' },
+  { value: 'screener',     label: 'Screener',         color: 'bg-indigo-100 text-indigo-700' },
+  { value: 'wellbeing',    label: 'Wellbeing Staff',  color: 'bg-purple-100 text-purple-700' },
+  { value: 'professional', label: 'Professional',     color: 'bg-violet-100 text-violet-700' },
+  { value: 'leadership',   label: 'Leadership',       color: 'bg-emerald-100 text-emerald-700' },
+  { value: 'admin',        label: 'Administrator',    color: 'bg-slate-900 text-white' },
 ];
 
 const getRoleBadge = (role) => ROLE_OPTIONS.find(r => r.value === role)?.color || 'bg-slate-100 text-slate-600';
@@ -55,23 +56,26 @@ const ACTION_GROUPS = [...new Set(FEATURE_ACTIONS.map(a => a.group))];
 
 // Roles that admins can configure (admin itself is always full access)
 const CONFIGURABLE_ROLES = [
-  { value: 'teacher',    label: 'Teacher' },
-  { value: 'screener',   label: 'Screener' },
-  { value: 'wellbeing',  label: 'Wellbeing' },
-  { value: 'leadership', label: 'Leadership' },
+  { value: 'teacher',      label: 'Teacher' },
+  { value: 'screener',     label: 'Screener' },
+  { value: 'wellbeing',    label: 'Wellbeing' },
+  { value: 'professional', label: 'Professional' },
+  { value: 'leadership',   label: 'Leadership' },
 ];
 
 const DEFAULT_PERMISSIONS = {
-  teacher:    ['dashboard', 'screening', 'students', 'radar', 'analytics', 'interventions', 'meeting', 'alerts'],
-  screener:   ['screening'],
-  wellbeing:  ['dashboard', 'screening', 'students', 'radar', 'analytics', 'interventions', 'appointments', 'meeting', 'alerts'],
-  leadership: ['dashboard', 'screening', 'students', 'radar', 'analytics', 'interventions', 'attendance', 'meeting', 'alerts'],
+  teacher:      ['dashboard', 'screening', 'students', 'radar', 'analytics', 'interventions', 'meeting', 'alerts'],
+  screener:     ['screening'],
+  wellbeing:    ['dashboard', 'screening', 'students', 'radar', 'analytics', 'interventions', 'appointments', 'meeting', 'alerts'],
+  professional: ['dashboard', 'students', 'interventions', 'appointments'],
+  leadership:   ['dashboard', 'screening', 'students', 'radar', 'analytics', 'interventions', 'attendance', 'meeting', 'alerts'],
 };
 
 // ── TAB NAV ──────────────────────────────────────────────────────────────────
 const TABS = [
   { key: 'User Management', icon: UserCog },
   { key: 'Role Permissions', icon: Shield },
+  { key: 'Audit Log', icon: ClipboardCheck },
 ];
 
 function TabNav({ active, onChange }) {
@@ -308,11 +312,13 @@ function UserManagementTab() {
                     <td className="py-3.5 px-4 text-slate-400 text-xs">{u.created_at?.split('T')[0] || '—'}</td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-1">
-                        <button onClick={() => openProfSettings(u)}
-                          data-testid={`prof-settings-${u.user_id}`}
-                          className="p-1.5 text-slate-300 hover:text-violet-500 hover:bg-violet-50 rounded-lg transition-colors" title="Professional / Appointment settings">
-                          <Settings2 size={14} />
-                        </button>
+                        {u.role === 'professional' && (
+                          <button onClick={() => openProfSettings(u)}
+                            data-testid={`prof-settings-${u.user_id}`}
+                            className="p-1.5 text-slate-300 hover:text-violet-500 hover:bg-violet-50 rounded-lg transition-colors" title="Professional / Appointment settings">
+                            <Settings2 size={14} />
+                          </button>
+                        )}
                         <button onClick={() => { setSetPasswordUser(u); setPasswordForm({ password: '', confirm: '' }); setShowPw(false); }}
                           data-testid={`set-password-${u.user_id}`}
                           className="p-1.5 text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors" title="Set password">
@@ -368,11 +374,13 @@ function UserManagementTab() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <button onClick={() => openProfSettings(u)}
-                        data-testid={`prof-settings-mobile-${u.user_id}`}
-                        className="p-2 text-slate-300 hover:text-violet-500 hover:bg-violet-50 rounded-lg transition-colors">
-                        <Settings2 size={15} />
-                      </button>
+                      {u.role === 'professional' && (
+                        <button onClick={() => openProfSettings(u)}
+                          data-testid={`prof-settings-mobile-${u.user_id}`}
+                          className="p-2 text-slate-300 hover:text-violet-500 hover:bg-violet-50 rounded-lg transition-colors">
+                          <Settings2 size={15} />
+                        </button>
+                      )}
                       <button onClick={() => { setSetPasswordUser(u); setPasswordForm({ password: '', confirm: '' }); setShowPw(false); }}
                         data-testid={`set-password-${u.user_id}`}
                         className="p-2 text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors">
@@ -685,7 +693,7 @@ function RolePermissionsTab() {
   if (!permissions || !featurePerms) return <div className="py-12 text-center text-slate-400 text-sm">Loading…</div>;
 
   // Shared column grid style
-  const gridCols = { gridTemplateColumns: '1fr repeat(4, 100px) 80px' };
+  const gridCols = { gridTemplateColumns: '1fr repeat(5, 90px) 80px' };
 
   // Reusable permission row
   const PermRow = ({ label, roleKey, hasPermFn, onToggle, isLast }) => (
@@ -843,6 +851,119 @@ function RolePermissionsTab() {
   );
 }
 
+// ── AUDIT LOG TAB ─────────────────────────────────────────────────────────────
+function AuditLogTab() {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 30;
+
+  useEffect(() => {
+    api.get('/appointments/audit')
+      .then(r => setLogs((r.data && r.data.entries) ? r.data.entries : (Array.isArray(r.data) ? r.data : [])))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const ACTION_COLORS = {
+    created:  'bg-emerald-100 text-emerald-700',
+    updated:  'bg-blue-100 text-blue-700',
+    deleted:  'bg-rose-100 text-rose-700',
+    default:  'bg-slate-100 text-slate-600',
+  };
+
+  const pageLogs = logs.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const totalPages = Math.ceil(logs.length / PAGE_SIZE);
+
+  if (loading) return (
+    <div className="space-y-2">
+      {[1,2,3,4,5].map(i => <div key={i} className="h-14 bg-white rounded-xl animate-pulse border border-slate-100" />)}
+    </div>
+  );
+
+  if (!logs.length) return (
+    <div className="py-20 text-center">
+      <FileText size={32} className="mx-auto mb-3 text-slate-300" />
+      <p className="text-slate-500 font-medium">No audit entries yet</p>
+      <p className="text-xs text-slate-400 mt-1">Appointment create, update, and delete actions will appear here</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Appointment Audit Log</h2>
+          <p className="text-sm text-slate-500 mt-0.5">{logs.length} entries — all appointment changes are recorded here</p>
+        </div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <div className="grid border-b border-slate-200 bg-slate-50" style={{ gridTemplateColumns: '160px 120px 1fr 140px' }}>
+          {['Timestamp', 'Action', 'Details', 'User'].map(h => (
+            <div key={h} className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{h}</div>
+          ))}
+        </div>
+        {pageLogs.map((entry, idx) => (
+          <div key={entry.audit_id || idx}
+            className={`grid items-start border-b border-slate-50 hover:bg-slate-50/60 transition-colors ${idx === pageLogs.length - 1 ? 'border-b-0' : ''}`}
+            style={{ gridTemplateColumns: '160px 120px 1fr 140px' }}
+            data-testid={`audit-entry-${idx}`}>
+            <div className="px-4 py-3">
+              <p className="text-xs font-mono text-slate-600">{entry.timestamp?.split('T')[0]}</p>
+              <p className="text-xs font-mono text-slate-400">{entry.timestamp?.split('T')[1]?.slice(0,8)}</p>
+            </div>
+            <div className="px-4 py-3">
+              <span className={`text-xs px-2 py-1 rounded-full font-semibold capitalize ${ACTION_COLORS[entry.action] || ACTION_COLORS.default}`}>
+                {entry.action}
+              </span>
+            </div>
+            <div className="px-4 py-3">
+              {entry.appointment_id && (
+                <p className="text-xs font-mono text-slate-400 mb-0.5">#{entry.appointment_id}</p>
+              )}
+              {entry.changes && Object.keys(entry.changes).length > 0 ? (
+                <div className="space-y-0.5">
+                  {Object.entries(entry.changes).slice(0, 4).map(([k, v]) => (
+                    <p key={k} className="text-xs text-slate-600">
+                      <span className="font-medium text-slate-700">{k}:</span>{' '}
+                      <span className="text-slate-400">{String(v?.old ?? '—')}</span>
+                      {' → '}
+                      <span className="text-slate-700">{String(v?.new ?? '—')}</span>
+                    </p>
+                  ))}
+                  {Object.keys(entry.changes).length > 4 && (
+                    <p className="text-xs text-slate-400">+{Object.keys(entry.changes).length - 4} more fields</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 italic">No field changes recorded</p>
+              )}
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-xs font-medium text-slate-700">{entry.user_name || entry.professional_name_fallback || '—'}</p>
+              {entry.user_id && <p className="text-[10px] text-slate-400 font-mono mt-0.5">{entry.user_id}</p>}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-slate-400">Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, logs.length)} of {logs.length}</p>
+          <div className="flex gap-1">
+            <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
+              className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors">Prev</button>
+            <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
+              className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors">Next</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── MAIN ADMINISTRATION PAGE ──────────────────────────────────────────────────
 export default function AdministrationPage() {
   const { user } = useAuth();
@@ -868,6 +989,7 @@ export default function AdministrationPage() {
 
       {activeTab === 'User Management' && <UserManagementTab />}
       {activeTab === 'Role Permissions' && <RolePermissionsTab />}
+      {activeTab === 'Audit Log' && <AuditLogTab />}
     </div>
   );
 }

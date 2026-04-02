@@ -610,7 +610,7 @@ export default function AppointmentsPage() {
     }).catch(console.error);
   }, []);
 
-  if (user && user.role !== 'admin' && !user.appointment_access) {
+  if (user && user.role !== 'admin' && user.role !== 'professional' && !user.appointment_access) {
     return (
       <div className="p-8 text-center text-slate-400 fade-in">
         <AlertTriangle size={32} className="mx-auto mb-3 opacity-40" />
