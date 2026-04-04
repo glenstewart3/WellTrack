@@ -66,7 +66,11 @@ export default function LoginPage() {
           <div className="mb-10">
             {(settings.logo_base64 || settings.logo_dark_base64) && (
               <img
-                src={theme === 'dark' ? (settings.logo_dark_base64 || settings.logo_base64) : settings.logo_base64}
+                src={
+                  (theme === 'dark' || (theme === 'system' && window.matchMedia?.('(prefers-color-scheme: dark)').matches))
+                    ? (settings.logo_dark_base64 || settings.logo_base64)
+                    : settings.logo_base64
+                }
                 alt="School logo"
                 className="h-24 w-auto object-contain mb-6 mx-auto block"
               />
