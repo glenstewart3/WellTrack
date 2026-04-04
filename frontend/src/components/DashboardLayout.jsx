@@ -75,7 +75,9 @@ export default function DashboardLayout() {
       {/* Logo / Brand */}
       <div className="px-6 py-5 border-b border-slate-100">
         {(() => {
-          const logo = theme === 'dark'
+          const isEffectivelyDark = theme === 'dark' ||
+            (theme === 'system' && window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+          const logo = isEffectivelyDark
             ? (settings.logo_dark_base64 || settings.logo_base64)
             : settings.logo_base64;
           return logo ? (
