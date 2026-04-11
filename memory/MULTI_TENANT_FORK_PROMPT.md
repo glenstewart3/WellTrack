@@ -692,3 +692,893 @@ New files to create:
 - `frontend/src/pages/superadmin/SASchoolsPage.jsx`
 - `frontend/src/pages/superadmin/SASchoolDetailPage.jsx`
 - `frontend/src/pages/superadmin/SAAddSchoolModal.jsx`
+
+---
+
+## Server Setup Guide — Self-Hosted External Deployment
+
+This section covers everything needed to deploy WellTrack from scratch on a VPS running Ubuntu 22.04 LTS. Read the entire guide before starting.
+
+---
+
+### 1. VPS Requirements
+
+| Scale | vCPU | RAM | SSD | Bandwidth |
+|---|---|---|---|---|
+| Up to 5 schools / ~1,000 students | 2 cores | 4 GB | 50 GB | 1 Gbps port |
+| Up to 20 schools / ~5,000 students | 4 cores | 8 GB | 100 GB | 1 Gbps port |
+| 20+ schools / 10,000+ students | 8 cores | 16 GB | 200 GB | 1 Gbps port |
+
+**Recommended providers:** Hetzner (best value), DigitalOcean, Vultr, Linode.
+**Operating System:** Ubuntu 22.04 LTS (64-bit). Do not use Ubuntu 24.04 — some Python packages have compatibility issues.
+
+---
+
+### 2. DNS Configuration (Do This First — Takes Up To 24 Hours to Propagate)
+
+Log in to your domain registrar (e.g., Namecheap, GoDaddy, Cloudflare) and add the following DNS records. Replace `YOUR_VPS_IP` with your server's public IPv4 address.
+
+| Type | Name | Value | TTL |
+|---|---|---|---|
+| A | `@` | `YOUR_VPS_IP` | 300 |
+| A | `www` | `YOUR_VPS_IP` | 300 |
+| A | `*` | `YOUR_VPS_IP` | 300 |
+
+The wildcard `*` record is the critical one — it routes `mooroopna.welltrack.com.au`, `springvale.welltrack.com.au`, etc. all to your server. Nginx then handles which school is being accessed based on the `Host` header.
+
+**If using Cloudflare:** Set the A records to "DNS only" (grey cloud, not orange). Cloudflare's orange-cloud proxy does not support wildcard SSL passthrough correctly with Let's Encrypt. You can re-enable proxying after SSL is set up, but it adds complexity.
+
+Verify propagation before continuing:
+```bash
+dig welltrack.com.au +short
+dig test.welltrack.com.au +short
+# Both should return YOUR_VPS_IP
+```
+
+---
+
+### 3. Initial Server Setup
+
+SSH into your VPS as root (or a sudo user), then run:
+
+```bash
+# Update system
+apt update && apt upgrade -y
+
+# Set timezone to your local timezone (important for scheduled jobs)
+timedatectl set-timezone Australia/Melbourne
+
+# Create a dedicated non-root user to run the application
+useradd -m -s /bin/bash welltrack
+usermod -aG sudo welltrack
+
+# Set a strong password for the welltrack user
+passwd welltrack
+
+# Switch to the welltrack user for the rest of the setup
+su - welltrack
+```
+
+---
+
+### 4. Install System Dependencies
+
+Run all of the following as the `welltrack` user (with sudo where needed):
+
+```bash
+# Python 3.11
+sudo apt install -y python3.11 python3.11-venv python3.11-dev python3-pip build-essential
+
+# Node.js 20 LTS (via NodeSource)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Verify versions
+python3.11 --version   # should print Python 3.11.x
+node --version         # should print v20.x.x
+npm --version
+
+# Install Yarn package manager
+sudo npm install -g yarn
+
+# Nginx
+sudo apt install -y nginx
+
+# Certbot for SSL (Let's Encrypt)
+sudo apt install -y certbot python3-certbot-nginx
+
+# Git
+sudo apt install -y git
+
+# Useful tools
+sudo apt install -y curl wget unzip htop ufw
+```
+
+---
+
+### 5. Install MongoDB 7.0
+
+MongoDB must be installed from the official MongoDB repository. Do NOT use the Ubuntu default package — it is an outdated version.
+
+```bash
+# Import MongoDB public GPG key
+curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
+
+# Add MongoDB repository
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+
+# Install
+sudo apt update
+sudo apt install -y mongodb-org
+
+# Enable and start MongoDB
+sudo systemctl daemon-reload
+sudo systemctl enable mongod
+sudo systemctl start mongod
+
+# Verify it is running
+sudo systemctl status mongod
+# Should show: Active: active (running)
+```
+
+**Secure MongoDB (critical — do not skip):**
+
+By default, MongoDB listens on all interfaces with no authentication. We will restrict it to localhost only and enable authentication.
+
+```bash
+# Connect to MongoDB shell
+mongosh
+
+# Inside the mongo shell, create the admin user
+use admin
+db.createUser({
+  user: "welltrack_admin",
+  pwd: "REPLACE_WITH_STRONG_PASSWORD_HERE",
+  roles: [
+    { role: "userAdminAnyDatabase", db: "admin" },
+    { role: "readWriteAnyDatabase", db: "admin" },
+    { role: "dbAdminAnyDatabase", db: "admin" }
+  ]
+})
+# You should see: { ok: 1 }
+
+exit
+```
+
+Now edit the MongoDB config to enable authentication and restrict binding:
+
+```bash
+sudo nano /etc/mongod.conf
+```
+
+Find and update these two sections:
+
+```yaml
+# Network interfaces — ONLY listen on localhost
+net:
+  port: 27017
+  bindIp: 127.0.0.1
+
+# Security — enable authentication
+security:
+  authorization: enabled
+```
+
+Restart MongoDB and verify auth works:
+
+```bash
+sudo systemctl restart mongod
+
+# Test authentication (replace password)
+mongosh --authenticationDatabase admin -u welltrack_admin -p "REPLACE_WITH_STRONG_PASSWORD_HERE" --eval "db.adminCommand('ping')"
+# Should print: { ok: 1 }
+```
+
+Save your connection string — you will need it in `.env`:
+```
+MONGO_URL=mongodb://welltrack_admin:REPLACE_WITH_STRONG_PASSWORD_HERE@127.0.0.1:27017/admin?authSource=admin
+```
+
+---
+
+### 6. Deploy the Application Code
+
+```bash
+# Create the application directory
+sudo mkdir -p /var/www/welltrack
+sudo chown welltrack:welltrack /var/www/welltrack
+
+# Clone your repository (use your actual repository URL)
+cd /var/www/welltrack
+git clone https://github.com/YOUR_USERNAME/welltrack.git .
+
+# Create the uploads directory structure
+mkdir -p /var/www/welltrack/uploads
+chmod 755 /var/www/welltrack/uploads
+```
+
+**Set up Python virtual environment and install backend dependencies:**
+
+```bash
+cd /var/www/welltrack
+
+# Create virtual environment using Python 3.11
+python3.11 -m venv venv
+
+# Activate it
+source venv/bin/activate
+
+# Install dependencies
+pip install --upgrade pip
+pip install -r backend/requirements.txt
+
+# Verify FastAPI and Motor are installed
+python -c "import fastapi, motor; print('Backend dependencies OK')"
+```
+
+---
+
+### 7. Configure Environment Variables
+
+**Backend `.env` file:**
+
+```bash
+nano /var/www/welltrack/backend/.env
+```
+
+Paste and fill in every value:
+
+```env
+MONGO_URL=mongodb://welltrack_admin:STRONG_PASSWORD@127.0.0.1:27017/admin?authSource=admin
+DB_NAME=welltrack_control
+SESSION_SECRET=GENERATE_WITH_python3_-c_"import_secrets;print(secrets.token_hex(32))"
+ALLOWED_ORIGINS=https://welltrack.com.au,https://www.welltrack.com.au
+BASE_DOMAIN=welltrack.com.au
+APP_ENV=production
+UPLOADS_DIR=/var/www/welltrack/uploads
+FRONTEND_URL=https://welltrack.com.au
+GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET=YOUR_GOOGLE_CLIENT_SECRET
+GOOGLE_REDIRECT_URI=https://welltrack.com.au/api/auth/callback
+COOKIE_SECURE=true
+PHOTOS_DIR=/var/www/welltrack/uploads
+```
+
+Generate the `SESSION_SECRET`:
+```bash
+python3 -c "import secrets; print(secrets.token_hex(32))"
+# Copy the output and paste it as the SESSION_SECRET value
+```
+
+**IMPORTANT:** Set strict permissions on the `.env` file so only the `welltrack` user can read it:
+```bash
+chmod 600 /var/www/welltrack/backend/.env
+```
+
+**Frontend `.env` file:**
+
+```bash
+nano /var/www/welltrack/frontend/.env
+```
+
+```env
+REACT_APP_BACKEND_URL=https://welltrack.com.au
+REACT_APP_BASE_DOMAIN=welltrack.com.au
+REACT_APP_PORTAL=school
+```
+
+---
+
+### 8. Build the Frontend
+
+```bash
+cd /var/www/welltrack/frontend
+
+# Install Node.js dependencies
+yarn install
+
+# Build for production (this creates the /frontend/build directory)
+yarn build
+
+# Verify the build succeeded
+ls -la build/
+# Should show: index.html, static/, etc.
+```
+
+The build process takes 2–3 minutes. The resulting `build/` directory contains static files that Nginx will serve directly.
+
+---
+
+### 9. Configure Nginx
+
+Remove the default Nginx site and create the WellTrack configuration:
+
+```bash
+sudo rm -f /etc/nginx/sites-enabled/default
+
+sudo nano /etc/nginx/sites-available/welltrack
+```
+
+Paste the following configuration. Replace `welltrack.com.au` with your actual domain:
+
+```nginx
+# Redirect all HTTP to HTTPS
+server {
+    listen 80;
+    listen [::]:80;
+    server_name welltrack.com.au www.welltrack.com.au *.welltrack.com.au;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# Root domain — Super Admin Portal
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name welltrack.com.au www.welltrack.com.au;
+
+    ssl_certificate     /etc/letsencrypt/live/welltrack.com.au/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/welltrack.com.au/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # Serve large file uploads (student photo ZIPs)
+    client_max_body_size 100M;
+
+    # Backend API
+    location /api/ {
+        proxy_pass         http://127.0.0.1:8001;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade $http_upgrade;
+        proxy_set_header   Connection 'upgrade';
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 75s;
+    }
+
+    # Frontend static files
+    location / {
+        root  /var/www/welltrack/frontend/build;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+
+        # Cache static assets aggressively
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+}
+
+# Wildcard subdomains — School Portals
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name *.welltrack.com.au;
+
+    ssl_certificate     /etc/letsencrypt/live/welltrack.com.au/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/welltrack.com.au/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    client_max_body_size 100M;
+
+    # Backend API
+    location /api/ {
+        proxy_pass         http://127.0.0.1:8001;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade $http_upgrade;
+        proxy_set_header   Connection 'upgrade';
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 75s;
+    }
+
+    # Same React build for all school subdomains
+    location / {
+        root  /var/www/welltrack/frontend/build;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+}
+```
+
+Enable the site and test the config:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/welltrack /etc/nginx/sites-enabled/
+
+sudo nginx -t
+# Should print: configuration file /etc/nginx/nginx.conf test is successful
+```
+
+---
+
+### 10. Obtain SSL Certificate (Wildcard — Required for Subdomains)
+
+A wildcard SSL certificate covers `*.welltrack.com.au` so all school subdomains get HTTPS automatically. This **requires a DNS challenge** (not HTTP challenge) because the wildcard domain cannot be validated via a web server.
+
+**Option A — Manual DNS challenge (works with any registrar):**
+
+```bash
+sudo certbot certonly \
+  --manual \
+  --preferred-challenges dns \
+  -d welltrack.com.au \
+  -d *.welltrack.com.au \
+  --agree-tos \
+  --email your@email.com
+```
+
+Certbot will ask you to add a `_acme-challenge` TXT record to your DNS. Add the record in your registrar's DNS panel, wait 1–2 minutes for propagation, then press Enter.
+
+**Downside:** Renewal every 90 days requires manual DNS changes. Use Option B for automatic renewal.
+
+**Option B — Cloudflare DNS plugin (recommended for automatic renewal):**
+
+If your DNS is managed via Cloudflare (free tier works):
+
+```bash
+sudo pip install certbot-dns-cloudflare
+
+# Create Cloudflare credentials file
+sudo mkdir -p /etc/cloudflare
+sudo nano /etc/cloudflare/credentials.ini
+```
+
+```ini
+dns_cloudflare_api_token = YOUR_CLOUDFLARE_API_TOKEN
+```
+
+Get your API token from Cloudflare Dashboard → My Profile → API Tokens → Create Token → use the "Edit zone DNS" template, restrict to your domain.
+
+```bash
+sudo chmod 600 /etc/cloudflare/credentials.ini
+
+sudo certbot certonly \
+  --dns-cloudflare \
+  --dns-cloudflare-credentials /etc/cloudflare/credentials.ini \
+  -d welltrack.com.au \
+  -d *.welltrack.com.au \
+  --agree-tos \
+  --email your@email.com
+```
+
+**Set up auto-renewal:**
+
+```bash
+# Test renewal (dry run)
+sudo certbot renew --dry-run
+# Should say: Congratulations, all simulated renewals succeeded
+
+# Certbot installs a systemd timer automatically. Verify:
+sudo systemctl status certbot.timer
+
+# After renewal, Nginx needs to reload to pick up the new cert:
+echo "0 0 * * * root certbot renew --quiet && nginx -s reload" | sudo tee -a /etc/cron.d/certbot-renew
+```
+
+Now start Nginx (it will fail if SSL certs don't exist — run this after certbot):
+
+```bash
+sudo systemctl enable nginx
+sudo systemctl start nginx
+sudo systemctl status nginx
+```
+
+---
+
+### 11. Set Up the Backend as a systemd Service
+
+This ensures the backend starts automatically on server boot and restarts on crash.
+
+```bash
+sudo nano /etc/systemd/system/welltrack-backend.service
+```
+
+```ini
+[Unit]
+Description=WellTrack FastAPI Backend
+After=network.target mongod.service
+Requires=mongod.service
+
+[Service]
+Type=simple
+User=welltrack
+Group=welltrack
+WorkingDirectory=/var/www/welltrack/backend
+EnvironmentFile=/var/www/welltrack/backend/.env
+ExecStart=/var/www/welltrack/venv/bin/uvicorn server:app \
+    --host 127.0.0.1 \
+    --port 8001 \
+    --workers 2 \
+    --log-level info \
+    --access-log
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=welltrack-backend
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start the service:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable welltrack-backend
+sudo systemctl start welltrack-backend
+
+# Check it started successfully
+sudo systemctl status welltrack-backend
+# Should show: Active: active (running)
+
+# View live logs
+sudo journalctl -u welltrack-backend -f
+```
+
+**Choosing the number of workers:**
+- Use `--workers 2` for up to 10 schools
+- Use `--workers 4` for 10–30 schools
+- Rule of thumb: `(2 × CPU cores) + 1`, max out at 8
+
+---
+
+### 12. Configure the Firewall
+
+Only expose ports 22 (SSH), 80 (HTTP), and 443 (HTTPS). MongoDB must never be exposed to the internet.
+
+```bash
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 22/tcp comment 'SSH'
+sudo ufw allow 80/tcp comment 'HTTP'
+sudo ufw allow 443/tcp comment 'HTTPS'
+sudo ufw enable
+
+# Verify
+sudo ufw status verbose
+# Port 27017 (MongoDB) should NOT appear — good
+```
+
+---
+
+### 13. Google Cloud Console Setup (OAuth)
+
+The Google OAuth flow requires credentials from Google Cloud Console. WellTrack uses a **single OAuth client** for all portals (root domain + all school subdomains) — the state parameter routes each login to the correct school.
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com)
+2. Create a new project or select an existing one: e.g., **WellTrack Production**
+3. Navigate to **APIs & Services → OAuth consent screen**:
+   - User Type: **External** (unless you have a Google Workspace org)
+   - App name: `WellTrack`
+   - User support email: your admin email
+   - Authorized domains: Add `welltrack.com.au`
+   - Scopes: Add `email`, `profile`, `openid`
+4. Navigate to **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**:
+   - Application type: **Web application**
+   - Name: `WellTrack Web`
+   - Authorized JavaScript origins:
+     ```
+     https://welltrack.com.au
+     ```
+   - Authorized redirect URIs:
+     ```
+     https://welltrack.com.au/api/auth/callback
+     ```
+     This single URI handles all school logins AND super admin login — the school slug is encoded in the `state` parameter.
+5. Copy the **Client ID** and **Client Secret** into `backend/.env` as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
+
+**Publishing the OAuth app:** Google will show a warning screen to users until the app is verified. For internal use across your schools you can leave it in "Testing" mode and add each school admin's Google account as a test user. For public release, submit for verification.
+
+---
+
+### 14. Bootstrap the First Super Admin Account
+
+The Super Admin portal at `welltrack.com.au` needs a first super admin account to be created. Because there is no external way to create this account (and it would be a security risk to leave an open registration endpoint), the fork agent should implement a **bootstrap endpoint** that:
+
+- Only works when `control_db.super_admins` is completely empty (i.e., the first run)
+- After the first super admin is created, this endpoint permanently rejects all requests with HTTP 403
+
+The bootstrap endpoint signature:
+```
+POST /api/superadmin/auth/bootstrap
+Body: { "name": "...", "email": "...", "password": "..." }
+```
+
+To create the first super admin after deployment:
+
+```bash
+# Replace values with your details. Run this from the VPS or any machine with internet access.
+curl -X POST https://welltrack.com.au/api/superadmin/auth/bootstrap \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Your Name",
+    "email": "you@youremail.com",
+    "password": "StrongPassword123!"
+  }'
+
+# Expected response: { "message": "Super admin created successfully" }
+# Running it a second time returns: HTTP 403 - Bootstrap already complete
+```
+
+After this, log in to `https://welltrack.com.au` with those credentials.
+
+---
+
+### 15. Verify Everything Is Working
+
+```bash
+# 1. Backend health check
+curl https://welltrack.com.au/api/public-settings
+# Should return JSON with platform_name, etc.
+
+# 2. Test super admin bootstrap (if not done yet — see section 14)
+
+# 3. Check service statuses
+sudo systemctl status mongod
+sudo systemctl status nginx
+sudo systemctl status welltrack-backend
+
+# 4. Check backend logs for any startup errors
+sudo journalctl -u welltrack-backend -n 50 --no-pager
+
+# 5. Test that a fake subdomain returns the right error
+curl https://fakeschool.welltrack.com.au/api/public-settings
+# Should return: { "detail": "School not found" } with HTTP 404
+```
+
+---
+
+### 16. Deploying Updates (After Initial Setup)
+
+Every time you push a code update, follow this process:
+
+```bash
+cd /var/www/welltrack
+
+# 1. Pull latest code
+git pull origin main
+
+# 2. Install any new backend dependencies
+source venv/bin/activate
+pip install -r backend/requirements.txt
+
+# 3. Rebuild the frontend (if any frontend changes)
+cd frontend
+yarn install   # only if package.json changed
+yarn build
+cd ..
+
+# 4. Restart the backend service
+sudo systemctl restart welltrack-backend
+
+# 5. Verify it restarted cleanly
+sudo systemctl status welltrack-backend
+sudo journalctl -u welltrack-backend -n 20 --no-pager
+```
+
+Nginx does not need to restart for backend changes. It only needs restarting if you change the Nginx config file:
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+---
+
+### 17. Log Management & Monitoring
+
+**View backend logs:**
+```bash
+# Live tail (Ctrl+C to stop)
+sudo journalctl -u welltrack-backend -f
+
+# Last 100 lines
+sudo journalctl -u welltrack-backend -n 100 --no-pager
+
+# Errors only in the last hour
+sudo journalctl -u welltrack-backend --since "1 hour ago" -p err --no-pager
+```
+
+**View Nginx logs:**
+```bash
+# Access log (all requests)
+sudo tail -f /var/log/nginx/access.log
+
+# Error log
+sudo tail -f /var/log/nginx/error.log
+```
+
+**Set up log rotation** (prevent logs from filling disk):
+```bash
+sudo nano /etc/logrotate.d/welltrack
+```
+```
+/var/log/nginx/*.log {
+    daily
+    missingok
+    rotate 14
+    compress
+    delaycompress
+    notifempty
+    create 0640 www-data adm
+    sharedscripts
+    postrotate
+        if [ -f /var/run/nginx.pid ]; then
+            kill -USR1 $(cat /var/run/nginx.pid)
+        fi
+    endscript
+}
+```
+
+**Basic monitoring — check server health:**
+```bash
+# CPU and RAM usage
+htop
+
+# Disk usage (watch that uploads/ and MongoDB don't fill the disk)
+df -h
+du -sh /var/www/welltrack/uploads/
+du -sh /var/lib/mongodb/
+
+# MongoDB database sizes
+mongosh --authenticationDatabase admin -u welltrack_admin -p "PASSWORD" --eval \
+  "db.adminCommand('listDatabases').databases.map(d => d.name + ': ' + (d.sizeOnDisk/1024/1024).toFixed(1) + ' MB')"
+```
+
+---
+
+### 18. Backup Strategy
+
+The app includes an APScheduler-based daily backup per school that writes JSON files to the uploads directory. For disaster recovery, also set up server-level backups:
+
+**MongoDB backups (nightly):**
+
+```bash
+sudo nano /etc/cron.d/welltrack-mongo-backup
+```
+
+```cron
+0 2 * * * welltrack /var/www/welltrack/scripts/mongo-backup.sh >> /var/log/welltrack-backup.log 2>&1
+```
+
+Create the backup script:
+
+```bash
+mkdir -p /var/www/welltrack/scripts
+nano /var/www/welltrack/scripts/mongo-backup.sh
+```
+
+```bash
+#!/bin/bash
+BACKUP_DIR="/var/www/welltrack/mongo-backups"
+DATE=$(date +%Y-%m-%d)
+MONGO_URI="mongodb://welltrack_admin:STRONG_PASSWORD@127.0.0.1:27017/admin?authSource=admin"
+
+mkdir -p "$BACKUP_DIR/$DATE"
+
+# Dump ALL databases (captures all school DBs automatically)
+mongodump --uri="$MONGO_URI" --out="$BACKUP_DIR/$DATE" --quiet
+
+# Compress
+tar -czf "$BACKUP_DIR/backup-$DATE.tar.gz" -C "$BACKUP_DIR" "$DATE"
+rm -rf "$BACKUP_DIR/$DATE"
+
+# Keep only last 30 days
+find "$BACKUP_DIR" -name "backup-*.tar.gz" -mtime +30 -delete
+
+echo "$(date): Backup completed → $BACKUP_DIR/backup-$DATE.tar.gz"
+```
+
+```bash
+chmod +x /var/www/welltrack/scripts/mongo-backup.sh
+```
+
+**Offsite backups:** Strongly recommended — copy nightly backups to an S3 bucket, Backblaze B2, or another server using `rclone` or `aws s3 cp`. Disk failure on a single VPS without offsite backup means total data loss.
+
+---
+
+### 19. Security Hardening Checklist
+
+Before going live with real school data, verify:
+
+- [ ] MongoDB is NOT accessible from the internet (`sudo ss -tlnp | grep 27017` — should only show `127.0.0.1:27017`)
+- [ ] `backend/.env` has permissions `600` (`ls -la backend/.env`)
+- [ ] `SESSION_SECRET` is a random 64-character hex string (not a word or phrase)
+- [ ] `ALLOWED_ORIGINS` in `.env` lists only your exact domain(s), not `*`
+- [ ] `COOKIE_SECURE=true` is set (ensures cookies only sent over HTTPS)
+- [ ] Firewall only allows ports 22, 80, 443 (`sudo ufw status`)
+- [ ] SSH is configured to use key-based auth (disable password auth in `/etc/ssh/sshd_config`: `PasswordAuthentication no`)
+- [ ] Automatic security updates are enabled:
+  ```bash
+  sudo apt install -y unattended-upgrades
+  sudo dpkg-reconfigure -plow unattended-upgrades
+  ```
+- [ ] Nightly MongoDB backups are running (`sudo tail -5 /var/log/welltrack-backup.log`)
+- [ ] SSL certificate covers both `welltrack.com.au` AND `*.welltrack.com.au` (`sudo certbot certificates`)
+
+---
+
+### 20. Troubleshooting Common Issues
+
+**Backend won't start:**
+```bash
+sudo journalctl -u welltrack-backend -n 50 --no-pager
+# Look for: ImportError, missing env var, port already in use
+```
+
+**502 Bad Gateway from Nginx:**
+```bash
+# Check if the backend is actually running
+sudo systemctl status welltrack-backend
+# If stopped: sudo systemctl start welltrack-backend
+# Check it is listening on 8001:
+sudo ss -tlnp | grep 8001
+```
+
+**SSL certificate error on subdomains:**
+```bash
+sudo certbot certificates
+# Verify domains list includes *.welltrack.com.au
+# If missing, re-run certbot with both -d welltrack.com.au -d *.welltrack.com.au
+```
+
+**School subdomain returns 404:**
+- Check DNS wildcard A record is pointing to the server: `dig mooroopna.welltrack.com.au`
+- Check the school exists in the control DB:
+  ```bash
+  mongosh --authenticationDatabase admin -u welltrack_admin -p "PASSWORD" --eval \
+    'use welltrack_control; db.schools.find({slug: "mooroopna"}, {_id:0})'
+  ```
+
+**MongoDB connection refused:**
+```bash
+sudo systemctl status mongod
+sudo journalctl -u mongod -n 30 --no-pager
+# Common cause: /var/lib/mongodb ownership issue
+sudo chown -R mongodb:mongodb /var/lib/mongodb
+sudo systemctl start mongod
+```
+
+**Google OAuth "redirect_uri_mismatch" error:**
+- Verify `GOOGLE_REDIRECT_URI` in `.env` exactly matches what is in Google Cloud Console (including `https://` and no trailing slash)
+- Google OAuth consent screen must have `welltrack.com.au` in Authorized Domains
