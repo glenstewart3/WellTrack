@@ -160,6 +160,11 @@ Build a School MTSS (Multi-Tiered System of Supports) platform named **WellTrack
 - ✅ **Codebase Refactoring & API Centralization** (Mar 2026) — Created `src/api.js` central Axios instance (baseURL, withCredentials:true, 401 interceptor skipping /auth/me). Removed `import axios + const API =` boilerplate from all 20 files. Fixed `InlineEditIntervention`/`InlineEditNote` try/catch/finally in StudentProfilePage. Fixed `getAccentRgb()` hex validation in pdfExport.js. Added useAuth null guard. Removed dead UserManagementPage import from App.js, removed unused useNavigate from LoginPage. Deleted dead `ReportsPage.jsx` and `UserManagementPage.jsx`. Added `eslint` script + `eslint.config.js`.
 
 
+### P0 — Multi-Tenant SaaS (Fork Ready)
+- Full fork prompt written at `/app/memory/MULTI_TENANT_FORK_PROMPT.md`
+- Domain: welltrack.com.au (root = Super Admin, subdomains = schools)
+- Phases: (1) Backend tenant infrastructure, (2) Super Admin backend, (3) Super Admin frontend, (4) School portal adaptations
+
 ### P1 — Upcoming
 - Email system (deferred by user): automated alert notifications — needs email provider choice (Resend or SendGrid)
 
