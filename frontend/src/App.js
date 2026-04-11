@@ -74,9 +74,21 @@ function SchoolRouter() {
 
   const defaultPath = user?.role === 'screener' ? '/screening' : '/dashboard';
 
-  if (!onboardingDone) {
+  // If onboarding not done and user is logged in (SA-provisioned flow), show school setup
+  if (!onboardingDone && user) {
     return (
       <Routes>
+        <Route path="*" element={<OnboardingPage onComplete={() => setOnboardingDone(true)} />} />
+      </Routes>
+    );
+  }
+
+  // If onboarding not done and no user, check if any users exist (has_users from status)
+  // If users exist → show login first; if no users → show legacy onboarding
+  if (!onboardingDone && !user) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
         <Route path="*" element={<OnboardingPage onComplete={() => setOnboardingDone(true)} />} />
       </Routes>
     );

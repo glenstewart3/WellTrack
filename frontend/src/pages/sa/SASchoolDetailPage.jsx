@@ -88,6 +88,21 @@ export default function SASchoolDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={async () => {
+              try {
+                const res = await saApi.post(`/schools/${schoolId}/impersonate`);
+                const { token, school_slug } = res.data;
+                const frontendUrl = process.env.REACT_APP_BACKEND_URL || '';
+                window.open(`${frontendUrl}/api/auth/impersonate?token=${token}`, '_blank');
+              } catch {}
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg transition-colors"
+            title="Log in as school admin"
+            data-testid="sa-impersonate-btn"
+          >
+            <ExternalLink size={12} /> Impersonate
+          </button>
           <StatusSelector current={school.status} onChange={handleStatusChange} />
           <button onClick={handleArchive} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Archive school" data-testid="sa-archive-school">
             <Trash2 size={16} />

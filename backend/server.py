@@ -12,7 +12,7 @@ from fastapi.routing import APIRouter
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-import os, logging
+import os, logging, uuid
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -70,11 +70,24 @@ api_router.include_router(superadmin_router)
 
 app.include_router(api_router)
 
-# Serve student photos as static files under /api/student-photos/
+# Serve student photos dynamically per tenant slug
+from fastapi.responses import FileResponse as _FileResponse
+
+@app.get("/api/student-photos/{slug}/{filename}")
+async def serve_student_photo(slug: str, filename: str):
+    """Serve a student photo from the tenant-scoped uploads directory."""
+    _uploads = Path(os.environ.get("UPLOADS_DIR", str(Path(__file__).resolve().parent / "uploads")))
+    photo_path = _uploads / slug / "student_photos" / filename
+    if not photo_path.exists() or not photo_path.is_file():
+        from fastapi import HTTPException as _H
+        raise _H(status_code=404, detail="Photo not found")
+    return _FileResponse(photo_path)
+
+# Legacy: also serve from old flat path for backward compat
 _default_photos = Path(__file__).resolve().parent / "uploads" / "student_photos"
 _photos_dir = Path(os.environ.get("PHOTOS_DIR", str(_default_photos)))
 _photos_dir.mkdir(parents=True, exist_ok=True)
-app.mount("/api/student-photos", StaticFiles(directory=str(_photos_dir)), name="student_photos")
+app.mount("/api/student-photos-legacy", StaticFiles(directory=str(_photos_dir)), name="student_photos_legacy")
 
 # Logging
 logging.basicConfig(level=logging.INFO,
@@ -112,10 +125,9 @@ async def startup():
         logger.info("Demo school created in control DB (slug='demo', db='welltrack_demo')")
     elif not demo.get("school_id"):
         # Backfill school_id for legacy demo record
-        import uuid as _uuid
         await control_db.schools.update_one(
             {"slug": "demo"},
-            {"$set": {"school_id": f"sch_{_uuid.uuid4().hex[:12]}"}}
+            {"$set": {"school_id": f"sch_{uuid.uuid4().hex[:12]}"}}
         )
 
     # ── Ensure indexes on all active school databases ─────────────────────────
@@ -185,7 +197,7 @@ async def startup():
         for s in active:
             try:
                 school_db = client[s["db_name"]]
-                await run_backup(school_db)
+                await run_backup(school_db, s.get("slug", "default"))
                 logger.info(f"Backup completed for school: {s['slug']}")
             except Exception as e:
                 logger.error(f"Backup failed for school {s['slug']}: {e}")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from typing import Optional
 import uuid, zipfile, io, re, os, csv
 from pathlib import Path
@@ -11,10 +11,17 @@ from helpers import get_current_user, get_student_attendance_pct, compute_mtss_t
 from models import Student
 from utils.audit import log_audit
 
-# Default: <backend_root>/uploads/student_photos  (works on any server without /app)
-_default_photos = Path(__file__).resolve().parent.parent / "uploads" / "student_photos"
-PHOTOS_DIR = Path(os.environ.get("PHOTOS_DIR", str(_default_photos)))
-PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
+# Base uploads directory
+_UPLOADS_BASE = Path(os.environ.get("UPLOADS_DIR", str(Path(__file__).resolve().parent.parent / "uploads")))
+
+
+def _get_photos_dir(request: Request) -> Path:
+    """Return tenant-scoped photos directory. Creates it if missing."""
+    slug = getattr(request.state, "tenant_slug", None) or "default"
+    path = _UPLOADS_BASE / slug / "student_photos"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
 
 router = APIRouter()
 
@@ -246,26 +253,28 @@ async def update_student(student_id: str, data: dict, user=Depends(get_current_u
 
 
 @router.post("/students/{student_id}/photo")
-async def upload_single_student_photo(student_id: str, file: UploadFile = File(...), user=Depends(get_current_user), db=Depends(get_tenant_db)):
+async def upload_single_student_photo(request: Request, student_id: str, file: UploadFile = File(...), user=Depends(get_current_user), db=Depends(get_tenant_db)):
     if user.get("role") not in ["admin", "leadership"]:
         raise HTTPException(403, "Access denied")
     student = await db.students.find_one({"student_id": student_id}, {"_id": 0, "student_id": 1})
     if student is None:
         raise HTTPException(404, "Student not found")
+    photos_dir = _get_photos_dir(request)
+    slug = getattr(request.state, "tenant_slug", None) or "default"
     content = await file.read()
     img = Image.open(io.BytesIO(content))
     img = img.convert("RGB")
     img.thumbnail((400, 400), Image.LANCZOS)
     photo_filename = f"{student_id}.jpg"
-    photo_path = PHOTOS_DIR / photo_filename
+    photo_path = photos_dir / photo_filename
     img.save(str(photo_path), "JPEG", quality=82, optimize=True)
-    photo_url = f"/api/student-photos/{photo_filename}"
+    photo_url = f"/api/student-photos/{slug}/{photo_filename}"
     await db.students.update_one({"student_id": student_id}, {"$set": {"photo_url": photo_url}})
     return {"photo_url": photo_url}
 
 
 @router.delete("/students/{student_id}/photo")
-async def remove_student_photo(student_id: str, user=Depends(get_current_user), db=Depends(get_tenant_db)):
+async def remove_student_photo(request: Request, student_id: str, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     if user.get("role") not in ["admin", "leadership"]:
         raise HTTPException(403, "Access denied")
     student = await db.students.find_one({"student_id": student_id}, {"_id": 0, "student_id": 1, "photo_url": 1})
@@ -273,7 +282,8 @@ async def remove_student_photo(student_id: str, user=Depends(get_current_user), 
         raise HTTPException(404, "Student not found")
     photo_url = student.get("photo_url")
     if photo_url:
-        photo_path = PHOTOS_DIR / Path(photo_url).name
+        photos_dir = _get_photos_dir(request)
+        photo_path = photos_dir / Path(photo_url).name
         if photo_path.exists():
             photo_path.unlink()
     await db.students.update_one({"student_id": student_id}, {"$unset": {"photo_url": ""}})
@@ -281,7 +291,7 @@ async def remove_student_photo(student_id: str, user=Depends(get_current_user), 
 
 
 @router.post("/students/upload-photos")
-async def upload_student_photos(file: UploadFile = File(...), user=Depends(get_current_user), db=Depends(get_tenant_db)):
+async def upload_student_photos(request: Request, file: UploadFile = File(...), user=Depends(get_current_user), db=Depends(get_tenant_db)):
     if user.get("role") not in ["admin", "leadership"]:
         raise HTTPException(403, "Access denied")
 
@@ -289,6 +299,8 @@ async def upload_student_photos(file: UploadFile = File(...), user=Depends(get_c
     if not fname_lower.endswith(".zip"):
         raise HTTPException(400, "Please upload a ZIP file")
 
+    photos_dir = _get_photos_dir(request)
+    slug = getattr(request.state, "tenant_slug", None) or "default"
     content = await file.read()
 
     matched, unmatched, skipped_staff = [], [], []
@@ -348,7 +360,7 @@ async def upload_student_photos(file: UploadFile = File(...), user=Depends(get_c
             student_id = student["student_id"]
             save_ext = ".jpg" if ext in (".jpg", ".jpeg") else ".png"
             photo_filename = f"{student_id}{save_ext}"
-            photo_path = PHOTOS_DIR / photo_filename
+            photo_path = photos_dir / photo_filename
 
             with zf.open(info) as img_bytes:
                 img = Image.open(img_bytes)
@@ -356,7 +368,7 @@ async def upload_student_photos(file: UploadFile = File(...), user=Depends(get_c
                 img.thumbnail((400, 400), Image.LANCZOS)
                 img.save(str(photo_path), "JPEG", quality=82, optimize=True)
 
-            photo_url = f"/api/student-photos/{photo_filename}"
+            photo_url = f"/api/student-photos/{slug}/{photo_filename}"
             await db.students.update_one(
                 {"student_id": student_id},
                 {"$set": {"photo_url": photo_url}},

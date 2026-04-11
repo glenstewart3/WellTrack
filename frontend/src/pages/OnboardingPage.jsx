@@ -1,17 +1,16 @@
 import React, { useState, useRef } from 'react';
 import api from '../api';
+import { useAuth } from '../context/AuthContext';
 import {
   Shield, CheckCircle, Loader, AlertTriangle,
   Upload, Database, FileJson, ArrowRight, Building2,
   User, Mail, Lock, Eye, EyeOff,
 } from 'lucide-react';
 
-const STEP_LABELS = ['Admin Account', 'Your School', 'Data Setup', 'Ready'];
-
-function StepProgress({ stepIndex }) {
+function StepProgress({ steps, stepIndex }) {
   return (
     <div className="flex items-center gap-0 mb-8">
-      {STEP_LABELS.map((label, i) => (
+      {steps.map((label, i) => (
         <React.Fragment key={label}>
           <div className="flex flex-col items-center gap-1">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
@@ -25,7 +24,7 @@ function StepProgress({ stepIndex }) {
               {label}
             </span>
           </div>
-          {i < STEP_LABELS.length - 1 && (
+          {i < steps.length - 1 && (
             <div className={`flex-1 h-0.5 mx-2 mb-4 ${i < stepIndex ? 'bg-emerald-300' : 'bg-slate-200'}`} />
           )}
         </React.Fragment>
@@ -35,9 +34,16 @@ function StepProgress({ stepIndex }) {
 }
 
 export default function OnboardingPage({ onComplete }) {
-  const [step, setStep] = useState('account');
+  const { user } = useAuth();
+  // If user is already authenticated (SA-provisioned school), skip the account step
+  const hasAuth = !!user;
+  const steps = hasAuth
+    ? ['Your School', 'Data Setup', 'Ready']
+    : ['Admin Account', 'Your School', 'Data Setup', 'Ready'];
 
-  // Admin account
+  const [step, setStep] = useState(hasAuth ? 'school' : 'account');
+
+  // Admin account (only used in legacy non-SA flow)
   const [adminName, setAdminName] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
@@ -57,7 +63,10 @@ export default function OnboardingPage({ onComplete }) {
   const [error, setError] = useState('');
   const fileRef = useRef(null);
 
-  const stepIndex = { account: 0, school: 1, data: 2, complete: 3 }[step] ?? 0;
+  const stepMap = hasAuth
+    ? { school: 0, data: 1, complete: 2 }
+    : { account: 0, school: 1, data: 2, complete: 3 };
+  const stepIndex = stepMap[step] ?? 0;
 
   const handleAccountNext = () => {
     if (!adminName.trim()) { setError('Please enter your name'); return; }
@@ -80,16 +89,26 @@ export default function OnboardingPage({ onComplete }) {
     setLoading(true);
     setError('');
     try {
-      // Create admin account + save school settings + get session cookie
-      await api.post('/onboarding/setup', {
-        admin_name: adminName.trim(),
-        admin_email: adminEmail.trim(),
-        admin_password: adminPassword,
-        school_name: schoolName.trim(),
-        school_type: schoolType,
-        current_term: currentTerm,
-        current_year: new Date().getFullYear(),
-      }, { withCredentials: true });
+      if (hasAuth) {
+        // SA-provisioned flow: just save school settings (user already logged in)
+        await api.post('/onboarding/school-setup', {
+          school_name: schoolName.trim(),
+          school_type: schoolType,
+          current_term: currentTerm,
+          current_year: new Date().getFullYear(),
+        });
+      } else {
+        // Legacy standalone flow: creates admin + saves school settings
+        await api.post('/onboarding/setup', {
+          admin_name: adminName.trim(),
+          admin_email: adminEmail.trim(),
+          admin_password: adminPassword,
+          school_name: schoolName.trim(),
+          school_type: schoolType,
+          current_term: currentTerm,
+          current_year: new Date().getFullYear(),
+        }, { withCredentials: true });
+      }
 
       // Now authenticated — seed/restore if needed
       if (dataChoice === 'demo') {
@@ -120,7 +139,7 @@ export default function OnboardingPage({ onComplete }) {
           <span className="font-bold text-slate-900 text-lg" style={{ fontFamily: 'Manrope,sans-serif' }}>WellTrack</span>
         </div>
 
-        {step !== 'complete' && <StepProgress stepIndex={stepIndex} />}
+        {step !== 'complete' && <StepProgress steps={steps} stepIndex={stepIndex} />}
 
         {error && (
           <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-xl p-3 mb-5">
@@ -129,8 +148,8 @@ export default function OnboardingPage({ onComplete }) {
           </div>
         )}
 
-        {/* ── ACCOUNT STEP ── */}
-        {step === 'account' && (
+        {/* ACCOUNT STEP (legacy only — hidden when SA-provisioned) */}
+        {step === 'account' && !hasAuth && (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
             <h2 className="text-2xl font-bold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>
               Create your admin account
@@ -194,7 +213,7 @@ export default function OnboardingPage({ onComplete }) {
           </div>
         )}
 
-        {/* ── SCHOOL STEP ── */}
+        {/* SCHOOL STEP */}
         {step === 'school' && (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
             <h2 className="text-2xl font-bold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>
@@ -215,9 +234,9 @@ export default function OnboardingPage({ onComplete }) {
                 <label className="block text-sm font-semibold text-slate-700 mb-2">School Type</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { value: 'primary', label: 'Primary', sub: 'K – Year 6' },
-                    { value: 'secondary', label: 'Secondary', sub: 'Year 7 – 12' },
-                    { value: 'both', label: 'K–12', sub: 'All year levels' },
+                    { value: 'primary', label: 'Primary', sub: 'K - Year 6' },
+                    { value: 'secondary', label: 'Secondary', sub: 'Year 7 - 12' },
+                    { value: 'both', label: 'K-12', sub: 'All year levels' },
                   ].map(opt => (
                     <button key={opt.value} onClick={() => setSchoolType(opt.value)}
                       data-testid={`school-type-${opt.value}`}
@@ -243,10 +262,12 @@ export default function OnboardingPage({ onComplete }) {
             </div>
 
             <div className="flex gap-3 mt-6">
-              <button onClick={() => { setStep('account'); setError(''); }}
-                className="px-5 py-3.5 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-colors">
-                Back
-              </button>
+              {!hasAuth && (
+                <button onClick={() => { setStep('account'); setError(''); }}
+                  className="px-5 py-3.5 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-colors">
+                  Back
+                </button>
+              )}
               <button onClick={handleSchoolNext} data-testid="school-next-btn"
                 className="flex-1 bg-slate-900 text-white py-3.5 rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2">
                 Continue <ArrowRight size={16} />
@@ -255,7 +276,7 @@ export default function OnboardingPage({ onComplete }) {
           </div>
         )}
 
-        {/* ── DATA STEP ── */}
+        {/* DATA STEP */}
         {step === 'data' && (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
             <h2 className="text-2xl font-bold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>
@@ -286,7 +307,7 @@ export default function OnboardingPage({ onComplete }) {
                     data-testid="demo-student-count-input"
                     className="w-24 px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-center font-medium focus:outline-none focus:ring-2 focus:ring-slate-900/20"
                   />
-                  <span className="text-xs text-slate-400">(8 – 400)</span>
+                  <span className="text-xs text-slate-400">(8 - 400)</span>
                 </div>
               )}
 
@@ -334,13 +355,13 @@ export default function OnboardingPage({ onComplete }) {
               <button onClick={handleComplete} disabled={!dataChoice || loading} data-testid="complete-onboarding-btn"
                 className="flex-1 bg-slate-900 text-white py-3.5 rounded-xl text-sm font-semibold hover:bg-slate-800 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
                 {loading && <Loader size={15} className="animate-spin" />}
-                {loading ? 'Setting up…' : 'Complete Setup'}
+                {loading ? 'Setting up...' : 'Complete Setup'}
               </button>
             </div>
           </div>
         )}
 
-        {/* ── COMPLETE STEP ── */}
+        {/* COMPLETE STEP */}
         {step === 'complete' && (
           <div className="bg-white rounded-2xl border border-emerald-200 p-10 shadow-sm text-center">
             <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5">
@@ -350,12 +371,12 @@ export default function OnboardingPage({ onComplete }) {
               {schoolName} is ready!
             </h2>
             <p className="text-slate-500 mb-1 text-sm">
-              {dataChoice === 'demo' && `Demo data loaded — explore with ${demoStudentCount} sample students.`}
+              {dataChoice === 'demo' && `Demo data loaded - explore with ${demoStudentCount} sample students.`}
               {dataChoice === 'restore' && 'Your backup data has been restored successfully.'}
               {dataChoice === 'blank' && 'Your blank platform is set up. Start by importing or adding students.'}
             </p>
             <p className="text-xs text-slate-400 mb-8">
-              Invite staff from User Management · Enable Google login from Settings → General
+              Invite staff from User Management. Enable Google login from Settings.
             </p>
             <button onClick={() => {
                 onComplete?.();

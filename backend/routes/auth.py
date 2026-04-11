@@ -292,6 +292,59 @@ async def logout(request: Request, response: Response, db=Depends(get_tenant_db)
     return {"message": "Logged out"}
 
 
+# ── Impersonation (school-side handler) ──────────────────────────────────────
+@router.get("/auth/impersonate")
+async def impersonate(request: Request, token: str, db=Depends(get_tenant_db)):
+    """Validate a one-time impersonation token (created by Super Admin) and create an admin session."""
+    from fastapi.responses import RedirectResponse
+    from fastapi import HTTPException
+    frontend_url = os.environ['FRONTEND_URL']
+
+    if not token:
+        return RedirectResponse(url=f"{frontend_url}/login?error=auth_failed")
+
+    # Look up the token in school's impersonation_tokens collection
+    imp_doc = await db.impersonation_tokens.find_one({"token": token})
+    if not imp_doc:
+        return RedirectResponse(url=f"{frontend_url}/login?error=invalid_token")
+
+    # Check expiry
+    expires_at_str = imp_doc.get("expires_at", "")
+    if expires_at_str:
+        exp = datetime.fromisoformat(expires_at_str).replace(tzinfo=timezone.utc)
+        if exp < datetime.now(timezone.utc):
+            await db.impersonation_tokens.delete_one({"token": token})
+            return RedirectResponse(url=f"{frontend_url}/login?error=token_expired")
+
+    # Check if already used
+    if imp_doc.get("used"):
+        return RedirectResponse(url=f"{frontend_url}/login?error=token_used")
+
+    # Mark as used
+    await db.impersonation_tokens.update_one({"token": token}, {"$set": {"used": True}})
+
+    # Find an admin user to impersonate
+    admin_user = await db.users.find_one({"role": "admin"}, {"_id": 0})
+    if not admin_user:
+        return RedirectResponse(url=f"{frontend_url}/login?error=no_admin")
+
+    # Create session
+    session_token = f"sess_imp_{uuid.uuid4().hex}"
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+    await db.user_sessions.insert_one({
+        "user_id": admin_user["user_id"],
+        "session_token": session_token,
+        "expires_at": expires_at.isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "impersonated_by": imp_doc.get("super_admin_id"),
+    })
+
+    redirect = RedirectResponse(url=f"{frontend_url}/dashboard")
+    _set_session_cookie(redirect, session_token)
+    return redirect
+
+
+
 @router.put("/auth/role")
 async def update_role(data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
@@ -310,23 +363,42 @@ async def update_role(data: dict, user=Depends(get_current_user), db=Depends(get
 
 @router.get("/onboarding/status")
 async def get_onboarding_status(db=Depends(get_tenant_db)):
-    # Prefer a doc that explicitly has onboarding_complete=True, then fall back to any doc
     settings = await db.school_settings.find_one({"onboarding_complete": True}, {"_id": 0})
     if not settings:
         settings = await db.school_settings.find_one({}, {"_id": 0})
-    user_count = await db.users.count_documents({})
-    # Treat as complete if flag is set OR if users already exist (can't run onboarding twice)
-    complete = bool(settings and settings.get("onboarding_complete", False)) or user_count > 0
+    complete = bool(settings and settings.get("onboarding_complete", False))
+    has_users = await db.users.count_documents({}) > 0
     return {
         "complete": complete,
-        "has_users": user_count > 0,
+        "has_users": has_users,
         "school_name": settings.get("school_name", "") if settings else "",
     }
 
 
+@router.post("/onboarding/school-setup")
+async def onboarding_school_setup(data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
+    """Multi-tenant onboarding: admin already exists (created by SA). Only saves school settings."""
+    from fastapi import HTTPException
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    existing = await _get_settings(db)
+    if existing and existing.get("onboarding_complete"):
+        raise HTTPException(status_code=400, detail="Setup has already been completed")
+
+    await db.school_settings.update_one({}, {"$set": {
+        "school_name": data.get("school_name", "My School"),
+        "school_type": data.get("school_type", "both"),
+        "current_term": data.get("current_term", "Term 1"),
+        "current_year": data.get("current_year", datetime.now(timezone.utc).year),
+        "onboarding_complete": True,
+    }}, upsert=True)
+
+    return {"message": "School setup complete"}
+
+
 @router.post("/onboarding/setup")
 async def onboarding_setup(data: dict, db=Depends(get_tenant_db)):
-    """Fresh-install setup: creates first admin account + saves school settings. No auth required."""
+    """Legacy fresh-install setup: creates first admin account + saves school settings. No auth required."""
     from fastapi import HTTPException
     from fastapi.responses import JSONResponse
     user_count = await db.users.count_documents({})
