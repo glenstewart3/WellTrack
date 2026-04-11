@@ -5,7 +5,9 @@ import api from './api';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { SAAuthProvider, useSAAuth } from './context/SuperAdminAuthContext';
 import DashboardLayout from './components/DashboardLayout';
+import SALayout from './components/SALayout';
 import LoginPage from './pages/LoginPage';
 import OnboardingPage from './pages/OnboardingPage';
 import DashboardPage from './pages/DashboardPage';
@@ -21,13 +23,19 @@ import SettingsPage from './pages/SettingsPage';
 import AdministrationPage from './pages/AdministrationPage';
 import AttendancePage from './pages/AttendancePage';
 import AppointmentsPage from './pages/AppointmentsPage';
+import SALoginPage from './pages/sa/SALoginPage';
+import SADashboardPage from './pages/sa/SADashboardPage';
+import SASchoolsPage from './pages/sa/SASchoolsPage';
+import SASchoolDetailPage from './pages/sa/SASchoolDetailPage';
+import SASuperAdminsPage from './pages/sa/SASuperAdminsPage';
+import SAAuditPage from './pages/sa/SAAuditPage';
 
 function Spinner() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
       <div className="text-center">
         <div className="w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-slate-600 font-medium">Loading WellTrack…</p>
+        <p className="text-slate-600 font-medium">Loading WellTrack...</p>
       </div>
     </div>
   );
@@ -38,39 +46,38 @@ function ProtectedRoute() {
   const location = useLocation();
   if (loading) return <Spinner />;
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
-  // Screeners can only access /screening
   if (user.role === 'screener' && !location.pathname.startsWith('/screening')) {
     return <Navigate to="/screening" replace />;
   }
   return <DashboardLayout />;
 }
 
-function AppRouter() {
+function SAProtectedRoute() {
+  const { admin, loading } = useSAAuth();
+  const location = useLocation();
+  if (loading) return <Spinner />;
+  if (!admin) return <Navigate to="/sa/login" state={{ from: location }} replace />;
+  return <SALayout />;
+}
+
+function SchoolRouter() {
   const { loading: authLoading, user } = useAuth();
   const [onboardingDone, setOnboardingDone] = useState(null);
 
   useEffect(() => {
     api.get('/onboarding/status')
       .then(r => setOnboardingDone(r.data.complete))
-      .catch(() => {
-        // If the status check fails entirely, assume setup is complete to avoid
-        // locking out users with a working system due to a transient network error.
-        setOnboardingDone(true);
-      });
+      .catch(() => { setOnboardingDone(true); });
   }, []);
 
   if (authLoading || onboardingDone === null) return <Spinner />;
 
   const defaultPath = user?.role === 'screener' ? '/screening' : '/dashboard';
 
-  // Gate all navigation behind onboarding
   if (!onboardingDone) {
     return (
       <Routes>
-        <Route
-          path="*"
-          element={<OnboardingPage onComplete={() => setOnboardingDone(true)} />}
-        />
+        <Route path="*" element={<OnboardingPage onComplete={() => setOnboardingDone(true)} />} />
       </Routes>
     );
   }
@@ -100,14 +107,36 @@ function AppRouter() {
   );
 }
 
+function AppRouter() {
+  return (
+    <Routes>
+      {/* Super Admin routes */}
+      <Route path="/sa/login" element={<SALoginPage />} />
+      <Route path="/sa" element={<SAProtectedRoute />}>
+        <Route index element={<Navigate to="/sa/dashboard" replace />} />
+        <Route path="dashboard" element={<SADashboardPage />} />
+        <Route path="schools" element={<SASchoolsPage />} />
+        <Route path="schools/:schoolId" element={<SASchoolDetailPage />} />
+        <Route path="admins" element={<SASuperAdminsPage />} />
+        <Route path="audit" element={<SAAuditPage />} />
+      </Route>
+
+      {/* School portal routes — everything not under /sa */}
+      <Route path="/*" element={<SchoolRouter />} />
+    </Routes>
+  );
+}
+
 export default function App() {
   return (
     <SettingsProvider>
       <AuthProvider>
         <ThemeProvider>
-          <BrowserRouter basename={process.env.REACT_APP_BASE_PATH || '/'}>
-            <AppRouter />
-          </BrowserRouter>
+          <SAAuthProvider>
+            <BrowserRouter basename={process.env.REACT_APP_BASE_PATH || '/'}>
+              <AppRouter />
+            </BrowserRouter>
+          </SAAuthProvider>
         </ThemeProvider>
       </AuthProvider>
     </SettingsProvider>
