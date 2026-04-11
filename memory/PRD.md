@@ -12,6 +12,7 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - **Multi-Tenancy**: Subdomain-based tenant resolution -> isolated MongoDB database per school
 - **Control Plane**: `welltrack_control` database stores super admins, schools registry, audit log
 - **Portal Detection**: `/sa/*` routes -> Super Admin portal, `/*` routes -> School portal
+- **File Storage**: Tenant-scoped at `/app/uploads/{slug}/student_photos/` and `/app/uploads/{slug}/backups/`
 
 ## What's Been Implemented
 
@@ -28,39 +29,43 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - [x] 35/35 tests passed (iteration_40.json)
 
 ### Phase 3: Super Admin Frontend (COMPLETED - 2026-04-11)
-- [x] `api-superadmin.js` — SA API client with separate auth
-- [x] `context/SuperAdminAuthContext.jsx` — SA auth state (sa_session_token cookie)
-- [x] `components/SALayout.jsx` — SA sidebar layout (dark slate theme)
-- [x] `pages/sa/SALoginPage.jsx` — Login with bootstrap detection
-- [x] `pages/sa/SADashboardPage.jsx` — Platform stats, recent schools, warnings
-- [x] `pages/sa/SASchoolsPage.jsx` — Schools table + search/filter + Add School modal with auto-slug
-- [x] `pages/sa/SASchoolDetailPage.jsx` — School detail, user management, status control, password reset
-- [x] `pages/sa/SASuperAdminsPage.jsx` — SA list with add/delete
-- [x] `pages/sa/SAAuditPage.jsx` — Paginated audit log with action icons
-- [x] `App.js` updated with portal detection (SA at /sa/*, school at /*)
-- [x] 19/19 frontend tests passed (iteration_41.json)
+- [x] SA portal pages: Login, Dashboard, Schools, School Detail, Super Admins, Audit Log
+- [x] `App.js` portal detection (SA at /sa/*, school at /*)
+- [x] 19/19 tests passed (iteration_41.json)
 
 ### Phase 4: School Portal Adaptations (COMPLETED - 2026-04-11)
-- [x] **Feature Flags per School**: `GET /api/public-settings` returns `feature_flags`, `school_status`, `trial_expires_at` from control DB school record
-- [x] **Feature Flag Nav Filtering**: DashboardLayout hides nav items when feature flags are explicitly set to `false` (e.g., `appointments: false` hides Appointments)
-- [x] **Trial Expiry Banner**: Amber dismissible banner in DashboardLayout when school status is "trial" and expires within 14 days
-- [x] **Google OAuth Multi-Tenant Refactor**: OAuth state stored in `control_db.oauth_states` with `tenant_slug`; callback resolves tenant from control_db independently of middleware; single callback URL on root domain works for all schools
-- [x] **Cross-subdomain cookies**: Session cookies set with `Domain=.welltrack.com.au` in production for OAuth callback flows
-- [x] **Feature Flags Management UI**: SA School Detail page has toggle switches for `appointments`, `ai_suggestions`, `google_auth`, `saebrs_plus`
-- [x] **`require_feature()` dependency**: Reusable backend dependency factory for server-side feature flag enforcement
+- [x] Feature flags per school via `GET /api/public-settings`
+- [x] Trial expiry banner in DashboardLayout
+- [x] Google OAuth multi-tenant refactor (state in control_db, single callback URL)
+- [x] Feature Flags management UI in SA School Detail page
 - [x] 28/28 tests passed (iteration_42.json)
+
+### Phase 5: Tenant-Scoped File Storage (COMPLETED - 2026-04-11)
+- [x] Student photos stored at `/app/uploads/{slug}/student_photos/`
+- [x] Backups stored at `/app/uploads/{slug}/backups/`
+- [x] Dynamic photo serving at `/api/student-photos/{slug}/{filename}`
+- [x] All photo upload/delete/bulk-upload use tenant-scoped paths
+- [x] Daily backup scheduler passes slug to `run_backup()`
+
+### Onboarding Update (COMPLETED - 2026-04-11)
+- [x] `GET /api/onboarding/status` checks `onboarding_complete` flag only (not user count)
+- [x] `POST /api/onboarding/school-setup` — auth-required endpoint for SA-provisioned schools
+- [x] Frontend `OnboardingPage` skips Step 1 when user is logged in (SA-provisioned flow)
+- [x] Legacy standalone flow preserved for backward compatibility
+
+### Impersonation (COMPLETED - 2026-04-11)
+- [x] `POST /api/superadmin/schools/{id}/impersonate` — generates 30-min one-time token
+- [x] `GET /api/auth/impersonate?token=...` — school-side handler creates session + redirects
+- [x] SA School Detail page has "Impersonate" button
+- [x] Token validation: expired, used, invalid tokens rejected
+- [x] 21/21 tests passed (iteration_43.json)
 
 ### Pre-existing Features (from single-tenant)
 - Student management, SAEBRS screening, MTSS tier calculation
 - Attendance, Interventions, Appointments, Analytics, Reports
-- Alerts, Settings, Audit, Backups, Google OAuth, Dark mode, Onboarding
+- Alerts, Settings, Audit, Backups, Google OAuth, Dark mode
 
 ## Prioritized Backlog
-
-### P1 (Next)
-- [ ] Phase 5: S3/Local file storage segregation per school folder
-- [ ] Onboarding flow update — Remove Step 1 (user creation) since SA provisions first admin
-- [ ] Impersonation endpoint + school-side handler
 
 ### P2 (Future)
 - [ ] Automated weekly backup via email
@@ -70,24 +75,21 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 
 ## Key Files
 ### Backend
-- `server.py` — Entry point, middleware, startup
-- `tenant_middleware.py` — Tenant resolution (SUPER_ADMIN_PATH_PREFIX bypass)
+- `server.py` — Entry point, middleware, startup, photo serving
+- `tenant_middleware.py` — Tenant resolution
 - `control_db.py` — Control plane DB
 - `deps.py` — `get_tenant_db`, `require_feature()` dependencies
-- `server_utils.py` — ensure_indexes
 - `routes/superadmin.py` — SA endpoints
-- `routes/auth.py` — Auth (email/password + Google OAuth multi-tenant)
+- `routes/auth.py` — Auth + Google OAuth + onboarding + impersonation
+- `routes/students.py` — Student CRUD + tenant-scoped photos
+- `routes/backups.py` — Tenant-scoped backups
 - `routes/settings.py` — Settings + public-settings with feature flags
-- `routes/*.py` — 12 school route files
 
 ### Frontend
-- `App.js` — Portal detection + routing
-- `api-superadmin.js` — SA API client
-- `context/SuperAdminAuthContext.jsx` — SA auth
-- `context/SettingsContext.jsx` — Settings + feature flags + school status
-- `components/SALayout.jsx` — SA layout
-- `components/DashboardLayout.jsx` — School dashboard layout with trial banner + feature flag nav
-- `pages/sa/*.jsx` — 6 SA pages (including feature flags management in SASchoolDetailPage)
+- `App.js` — Portal detection + routing + onboarding flow
+- `pages/OnboardingPage.jsx` — Adaptive onboarding (skips account step when logged in)
+- `components/DashboardLayout.jsx` — Trial banner + feature flag nav
+- `pages/sa/SASchoolDetailPage.jsx` — Feature flags + impersonation button
 
 ## Test Credentials
 - Super Admin: `superadmin@welltrack.com.au` / `superadmin123`
@@ -95,7 +97,8 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - Mooroopna School: `jane@mooroopna.edu.au` / `mooroopna123`
 
 ## Test Reports
-- iteration_39.json: Phase 1 Backend (21/21 passed)
-- iteration_40.json: Phase 2 SA Backend (35/35 passed)
-- iteration_41.json: Phase 3 SA Frontend (19/19 passed)
-- iteration_42.json: Phase 4 School Portal Adaptations (28/28 passed)
+- iteration_39.json: Phase 1 Backend (21/21)
+- iteration_40.json: Phase 2 SA Backend (35/35)
+- iteration_41.json: Phase 3 SA Frontend (19/19)
+- iteration_42.json: Phase 4 School Portal Adaptations (28/28)
+- iteration_43.json: Phase 5 + Onboarding + Impersonation (21/21)
