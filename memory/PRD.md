@@ -11,7 +11,7 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - **Database**: MongoDB (Motor async driver)
 - **Multi-Tenancy**: Subdomain-based tenant resolution -> isolated MongoDB database per school
 - **Control Plane**: `welltrack_control` database stores super admins, schools registry, audit log
-- **Portal Detection**: `/sa/*` routes → Super Admin portal, `/*` routes → School portal
+- **Portal Detection**: `/sa/*` routes -> Super Admin portal, `/*` routes -> School portal
 
 ## What's Been Implemented
 
@@ -40,6 +40,16 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - [x] `App.js` updated with portal detection (SA at /sa/*, school at /*)
 - [x] 19/19 frontend tests passed (iteration_41.json)
 
+### Phase 4: School Portal Adaptations (COMPLETED - 2026-04-11)
+- [x] **Feature Flags per School**: `GET /api/public-settings` returns `feature_flags`, `school_status`, `trial_expires_at` from control DB school record
+- [x] **Feature Flag Nav Filtering**: DashboardLayout hides nav items when feature flags are explicitly set to `false` (e.g., `appointments: false` hides Appointments)
+- [x] **Trial Expiry Banner**: Amber dismissible banner in DashboardLayout when school status is "trial" and expires within 14 days
+- [x] **Google OAuth Multi-Tenant Refactor**: OAuth state stored in `control_db.oauth_states` with `tenant_slug`; callback resolves tenant from control_db independently of middleware; single callback URL on root domain works for all schools
+- [x] **Cross-subdomain cookies**: Session cookies set with `Domain=.welltrack.com.au` in production for OAuth callback flows
+- [x] **Feature Flags Management UI**: SA School Detail page has toggle switches for `appointments`, `ai_suggestions`, `google_auth`, `saebrs_plus`
+- [x] **`require_feature()` dependency**: Reusable backend dependency factory for server-side feature flag enforcement
+- [x] 28/28 tests passed (iteration_42.json)
+
 ### Pre-existing Features (from single-tenant)
 - Student management, SAEBRS screening, MTSS tier calculation
 - Attendance, Interventions, Appointments, Analytics, Reports
@@ -48,7 +58,9 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 ## Prioritized Backlog
 
 ### P1 (Next)
-- [ ] Phase 4: School Portal Adaptations — Feature flags per school, trial expiry banner, Google OAuth per tenant
+- [ ] Phase 5: S3/Local file storage segregation per school folder
+- [ ] Onboarding flow update — Remove Step 1 (user creation) since SA provisions first admin
+- [ ] Impersonation endpoint + school-side handler
 
 ### P2 (Future)
 - [ ] Automated weekly backup via email
@@ -61,18 +73,29 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - `server.py` — Entry point, middleware, startup
 - `tenant_middleware.py` — Tenant resolution (SUPER_ADMIN_PATH_PREFIX bypass)
 - `control_db.py` — Control plane DB
-- `deps.py`, `server_utils.py` — Shared utilities
+- `deps.py` — `get_tenant_db`, `require_feature()` dependencies
+- `server_utils.py` — ensure_indexes
 - `routes/superadmin.py` — SA endpoints
+- `routes/auth.py` — Auth (email/password + Google OAuth multi-tenant)
+- `routes/settings.py` — Settings + public-settings with feature flags
 - `routes/*.py` — 12 school route files
 
 ### Frontend
 - `App.js` — Portal detection + routing
 - `api-superadmin.js` — SA API client
 - `context/SuperAdminAuthContext.jsx` — SA auth
+- `context/SettingsContext.jsx` — Settings + feature flags + school status
 - `components/SALayout.jsx` — SA layout
-- `pages/sa/*.jsx` — 6 SA pages
+- `components/DashboardLayout.jsx` — School dashboard layout with trial banner + feature flag nav
+- `pages/sa/*.jsx` — 6 SA pages (including feature flags management in SASchoolDetailPage)
 
 ## Test Credentials
 - Super Admin: `superadmin@welltrack.com.au` / `superadmin123`
 - Demo School: `admin@test.com` / `password123`
 - Mooroopna School: `jane@mooroopna.edu.au` / `mooroopna123`
+
+## Test Reports
+- iteration_39.json: Phase 1 Backend (21/21 passed)
+- iteration_40.json: Phase 2 SA Backend (35/35 passed)
+- iteration_41.json: Phase 3 SA Frontend (19/19 passed)
+- iteration_42.json: Phase 4 School Portal Adaptations (28/28 passed)
