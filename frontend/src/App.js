@@ -8,6 +8,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { SAAuthProvider, useSAAuth } from './context/SuperAdminAuthContext';
 import DashboardLayout from './components/DashboardLayout';
 import SALayout from './components/SALayout';
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import OnboardingPage from './pages/OnboardingPage';
 import DashboardPage from './pages/DashboardPage';
@@ -29,6 +30,21 @@ import SASchoolsPage from './pages/sa/SASchoolsPage';
 import SASchoolDetailPage from './pages/sa/SASchoolDetailPage';
 import SASuperAdminsPage from './pages/sa/SASuperAdminsPage';
 import SAAuditPage from './pages/sa/SAAuditPage';
+
+// Detect which portal to show based on hostname
+const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || 'welltrack.com.au';
+const hostname = window.location.hostname;
+
+function detectPortal() {
+  // Production: admin.welltrack.com.au → SA portal
+  if (hostname === `admin.${BASE_DOMAIN}`) return 'superadmin';
+  // Production: welltrack.com.au or www.welltrack.com.au → landing page
+  if (hostname === BASE_DOMAIN || hostname === `www.${BASE_DOMAIN}`) return 'landing';
+  // Production: {slug}.welltrack.com.au → school portal
+  if (hostname.endsWith(`.${BASE_DOMAIN}`)) return 'school';
+  // Dev/preview: no subdomain detection possible — use path-based routing
+  return 'dev';
+}
 
 function Spinner() {
   return (
@@ -120,9 +136,52 @@ function SchoolRouter() {
 }
 
 function AppRouter() {
+  const portal = detectPortal();
+
+  // Production: pure landing page (root domain)
+  if (portal === 'landing') {
+    return (
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
+  }
+
+  // Production: pure SA portal (admin.welltrack.com.au)
+  if (portal === 'superadmin') {
+    return (
+      <Routes>
+        <Route path="/login" element={<SALoginPage />} />
+        <Route path="/" element={<SAProtectedRoute />}>
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<SADashboardPage />} />
+          <Route path="schools" element={<SASchoolsPage />} />
+          <Route path="schools/:schoolId" element={<SASchoolDetailPage />} />
+          <Route path="admins" element={<SASuperAdminsPage />} />
+          <Route path="audit" element={<SAAuditPage />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    );
+  }
+
+  // Production: pure school portal ({slug}.welltrack.com.au)
+  if (portal === 'school') {
+    return (
+      <Routes>
+        <Route path="/*" element={<SchoolRouter />} />
+      </Routes>
+    );
+  }
+
+  // Dev/preview: path-based routing — landing page at /, SA at /sa/*, school at other paths
   return (
     <Routes>
-      {/* Super Admin routes */}
+      {/* Landing page at root */}
+      <Route path="/" element={<LandingPage />} />
+
+      {/* Super Admin routes (dev fallback via /sa/ path) */}
       <Route path="/sa/login" element={<SALoginPage />} />
       <Route path="/sa" element={<SAProtectedRoute />}>
         <Route index element={<Navigate to="/sa/dashboard" replace />} />
@@ -133,7 +192,7 @@ function AppRouter() {
         <Route path="audit" element={<SAAuditPage />} />
       </Route>
 
-      {/* School portal routes — everything not under /sa */}
+      {/* School portal routes — everything not matched above */}
       <Route path="/*" element={<SchoolRouter />} />
     </Routes>
   );

@@ -10,6 +10,8 @@ import os
 
 # Paths that are always super-admin context (no tenant DB needed)
 SUPER_ADMIN_PATH_PREFIX = "/api/superadmin"
+# Reserved subdomains that are NOT school tenants
+RESERVED_SUBDOMAINS = {"admin", "www", "api", "mail", "smtp", "ftp"}
 
 
 class TenantMiddleware(BaseHTTPMiddleware):
@@ -28,6 +30,14 @@ class TenantMiddleware(BaseHTTPMiddleware):
             request.state.is_super_admin = True
             return await call_next(request)
 
+        # Public school-lookup endpoint — no tenant needed
+        if path == "/api/school-lookup":
+            request.state.db = None
+            request.state.tenant_slug = None
+            request.state.school = None
+            request.state.is_super_admin = False
+            return await call_next(request)
+
         slug = None
 
         # 1. In dev mode, check X-Tenant-Slug header first
@@ -37,14 +47,19 @@ class TenantMiddleware(BaseHTTPMiddleware):
         # 2. Try to extract slug from host (subdomain of base_domain)
         if not slug:
             if host == base_domain or host == f"www.{base_domain}":
-                slug = None  # root domain = super admin
+                slug = None  # root domain = landing page / super admin
+            elif host == f"admin.{base_domain}":
+                slug = None  # admin subdomain = super admin
             elif host.endswith(f".{base_domain}"):
-                slug = host[: -(len(base_domain) + 1)]
+                candidate = host[: -(len(base_domain) + 1)]
+                if candidate in RESERVED_SUBDOMAINS:
+                    slug = None
+                else:
+                    slug = candidate
             elif is_dev and host in ("localhost", "127.0.0.1"):
-                slug = None  # localhost = super admin in dev
+                slug = None
             elif is_dev:
-                # Dev fallback: host doesn't match base domain at all (e.g., preview env)
-                # Use DEFAULT_TENANT_SLUG env var
+                # Dev fallback: host doesn't match base domain (e.g., preview env)
                 slug = os.environ.get("DEFAULT_TENANT_SLUG")
 
         if slug:

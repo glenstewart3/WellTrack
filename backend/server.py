@@ -70,6 +70,22 @@ api_router.include_router(superadmin_router)
 
 app.include_router(api_router)
 
+# Public school lookup for the landing page (no auth, no tenant context needed)
+@app.get("/api/school-lookup")
+async def school_lookup(slug: str = ""):
+    """Check if a school exists by slug. Returns name if found."""
+    from control_db import control_db as _cdb
+    if not slug or len(slug) < 2:
+        return {"exists": False}
+    school = await _cdb.schools.find_one(
+        {"slug": slug.lower().strip(), "status": {"$in": ["active", "trial"]}},
+        {"_id": 0, "name": 1, "slug": 1}
+    )
+    if school:
+        return {"exists": True, "name": school["name"], "slug": school["slug"]}
+    return {"exists": False}
+
+
 # Serve student photos dynamically per tenant slug
 from fastapi.responses import FileResponse as _FileResponse
 
