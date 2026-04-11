@@ -98,17 +98,30 @@ async def startup():
     demo = await control_db.schools.find_one({"slug": "demo"})
     if not demo:
         await control_db.schools.insert_one({
+            "school_id": f"sch_{uuid.uuid4().hex[:12]}",
             "slug": "demo",
             "name": "Demo School",
             "db_name": "welltrack_demo",
             "status": "active",
             "created_at": datetime.now(timezone.utc).isoformat(),
-            "plan": "trial",
+            "contact_name": "",
+            "contact_email": "",
+            "notes": "Auto-provisioned demo school",
+            "feature_flags": {},
         })
         logger.info("Demo school created in control DB (slug='demo', db='welltrack_demo')")
+    elif not demo.get("school_id"):
+        # Backfill school_id for legacy demo record
+        import uuid as _uuid
+        await control_db.schools.update_one(
+            {"slug": "demo"},
+            {"$set": {"school_id": f"sch_{_uuid.uuid4().hex[:12]}"}}
+        )
 
     # ── Ensure indexes on all active school databases ─────────────────────────
-    schools = await control_db.schools.find({"status": "active"}, {"_id": 0}).to_list(100)
+    schools = await control_db.schools.find(
+        {"status": {"$in": ["active", "trial"]}}, {"_id": 0}
+    ).to_list(100)
     for school in schools:
         school_db = client[school["db_name"]]
         await ensure_indexes(school_db)
