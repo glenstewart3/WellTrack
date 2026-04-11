@@ -6,54 +6,49 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - **Subdomains**: Each school gets a unique subdomain (e.g., `mooroopna.welltrack.com.au`) with its own isolated database
 
 ## Architecture
-- **Frontend**: React (Create React App) with Shadcn/UI components
+- **Frontend**: React (Create React App) with Shadcn/UI + Tailwind
 - **Backend**: FastAPI (Python)
 - **Database**: MongoDB (Motor async driver)
 - **Multi-Tenancy**: Subdomain-based tenant resolution -> isolated MongoDB database per school
 - **Control Plane**: `welltrack_control` database stores super admins, schools registry, audit log
+- **Portal Detection**: `/sa/*` routes → Super Admin portal, `/*` routes → School portal
 
 ## What's Been Implemented
 
 ### Phase 1: Multi-Tenant Backend Infrastructure (COMPLETED - 2026-04-11)
-- [x] `control_db.py` — Control plane DB connection to `welltrack_control`
-- [x] `tenant_middleware.py` — Subdomain detection, X-Tenant-Slug header (dev mode), DEFAULT_TENANT_SLUG fallback, SUPER_ADMIN_PATH_PREFIX bypass
-- [x] `deps.py` — `get_tenant_db()` FastAPI dependency
-- [x] `helpers.py` — All DB-using functions refactored to accept `db` parameter
-- [x] `utils/audit.py` — `log_audit(db, ...)` signature
-- [x] `seed.py` — `seed_database(db, ...)` signature
+- [x] `control_db.py`, `tenant_middleware.py`, `deps.py`, `server_utils.py`
 - [x] All 12 route files refactored to use `db = Depends(get_tenant_db)`
-- [x] `server.py` — TenantMiddleware registered, startup creates demo school, ensure_indexes() reusable function
-- [x] Demo school provisioned: slug=`demo`, db=`welltrack_demo`
+- [x] `helpers.py`, `utils/audit.py`, `seed.py` accept `db` parameter
+- [x] Demo school provisioned in `welltrack_control`
 - [x] 21/21 tests passed (iteration_39.json)
 
 ### Phase 2: Super Admin Backend (COMPLETED - 2026-04-11)
-- [x] `routes/superadmin.py` — Complete super admin portal backend
-- [x] Bootstrap endpoint (`POST /api/superadmin/auth/bootstrap`) — one-time first super admin creation
-- [x] Super admin auth (login, logout, me, change-password) — separate from school auth
-- [x] School CRUD (list, create/provision, get detail, update, archive)
-- [x] School provisioning creates: DB, first admin user, initial settings, uploads dir, indexes
-- [x] School admin management (list, add, remove, reset-password)
-- [x] Impersonation token generation (30-min expiry)
-- [x] Platform stats (total schools, students, active/trial/suspended)
-- [x] Super admin audit log
-- [x] Super admins CRUD (list, create, delete with self-protection)
-- [x] Slug validation (reserved words, duplicates, format)
-- [x] `server_utils.py` — `ensure_indexes()` shared module
-- [x] Demo school backfilled with school_id
-- [x] Tenant middleware updated to bypass `/api/superadmin` paths
+- [x] `routes/superadmin.py` — Complete SA backend (bootstrap, auth, school CRUD/provisioning, admin management, impersonation, audit, SA CRUD)
+- [x] Tenant middleware bypasses `/api/superadmin` paths
 - [x] 35/35 tests passed (iteration_40.json)
+
+### Phase 3: Super Admin Frontend (COMPLETED - 2026-04-11)
+- [x] `api-superadmin.js` — SA API client with separate auth
+- [x] `context/SuperAdminAuthContext.jsx` — SA auth state (sa_session_token cookie)
+- [x] `components/SALayout.jsx` — SA sidebar layout (dark slate theme)
+- [x] `pages/sa/SALoginPage.jsx` — Login with bootstrap detection
+- [x] `pages/sa/SADashboardPage.jsx` — Platform stats, recent schools, warnings
+- [x] `pages/sa/SASchoolsPage.jsx` — Schools table + search/filter + Add School modal with auto-slug
+- [x] `pages/sa/SASchoolDetailPage.jsx` — School detail, user management, status control, password reset
+- [x] `pages/sa/SASuperAdminsPage.jsx` — SA list with add/delete
+- [x] `pages/sa/SAAuditPage.jsx` — Paginated audit log with action icons
+- [x] `App.js` updated with portal detection (SA at /sa/*, school at /*)
+- [x] 19/19 frontend tests passed (iteration_41.json)
 
 ### Pre-existing Features (from single-tenant)
 - Student management, SAEBRS screening, MTSS tier calculation
-- Attendance management, Interventions + case notes, Appointments
-- Analytics, Reports, Alerts, Settings, Audit logging, Backups
-- Google OAuth + email/password auth, Dark mode, Onboarding wizard
+- Attendance, Interventions, Appointments, Analytics, Reports
+- Alerts, Settings, Audit, Backups, Google OAuth, Dark mode, Onboarding
 
 ## Prioritized Backlog
 
 ### P1 (Next)
-- [ ] Phase 3: Super Admin Frontend — Portal detection in App.js, SA login/dashboard/schools/detail pages
-- [ ] Phase 4: School Portal Adaptations — Feature flags, trial expiry, Google OAuth per tenant
+- [ ] Phase 4: School Portal Adaptations — Feature flags per school, trial expiry banner, Google OAuth per tenant
 
 ### P2 (Future)
 - [ ] Automated weekly backup via email
@@ -62,19 +57,20 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - [ ] Dynamic MongoDB user creation for DB-level access control
 
 ## Key Files
-- `/app/backend/server.py` — Entry point, middleware, startup
-- `/app/backend/tenant_middleware.py` — Tenant resolution (SUPER_ADMIN_PATH_PREFIX bypass)
-- `/app/backend/control_db.py` — Control plane DB
-- `/app/backend/deps.py` — FastAPI dependencies
-- `/app/backend/server_utils.py` — Shared utils (ensure_indexes)
-- `/app/backend/helpers.py` — Shared helpers (all accept `db` param)
-- `/app/backend/routes/superadmin.py` — Super admin endpoints (auth, schools, admins, audit)
-- `/app/backend/routes/*.py` — School route handlers (12 files)
-- `/app/memory/MULTI_TENANT_FORK_PROMPT.md` — Full implementation blueprint
+### Backend
+- `server.py` — Entry point, middleware, startup
+- `tenant_middleware.py` — Tenant resolution (SUPER_ADMIN_PATH_PREFIX bypass)
+- `control_db.py` — Control plane DB
+- `deps.py`, `server_utils.py` — Shared utilities
+- `routes/superadmin.py` — SA endpoints
+- `routes/*.py` — 12 school route files
 
-## Environment Variables (Backend)
-- `MONGO_URL`, `DB_NAME`, `APP_ENV`, `BASE_DOMAIN`, `DEFAULT_TENANT_SLUG`
-- `SESSION_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `FRONTEND_URL`
+### Frontend
+- `App.js` — Portal detection + routing
+- `api-superadmin.js` — SA API client
+- `context/SuperAdminAuthContext.jsx` — SA auth
+- `components/SALayout.jsx` — SA layout
+- `pages/sa/*.jsx` — 6 SA pages
 
 ## Test Credentials
 - Super Admin: `superadmin@welltrack.com.au` / `superadmin123`

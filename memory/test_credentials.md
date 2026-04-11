@@ -1,6 +1,6 @@
 # WellTrack Test Credentials
 
-## Super Admin Portal
+## Super Admin Portal (/sa/login)
 - **Email**: superadmin@welltrack.com.au
 - **Password**: superadmin123
 - **Cookie**: sa_session_token
