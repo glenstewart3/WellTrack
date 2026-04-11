@@ -5,10 +5,10 @@ Backups are saved to /app/backend/backups/ and retained for 30 days.
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from datetime import datetime, timezone
-import json, os, logging
+import json, logging
 from pathlib import Path
 
-from database import db
+from deps import get_tenant_db
 from helpers import get_current_user
 
 router = APIRouter()
@@ -23,7 +23,7 @@ COLLECTIONS = [
 ]
 
 
-async def run_backup() -> str:
+async def run_backup(db) -> str:
     """Export all collections to a timestamped JSON file. Returns the file path."""
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -41,7 +41,6 @@ async def run_backup() -> str:
 
     logger.info(f"Backup created: {filename} ({filepath.stat().st_size / 1024:.1f} KB)")
 
-    # Prune old backups beyond retention limit
     _prune_old_backups()
 
     return str(filepath)
@@ -79,8 +78,8 @@ async def list_backups(user=Depends(get_current_user)):
 
 
 @router.post("/backups/trigger")
-async def trigger_backup(user=Depends(get_current_user)):
-    filepath = await run_backup()
+async def trigger_backup(user=Depends(get_current_user), db=Depends(get_tenant_db)):
+    filepath = await run_backup(db)
     filename = Path(filepath).name
     stat = Path(filepath).stat()
     return {
@@ -93,7 +92,6 @@ async def trigger_backup(user=Depends(get_current_user)):
 
 @router.get("/backups/download/{filename}")
 async def download_backup(filename: str, user=Depends(get_current_user)):
-    # Prevent path traversal
     if "/" in filename or "\\" in filename or ".." in filename:
         raise HTTPException(status_code=400, detail="Invalid filename")
     filepath = BACKUP_DIR / filename
@@ -107,7 +105,7 @@ async def download_backup(filename: str, user=Depends(get_current_user)):
 
 
 @router.delete("/backups/{filename}")
-async def delete_backup(filename: str, user=Depends(get_current_user)):
+async def delete_backup(filename: str, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     if "/" in filename or "\\" in filename or ".." in filename:

@@ -5,7 +5,7 @@ import httpx
 import json as _json
 import logging
 
-from database import db
+from deps import get_tenant_db
 from helpers import get_current_user, get_school_settings_doc, get_student_attendance_pct
 from models import Intervention, CaseNote
 from utils.audit import log_audit
@@ -16,37 +16,30 @@ logger = logging.getLogger(__name__)
 
 def _normalize_rec(rec: dict) -> dict:
     """Normalise keys that small models commonly vary, mapping to the expected schema."""
-    # type
     for alt in ('intervention_type', 'name', 'title', 'intervention', 'strategy'):
         if not rec.get('type') and rec.get(alt):
             rec['type'] = rec[alt]
             break
-    # priority
     for alt in ('urgency', 'level', 'importance', 'severity'):
         if not rec.get('priority') and rec.get(alt):
             rec['priority'] = rec[alt]
             break
-    # rationale
     for alt in ('reason', 'description', 'explanation', 'justification', 'context'):
         if not rec.get('rationale') and rec.get(alt):
             rec['rationale'] = rec[alt]
             break
-    # goals
     for alt in ('goal', 'objectives', 'objective', 'outcomes', 'outcome', 'aims'):
         if not rec.get('goals') and rec.get(alt):
             rec['goals'] = rec[alt]
             break
-    # frequency
     for alt in ('schedule', 'sessions', 'session', 'how_often', 'cadence'):
         if not rec.get('frequency') and rec.get(alt):
             rec['frequency'] = rec[alt]
             break
-    # timeline
     for alt in ('duration', 'weeks', 'length', 'time', 'period'):
         if not rec.get('timeline') and rec.get(alt):
             rec['timeline'] = rec[alt]
             break
-    # Normalise priority to low/medium/high
     p = str(rec.get('priority') or '').lower()
     if p in ('h', 'hi', '1', 'critical', 'urgent'):
         rec['priority'] = 'high'
@@ -62,8 +55,6 @@ def _normalize_rec(rec: dict) -> dict:
 def _extract_json_array(text: str):
     """Try multiple strategies to extract a JSON array from an LLM response."""
     text = text.strip()
-
-    # 1. Direct parse — model returned clean JSON array
     try:
         data = _json.loads(text)
         if isinstance(data, list):
@@ -72,16 +63,12 @@ def _extract_json_array(text: str):
             return [data]
     except Exception:
         pass
-
-    # 2. Markdown code block  ```json [...] ```
     md = re.search(r'```(?:json)?\s*(\[.*?\])\s*```', text, re.DOTALL | re.IGNORECASE)
     if md:
         try:
             return _json.loads(md.group(1))
         except Exception:
             pass
-
-    # 3. First [...] bracket pair
     start = text.find('[')
     end = text.rfind(']')
     if start != -1 and end > start:
@@ -89,8 +76,6 @@ def _extract_json_array(text: str):
             return _json.loads(text[start:end + 1])
         except Exception:
             pass
-
-    # 4. Collect all top-level {...} objects and wrap in array
     objects = []
     depth = 0
     obj_start = None
@@ -110,13 +95,12 @@ def _extract_json_array(text: str):
                 obj_start = None
     if objects:
         return objects
-
     return None
 
 
 @router.get("/interventions")
 async def get_interventions(student_id: Optional[str] = None, status: Optional[str] = None,
-                             user=Depends(get_current_user)):
+                             user=Depends(get_current_user), db=Depends(get_tenant_db)):
     query = {}
     if student_id:
         query["student_id"] = student_id
@@ -126,44 +110,44 @@ async def get_interventions(student_id: Optional[str] = None, status: Optional[s
 
 
 @router.post("/interventions")
-async def create_intervention(intervention: Intervention, user=Depends(get_current_user)):
+async def create_intervention(intervention: Intervention, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     d = intervention.model_dump()
     await db.interventions.insert_one({**d})
     student = await db.students.find_one({"student_id": d.get("student_id")}, {"first_name": 1, "last_name": 1, "_id": 0})
     sname = f"{student.get('first_name','')} {student.get('last_name','')}".strip() if student else d.get("student_id","")
-    await log_audit(user, "created", "intervention", d.get("intervention_id",""),
+    await log_audit(db, user, "created", "intervention", d.get("intervention_id",""),
                     f"{d.get('intervention_type','')} — {sname}",
                     metadata={"intervention_type": d.get("intervention_type"), "student_id": d.get("student_id")})
     return d
 
 
 @router.put("/interventions/{iid}")
-async def update_intervention(iid: str, data: dict, user=Depends(get_current_user)):
+async def update_intervention(iid: str, data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     existing = await db.interventions.find_one({"intervention_id": iid}, {"_id": 0})
     await db.interventions.update_one({"intervention_id": iid}, {"$set": data})
     updated = await db.interventions.find_one({"intervention_id": iid}, {"_id": 0})
     changes = {k: {"old": existing.get(k), "new": v} for k, v in data.items() if existing and existing.get(k) != v}
     student = await db.students.find_one({"student_id": updated.get("student_id")}, {"first_name": 1, "last_name": 1, "_id": 0})
     sname = f"{student.get('first_name','')} {student.get('last_name','')}".strip() if student else ""
-    await log_audit(user, "updated", "intervention", iid,
+    await log_audit(db, user, "updated", "intervention", iid,
                     f"{updated.get('intervention_type','')} — {sname}", changes=changes)
     return updated
 
 
 @router.delete("/interventions/{iid}")
-async def delete_intervention(iid: str, user=Depends(get_current_user)):
+async def delete_intervention(iid: str, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     existing = await db.interventions.find_one({"intervention_id": iid}, {"_id": 0})
     await db.interventions.delete_one({"intervention_id": iid})
     name = f"{existing.get('intervention_type','')} — {existing.get('student_id','')}" if existing else iid
-    await log_audit(user, "deleted", "intervention", iid, name)
+    await log_audit(db, user, "deleted", "intervention", iid, name)
     return {"message": "Deleted"}
 
 
 @router.post("/interventions/ai-suggest/{student_id}")
-async def get_ai_suggestions(student_id: str, user=Depends(get_current_user)):
+async def get_ai_suggestions(student_id: str, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     import traceback
     try:
-        settings_doc = await get_school_settings_doc()
+        settings_doc = await get_school_settings_doc(db)
         if not settings_doc.get("ai_suggestions_enabled", True):
             raise HTTPException(403, "AI suggestions are disabled. Enable in Settings > Integrations.")
 
@@ -175,14 +159,13 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user)):
             raise HTTPException(404, "Student not found")
 
         latest_saebrs = await db.saebrs_results.find_one({"student_id": student_id}, {"_id": 0}, sort=[("created_at", -1)])
-        att_pct = await get_student_attendance_pct(student_id)
+        att_pct = await get_student_attendance_pct(db, student_id)
         active_ints = await db.interventions.find({"student_id": student_id, "status": "active"}, {"_id": 0}).to_list(10)
 
         first = student.get('first_name', '')
         pref = student.get('preferred_name')
         display_name = f"{first}{(' (' + pref + ')') if pref and pref != first else ''} {student.get('last_name', '')}".strip()
 
-        # Build context
         context = f"Student: {display_name}, Year Level: {student.get('year_level', 'Unknown')}"
         if student.get('gender'):
             context += f", {student.get('gender')}"
@@ -204,7 +187,6 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user)):
 
         context += f"Attendance: {(att_pct or 0):.1f}%\n"
 
-        # EAL / Aboriginal / NCCD — opt-in only (must be a clearly affirmative value)
         _EAL_YES = {'yes', 'y', 'true', '1', 'eal', 'eal/d', 'eald', 'lbote', 'lote',
                     'english as additional language', 'english as an additional language',
                     'language background other than english'}
@@ -290,7 +272,7 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user)):
 # ── Case Notes ───────────────────────────────────────────────────────────────
 
 @router.get("/case-notes")
-async def get_case_notes(student_id: Optional[str] = None, user=Depends(get_current_user)):
+async def get_case_notes(student_id: Optional[str] = None, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     q = {}
     if student_id:
         q["student_id"] = student_id
@@ -298,31 +280,31 @@ async def get_case_notes(student_id: Optional[str] = None, user=Depends(get_curr
 
 
 @router.post("/case-notes")
-async def add_case_note(note: CaseNote, user=Depends(get_current_user)):
+async def add_case_note(note: CaseNote, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     d = note.model_dump()
     await db.case_notes.insert_one({**d})
     student = await db.students.find_one({"student_id": d.get("student_id")}, {"first_name": 1, "last_name": 1, "_id": 0})
     sname = f"{student.get('first_name','')} {student.get('last_name','')}".strip() if student else d.get("student_id","")
-    await log_audit(user, "created", "case_note", d.get("case_id",""),
+    await log_audit(db, user, "created", "case_note", d.get("case_id",""),
                     f"Case note — {sname}", metadata={"note_type": d.get("note_type"), "student_id": d.get("student_id")})
     return d
 
 
 @router.put("/case-notes/{case_id}")
-async def update_case_note(case_id: str, data: dict, user=Depends(get_current_user)):
+async def update_case_note(case_id: str, data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     data.pop("_id", None)
     data.pop("case_id", None)
     await db.case_notes.update_one({"case_id": case_id}, {"$set": data})
     updated = await db.case_notes.find_one({"case_id": case_id}, {"_id": 0})
-    await log_audit(user, "updated", "case_note", case_id,
+    await log_audit(db, user, "updated", "case_note", case_id,
                     f"Case note — {updated.get('student_id','')}" if updated else case_id)
     return updated
 
 
 @router.delete("/case-notes/{case_id}")
-async def delete_case_note(case_id: str, user=Depends(get_current_user)):
+async def delete_case_note(case_id: str, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     existing = await db.case_notes.find_one({"case_id": case_id}, {"_id": 0})
     await db.case_notes.delete_one({"case_id": case_id})
-    await log_audit(user, "deleted", "case_note", case_id,
+    await log_audit(db, user, "deleted", "case_note", case_id,
                     f"Case note — {existing.get('student_id','')}" if existing else case_id)
     return {"message": "Deleted"}

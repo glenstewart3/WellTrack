@@ -5,7 +5,7 @@ import os
 import httpx
 from passlib.context import CryptContext
 
-from database import db
+from deps import get_tenant_db
 from helpers import get_current_user, get_school_settings_doc
 from utils.audit import log_audit
 
@@ -17,7 +17,7 @@ _COOKIE_SECURE = os.environ.get('COOKIE_SECURE', 'true').lower() != 'false'
 _COOKIE_SAMESITE = 'none' if _COOKIE_SECURE else 'lax'
 
 
-async def _get_settings():
+async def _get_settings(db):
     """Return the canonical school settings doc, preferring the one with onboarding_complete=True."""
     s = await db.school_settings.find_one({"onboarding_complete": True}, {"_id": 0})
     return s or await db.school_settings.find_one({}, {"_id": 0})
@@ -32,12 +32,12 @@ def _set_session_cookie(response, token: str):
 
 
 @router.post("/auth/login-email")
-async def login_email(data: dict, response: Response):
+async def login_email(data: dict, response: Response, db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     email = data.get("email", "").lower().strip()
     password = data.get("password", "")
 
-    settings = await _get_settings()
+    settings = await _get_settings(db)
     # Default email_auth to True — if the field was never explicitly saved, allow login
     if not settings or settings.get("email_auth_enabled", True) is False:
         raise HTTPException(status_code=403, detail="Email login is not enabled. Go to Settings → Integrations to enable it.")
@@ -64,7 +64,7 @@ async def login_email(data: dict, response: Response):
 
 
 @router.put("/auth/change-password")
-async def change_password(data: dict, user=Depends(get_current_user)):
+async def change_password(data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     current_pw = data.get("current_password", "")
     new_pw = data.get("new_password", "")
@@ -79,7 +79,7 @@ async def change_password(data: dict, user=Depends(get_current_user)):
 
 
 @router.post("/users/{user_id}/set-password")
-async def set_user_password(user_id: str, data: dict, user=Depends(get_current_user)):
+async def set_user_password(user_id: str, data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -94,9 +94,9 @@ async def set_user_password(user_id: str, data: dict, user=Depends(get_current_u
 
 # ── Google OAuth ─────────────────────────────────────────────────────────────
 @router.get("/auth/google")
-async def google_login(request: Request):
+async def google_login(request: Request, db=Depends(get_tenant_db)):
     from fastapi import HTTPException
-    settings = await _get_settings()
+    settings = await _get_settings(db)
     if settings and not settings.get("google_auth_enabled", True):
         raise HTTPException(status_code=403, detail="Google login is not enabled")
     from urllib.parse import urlencode
@@ -119,7 +119,7 @@ async def google_login(request: Request):
 
 
 @router.get("/auth/callback")
-async def google_callback(request: Request):
+async def google_callback(request: Request, db=Depends(get_tenant_db)):
     from fastapi.responses import RedirectResponse
     frontend_url = os.environ['FRONTEND_URL']
     code = request.query_params.get("code")
@@ -200,7 +200,7 @@ async def google_callback(request: Request):
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
 
-    settings_doc = await _get_settings()
+    settings_doc = await _get_settings(db)
     onboarding_complete = bool(settings_doc and settings_doc.get("onboarding_complete"))
     redirect_target = "dashboard" if onboarding_complete else "onboarding"
 
@@ -210,7 +210,7 @@ async def google_callback(request: Request):
 
 
 @router.put("/auth/preferences")
-async def update_preferences(data: dict, user=Depends(get_current_user)):
+async def update_preferences(data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     allowed = {"default", "dark", "system"}
     theme = data.get("theme")
@@ -230,7 +230,7 @@ async def get_me(user=Depends(get_current_user)):
 
 
 @router.post("/auth/logout")
-async def logout(request: Request, response: Response):
+async def logout(request: Request, response: Response, db=Depends(get_tenant_db)):
     token = request.cookies.get("session_token")
     if token:
         await db.user_sessions.delete_one({"session_token": token})
@@ -239,7 +239,7 @@ async def logout(request: Request, response: Response):
 
 
 @router.put("/auth/role")
-async def update_role(data: dict, user=Depends(get_current_user)):
+async def update_role(data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Only administrators can change user roles")
@@ -255,7 +255,7 @@ async def update_role(data: dict, user=Depends(get_current_user)):
 # ── Onboarding ──────────────────────────────────────────────────────────────
 
 @router.get("/onboarding/status")
-async def get_onboarding_status():
+async def get_onboarding_status(db=Depends(get_tenant_db)):
     # Prefer a doc that explicitly has onboarding_complete=True, then fall back to any doc
     settings = await db.school_settings.find_one({"onboarding_complete": True}, {"_id": 0})
     if not settings:
@@ -271,12 +271,12 @@ async def get_onboarding_status():
 
 
 @router.post("/onboarding/setup")
-async def onboarding_setup(data: dict):
+async def onboarding_setup(data: dict, db=Depends(get_tenant_db)):
     """Fresh-install setup: creates first admin account + saves school settings. No auth required."""
     from fastapi import HTTPException
     from fastapi.responses import JSONResponse
     user_count = await db.users.count_documents({})
-    existing = await _get_settings()
+    existing = await _get_settings(db)
     if user_count > 0 or (existing and existing.get("onboarding_complete")):
         raise HTTPException(status_code=400, detail="Setup has already been completed")
 
@@ -317,7 +317,7 @@ async def onboarding_setup(data: dict):
 
 
 @router.post("/onboarding/complete")
-async def complete_onboarding(data: dict, user=Depends(get_current_user)):
+async def complete_onboarding(data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -338,7 +338,7 @@ async def complete_onboarding(data: dict, user=Depends(get_current_user)):
 # ── Users ────────────────────────────────────────────────────────────────────
 
 @router.get("/users")
-async def get_users(user=Depends(get_current_user)):
+async def get_users(user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -346,7 +346,7 @@ async def get_users(user=Depends(get_current_user)):
 
 
 @router.post("/users")
-async def create_user(data: dict, user=Depends(get_current_user)):
+async def create_user(data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -365,12 +365,12 @@ async def create_user(data: dict, user=Depends(get_current_user)):
                 "picture": "", "role": role,
                 "created_at": datetime.now(timezone.utc).isoformat()}
     await db.users.insert_one({**new_user})
-    await log_audit(user, "created", "user", user_id, f"{name} ({email})", metadata={"role": role})
+    await log_audit(db, user, "created", "user", user_id, f"{name} ({email})", metadata={"role": role})
     return new_user
 
 
 @router.put("/users/{user_id}/role")
-async def update_user_role(user_id: str, data: dict, user=Depends(get_current_user)):
+async def update_user_role(user_id: str, data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -379,14 +379,14 @@ async def update_user_role(user_id: str, data: dict, user=Depends(get_current_us
         raise HTTPException(status_code=400, detail="Invalid role")
     await db.users.update_one({"user_id": user_id}, {"$set": {"role": role}})
     target = await db.users.find_one({"user_id": user_id}, {"name": 1, "email": 1, "_id": 0})
-    await log_audit(user, "updated", "user", user_id,
+    await log_audit(db, user, "updated", "user", user_id,
                     f"{target.get('name','?')} ({target.get('email','?')})" if target else user_id,
                     changes={"role": {"new": role}})
     return {"message": "Role updated"}
 
 
 @router.delete("/users/{user_id}")
-async def delete_user(user_id: str, user=Depends(get_current_user)):
+async def delete_user(user_id: str, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -395,13 +395,13 @@ async def delete_user(user_id: str, user=Depends(get_current_user)):
     target = await db.users.find_one({"user_id": user_id}, {"name": 1, "email": 1, "_id": 0})
     await db.users.delete_one({"user_id": user_id})
     await db.user_sessions.delete_many({"user_id": user_id})
-    await log_audit(user, "deleted", "user", user_id,
+    await log_audit(db, user, "deleted", "user", user_id,
                     f"{target.get('name','?')} ({target.get('email','?')})" if target else user_id)
     return {"message": "User deleted"}
 
 
 @router.put("/users/{user_id}/professional")
-async def update_user_professional(user_id: str, data: dict, user=Depends(get_current_user)):
+async def update_user_professional(user_id: str, data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -414,7 +414,7 @@ async def update_user_professional(user_id: str, data: dict, user=Depends(get_cu
         raise HTTPException(status_code=400, detail="No valid fields to update")
     await db.users.update_one({"user_id": user_id}, {"$set": update})
     updated = await db.users.find_one({"user_id": user_id}, {"_id": 0, "hashed_password": 0, "password_hash": 0})
-    await log_audit(user, "updated", "user", user_id,
+    await log_audit(db, user, "updated", "user", user_id,
                     f"{updated.get('name','?')} — professional settings" if updated else user_id,
                     changes={k: v for k, v in update.items()})
     return updated

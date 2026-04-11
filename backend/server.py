@@ -1,5 +1,5 @@
 """
-server.py — WellTrack entry point.
+server.py — WellTrack multi-tenant entry point.
 All route logic lives in routes/*.py
 Run with: uvicorn server:app --reload --port 8001
 """
@@ -15,6 +15,8 @@ from starlette.middleware.sessions import SessionMiddleware
 import os, logging
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+
+from tenant_middleware import TenantMiddleware
 
 from routes.auth import router as auth_router
 from routes.students import router as students_router
@@ -32,7 +34,12 @@ from routes.audit import router as audit_router
 app = FastAPI(title="WellTrack API")
 scheduler = AsyncIOScheduler()
 
-# Middleware
+# ── Middleware ─────────────────────────────────────────────────────────────────
+# Order matters: add_middleware wraps previous, so last added = outermost = first to execute.
+# We want: CORS (outermost) → Tenant → Session (innermost)
+app.add_middleware(SessionMiddleware, secret_key=os.environ['SESSION_SECRET'])
+app.add_middleware(TenantMiddleware)
+
 _cors_origins = [o.strip() for o in os.environ.get('ALLOWED_ORIGINS', '*').split(',') if o.strip()]
 if '*' in _cors_origins:
     import logging as _log
@@ -43,9 +50,8 @@ if '*' in _cors_origins:
     )
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=_cors_origins,
                    allow_methods=["*"], allow_headers=["*"])
-app.add_middleware(SessionMiddleware, secret_key=os.environ['SESSION_SECRET'])
 
-# Mount all routers under /api
+# ── Routes ─────────────────────────────────────────────────────────────────────
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth_router)
 api_router.include_router(students_router)
@@ -74,13 +80,9 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger("server")
 
 
-@app.on_event("startup")
-async def startup():
-    from routes.backups import run_backup
-    from database import db
-    from datetime import datetime, timezone
-
-    # Create indexes
+# ── Reusable index creation for any tenant database ──────────────────────────
+async def ensure_indexes(db):
+    """Create required indexes on a given database. Called on startup and school provisioning."""
     await db.attendance_records.create_index("student_id")
     await db.attendance_records.create_index("date")
     await db.saebrs_results.create_index([("student_id", 1), ("created_at", 1)])
@@ -89,65 +91,102 @@ async def startup():
     await db.user_sessions.create_index("session_token")
     await db.school_days.create_index("year")
 
-    # ── Dedup school_settings ─────────────────────────────────────────────────
-    # If multiple settings docs exist (e.g. from a botched migration), merge them
-    # into one, preserving onboarding_complete and all non-empty fields.
-    all_settings = await db.school_settings.find({}).to_list(20)
-    if len(all_settings) > 1:
-        merged = {}
-        for doc in all_settings:
-            for k, v in doc.items():
-                if k == "_id":
-                    continue
-                # Prefer truthy values; always keep onboarding_complete=True once set
-                if k == "onboarding_complete" and v:
-                    merged[k] = True
-                elif k not in merged or not merged[k]:
-                    merged[k] = v
-        keep_id = all_settings[0]["_id"]
-        await db.school_settings.replace_one({"_id": keep_id}, merged)
-        extra_ids = [d["_id"] for d in all_settings[1:]]
-        await db.school_settings.delete_many({"_id": {"$in": extra_ids}})
-        logger.info(f"Merged {len(all_settings)} duplicate school_settings docs into one.")
 
+@app.on_event("startup")
+async def startup():
+    from control_db import control_db
+    from database import client
+    from datetime import datetime, timezone
 
-    # 1. school_days: add year field derived from date string (e.g. "2025-02-03" → 2025)
-    await db.school_days.update_many(
-        {"year": {"$exists": False}},
-        [{"$set": {"year": {"$toInt": {"$substr": ["$date", 0, 4]}}}}]
-    )
-    # 2. school_settings.terms: stamp each term with current_year if missing
-    settings_doc = await db.school_settings.find_one({}, {"_id": 0})
-    if settings_doc:
-        current_year = settings_doc.get("current_year", datetime.now(timezone.utc).year)
-        terms = settings_doc.get("terms", [])
-        changed = False
-        for t in terms:
-            if not t.get("year"):
-                t["year"] = current_year
-                changed = True
-        if changed:
-            await db.school_settings.update_one({}, {"$set": {"terms": terms}})
+    # ── Ensure control DB indexes ─────────────────────────────────────────────
+    await control_db.schools.create_index("slug", unique=True)
 
-    # 3. Auto-generate school_days if terms exist but collection is empty for that year
-    settings_doc = await db.school_settings.find_one({}, {"_id": 0})
-    if settings_doc and settings_doc.get("terms"):
-        from routes.settings import _generate_school_days
-        terms = settings_doc["terms"]
-        non_school_days = settings_doc.get("non_school_days", [])
-        years_with_terms = {t.get("year") for t in terms if t.get("year")}
-        for yr in years_with_terms:
-            count = await db.school_days.count_documents({"year": yr})
-            if count == 0:
-                yr_terms = [t for t in terms if t.get("year") == yr]
-                dates = _generate_school_days(yr_terms, non_school_days)
-                if dates:
-                    await db.school_days.insert_many([{"date": d, "year": yr} for d in dates])
-                    logger.info(f"Auto-generated {len(dates)} school_days for year {yr}")
+    # ── Provision demo school if not exists ───────────────────────────────────
+    demo = await control_db.schools.find_one({"slug": "demo"})
+    if not demo:
+        await control_db.schools.insert_one({
+            "slug": "demo",
+            "name": "Demo School",
+            "db_name": "welltrack_demo",
+            "status": "active",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "plan": "trial",
+        })
+        logger.info("Demo school created in control DB (slug='demo', db='welltrack_demo')")
 
-    scheduler.add_job(run_backup, CronTrigger(hour=0, minute=0), id="daily_backup", replace_existing=True)
+    # ── Ensure indexes on all active school databases ─────────────────────────
+    schools = await control_db.schools.find({"status": "active"}, {"_id": 0}).to_list(100)
+    for school in schools:
+        school_db = client[school["db_name"]]
+        await ensure_indexes(school_db)
+
+        # Dedup school_settings
+        all_settings = await school_db.school_settings.find({}).to_list(20)
+        if len(all_settings) > 1:
+            merged = {}
+            for doc in all_settings:
+                for k, v in doc.items():
+                    if k == "_id":
+                        continue
+                    if k == "onboarding_complete" and v:
+                        merged[k] = True
+                    elif k not in merged or not merged[k]:
+                        merged[k] = v
+            keep_id = all_settings[0]["_id"]
+            await school_db.school_settings.replace_one({"_id": keep_id}, merged)
+            extra_ids = [d["_id"] for d in all_settings[1:]]
+            await school_db.school_settings.delete_many({"_id": {"$in": extra_ids}})
+            logger.info(f"[{school['slug']}] Merged {len(all_settings)} duplicate school_settings docs.")
+
+        # school_days: add year field
+        await school_db.school_days.update_many(
+            {"year": {"$exists": False}},
+            [{"$set": {"year": {"$toInt": {"$substr": ["$date", 0, 4]}}}}]
+        )
+        # Auto-stamp terms with year
+        settings_doc = await school_db.school_settings.find_one({}, {"_id": 0})
+        if settings_doc:
+            current_year = settings_doc.get("current_year", datetime.now(timezone.utc).year)
+            terms = settings_doc.get("terms", [])
+            changed = False
+            for t in terms:
+                if not t.get("year"):
+                    t["year"] = current_year
+                    changed = True
+            if changed:
+                await school_db.school_settings.update_one({}, {"$set": {"terms": terms}})
+
+        # Auto-generate school_days if terms exist
+        if settings_doc and settings_doc.get("terms"):
+            from routes.settings import _generate_school_days
+            terms = settings_doc["terms"]
+            non_school_days = settings_doc.get("non_school_days", [])
+            years_with_terms = {t.get("year") for t in terms if t.get("year")}
+            for yr in years_with_terms:
+                count = await school_db.school_days.count_documents({"year": yr})
+                if count == 0:
+                    yr_terms = [t for t in terms if t.get("year") == yr]
+                    dates = _generate_school_days(yr_terms, non_school_days)
+                    if dates:
+                        await school_db.school_days.insert_many([{"date": d, "year": yr} for d in dates])
+                        logger.info(f"[{school['slug']}] Auto-generated {len(dates)} school_days for year {yr}")
+
+    # ── Daily backup scheduler (backs up all schools) ─────────────────────────
+    from routes.backups import run_backup
+    async def backup_all_schools():
+        """Run backup for all active schools."""
+        active = await control_db.schools.find({"status": "active"}, {"_id": 0}).to_list(100)
+        for s in active:
+            try:
+                school_db = client[s["db_name"]]
+                await run_backup(school_db)
+                logger.info(f"Backup completed for school: {s['slug']}")
+            except Exception as e:
+                logger.error(f"Backup failed for school {s['slug']}: {e}")
+
+    scheduler.add_job(backup_all_schools, CronTrigger(hour=0, minute=0), id="daily_backup", replace_existing=True)
     scheduler.start()
-    logger.info("WellTrack starting up. MongoDB indexes ensured. Daily backup scheduler running (midnight UTC).")
+    logger.info(f"WellTrack multi-tenant starting up. {len(schools)} school(s) indexed. Daily backup scheduler running.")
 
 
 @app.on_event("shutdown")

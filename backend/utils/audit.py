@@ -7,12 +7,12 @@ never break the primary operation.
 import uuid
 import logging
 from datetime import datetime, timezone
-from database import db
 
 logger = logging.getLogger(__name__)
 
 
 async def log_audit(
+    db,
     user: dict,
     action: str,          # created | updated | deleted | bulk_import | bulk_archive | bulk_reactivate | uploaded | data_wipe
     entity_type: str,     # student | intervention | case_note | appointment | user | setting | attendance

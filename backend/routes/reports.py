@@ -4,7 +4,8 @@ import io
 import csv
 from typing import Optional
 
-from database import db, PRESENT_STATUSES
+from database import PRESENT_STATUSES
+from deps import get_tenant_db
 import asyncio
 from helpers import get_current_user, get_student_attendance_pct, compute_mtss_tier, get_school_settings_doc, \
     get_bulk_attendance_stats, get_latest_saebrs_bulk, get_latest_saebrs_plus_bulk
@@ -13,7 +14,7 @@ router = APIRouter()
 
 
 @router.get("/reports/students-csv")
-async def students_csv(user=Depends(get_current_user)):
+async def students_csv(user=Depends(get_current_user), db=Depends(get_tenant_db)):
     students = await db.students.find({}, {"_id": 0}).to_list(500)
     buf = io.StringIO()
     w = csv.writer(buf)
@@ -27,14 +28,14 @@ async def students_csv(user=Depends(get_current_user)):
 
 
 @router.get("/reports/tier-summary-csv")
-async def tier_csv(user=Depends(get_current_user)):
+async def tier_csv(user=Depends(get_current_user), db=Depends(get_tenant_db)):
     students = await db.students.find({}, {"_id": 0}).to_list(500)
     student_ids = [s["student_id"] for s in students]
 
     saebrs_map, plus_map, att_map, active_int_docs = await asyncio.gather(
-        get_latest_saebrs_bulk(student_ids),
-        get_latest_saebrs_plus_bulk(student_ids),
-        get_bulk_attendance_stats(student_ids),
+        get_latest_saebrs_bulk(db, student_ids),
+        get_latest_saebrs_plus_bulk(db, student_ids),
+        get_bulk_attendance_stats(db, student_ids),
         db.interventions.find({"student_id": {"$in": student_ids}, "status": "active"},
                               {"_id": 0, "student_id": 1}).to_list(1000),
     )
@@ -72,7 +73,7 @@ async def tier_csv(user=Depends(get_current_user)):
 
 
 @router.get("/reports/screening-csv")
-async def screening_csv(user=Depends(get_current_user)):
+async def screening_csv(user=Depends(get_current_user), db=Depends(get_tenant_db)):
     results = await db.saebrs_results.find({}, {"_id": 0}).to_list(2000)
     buf = io.StringIO()
     w = csv.writer(buf)
@@ -88,7 +89,7 @@ async def screening_csv(user=Depends(get_current_user)):
 
 
 @router.get("/reports/interventions-csv")
-async def interventions_csv(user=Depends(get_current_user)):
+async def interventions_csv(user=Depends(get_current_user), db=Depends(get_tenant_db)):
     items = await db.interventions.find({}, {"_id": 0}).to_list(500)
     buf = io.StringIO()
     w = csv.writer(buf)
@@ -104,7 +105,7 @@ async def interventions_csv(user=Depends(get_current_user)):
 
 
 @router.get("/reports/filter-options")
-async def filter_options(user=Depends(get_current_user)):
+async def filter_options(user=Depends(get_current_user), db=Depends(get_tenant_db)):
     students = await db.students.find(
         {"enrolment_status": "active"},
         {"_id": 0, "year_level": 1, "class_name": 1}
@@ -118,7 +119,7 @@ async def filter_options(user=Depends(get_current_user)):
 async def absence_types_report(
     year_level: Optional[str] = None,
     class_name: Optional[str] = None,
-    user=Depends(get_current_user)
+    user=Depends(get_current_user), db=Depends(get_tenant_db)
 ):
     sq = {"enrolment_status": "active"}
     if year_level:
@@ -127,7 +128,7 @@ async def absence_types_report(
         sq["class_name"] = class_name
     students = await db.students.find(sq, {"_id": 0, "student_id": 1}).to_list(500)
     sids = [s["student_id"] for s in students]
-    settings_doc = await get_school_settings_doc()
+    settings_doc = await get_school_settings_doc(db)
     excluded_types = set(settings_doc.get("excluded_absence_types", []))
     type_counts = {}
     if sids:
@@ -149,7 +150,7 @@ async def absence_types_report(
 async def screening_coverage_report(
     year_level: Optional[str] = None,
     class_name: Optional[str] = None,
-    user=Depends(get_current_user)
+    user=Depends(get_current_user), db=Depends(get_tenant_db)
 ):
     sq = {"enrolment_status": "active"}
     if year_level:
@@ -159,7 +160,6 @@ async def screening_coverage_report(
     students = await db.students.find(sq, {"_id": 0}).to_list(500)
     student_ids = [s["student_id"] for s in students]
 
-    # Batch: check who has a saebrs result
     screened_ids = set()
     if student_ids:
         pipeline = [
@@ -189,7 +189,7 @@ async def screening_coverage_report(
 async def support_gaps_report(
     year_level: Optional[str] = None,
     class_name: Optional[str] = None,
-    user=Depends(get_current_user)
+    user=Depends(get_current_user), db=Depends(get_tenant_db)
 ):
     sq = {"enrolment_status": "active"}
     if year_level:
@@ -200,9 +200,9 @@ async def support_gaps_report(
     student_ids = [s["student_id"] for s in students]
 
     saebrs_map, plus_map, att_map, active_int_docs = await asyncio.gather(
-        get_latest_saebrs_bulk(student_ids),
-        get_latest_saebrs_plus_bulk(student_ids),
-        get_bulk_attendance_stats(student_ids),
+        get_latest_saebrs_bulk(db, student_ids),
+        get_latest_saebrs_plus_bulk(db, student_ids),
+        get_bulk_attendance_stats(db, student_ids),
         db.interventions.find({"student_id": {"$in": student_ids}, "status": "active"},
                               {"_id": 0, "student_id": 1}).to_list(1000),
     )
@@ -231,7 +231,7 @@ async def support_gaps_report(
 
 
 @router.get("/reports/staff-load")
-async def staff_load_report(user=Depends(get_current_user)):
+async def staff_load_report(user=Depends(get_current_user), db=Depends(get_tenant_db)):
     interventions = await db.interventions.find(
         {"status": "active"}, {"_id": 0, "assigned_staff": 1}
     ).to_list(500)

@@ -4,7 +4,7 @@ import uuid, zipfile, io, re, os, csv
 from pathlib import Path
 from PIL import Image
 
-from database import db
+from deps import get_tenant_db
 import asyncio
 from helpers import get_current_user, get_student_attendance_pct, compute_mtss_tier, \
     get_bulk_attendance_stats, get_latest_saebrs_bulk, get_latest_saebrs_plus_bulk
@@ -22,7 +22,7 @@ router = APIRouter()
 @router.get("/students")
 async def get_students(class_name: Optional[str] = None, year_level: Optional[str] = None,
                        status: Optional[str] = None,
-                       user=Depends(get_current_user)):
+                       user=Depends(get_current_user), db=Depends(get_tenant_db)):
     query = {"enrolment_status": status if status in ("active", "archived") else "active"}
     if class_name:
         query["class_name"] = class_name
@@ -32,16 +32,16 @@ async def get_students(class_name: Optional[str] = None, year_level: Optional[st
 
 
 @router.post("/students")
-async def create_student(student: Student, user=Depends(get_current_user)):
+async def create_student(student: Student, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     d = student.model_dump()
     await db.students.insert_one({**d})
-    await log_audit(user, "created", "student", d.get("student_id", ""),
+    await log_audit(db, user, "created", "student", d.get("student_id", ""),
                     f"{d.get('first_name', '')} {d.get('last_name', '')}".strip())
     return d
 
 
 @router.post("/students/import")
-async def import_students(data: dict, user=Depends(get_current_user)):
+async def import_students(data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     rows = data.get("students", [])
     if not rows:
         raise HTTPException(status_code=400, detail="No student data provided")
@@ -88,7 +88,7 @@ async def import_students(data: dict, user=Depends(get_current_user)):
             await db.students.insert_one({**student_doc})
             imported.append(student_doc)
 
-    await log_audit(user, "bulk_import", "student", "", "Student bulk import",
+    await log_audit(db, user, "bulk_import", "student", "", "Student bulk import",
                     bulk_count=len(imported) + len(updated),
                     metadata={"imported": len(imported), "updated": len(updated), "errors": len(errors)})
     return {"imported": len(imported), "updated": len(updated), "errors": errors, "total": len(rows)}
@@ -97,7 +97,7 @@ async def import_students(data: dict, user=Depends(get_current_user)):
 @router.get("/students/summary")
 async def get_students_summary(class_name: Optional[str] = None, year_level: Optional[str] = None,
                                 status: Optional[str] = None,
-                                user=Depends(get_current_user)):
+                                user=Depends(get_current_user), db=Depends(get_tenant_db)):
     query = {"enrolment_status": status if status in ("active", "archived") else "active"}
     if class_name:
         query["class_name"] = class_name
@@ -106,11 +106,10 @@ async def get_students_summary(class_name: Optional[str] = None, year_level: Opt
     students = await db.students.find(query, {"_id": 0}).sort("last_name", 1).to_list(500)
     student_ids = [s["student_id"] for s in students]
 
-    # Batch fetch everything in parallel — eliminates N+1 queries
     saebrs_map, plus_map, att_map, active_int_docs = await asyncio.gather(
-        get_latest_saebrs_bulk(student_ids),
-        get_latest_saebrs_plus_bulk(student_ids),
-        get_bulk_attendance_stats(student_ids),
+        get_latest_saebrs_bulk(db, student_ids),
+        get_latest_saebrs_plus_bulk(db, student_ids),
+        get_bulk_attendance_stats(db, student_ids),
         db.interventions.find({"student_id": {"$in": student_ids}, "status": "active"},
                               {"_id": 0, "student_id": 1}).to_list(1000),
     )
@@ -147,7 +146,7 @@ async def get_students_summary(class_name: Optional[str] = None, year_level: Opt
 
 
 @router.get("/students/{student_id}")
-async def get_student(student_id: str, user=Depends(get_current_user)):
+async def get_student(student_id: str, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     s = await db.students.find_one({"student_id": student_id}, {"_id": 0})
     if not s:
         raise HTTPException(status_code=404, detail="Student not found")
@@ -155,7 +154,7 @@ async def get_student(student_id: str, user=Depends(get_current_user)):
 
 
 @router.get("/students/{student_id}/profile")
-async def get_student_profile(student_id: str, user=Depends(get_current_user)):
+async def get_student_profile(student_id: str, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     student = await db.students.find_one({"student_id": student_id}, {"_id": 0})
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
@@ -163,8 +162,7 @@ async def get_student_profile(student_id: str, user=Depends(get_current_user)):
     saebrs_plus = await db.self_report_results.find({"student_id": student_id}, {"_id": 0}).sort("created_at", 1).to_list(20)
     interventions = await db.interventions.find({"student_id": student_id}, {"_id": 0}).sort("created_at", -1).to_list(20)
     case_notes = await db.case_notes.find({"student_id": student_id}, {"_id": 0}).sort("date", -1).to_list(20)
-    att_pct = await get_student_attendance_pct(student_id)
-    # Use attendance_records (not the old attendance collection)
+    att_pct = await get_student_attendance_pct(db, student_id)
     attendance_records = await db.attendance_records.find({"student_id": student_id}, {"_id": 0}).sort("date", -1).to_list(50)
     alerts = await db.alerts.find({"student_id": student_id, "resolved": False}, {"_id": 0}).to_list(10)
 
@@ -191,7 +189,7 @@ async def get_student_profile(student_id: str, user=Depends(get_current_user)):
 
 
 @router.put("/students/{student_id}/external-id")
-async def set_student_external_id(student_id: str, data: dict, user=Depends(get_current_user)):
+async def set_student_external_id(student_id: str, data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     if user.get("role") not in ["admin", "leadership"]:
         raise HTTPException(403, "Access denied")
     ext_id = data.get("external_id", "").strip().upper()
@@ -200,7 +198,7 @@ async def set_student_external_id(student_id: str, data: dict, user=Depends(get_
 
 
 @router.put("/students/bulk-archive")
-async def bulk_archive_students(data: dict, user=Depends(get_current_user)):
+async def bulk_archive_students(data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     if user.get("role") not in ["admin", "leadership"]:
         raise HTTPException(403, "Access denied")
     ids = data.get("student_ids", [])
@@ -210,12 +208,12 @@ async def bulk_archive_students(data: dict, user=Depends(get_current_user)):
         {"student_id": {"$in": ids}},
         {"$set": {"enrolment_status": "archived"}}
     )
-    await log_audit(user, "bulk_archive", "student", "", "Bulk archive students", bulk_count=result.modified_count)
+    await log_audit(db, user, "bulk_archive", "student", "", "Bulk archive students", bulk_count=result.modified_count)
     return {"archived": result.modified_count}
 
 
 @router.put("/students/bulk-reactivate")
-async def bulk_reactivate_students(data: dict, user=Depends(get_current_user)):
+async def bulk_reactivate_students(data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     if user.get("role") not in ["admin", "leadership"]:
         raise HTTPException(403, "Access denied")
     ids = data.get("student_ids", [])
@@ -225,12 +223,12 @@ async def bulk_reactivate_students(data: dict, user=Depends(get_current_user)):
         {"student_id": {"$in": ids}},
         {"$set": {"enrolment_status": "active"}}
     )
-    await log_audit(user, "bulk_reactivate", "student", "", "Bulk reactivate students", bulk_count=result.modified_count)
+    await log_audit(db, user, "bulk_reactivate", "student", "", "Bulk reactivate students", bulk_count=result.modified_count)
     return {"reactivated": result.modified_count}
 
 
 @router.put("/students/{student_id}")
-async def update_student(student_id: str, data: dict, user=Depends(get_current_user)):
+async def update_student(student_id: str, data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     if user.get("role") not in ["admin", "leadership"]:
         raise HTTPException(403, "Access denied")
     allowed = ["first_name", "last_name", "preferred_name", "year_level", "class_name", "teacher", "gender", "date_of_birth"]
@@ -241,14 +239,14 @@ async def update_student(student_id: str, data: dict, user=Depends(get_current_u
     if result.matched_count == 0:
         raise HTTPException(404, "Student not found")
     updated = await db.students.find_one({"student_id": student_id}, {"_id": 0})
-    await log_audit(user, "updated", "student", student_id,
+    await log_audit(db, user, "updated", "student", student_id,
                     f"{updated.get('first_name','')} {updated.get('last_name','')}".strip(),
                     changes={k: v for k, v in update_data.items()})
     return updated
 
 
 @router.post("/students/{student_id}/photo")
-async def upload_single_student_photo(student_id: str, file: UploadFile = File(...), user=Depends(get_current_user)):
+async def upload_single_student_photo(student_id: str, file: UploadFile = File(...), user=Depends(get_current_user), db=Depends(get_tenant_db)):
     if user.get("role") not in ["admin", "leadership"]:
         raise HTTPException(403, "Access denied")
     student = await db.students.find_one({"student_id": student_id}, {"_id": 0, "student_id": 1})
@@ -267,7 +265,7 @@ async def upload_single_student_photo(student_id: str, file: UploadFile = File(.
 
 
 @router.delete("/students/{student_id}/photo")
-async def remove_student_photo(student_id: str, user=Depends(get_current_user)):
+async def remove_student_photo(student_id: str, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     if user.get("role") not in ["admin", "leadership"]:
         raise HTTPException(403, "Access denied")
     student = await db.students.find_one({"student_id": student_id}, {"_id": 0, "student_id": 1, "photo_url": 1})
@@ -283,7 +281,7 @@ async def remove_student_photo(student_id: str, user=Depends(get_current_user)):
 
 
 @router.post("/students/upload-photos")
-async def upload_student_photos(file: UploadFile = File(...), user=Depends(get_current_user)):
+async def upload_student_photos(file: UploadFile = File(...), user=Depends(get_current_user), db=Depends(get_tenant_db)):
     if user.get("role") not in ["admin", "leadership"]:
         raise HTTPException(403, "Access denied")
 
@@ -301,7 +299,6 @@ async def upload_student_photos(file: UploadFile = File(...), user=Depends(get_c
                 continue
 
             path_parts = Path(info.filename).parts
-            # Skip anything inside a Staff folder
             if any(p.lower().startswith("staff") for p in path_parts):
                 skipped_staff.append(info.filename)
                 continue
@@ -311,14 +308,12 @@ async def upload_student_photos(file: UploadFile = File(...), user=Depends(get_c
             if ext not in (".jpg", ".jpeg", ".png"):
                 continue
 
-            # Trim trailing/leading spaces from the full stem
             stem = stem_raw.strip()
 
             if "," not in stem:
                 unmatched.append(stem_raw)
                 continue
 
-            # Split on first comma only — handles "Van Den Breul, Emma"
             last_raw, first_raw = stem.split(",", 1)
             last_name = last_raw.strip()
             first_name = first_raw.strip()
@@ -327,7 +322,6 @@ async def upload_student_photos(file: UploadFile = File(...), user=Depends(get_c
                 unmatched.append(stem_raw)
                 continue
 
-            # Match 1: legal first name
             student = await db.students.find_one(
                 {
                     "last_name": re.compile(f"^{re.escape(last_name)}$", re.IGNORECASE),
@@ -337,7 +331,6 @@ async def upload_student_photos(file: UploadFile = File(...), user=Depends(get_c
                 {"_id": 0, "student_id": 1},
             )
 
-            # Match 2: preferred name (e.g. "Kettels, Lulu" where legal name is "Lucile")
             if not student:
                 student = await db.students.find_one(
                     {
@@ -357,7 +350,6 @@ async def upload_student_photos(file: UploadFile = File(...), user=Depends(get_c
             photo_filename = f"{student_id}{save_ext}"
             photo_path = PHOTOS_DIR / photo_filename
 
-            # Resize and save via Pillow (max 400×400, JPEG quality 82)
             with zf.open(info) as img_bytes:
                 img = Image.open(img_bytes)
                 img = img.convert("RGB")
@@ -380,7 +372,7 @@ async def upload_student_photos(file: UploadFile = File(...), user=Depends(get_c
 
 
 @router.post("/students/import-student-details")
-async def import_student_details(file: UploadFile = File(...), user=Depends(get_current_user)):
+async def import_student_details(file: UploadFile = File(...), user=Depends(get_current_user), db=Depends(get_tenant_db)):
     """Import student demographic details: teacher, gender, EAL, aboriginal status, NCCD."""
     if user.get("role") not in ["admin", "leadership"]:
         raise HTTPException(403, "Admin or leadership access required")
@@ -402,7 +394,6 @@ async def import_student_details(file: UploadFile = File(...), user=Depends(get_
     if not all_rows:
         raise HTTPException(400, "File is empty.")
 
-    # Find header row — look for STUDENT_KEY
     header_idx, headers = 0, []
     for i, row in enumerate(all_rows[:10]):
         cells = [str(v or "").strip().upper() for v in row]

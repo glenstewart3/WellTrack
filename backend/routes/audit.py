@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from database import db
+from deps import get_tenant_db
 from helpers import get_current_user
 
 router = APIRouter()
@@ -15,6 +15,7 @@ async def get_audit_log(
     page: int = 0,
     per_page: int = 50,
     current_user=Depends(get_current_user),
+    db=Depends(get_tenant_db),
 ):
     """Admin-only: return paginated audit log with optional filters."""
     if current_user.get("role") != "admin":

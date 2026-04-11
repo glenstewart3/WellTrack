@@ -5,12 +5,11 @@ Called by POST /api/settings/seed
 import uuid, random
 from datetime import timedelta, date as date_type
 
-from database import db
 from helpers import (compute_saebrs_risk, compute_wellbeing_tier,
                      compute_attendance_score, compute_mtss_tier)
 
 
-async def seed_database(student_count: int = 32):
+async def seed_database(db, student_count: int = 32):
     student_count = max(8, min(400, student_count))
 
     for col in ["students", "attendance", "attendance_records", "school_days", "screening_sessions",

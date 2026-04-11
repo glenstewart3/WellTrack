@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from fastapi import HTTPException, Request
 
-from database import db, PRESENT_STATUSES, FULL_PRESENT_STATUSES, SETTINGS_DEFAULTS
+from database import PRESENT_STATUSES, FULL_PRESENT_STATUSES, SETTINGS_DEFAULTS
 
 
 # ── Scoring helpers ──────────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ def compute_mtss_tier(saebrs_risk: str, wellbeing_tier: int, attendance_pct: flo
 
 # ── Settings ─────────────────────────────────────────────────────────────────
 
-async def get_school_settings_doc() -> dict:
+async def get_school_settings_doc(db) -> dict:
     s = await db.school_settings.find_one({}, {"_id": 0})
     return s or {}
 
@@ -59,6 +59,9 @@ async def get_school_settings_doc() -> dict:
 # ── Auth ─────────────────────────────────────────────────────────────────────
 
 async def get_current_user(request: Request):
+    db = getattr(request.state, "db", None)
+    if db is None:
+        raise HTTPException(status_code=400, detail="No tenant context for this request")
     session_token = request.cookies.get("session_token")
     if not session_token:
         auth_header = request.headers.get("Authorization")
@@ -76,7 +79,7 @@ async def get_current_user(request: Request):
         expires_at = expires_at.replace(tzinfo=timezone.utc)
     if expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=401, detail="Session expired")
-    user_doc = await db.users.find_one({"user_id": session_doc["user_id"]}, {"_id": 0})
+    user_doc = await db.users.find_one({"user_id": session_doc["user_id"]}, {"_id": 0, "password_hash": 0})
     if not user_doc:
         raise HTTPException(status_code=401, detail="User not found")
     return user_doc
@@ -84,7 +87,7 @@ async def get_current_user(request: Request):
 
 # ── Alerts ───────────────────────────────────────────────────────────────────
 
-async def create_alert(student_id: str, student_name: str, class_name: str,
+async def create_alert(db, student_id: str, student_name: str, class_name: str,
                        alert_type: str, severity: str, message: str):
     existing = await db.alerts.find_one({"student_id": student_id, "alert_type": alert_type, "resolved": False})
     if existing:
@@ -117,7 +120,6 @@ def compute_att_stats(school_days_list, exc_by_date: dict, excluded_types: set) 
         return "absent"
 
     if school_days_list is not None:
-        # Normal mode: iterate over provided school days (may be empty → no data)
         total_days = 0
         absent_days = 0.0
         for day in school_days_list:
@@ -139,8 +141,6 @@ def compute_att_stats(school_days_list, exc_by_date: dict, excluded_types: set) 
         pct = max(0.0, min(100.0, ((total_days - absent_days) / total_days) * 100.0))
         return {"pct": pct, "total_days": total_days, "absent_days": absent_days}
     else:
-        # Legacy fallback (school_days_list is None): derive from per-student exception records
-        # NOTE: callers should prefer passing attendance-record dates over None
         total_days = 0
         absent_days = 0.0
         for rec in exc_by_date.values():
@@ -162,12 +162,12 @@ def compute_att_stats(school_days_list, exc_by_date: dict, excluded_types: set) 
         return {"pct": pct, "total_days": total_days, "absent_days": absent_days}
 
 
-async def get_student_attendance_pct(student_id: str) -> float:
-    stats = await get_student_attendance_stats(student_id)
+async def get_student_attendance_pct(db, student_id: str) -> float:
+    stats = await get_student_attendance_stats(db, student_id)
     return stats["pct"]
 
 
-async def get_student_attendance_stats(student_id: str) -> dict:
+async def get_student_attendance_stats(db, student_id: str) -> dict:
     """Single-student lookup. Scoped to the current school year from settings."""
     settings_doc, exc_records = await asyncio.gather(
         db.school_settings.find_one({}, {"_id": 0}),
@@ -180,7 +180,6 @@ async def get_student_attendance_stats(student_id: str) -> dict:
     if not school_days_list:
         total_sd = await db.school_days.count_documents({})
         if total_sd == 0:
-            # No calendar configured — use all unique attendance dates as proxy school days
             school_days_list = sorted(await db.attendance_records.distinct(
                 "date", {"date": {"$lte": today_str}}
             )) or None
@@ -191,7 +190,7 @@ async def get_student_attendance_stats(student_id: str) -> dict:
 
 # ── Batch attendance helpers ──────────────────────────────────────────────────
 
-async def get_bulk_attendance_records(student_ids: list) -> dict:
+async def get_bulk_attendance_records(db, student_ids: list) -> dict:
     """Returns {student_id: [records]} for all student_ids (raw, no computation)."""
     if not student_ids:
         return {}
@@ -204,11 +203,8 @@ async def get_bulk_attendance_records(student_ids: list) -> dict:
     return dict(result)
 
 
-async def get_bulk_attendance_stats(student_ids: list, school_days_list=None, excluded_types=None) -> dict:
-    """Batch version of get_student_attendance_stats.
-    When school_days_list is not provided, automatically scopes to the current school year.
-    Pass school_days_list and excluded_types if already fetched to avoid redundant queries.
-    """
+async def get_bulk_attendance_stats(db, student_ids: list, school_days_list=None, excluded_types=None) -> dict:
+    """Batch version of get_student_attendance_stats."""
     if not student_ids:
         return {}
 
@@ -222,26 +218,23 @@ async def get_bulk_attendance_stats(student_ids: list, school_days_list=None, ex
             year_filter = {"year": year, "date": {"$lte": today_str}} if year else {"date": {"$lte": today_str}}
             db_days, records_by_student = await asyncio.gather(
                 db.school_days.distinct("date", year_filter),
-                get_bulk_attendance_records(student_ids),
+                get_bulk_attendance_records(db, student_ids),
             )
             if db_days:
                 school_days_list = db_days
             else:
-                # No school days for this year — check if any exist at all
                 total_sd = await db.school_days.count_documents({})
                 if total_sd == 0:
-                    # No calendar configured — use all unique attendance dates as proxy
                     all_att_dates = await db.attendance_records.distinct(
                         "date", {"date": {"$lte": today_str}}
                     )
                     school_days_list = sorted(all_att_dates) if all_att_dates else None
-                # else: calendar exists for other years; no data for this year → keep []
             return {
                 sid: compute_att_stats(school_days_list, {r["date"]: r for r in records_by_student.get(sid, [])}, excluded_types)
                 for sid in student_ids
             }
 
-    records_by_student = await get_bulk_attendance_records(student_ids)
+    records_by_student = await get_bulk_attendance_records(db, student_ids)
     return {
         sid: compute_att_stats(school_days_list, {r["date"]: r for r in records_by_student.get(sid, [])}, excluded_types)
         for sid in student_ids
@@ -250,7 +243,7 @@ async def get_bulk_attendance_stats(student_ids: list, school_days_list=None, ex
 
 # ── Batch SAEBRS helpers ──────────────────────────────────────────────────────
 
-async def get_latest_saebrs_bulk(student_ids: list) -> dict:
+async def get_latest_saebrs_bulk(db, student_ids: list) -> dict:
     """Returns {student_id: latest_saebrs_doc} for all student_ids using a single aggregation."""
     if not student_ids:
         return {}
@@ -265,7 +258,7 @@ async def get_latest_saebrs_bulk(student_ids: list) -> dict:
     return {r["student_id"]: r for r in results}
 
 
-async def get_latest_saebrs_plus_bulk(student_ids: list) -> dict:
+async def get_latest_saebrs_plus_bulk(db, student_ids: list) -> dict:
     """Returns {student_id: latest_saebrs_plus_doc} for all student_ids using a single aggregation."""
     if not student_ids:
         return {}
@@ -280,10 +273,8 @@ async def get_latest_saebrs_plus_bulk(student_ids: list) -> dict:
     return {r["student_id"]: r for r in results}
 
 
-async def get_all_saebrs_bulk(student_ids: list) -> dict:
-    """Returns {student_id: [saebrs docs sorted by created_at asc]} for all student_ids.
-    Used for tier change detection (needs last 2 screenings) and trend charts.
-    """
+async def get_all_saebrs_bulk(db, student_ids: list) -> dict:
+    """Returns {student_id: [saebrs docs sorted by created_at asc]} for all student_ids."""
     if not student_ids:
         return {}
     pipeline = [

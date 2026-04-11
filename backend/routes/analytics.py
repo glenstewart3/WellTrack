@@ -4,7 +4,8 @@ from datetime import date as date_obj
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
 
-from database import db, PRESENT_STATUSES
+from database import PRESENT_STATUSES
+from deps import get_tenant_db
 from helpers import (
     get_current_user, get_school_settings_doc, compute_mtss_tier,
     compute_att_stats,
@@ -16,14 +17,14 @@ router = APIRouter()
 
 
 @router.get("/analytics/tier-distribution")
-async def tier_distribution(user=Depends(get_current_user)):
+async def tier_distribution(user=Depends(get_current_user), db=Depends(get_tenant_db)):
     students = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
     student_ids = [s["student_id"] for s in students]
 
     saebrs_map, plus_map, att_map = await asyncio.gather(
-        get_latest_saebrs_bulk(student_ids),
-        get_latest_saebrs_plus_bulk(student_ids),
-        get_bulk_attendance_stats(student_ids),
+        get_latest_saebrs_bulk(db, student_ids),
+        get_latest_saebrs_plus_bulk(db, student_ids),
+        get_bulk_attendance_stats(db, student_ids),
     )
 
     counts = {"tier1": 0, "tier2": 0, "tier3": 0, "unscreened": 0}
@@ -50,16 +51,16 @@ async def tier_distribution(user=Depends(get_current_user)):
 
 
 @router.get("/analytics/classroom-radar/{class_name}")
-async def classroom_radar(class_name: str, user=Depends(get_current_user)):
+async def classroom_radar(class_name: str, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     students = await db.students.find(
         {"class_name": class_name, "enrolment_status": "active"}, {"_id": 0}
     ).to_list(50)
     student_ids = [s["student_id"] for s in students]
 
     all_saebrs_map, plus_map, att_map, active_int_docs = await asyncio.gather(
-        get_all_saebrs_bulk(student_ids),
-        get_latest_saebrs_plus_bulk(student_ids),
-        get_bulk_attendance_stats(student_ids),
+        get_all_saebrs_bulk(db, student_ids),
+        get_latest_saebrs_plus_bulk(db, student_ids),
+        get_bulk_attendance_stats(db, student_ids),
         db.interventions.find({"student_id": {"$in": student_ids}, "status": "active"}, {"_id": 0}).to_list(200),
     )
     active_int_set = {i["student_id"] for i in active_int_docs}
@@ -107,7 +108,7 @@ async def classroom_radar(class_name: str, user=Depends(get_current_user)):
 
 
 @router.get("/analytics/school-wide")
-async def school_wide(year_level: Optional[str] = None, class_name: Optional[str] = None, user=Depends(get_current_user)):
+async def school_wide(year_level: Optional[str] = None, class_name: Optional[str] = None, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     query = {"enrolment_status": "active"}
     if year_level:
         query["year_level"] = year_level
@@ -117,9 +118,9 @@ async def school_wide(year_level: Optional[str] = None, class_name: Optional[str
     student_ids = [s["student_id"] for s in students]
 
     saebrs_map, plus_map, att_map = await asyncio.gather(
-        get_latest_saebrs_bulk(student_ids),
-        get_latest_saebrs_plus_bulk(student_ids),
-        get_bulk_attendance_stats(student_ids),
+        get_latest_saebrs_bulk(db, student_ids),
+        get_latest_saebrs_plus_bulk(db, student_ids),
+        get_bulk_attendance_stats(db, student_ids),
     )
 
     domain_totals = {"social": 0, "academic": 0, "emotional": 0, "belonging": 0, "attendance": 0}
@@ -190,16 +191,16 @@ async def school_wide(year_level: Optional[str] = None, class_name: Optional[str
 
 
 @router.get("/analytics/cohort-comparison")
-async def cohort_comparison(group_by: str = "year_level", user=Depends(get_current_user)):
+async def cohort_comparison(group_by: str = "year_level", user=Depends(get_current_user), db=Depends(get_tenant_db)):
     if group_by not in ("year_level", "class_name"):
         raise HTTPException(400, "group_by must be 'year_level' or 'class_name'")
     students = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
     student_ids = [s["student_id"] for s in students]
 
     saebrs_map, plus_map, att_map = await asyncio.gather(
-        get_latest_saebrs_bulk(student_ids),
-        get_latest_saebrs_plus_bulk(student_ids),
-        get_bulk_attendance_stats(student_ids),
+        get_latest_saebrs_bulk(db, student_ids),
+        get_latest_saebrs_plus_bulk(db, student_ids),
+        get_bulk_attendance_stats(db, student_ids),
     )
 
     cohorts: dict = {}
@@ -244,7 +245,7 @@ async def cohort_comparison(group_by: str = "year_level", user=Depends(get_curre
 
 
 @router.get("/analytics/intervention-outcomes")
-async def intervention_outcomes(year_level: Optional[str] = None, class_name: Optional[str] = None, user=Depends(get_current_user)):
+async def intervention_outcomes(year_level: Optional[str] = None, class_name: Optional[str] = None, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     if year_level or class_name:
         sq = {"enrolment_status": "active"}
         if year_level:
@@ -275,7 +276,7 @@ async def intervention_outcomes(year_level: Optional[str] = None, class_name: Op
 
 
 @router.get("/analytics/attendance-trends")
-async def attendance_trends(year_level: Optional[str] = None, class_name: Optional[str] = None, user=Depends(get_current_user)):
+async def attendance_trends(year_level: Optional[str] = None, class_name: Optional[str] = None, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     student_query = {"enrolment_status": "active"}
     if year_level:
         student_query["year_level"] = year_level
@@ -285,10 +286,9 @@ async def attendance_trends(year_level: Optional[str] = None, class_name: Option
     student_ids = [s["student_id"] for s in students]
     num_students = len(students)
 
-    # Batch fetch: settings + all records (parallel), then year-filtered school_days
     settings_doc, records_by_student = await asyncio.gather(
-        get_school_settings_doc(),
-        get_bulk_attendance_records(student_ids),
+        get_school_settings_doc(db),
+        get_bulk_attendance_records(db, student_ids),
     )
     year = settings_doc.get("current_year")
     today_str = date_obj.today().isoformat()
@@ -296,7 +296,6 @@ async def attendance_trends(year_level: Optional[str] = None, class_name: Option
     school_days_list = await db.school_days.distinct("date", year_filter)
     excluded_types = set(settings_doc.get("excluded_absence_types", []))
 
-    # Pre-group school days by month / day-of-week for denominator calculation
     days_by_month: dict = defaultdict(int)
     days_by_dow: dict = defaultdict(int)
     for day in school_days_list:
@@ -368,14 +367,14 @@ async def attendance_trends(year_level: Optional[str] = None, class_name: Option
 
 
 @router.get("/meeting-prep")
-async def meeting_prep(user=Depends(get_current_user)):
+async def meeting_prep(user=Depends(get_current_user), db=Depends(get_tenant_db)):
     students = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
     student_ids = [s["student_id"] for s in students]
 
     all_saebrs_map, plus_map, att_map, active_int_docs = await asyncio.gather(
-        get_all_saebrs_bulk(student_ids),
-        get_latest_saebrs_plus_bulk(student_ids),
-        get_bulk_attendance_stats(student_ids),
+        get_all_saebrs_bulk(db, student_ids),
+        get_latest_saebrs_plus_bulk(db, student_ids),
+        get_bulk_attendance_stats(db, student_ids),
         db.interventions.find({"student_id": {"$in": student_ids}, "status": "active"}, {"_id": 0}).to_list(1000),
     )
     interventions_by_student: dict = defaultdict(list)
