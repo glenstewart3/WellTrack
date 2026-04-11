@@ -1,0 +1,117 @@
+<analysis>**original_problem_statement**: 
+The user is building a comprehensive MTSS (Multi-Tiered System of Supports) platform named **WellTrack**. The user wants to transition the application from a single-tenant architecture to a Multi-Tenant SaaS platform to market to other schools. The application will be hosted externally on a VPS at the root domain () with no path prefixes. The root domain will house the Super Admin portal for provisioning schools, and each school will have a unique subdomain (e.g., ) with its own separate database and distinct file storage. In this session, the user requested the creation of a comprehensive prompt/instruction document for a *new fork* to execute this massive architectural shift.
+
+**User's preferred language**: English (INSTRUCT next agent to respond in the user's preferred language only)
+
+**what currently exists?** 
+A mature, single-tenant React/FastAPI/MongoDB app with Appointments, Platform-Wide Audit Logging, Alert Badges, and comprehensive Dark Mode support. A highly detailed step-by-step instruction blueprint for the Multi-Tenant refactor has been created at .  has been removed from  per the user's request for external hosting.
+
+**Last working item**: 
+    - Last item agent was working: Updating the  to explicitly ensure the fork agent removes any  base path routing. The app must run directly from the root  path for both the main domain and subdomains.
+    - Status: FINISHED
+    - Agent Testing Done: N/A (Documentation/Configuration task)
+    - Which testing method agent to use?  (MUST be used extensively once multi-tenant backend/frontend code implementation begins).
+    - User Testing Done: N
+
+**All Pending/In progress Issue list**: 
+  None active. The app is completely stable in its single-tenant state and is ready for the multi-tenant refactor.
+
+**In progress Task List**: 
+  None active. The planning and prompt generation phase has been completed.
+
+**Upcoming and Future Tasks**
+    Upcoming Tasks:
+    - (P0) Execute Multi-Tenant Migration: Read  thoroughly. This document contains the exact steps, phases, and security measures to implement the Multi-Tenant architecture. 
+    - (P0) Multi-Tenant Phase 1: Subdomain middleware,  refactoring for dynamic connection pooling (making it tenant-aware), and updating all routes to use .
+    - (P1) Multi-Tenant Phase 2: Super-Admin Schools Provisioning panel at the root domain to create schools, generate slugs, and seed default DB settings.
+    - (P1) Multi-Tenant Phase 3: Dynamic MongoDB user creation for strict DB-level access control to address user security concerns.
+    - (P1) Multi-Tenant Phase 4: S3/Local file storage segregation (student photos, etc.) isolated per school folder.
+
+    Future Tasks:
+    - (P2) Automated weekly backup via email.
+    - (P2) Email notifications for alerts.
+    - (P2) Student Wellbeing Check-in feature.
+
+**Completed work in this session**
+- Wrote the massive implementation prompt for the next agent:  (DONE)
+- Added VPS/External Server Setup Guide to the prompt document (DONE)
+- Removed  from  (DONE)
+- Configured prompt to strictly enforce root-level routing () instead of  prefix (DONE)
+
+**Earlier issues found/mentioned but not fixed**
+None.
+
+**Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork: None
+  - Recurrence count: 0
+  - Status: NA
+
+**Code Architecture**
+/
+
+**Key Technical Concepts**
+- **React Frontend & FastAPI Backend** 
+- **Proposed Multi-Tenancy (Pending Implementation):** Subdomain-driven routing mapping to dynamically created, strictly isolated MongoDB databases per school.
+- **Tenant Storage Isolation:** File uploads/photos must be grouped into specific school folders.
+
+**key DB schema**
+  -  (PROPOSED for upcoming multi-tenancy): 
+  - , , ,  (Existing)
+
+**changes in tech stack**
+  -  has been explicitly removed from  as the application will be hosted externally on a private VPS.
+  - Transitioning from a single global DB connection to dynamic connection pooling.
+
+**All files of reference** 
+  -  (MUST READ: Blueprint for your next steps)
+  -  (Updated)
+  -  (Verified for basename config)
+
+**Areas that need refactoring**: 
+  - The entirety of the backend data access layer ( and all routers) needs to be refactored to support request-scoped tenant databases ().
+
+**key api endpoints**
+  - Standard CRUD APIs (Audit, Appointments, Users, etc.) – Will need tenant prefixing/middleware injection.
+
+**Critical Info for New Agent** 
+- **DO NOT ASSUME TASKS.** Your explicit goal is to implement the Multi-Tenant architecture. Before writing any code, you MUST open and read . This file contains the exact step-by-step instructions, phases, and security requirements the user agreed upon.
+- The app will be hosted at . There should be NO  base path prefix in the frontend or backend configurations. Ensure  remains set to .
+- The Super Admin portal lives on the root domain (). Individual schools live on subdomains ().
+- Since  was removed for external hosting compatibility, DO NOT attempt to reinstall it.
+
+**documents and test reports created in this job** 
+  - 
+  - 
+
+**Last 10 User Messages and any pending HUMAN messages** 
+ - *Message 7*: write me a prompt to give to a fork of this project for implementing the Multi-Tenancy for WellTrack... (COMPLETED)
+ - *Message 20*: include a thorough detailed instructions for setting up the server for first use... also remove the emergentintegrations from the requirements.txt (COMPLETED)
+ - *Message 35*: just to be clear this new multi tenant version will not have the /welltrack/ url extension on the end and just be welltrack.com.au (COMPLETED - Prompt updated to reflect this rule)
+
+**Project Health Check:**
+  - Broken: None
+  - Mocked: None
+
+**3rd Party Integrations** 
+  - Google OAuth — requires User API Key
+  - Ollama (Local AI) — Self-hosted Server URL
+
+**Testing status**
+  - Testing agent used after significant changes: NO (Documentation-only session)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: None
+  - Known regressions: None
+
+**Credentials to test flow:**
+  -  / 
+
+**What agent forgot to execute**
+  - Nothing. The prompt was written successfully.
+
+**Debugging checklist for current issue**
+    Issue: Executing the Multi-Tenant Refactor
+    Checklist:
+    1. Read .
+    2. Propose Phase 1 to the user via .
+    3. Begin implementing Subdomain Middleware and Tenant-Aware DB connection pooling.
+    4. Test backend routes using  or testing agent to ensure single-tenant functionality still works under the new tenant-injected request state.</analysis>

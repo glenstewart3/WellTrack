@@ -57,7 +57,7 @@ await page.context.add_cookies([{
     "secure": True,
     "sameSite": "None"
 }])
-await page.goto("https://tier-track-1.preview.emergentagent.com")
+await page.goto("https://welltrack-preview.preview.emergentagent.com")
 ```
 
 ## Checklist

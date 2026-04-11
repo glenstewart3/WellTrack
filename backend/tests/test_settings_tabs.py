@@ -4,7 +4,7 @@ import requests
 import os
 import subprocess
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://tier-track-1.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://welltrack-preview.preview.emergentagent.com').rstrip('/')
 
 def create_test_session():
     """Create a test admin session via MongoDB"""
