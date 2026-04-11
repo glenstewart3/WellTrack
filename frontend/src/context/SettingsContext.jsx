@@ -13,6 +13,9 @@ const DEFAULTS = {
   year_start_month: 2,
   custom_student_fields: [],
   risk_config: { consecutive_absence_days: 3 },
+  feature_flags: {},
+  school_status: 'active',
+  trial_expires_at: null,
 };
 
 function applyAccent(color) {

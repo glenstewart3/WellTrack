@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, School, Users, Activity, Globe, Pencil, Trash2, UserPlus, Key, Loader2,
-  AlertCircle, CheckCircle, XCircle, X, Eye, EyeOff, ExternalLink, Shield
+  AlertCircle, CheckCircle, XCircle, X, Eye, EyeOff, ExternalLink, Shield, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import saApi from '../../api-superadmin';
 
@@ -118,34 +118,37 @@ export default function SASchoolDetailPage() {
           </dl>
         </div>
 
-        {/* Users table */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-            <h2 className="text-sm font-semibold text-slate-800">School Users ({admins.length})</h2>
-            <button onClick={() => setShowAddUser(true)} className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700" data-testid="sa-add-user-button">
-              <UserPlus size={14} /> Add User
-            </button>
-          </div>
-          <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto" data-testid="sa-school-users">
-            {admins.map(u => (
-              <div key={u.user_id} className="flex items-center justify-between px-5 py-2.5">
-                <div>
-                  <p className="text-sm font-medium text-slate-800">{u.name}</p>
-                  <p className="text-xs text-slate-400">{u.email}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600 uppercase">{u.role}</span>
-                  <button onClick={() => setResetUser(u)} className="p-1 text-slate-400 hover:text-amber-600 rounded" title="Reset password">
-                    <Key size={13} />
-                  </button>
-                  <button onClick={() => handleRemoveUser(u.user_id, u.name)} className="p-1 text-slate-400 hover:text-red-600 rounded" title="Remove user" data-testid={`sa-remove-user-${u.user_id}`}>
-                    <Trash2 size={13} />
-                  </button>
-                </div>
+        {/* Feature Flags */}
+        <FeatureFlagsCard schoolId={schoolId} flags={school.feature_flags || {}} onUpdated={(updated) => setSchool(updated)} />
+      </div>
+
+      {/* Users table */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-6">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <h2 className="text-sm font-semibold text-slate-800">School Users ({admins.length})</h2>
+          <button onClick={() => setShowAddUser(true)} className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700" data-testid="sa-add-user-button">
+            <UserPlus size={14} /> Add User
+          </button>
+        </div>
+        <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto" data-testid="sa-school-users">
+          {admins.map(u => (
+            <div key={u.user_id} className="flex items-center justify-between px-5 py-2.5">
+              <div>
+                <p className="text-sm font-medium text-slate-800">{u.name}</p>
+                <p className="text-xs text-slate-400">{u.email}</p>
               </div>
-            ))}
-            {admins.length === 0 && <div className="px-5 py-6 text-center text-sm text-slate-400">No users</div>}
-          </div>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600 uppercase">{u.role}</span>
+                <button onClick={() => setResetUser(u)} className="p-1 text-slate-400 hover:text-amber-600 rounded" title="Reset password">
+                  <Key size={13} />
+                </button>
+                <button onClick={() => handleRemoveUser(u.user_id, u.name)} className="p-1 text-slate-400 hover:text-red-600 rounded" title="Remove user" data-testid={`sa-remove-user-${u.user_id}`}>
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </div>
+          ))}
+          {admins.length === 0 && <div className="px-5 py-6 text-center text-sm text-slate-400">No users</div>}
         </div>
       </div>
 
@@ -271,6 +274,53 @@ function AddUserModal({ schoolId, onClose, onCreated }) {
     </div>
   );
 }
+
+const FLAG_LABELS = {
+  appointments: 'Appointments Module',
+  ai_suggestions: 'AI Suggestions (Ollama)',
+  google_auth: 'Google OAuth Login',
+  saebrs_plus: 'SAEBRS+ Self-Report',
+};
+
+function FeatureFlagsCard({ schoolId, flags, onUpdated }) {
+  const [saving, setSaving] = useState(false);
+
+  const toggleFlag = async (key) => {
+    setSaving(true);
+    const newFlags = { ...flags, [key]: !flags[key] };
+    try {
+      const res = await saApi.put(`/schools/${schoolId}`, { feature_flags: newFlags });
+      onUpdated(res.data);
+    } catch {}
+    setSaving(false);
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5" data-testid="sa-feature-flags-card">
+      <h2 className="text-sm font-semibold text-slate-800 mb-3">Feature Flags</h2>
+      <div className="space-y-3">
+        {Object.entries(FLAG_LABELS).map(([key, label]) => {
+          const enabled = flags[key] !== false;
+          return (
+            <div key={key} className="flex items-center justify-between">
+              <span className="text-sm text-slate-700">{label}</span>
+              <button
+                onClick={() => toggleFlag(key)}
+                disabled={saving}
+                data-testid={`flag-toggle-${key}`}
+                className={`transition-colors ${enabled ? 'text-emerald-600' : 'text-slate-300'}`}
+              >
+                {enabled ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      <p className="text-xs text-slate-400 mt-3">Flags control which modules are visible to school users.</p>
+    </div>
+  );
+}
+
 
 function ResetPasswordModal({ schoolId, user, onClose, onDone }) {
   const [password, setPassword] = useState('');

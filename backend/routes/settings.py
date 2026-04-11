@@ -17,13 +17,25 @@ router = APIRouter()
 
 
 @router.get("/public-settings")
-async def public_settings(db=Depends(get_tenant_db)):
+async def public_settings(request: Request, db=Depends(get_tenant_db)):
     s = await db.school_settings.find_one({}, {"_id": 0})
     base = {k: SETTINGS_DEFAULTS[k] for k in ("platform_name", "accent_color", "logo_base64", "logo_dark_base64", "welcome_message", "school_name", "email_auth_enabled", "google_auth_enabled")}
     if s:
         for k in base:
             if s.get(k) is not None:
                 base[k] = s[k]
+
+    # Inject school-level metadata from control DB (set by TenantMiddleware)
+    school = getattr(request.state, "school", None)
+    if school:
+        base["feature_flags"] = school.get("feature_flags", {})
+        base["school_status"] = school.get("status", "active")
+        base["trial_expires_at"] = school.get("trial_expires_at")
+    else:
+        base["feature_flags"] = {}
+        base["school_status"] = "active"
+        base["trial_expires_at"] = None
+
     return base
 
 

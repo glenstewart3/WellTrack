@@ -22,13 +22,19 @@ async def _get_settings(db):
     s = await db.school_settings.find_one({"onboarding_complete": True}, {"_id": 0})
     return s or await db.school_settings.find_one({}, {"_id": 0})
 
-def _set_session_cookie(response, token: str):
-    response.set_cookie(
+def _set_session_cookie(response, token: str, cross_subdomain: bool = False):
+    """Set session cookie. If cross_subdomain=True and in production, sets Domain for subdomain sharing."""
+    cookie_kwargs = dict(
         key='session_token', value=token,
         httponly=True, secure=_COOKIE_SECURE,
         samesite=_COOKIE_SAMESITE, path='/',
         max_age=7 * 24 * 3600,
     )
+    # In production, set Domain=.welltrack.com.au so cookie works across subdomains
+    if cross_subdomain and os.environ.get('APP_ENV', 'production') == 'production':
+        base_domain = os.environ.get('BASE_DOMAIN', 'welltrack.com.au')
+        cookie_kwargs['domain'] = f'.{base_domain}'
+    response.set_cookie(**cookie_kwargs)
 
 
 @router.post("/auth/login-email")
@@ -92,17 +98,26 @@ async def set_user_password(user_id: str, data: dict, user=Depends(get_current_u
     return {"message": "Password set successfully"}
 
 
-# ── Google OAuth ─────────────────────────────────────────────────────────────
+# ── Google OAuth (Multi-Tenant) ──────────────────────────────────────────────
+# OAuth state is stored in control_db so the callback (which always hits the
+# root domain) can resolve the tenant without needing middleware context.
+
 @router.get("/auth/google")
 async def google_login(request: Request, db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     settings = await _get_settings(db)
     if settings and not settings.get("google_auth_enabled", True):
         raise HTTPException(status_code=403, detail="Google login is not enabled")
+
     from urllib.parse import urlencode
+    from control_db import control_db
+
+    tenant_slug = getattr(request.state, "tenant_slug", None)
     state = uuid.uuid4().hex
-    await db.oauth_states.insert_one({
+    await control_db.oauth_states.insert_one({
         "state": state,
+        "tenant_slug": tenant_slug,
+        "is_super_admin": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat(),
     })
@@ -119,9 +134,19 @@ async def google_login(request: Request, db=Depends(get_tenant_db)):
 
 
 @router.get("/auth/callback")
-async def google_callback(request: Request, db=Depends(get_tenant_db)):
+async def google_callback(request: Request):
+    """
+    Google OAuth callback — tenant-aware.
+    Resolves the school from the state stored in control_db, NOT from middleware.
+    This allows a single callback URL on the root domain for all schools.
+    """
     from fastapi.responses import RedirectResponse
+    from control_db import control_db
+    from database import client
+
     frontend_url = os.environ['FRONTEND_URL']
+    base_domain = os.environ.get("BASE_DOMAIN", "welltrack.com.au")
+    app_env = os.environ.get("APP_ENV", "production")
     code = request.query_params.get("code")
     state = request.query_params.get("state")
     error = request.query_params.get("error")
@@ -131,7 +156,8 @@ async def google_callback(request: Request, db=Depends(get_tenant_db)):
     if not code or not state:
         return RedirectResponse(url=f"{frontend_url}/login?error=auth_failed")
 
-    state_doc = await db.oauth_states.find_one_and_delete({"state": state})
+    # 1. Look up state in control_db (not tenant DB)
+    state_doc = await control_db.oauth_states.find_one_and_delete({"state": state})
     if not state_doc:
         return RedirectResponse(url=f"{frontend_url}/login?error=auth_failed")
 
@@ -141,6 +167,26 @@ async def google_callback(request: Request, db=Depends(get_tenant_db)):
         if exp < datetime.now(timezone.utc):
             return RedirectResponse(url=f"{frontend_url}/login?error=auth_failed")
 
+    # 2. Extract tenant slug
+    tenant_slug = state_doc.get("tenant_slug")
+
+    # 3. Resolve the school DB
+    if not tenant_slug:
+        # No tenant → reject (SA OAuth is handled separately)
+        return RedirectResponse(url=f"{frontend_url}/login?error=auth_failed")
+
+    school = await control_db.schools.find_one({"slug": tenant_slug}, {"_id": 0})
+    if not school or school.get("status") in ("suspended", "archived"):
+        return RedirectResponse(url=f"{frontend_url}/login?error=access_denied")
+
+    # Check if Google auth is enabled for this school
+    feature_flags = school.get("feature_flags", {})
+    if feature_flags.get("google_auth") is False:
+        return RedirectResponse(url=f"{frontend_url}/login?error=access_denied")
+
+    db = client[school["db_name"]]
+
+    # 4. Exchange code for tokens
     try:
         async with httpx.AsyncClient() as hc:
             tok_resp = await hc.post(
@@ -175,6 +221,7 @@ async def google_callback(request: Request, db=Depends(get_tenant_db)):
     if not email:
         return RedirectResponse(url=f"{frontend_url}/login?error=no_email")
 
+    # 5. Look up user in the school's DB
     existing = await db.users.find_one({"email": email}, {"_id": 0})
     user_count = await db.users.count_documents({})
 
@@ -191,6 +238,7 @@ async def google_callback(request: Request, db=Depends(get_tenant_db)):
         await db.users.update_one({"email": email}, {"$set": {"name": name, "picture": picture}})
         existing = {**existing, "name": name, "picture": picture}
 
+    # 6. Create session in school DB
     user_id = existing["user_id"]
     session_token = f"sess_{uuid.uuid4().hex}"
     expires_at = datetime.now(timezone.utc) + timedelta(days=7)
@@ -204,8 +252,14 @@ async def google_callback(request: Request, db=Depends(get_tenant_db)):
     onboarding_complete = bool(settings_doc and settings_doc.get("onboarding_complete"))
     redirect_target = "dashboard" if onboarding_complete else "onboarding"
 
-    redirect = RedirectResponse(url=f"{frontend_url}/{redirect_target}")
-    _set_session_cookie(redirect, session_token)
+    # 7. Build redirect URL — in production, redirect to school subdomain
+    if app_env == "production":
+        redirect_url = f"https://{tenant_slug}.{base_domain}/{redirect_target}"
+    else:
+        redirect_url = f"{frontend_url}/{redirect_target}"
+
+    redirect = RedirectResponse(url=redirect_url)
+    _set_session_cookie(redirect, session_token, cross_subdomain=True)
     return redirect
 
 

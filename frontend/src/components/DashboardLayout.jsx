@@ -7,7 +7,8 @@ import { useTheme, THEMES, THEME_NAV_ACTIVE } from '../context/ThemeContext';
 import {
   LayoutDashboard, ClipboardCheck, Users, Radar, BarChart3,
   Target, Users2, Bell, Settings, LogOut,
-  Menu, X, Shield, UserCog, CalendarDays, Check, Sun, Moon, CalendarClock
+  Menu, X, Shield, UserCog, CalendarDays, Check, Sun, Moon, CalendarClock,
+  AlertTriangle
 } from 'lucide-react';
 
 const navItems = [
@@ -17,7 +18,7 @@ const navItems = [
   { path: '/radar', icon: Radar, label: 'Class Risk Radar' },
   { path: '/analytics', icon: BarChart3, label: 'Analytics & Reports' },
   { path: '/interventions', icon: Target, label: 'Interventions' },
-  { path: '/appointments', icon: CalendarClock, label: 'Appointments' },
+  { path: '/appointments', icon: CalendarClock, label: 'Appointments', featureFlag: 'appointments' },
   { path: '/attendance', icon: CalendarDays, label: 'Attendance', roles: ['leadership', 'admin'] },
   { path: '/meeting', icon: Users2, label: 'MTSS Meeting' },
   { path: '/alerts', icon: Bell, label: 'Alerts' },
@@ -35,6 +36,7 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [trialBannerDismissed, setTrialBannerDismissed] = useState(false);
   const userMenuRef = useRef(null);
 
   // Close dropdown when clicking outside
@@ -56,6 +58,17 @@ export default function DashboardLayout() {
   const activeNavColor = THEME_NAV_ACTIVE[theme] || accent;
   // Only apply wt-sidebar class for non-default themes (avoids overriding role badge colors on default)
   const sidebarClass = theme === 'dark' ? 'wt-sidebar' : 'bg-white border-slate-200';
+
+  // Trial banner: show if school is on trial and expires within 14 days
+  const featureFlags = settings.feature_flags || {};
+  const schoolStatus = settings.school_status;
+  const trialExpiresAt = settings.trial_expires_at;
+  let trialDaysLeft = null;
+  if (schoolStatus === 'trial' && trialExpiresAt) {
+    const diff = new Date(trialExpiresAt) - new Date();
+    trialDaysLeft = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  }
+  const showTrialBanner = schoolStatus === 'trial' && trialDaysLeft !== null && trialDaysLeft <= 14 && !trialBannerDismissed;
 
   const handleLogout = async () => {
     await logout();
@@ -100,6 +113,8 @@ export default function DashboardLayout() {
         <div className="space-y-0.5">
           {navItems.filter(item => {
             if (item.adminOnly && user?.role !== 'admin') return false;
+            // Feature flag gate — if a flag is explicitly set to false, hide the item
+            if (item.featureFlag && featureFlags[item.featureFlag] === false) return false;
             if (user?.role === 'admin') return true;
             // Use saved role_permissions if available
             const rolePerms = settings?.role_permissions;
@@ -277,6 +292,29 @@ export default function DashboardLayout() {
             )}
           </div>
         </header>
+
+        {/* Trial expiry banner */}
+        {showTrialBanner && (
+          <div
+            data-testid="trial-expiry-banner"
+            className="flex items-center justify-between px-4 lg:px-6 py-2.5 text-sm font-medium"
+            style={{ backgroundColor: '#fef3c7', color: '#92400e', borderBottom: '1px solid #fde68a' }}
+          >
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={16} className="shrink-0" />
+              <span>
+                Your WellTrack trial expires in <strong>{trialDaysLeft} day{trialDaysLeft !== 1 ? 's' : ''}</strong>. Contact us to upgrade your plan.
+              </span>
+            </div>
+            <button
+              onClick={() => setTrialBannerDismissed(true)}
+              className="p-1 rounded hover:bg-amber-200/60 transition-colors shrink-0"
+              data-testid="trial-banner-dismiss"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">
