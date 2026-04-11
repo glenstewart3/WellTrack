@@ -30,6 +30,7 @@ from routes.settings import router as settings_router
 from routes.screening import router as screening_router
 from routes.appointments import router as appointments_router
 from routes.audit import router as audit_router
+from routes.superadmin import router as superadmin_router
 
 app = FastAPI(title="WellTrack API")
 scheduler = AsyncIOScheduler()
@@ -65,6 +66,7 @@ api_router.include_router(reports_router)
 api_router.include_router(backups_router)
 api_router.include_router(appointments_router)
 api_router.include_router(audit_router)
+api_router.include_router(superadmin_router)
 
 app.include_router(api_router)
 
@@ -80,16 +82,7 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger("server")
 
 
-# ── Reusable index creation for any tenant database ──────────────────────────
-async def ensure_indexes(db):
-    """Create required indexes on a given database. Called on startup and school provisioning."""
-    await db.attendance_records.create_index("student_id")
-    await db.attendance_records.create_index("date")
-    await db.saebrs_results.create_index([("student_id", 1), ("created_at", 1)])
-    await db.self_report_results.create_index([("student_id", 1), ("created_at", 1)])
-    await db.interventions.create_index([("student_id", 1), ("status", 1)])
-    await db.user_sessions.create_index("session_token")
-    await db.school_days.create_index("year")
+from server_utils import ensure_indexes
 
 
 @app.on_event("startup")

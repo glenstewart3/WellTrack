@@ -8,13 +8,25 @@ from control_db import control_db
 from database import client
 import os
 
+# Paths that are always super-admin context (no tenant DB needed)
+SUPER_ADMIN_PATH_PREFIX = "/api/superadmin"
+
 
 class TenantMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
-        host = request.headers.get("host", "").split(":")[0]  # strip port
+        path = request.url.path
+        host = request.headers.get("host", "").split(":")[0]
         base_domain = os.environ.get("BASE_DOMAIN", "welltrack.com.au")
         app_env = os.environ.get("APP_ENV", "production")
         is_dev = app_env == "development"
+
+        # Super admin API paths always bypass tenant resolution
+        if path.startswith(SUPER_ADMIN_PATH_PREFIX):
+            request.state.db = None
+            request.state.tenant_slug = None
+            request.state.school = None
+            request.state.is_super_admin = True
+            return await call_next(request)
 
         slug = None
 
