@@ -569,6 +569,8 @@ REACT_APP_BASE_DOMAIN=welltrack.com.au
 REACT_APP_PORTAL=school   # or "superadmin" for testing SA portal in dev
 ```
 
+**IMPORTANT — No subdirectory path:** The app is served from the root of the domain (`welltrack.com.au/`, not `welltrack.com.au/welltrack/`). Do NOT set `REACT_APP_BASE_PATH` in the frontend `.env`. The `BrowserRouter` in `App.js` already defaults its `basename` to `/` when this variable is absent. Setting it to anything other than `/` will break all client-side routing.
+
 ---
 
 ## Implementation Phases (Do In This Order)
@@ -965,6 +967,9 @@ nano /var/www/welltrack/frontend/.env
 REACT_APP_BACKEND_URL=https://welltrack.com.au
 REACT_APP_BASE_DOMAIN=welltrack.com.au
 REACT_APP_PORTAL=school
+# DO NOT set REACT_APP_BASE_PATH — leave it absent so the app serves from the
+# root path (welltrack.com.au/) with no subdirectory prefix. The BrowserRouter
+# basename defaults to '/' when this variable is not present.
 ```
 
 ---
