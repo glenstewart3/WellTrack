@@ -84,7 +84,7 @@ export default function SASchoolDetailPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-slate-900">{school.name}</h1>
-            <p className="text-sm text-slate-400 font-mono">{school.slug}.welltrack.com.au</p>
+            <p className="text-sm text-slate-400 font-mono">{school.slug}.{process.env.REACT_APP_BASE_DOMAIN || 'welltrack.com.au'}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

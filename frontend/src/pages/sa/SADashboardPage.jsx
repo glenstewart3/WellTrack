@@ -88,7 +88,7 @@ export default function SADashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-800">{s.name}</p>
-                  <p className="text-xs text-slate-400">{s.slug}.welltrack.com.au</p>
+                  <p className="text-xs text-slate-400">{s.slug}.{process.env.REACT_APP_BASE_DOMAIN || 'welltrack.com.au'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-4 text-xs text-slate-500">

@@ -189,7 +189,7 @@ function AddSchoolModal({ onClose, onCreated }) {
               <div className="flex items-center gap-1">
                 <input value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })} required className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="mooroopna" data-testid="sa-school-slug-input" />
               </div>
-              <p className="text-[10px] text-slate-400 mt-1">{form.slug || '...'}.welltrack.com.au</p>
+              <p className="text-[10px] text-slate-400 mt-1">{form.slug || '...'}.{process.env.REACT_APP_BASE_DOMAIN || 'welltrack.com.au'}</p>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Status</label>
