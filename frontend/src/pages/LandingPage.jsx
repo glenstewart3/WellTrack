@@ -1,15 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Shield, ArrowRight, Search, CheckCircle, Users, BarChart3,
-  Target, ClipboardCheck, Loader2, XCircle, ChevronRight
+  Target, ClipboardCheck, Loader2, XCircle
 } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || 'welltrack.com.au';
 
 export default function LandingPage() {
-  const navigate = useNavigate();
   const [showFinder, setShowFinder] = useState(false);
   const [slug, setSlug] = useState('');
   const [checking, setChecking] = useState(false);
@@ -92,7 +90,7 @@ export default function LandingPage() {
             WellTrack helps schools identify students who need support before they fall through the cracks &mdash;
             using evidence-based SAEBRS screening, attendance analytics, and tiered intervention tracking.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex items-center justify-center">
             <button
               onClick={() => setShowFinder(true)}
               data-testid="hero-login-btn"
@@ -101,14 +99,6 @@ export default function LandingPage() {
               <Search size={16} />
               Find Your School
               <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-            </button>
-            <button
-              onClick={() => navigate('/sa/login')}
-              data-testid="hero-admin-link"
-              className="px-6 py-4 text-sm font-medium text-slate-400 hover:text-white transition-colors"
-            >
-              Super Admin Portal
-              <ChevronRight size={14} className="inline ml-1" />
             </button>
           </div>
         </div>
@@ -213,7 +203,7 @@ export default function LandingPage() {
                 value={slug}
                 onChange={e => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setResult(null); }}
                 onKeyDown={e => e.key === 'Enter' && handleLookup()}
-                placeholder="e.g. mooroopna"
+                placeholder="e.g. yourschool"
                 data-testid="school-slug-input"
                 className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
               />
