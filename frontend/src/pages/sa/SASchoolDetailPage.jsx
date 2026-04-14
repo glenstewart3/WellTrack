@@ -42,7 +42,16 @@ export default function SASchoolDetailPage() {
     if (!window.confirm(`Archive "${school.name}"? The school data will be preserved but users won't be able to log in.`)) return;
     try {
       await saApi.delete(`/schools/${schoolId}`);
-      navigate('/sa/schools');
+      navigate(`${SA_PATH_PREFIX}/schools`);
+    } catch {}
+  };
+
+  const handlePermanentDelete = async () => {
+    if (!window.confirm(`PERMANENTLY DELETE "${school.name}"?\n\nThis will drop the database "${school.db_name}" and all school data. This action CANNOT be undone.`)) return;
+    if (!window.confirm(`Are you absolutely sure? Type the school name to confirm.\n\nThis is your last chance to cancel.`)) return;
+    try {
+      await saApi.delete(`/schools/${schoolId}/permanent`);
+      navigate(`${SA_PATH_PREFIX}/schools`);
     } catch {}
   };
 
@@ -114,6 +123,16 @@ export default function SASchoolDetailPage() {
           <button onClick={handleArchive} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Archive school" data-testid="sa-archive-school">
             <Trash2 size={16} />
           </button>
+          {school.status === 'archived' && (
+            <button
+              onClick={handlePermanentDelete}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+              title="Permanently delete school and database"
+              data-testid="sa-permanent-delete"
+            >
+              <Trash2 size={12} /> Delete Permanently
+            </button>
+          )}
         </div>
       </div>
 

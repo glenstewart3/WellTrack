@@ -371,7 +371,25 @@ async def update_school(school_id: str, data: dict, admin=Depends(get_super_admi
     await control_db.schools.update_one({"school_id": school_id}, {"$set": update})
     await _log_sa_audit(admin, "updated_school", "school", school_id, school["name"],
                         {"changes": update})
+    # Return enriched school data (same as GET detail)
     updated = await control_db.schools.find_one({"school_id": school_id}, {"_id": 0})
+    try:
+        school_db = client[updated["db_name"]]
+        updated["student_count"] = await school_db.students.count_documents({"enrolment_status": "active"})
+        updated["admin_count"] = await school_db.users.count_documents({"role": "admin"})
+        updated["user_count"] = await school_db.users.count_documents({})
+        last_session = await school_db.user_sessions.find_one(
+            {}, {"_id": 0, "created_at": 1}, sort=[("created_at", -1)]
+        )
+        updated["last_active"] = last_session.get("created_at") if last_session else None
+        settings = await school_db.school_settings.find_one({}, {"_id": 0})
+        updated["onboarding_complete"] = (settings or {}).get("onboarding_complete", False)
+    except Exception:
+        updated["student_count"] = school.get("student_count", 0)
+        updated["admin_count"] = school.get("admin_count", 0)
+        updated["user_count"] = school.get("user_count", 0)
+        updated["last_active"] = school.get("last_active")
+        updated["onboarding_complete"] = school.get("onboarding_complete", False)
     return updated
 
 
@@ -387,6 +405,24 @@ async def archive_school(school_id: str, admin=Depends(get_super_admin)):
     )
     await _log_sa_audit(admin, "archived_school", "school", school_id, school["name"])
     return {"message": f"School '{school['name']}' archived"}
+
+
+@router.delete("/superadmin/schools/{school_id}/permanent")
+async def delete_school_permanently(school_id: str, admin=Depends(get_super_admin)):
+    """Permanently delete an archived school and drop its database."""
+    school = await control_db.schools.find_one({"school_id": school_id}, {"_id": 0})
+    if not school:
+        raise HTTPException(404, "School not found")
+    if school.get("status") != "archived":
+        raise HTTPException(400, "School must be archived before it can be permanently deleted")
+    # Drop the school's MongoDB database
+    db_name = school["db_name"]
+    await client.drop_database(db_name)
+    # Remove from control DB
+    await control_db.schools.delete_one({"school_id": school_id})
+    await _log_sa_audit(admin, "deleted_school_permanently", "school", school_id, school["name"],
+                        {"db_name": db_name})
+    return {"message": f"School '{school['name']}' and database '{db_name}' permanently deleted"}
 
 
 # ── School Admins ────────────────────────────────────────────────────────────
