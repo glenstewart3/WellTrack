@@ -135,81 +135,91 @@ function SchoolRouter() {
   );
 }
 
-function AppRouter() {
-  const portal = detectPortal();
+// Production SA portal — only needs SAAuthProvider, no school providers
+function SAPortalApp() {
+  return (
+    <SAAuthProvider>
+      <BrowserRouter basename={process.env.REACT_APP_BASE_PATH || '/'}>
+        <Routes>
+          <Route path="/login" element={<SALoginPage />} />
+          <Route path="/" element={<SAProtectedRoute />}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<SADashboardPage />} />
+            <Route path="schools" element={<SASchoolsPage />} />
+            <Route path="schools/:schoolId" element={<SASchoolDetailPage />} />
+            <Route path="admins" element={<SASuperAdminsPage />} />
+            <Route path="audit" element={<SAAuditPage />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </SAAuthProvider>
+  );
+}
 
-  // Production: pure landing page (root domain)
-  if (portal === 'landing') {
-    return (
+// Production landing page — no providers needed
+function LandingApp() {
+  return (
+    <BrowserRouter basename={process.env.REACT_APP_BASE_PATH || '/'}>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    );
-  }
-
-  // Production: pure SA portal (admin.welltrack.com.au)
-  if (portal === 'superadmin') {
-    return (
-      <Routes>
-        <Route path="/login" element={<SALoginPage />} />
-        <Route path="/" element={<SAProtectedRoute />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<SADashboardPage />} />
-          <Route path="schools" element={<SASchoolsPage />} />
-          <Route path="schools/:schoolId" element={<SASchoolDetailPage />} />
-          <Route path="admins" element={<SASuperAdminsPage />} />
-          <Route path="audit" element={<SAAuditPage />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    );
-  }
-
-  // Production: pure school portal ({slug}.welltrack.com.au)
-  if (portal === 'school') {
-    return (
-      <Routes>
-        <Route path="/*" element={<SchoolRouter />} />
-      </Routes>
-    );
-  }
-
-  // Dev/preview: path-based routing — landing page at /, SA at /sa/*, school at other paths
-  return (
-    <Routes>
-      {/* Landing page at root */}
-      <Route path="/" element={<LandingPage />} />
-
-      {/* Super Admin routes (dev fallback via /sa/ path) */}
-      <Route path="/sa/login" element={<SALoginPage />} />
-      <Route path="/sa" element={<SAProtectedRoute />}>
-        <Route index element={<Navigate to="/sa/dashboard" replace />} />
-        <Route path="dashboard" element={<SADashboardPage />} />
-        <Route path="schools" element={<SASchoolsPage />} />
-        <Route path="schools/:schoolId" element={<SASchoolDetailPage />} />
-        <Route path="admins" element={<SASuperAdminsPage />} />
-        <Route path="audit" element={<SAAuditPage />} />
-      </Route>
-
-      {/* School portal routes — everything not matched above */}
-      <Route path="/*" element={<SchoolRouter />} />
-    </Routes>
+    </BrowserRouter>
   );
 }
 
-export default function App() {
+// Production school portal — full providers
+function SchoolPortalApp() {
+  return (
+    <SettingsProvider>
+      <AuthProvider>
+        <ThemeProvider>
+          <BrowserRouter basename={process.env.REACT_APP_BASE_PATH || '/'}>
+            <Routes>
+              <Route path="/*" element={<SchoolRouter />} />
+            </Routes>
+          </BrowserRouter>
+        </ThemeProvider>
+      </AuthProvider>
+    </SettingsProvider>
+  );
+}
+
+// Dev/preview — all portals via path-based routing, all providers loaded
+function DevApp() {
   return (
     <SettingsProvider>
       <AuthProvider>
         <ThemeProvider>
           <SAAuthProvider>
             <BrowserRouter basename={process.env.REACT_APP_BASE_PATH || '/'}>
-              <AppRouter />
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/sa/login" element={<SALoginPage />} />
+                <Route path="/sa" element={<SAProtectedRoute />}>
+                  <Route index element={<Navigate to="/sa/dashboard" replace />} />
+                  <Route path="dashboard" element={<SADashboardPage />} />
+                  <Route path="schools" element={<SASchoolsPage />} />
+                  <Route path="schools/:schoolId" element={<SASchoolDetailPage />} />
+                  <Route path="admins" element={<SASuperAdminsPage />} />
+                  <Route path="audit" element={<SAAuditPage />} />
+                </Route>
+                <Route path="/*" element={<SchoolRouter />} />
+              </Routes>
             </BrowserRouter>
           </SAAuthProvider>
         </ThemeProvider>
       </AuthProvider>
     </SettingsProvider>
   );
+}
+
+const PORTAL = detectPortal();
+
+export default function App() {
+  if (PORTAL === 'superadmin') return <SAPortalApp />;
+  if (PORTAL === 'landing') return <LandingApp />;
+  if (PORTAL === 'school') return <SchoolPortalApp />;
+  return <DevApp />;
 }
