@@ -49,6 +49,15 @@ def _normalize_rec(rec: dict) -> dict:
         rec['priority'] = 'low'
     if rec.get('priority') not in ('high', 'medium', 'low'):
         rec['priority'] = 'medium'
+    # Coerce all values to strings — LLMs sometimes return lists/dicts for fields like goals
+    for key in ('type', 'rationale', 'goals', 'frequency', 'timeline'):
+        val = rec.get(key)
+        if isinstance(val, list):
+            rec[key] = '; '.join(str(v) if isinstance(v, str) else v.get('goal', v.get('description', str(v))) if isinstance(v, dict) else str(v) for v in val)
+        elif isinstance(val, dict):
+            rec[key] = val.get('goal', val.get('description', str(val)))
+        elif val is not None and not isinstance(val, str):
+            rec[key] = str(val)
     return rec
 
 
