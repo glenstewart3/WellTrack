@@ -31,7 +31,10 @@ export default function LoginPage() {
   const googleAuthEnabled = settings.google_auth_enabled !== false;
 
   const handleGoogleLogin = () => {
-    window.location.href = `${process.env.REACT_APP_BACKEND_URL}/api/auth/google`;
+    const baseDomain = process.env.REACT_APP_BASE_DOMAIN || 'welltrack.com.au';
+    const isSubdomain = window.location.hostname.endsWith(`.${baseDomain}`);
+    const base = isSubdomain ? '' : (process.env.REACT_APP_BACKEND_URL || '');
+    window.location.href = `${base}/api/auth/google`;
   };
 
   const handleEmailLogin = async (e) => {
