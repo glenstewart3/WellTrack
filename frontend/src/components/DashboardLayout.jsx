@@ -98,8 +98,8 @@ export default function DashboardLayout() {
           ) : null;
         })()}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: accent }}>
-            <Shield size={17} className="text-white" />
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-slate-900">
+            <Shield size={17} className="text-emerald-400" />
           </div>
           <div>
             <p className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{settings.platform_name || 'WellTrack'}</p>
