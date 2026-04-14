@@ -593,6 +593,7 @@ async def get_platform_config(admin=Depends(get_super_admin)):
         "ollama_url": "http://localhost:11434",
         "ollama_model": "llama3.2",
         "ai_suggestions_enabled": True,
+        "ai_suggestion_count": 3,
     }
     if doc:
         defaults.update(doc)
@@ -601,8 +602,10 @@ async def get_platform_config(admin=Depends(get_super_admin)):
 
 @router.put("/superadmin/platform-config")
 async def update_platform_config(data: dict, admin=Depends(get_super_admin)):
-    allowed = {"ollama_url", "ollama_model", "ai_suggestions_enabled"}
+    allowed = {"ollama_url", "ollama_model", "ai_suggestions_enabled", "ai_suggestion_count"}
     update = {k: v for k, v in data.items() if k in allowed}
+    if "ai_suggestion_count" in update:
+        update["ai_suggestion_count"] = max(1, min(3, int(update["ai_suggestion_count"])))
     if not update:
         raise HTTPException(400, "No valid fields to update")
     await control_db.platform_config.update_one(

@@ -167,6 +167,7 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user), db
             raise HTTPException(403, "AI suggestions are disabled by the platform administrator.")
         ollama_url = platform_cfg.get("ollama_url") or settings_doc.get("ollama_url", "http://localhost:11434")
         ollama_model = platform_cfg.get("ollama_model") or settings_doc.get("ollama_model", "llama3.2")
+        suggestion_count = int(platform_cfg.get("ai_suggestion_count", 3))
 
         student = await db.students.find_one({"student_id": student_id}, {"_id": 0})
         if not student:
@@ -314,16 +315,18 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user), db
             context += f"\nAvailable interventions at this school: {', '.join(available)}\n"
 
         library_rule = (
-            "- Suggestions 1 and 2 MUST come from the available interventions list above and must not be currently active\n"
-            "- Suggestion 3 can be from the list OR a new practical school-based intervention\n"
+            f"- Suggestions 1 and 2 MUST come from the available interventions list above and must not be currently active\n"
+            f"- Suggestion 3 can be from the list OR a new practical school-based intervention\n"
+        ) if available and suggestion_count >= 3 else (
+            f"- Suggestions should come from the available interventions list above where possible\n"
         ) if available else (
-            "- All 3 should be practical, evidence-based interventions achievable in a school setting\n"
+            f"- All suggestions should be practical, evidence-based interventions achievable in a school setting\n"
         )
 
         prompt = (
             f"You are an experienced school wellbeing coordinator writing a detailed MTSS student support plan.\n\n"
             f"{context}\n"
-            f"Suggest exactly 3 separate interventions for this student. Each must be a fully independent recommendation.\n"
+            f"Suggest exactly {suggestion_count} separate intervention{'s' if suggestion_count > 1 else ''} for this student. Each must be a fully independent recommendation.\n"
             f"{library_rule}"
             f"- Do NOT suggest interventions already listed as currently active\n"
             f"- Keep suggestions realistic and appropriate for the student's year level\n"
@@ -338,7 +341,7 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user), db
             f"Include observable behaviours or metrics where possible (e.g., 'Reduce unexplained absences to fewer than 2 per term').\n"
             f"- frequency: how often sessions occur (e.g., 'Daily 15-minute check-ins', '2x per week 30-minute sessions')\n"
             f"- timeline: realistic duration (e.g., '8 weeks with review at Week 4', 'Ongoing for Term 2 with fortnightly progress monitoring')\n\n"
-            f"Return ONLY a valid JSON array containing exactly 3 objects. Each object must have ALL of these keys with non-empty string values: "
+            f"Return ONLY a valid JSON array containing exactly {suggestion_count} object{'s' if suggestion_count > 1 else ''}. Each object must have ALL of these keys with non-empty string values: "
             f"type, priority, rationale, goals, frequency, timeline.\n"
             f"Do NOT put multiple interventions inside a single object. Each object = one intervention.\n"
             f"No markdown, no explanation, no text before or after the JSON array.\n"
@@ -359,7 +362,7 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user), db
             logger.info(f"Ollama response (first 400 chars): {content[:400]}")
             recs = _extract_json_array(content)
             if recs is not None:
-                normalized = [_normalize_rec(r) for r in recs[:3]]
+                normalized = [_normalize_rec(r) for r in recs[:suggestion_count]]
                 logger.info(f"Parsed {len(normalized)} recommendations, keys: {[list(r.keys()) for r in normalized]}")
                 return {"recommendations": normalized}
             raise HTTPException(500, f"Could not parse AI response as JSON. Raw: {content[:200]}")

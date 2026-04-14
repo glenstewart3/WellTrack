@@ -152,6 +152,40 @@ async def delete_series(series_id: str, user=Depends(get_current_user), db=Depen
     return {"message": f"Deleted {result.deleted_count} appointments in series"}
 
 
+@router.get("/appointments/schedule")
+async def get_schedule(week_start: str = "", user=Depends(get_current_user), db=Depends(get_tenant_db)):
+    """Return appointments for a given week (Mon-Sun)."""
+    if not week_start:
+        week_start = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    try:
+        start = datetime.fromisoformat(week_start)
+    except ValueError:
+        start = datetime.now(timezone.utc)
+    end_str = (start + timedelta(days=6)).strftime("%Y-%m-%d")
+    query = {"date": {"$gte": week_start, "$lte": end_str}}
+    docs = await db.appointments.find(query, {"_id": 0}).sort([("date", 1), ("time", 1)]).to_list(500)
+    return {"appointments": docs, "week_start": week_start}
+
+
+@router.get("/appointments/ongoing")
+async def get_ongoing_appointments(user=Depends(get_current_user), db=Depends(get_tenant_db)):
+    """Return appointments with status 'scheduled' (active/upcoming)."""
+    docs = await db.appointments.find(
+        {"status": "scheduled"}, {"_id": 0}
+    ).sort([("date", 1), ("time", 1)]).to_list(500)
+    return docs
+
+
+@router.get("/appointments/completed")
+async def get_completed_appointments(user=Depends(get_current_user), db=Depends(get_tenant_db)):
+    """Return completed and cancelled appointments."""
+    docs = await db.appointments.find(
+        {"status": {"$in": ["completed", "cancelled"]}}, {"_id": 0}
+    ).sort([("date", -1), ("time", -1)]).to_list(500)
+    return docs
+
+
+
 @router.get("/appointments/today")
 async def get_todays_appointments(user=Depends(get_current_user), db=Depends(get_tenant_db)):
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")

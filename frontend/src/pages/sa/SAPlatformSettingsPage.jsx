@@ -14,6 +14,7 @@ export default function SAPlatformSettingsPage() {
   const [ollamaUrl, setOllamaUrl] = useState('');
   const [ollamaModel, setOllamaModel] = useState('');
   const [aiEnabled, setAiEnabled] = useState(true);
+  const [suggestionCount, setSuggestionCount] = useState(3);
 
   useEffect(() => {
     saApi.get('/platform-config')
@@ -22,6 +23,7 @@ export default function SAPlatformSettingsPage() {
         setOllamaUrl(r.data.ollama_url || 'http://localhost:11434');
         setOllamaModel(r.data.ollama_model || 'llama3.2');
         setAiEnabled(r.data.ai_suggestions_enabled !== false);
+        setSuggestionCount(r.data.ai_suggestion_count || 3);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -35,6 +37,7 @@ export default function SAPlatformSettingsPage() {
         ollama_url: ollamaUrl,
         ollama_model: ollamaModel,
         ai_suggestions_enabled: aiEnabled,
+        ai_suggestion_count: suggestionCount,
       });
       setMsg({ text: 'Configuration saved', type: 'success' });
       setTimeout(() => setMsg({ text: '', type: '' }), 3000);
@@ -85,6 +88,29 @@ export default function SAPlatformSettingsPage() {
             {aiEnabled ? <ToggleRight size={32} className="text-emerald-500" /> : <ToggleLeft size={32} className="text-slate-300" />}
           </button>
         </div>
+
+        {aiEnabled && (
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <label className="text-sm font-semibold text-slate-700 mb-2 block">Suggestions per request</label>
+            <div className="flex gap-2">
+              {[1, 2, 3].map(n => (
+                <button
+                  key={n}
+                  onClick={() => setSuggestionCount(n)}
+                  data-testid={`sa-suggestion-count-${n}`}
+                  className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
+                    suggestionCount === n
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-slate-400 mt-1.5">How many intervention suggestions the AI generates per student request.</p>
+          </div>
+        )}
       </div>
 
       {/* Ollama Config */}
