@@ -237,7 +237,7 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user), db
         )
 
         prompt = (
-            f"You are a school wellbeing coordinator writing an MTSS student support plan.\n\n"
+            f"You are an experienced school wellbeing coordinator writing a detailed MTSS student support plan.\n\n"
             f"{context}\n"
             f"Suggest exactly 3 separate interventions for this student. Each must be a fully independent recommendation.\n"
             f"{library_rule}"
@@ -245,11 +245,20 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user), db
             f"- Keep suggestions realistic and appropriate for the student's year level\n"
             f"- Only mention EAL/D, Aboriginal/ATSI, NCCD, or other demographic context in the rationale "
             f"if those details are explicitly listed above under 'Additional context'. Do not assume or invent any demographic details.\n\n"
-            f"Return ONLY a valid JSON array containing exactly 3 objects. Each object must have ALL of these keys with non-empty values: "
-            f"type, priority (must be exactly 'high', 'medium', or 'low'), rationale, goals, frequency, timeline.\n"
+            f"For each intervention provide:\n"
+            f"- type: the intervention name\n"
+            f"- priority: exactly 'high', 'medium', or 'low'\n"
+            f"- rationale: a detailed 2-3 sentence explanation of WHY this intervention is appropriate for this student, "
+            f"referencing their specific screening scores, attendance data, or domain concerns. Be specific, not generic.\n"
+            f"- goals: 2-3 specific, measurable goals the intervention aims to achieve. "
+            f"Include observable behaviours or metrics where possible (e.g., 'Reduce unexplained absences to fewer than 2 per term').\n"
+            f"- frequency: how often sessions occur (e.g., 'Daily 15-minute check-ins', '2x per week 30-minute sessions')\n"
+            f"- timeline: realistic duration (e.g., '8 weeks with review at Week 4', 'Ongoing for Term 2 with fortnightly progress monitoring')\n\n"
+            f"Return ONLY a valid JSON array containing exactly 3 objects. Each object must have ALL of these keys with non-empty string values: "
+            f"type, priority, rationale, goals, frequency, timeline.\n"
             f"Do NOT put multiple interventions inside a single object. Each object = one intervention.\n"
             f"No markdown, no explanation, no text before or after the JSON array.\n"
-            f'Example (3 separate objects): [{{"type":"Check-In Check-Out","priority":"high","rationale":"Student shows high emotional risk.","goals":"Build self-regulation strategies.","frequency":"Daily","timeline":"8 weeks"}},{{"type":"Social Skills Group","priority":"medium","rationale":"Peer interaction is a key area of concern.","goals":"Improve cooperative play.","frequency":"Weekly","timeline":"10 weeks"}},{{"type":"Academic Support","priority":"low","rationale":"Below benchmark in literacy.","goals":"Improve reading fluency.","frequency":"3x per week","timeline":"Term 2"}}]'
+            f'Example: [{{"type":"Check-In Check-Out","priority":"high","rationale":"With a SAEBRS emotional score of 8/21 and attendance at 76%, this student is showing signs of disengagement and emotional distress. A structured daily check-in provides a consistent adult connection point and early detection of escalating concerns.","goals":"Increase attendance to above 85% within 6 weeks. Student to self-identify and communicate one emotion daily. Reduce office referrals for emotional dysregulation by 50%.","frequency":"Daily 10-minute check-in each morning with assigned staff member, plus brief afternoon check-out","timeline":"8 weeks with formal review at Week 4 to assess progress and adjust support"}}]'
         )
 
         logger.info(f"AI suggest for {student_id}: prompt length={len(prompt)}, model={ollama_model}, url={ollama_url}")

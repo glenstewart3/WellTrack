@@ -236,7 +236,7 @@ export default function StudentProfilePage() {
   const fetchProfessionals = async () => {
     if (professionals.length) return;
     try {
-      const res = await api.get('/users/professionals');
+      const res = await api.get('/appointments/professionals');
       setProfessionals(res.data || []);
     } catch { /* not critical */ }
   };
