@@ -38,6 +38,14 @@ class TenantMiddleware(BaseHTTPMiddleware):
             request.state.is_super_admin = False
             return await call_next(request)
 
+        # Impersonation + OAuth callback — resolve tenant internally, not from middleware
+        if path in ("/api/auth/impersonate", "/api/auth/callback"):
+            request.state.db = None
+            request.state.tenant_slug = None
+            request.state.school = None
+            request.state.is_super_admin = False
+            return await call_next(request)
+
         slug = None
 
         # 1. In dev mode, check X-Tenant-Slug header first

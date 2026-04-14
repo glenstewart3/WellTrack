@@ -294,14 +294,27 @@ async def logout(request: Request, response: Response, db=Depends(get_tenant_db)
 
 # ── Impersonation (school-side handler) ──────────────────────────────────────
 @router.get("/auth/impersonate")
-async def impersonate(request: Request, token: str, db=Depends(get_tenant_db)):
-    """Validate a one-time impersonation token (created by Super Admin) and create an admin session."""
+async def impersonate(request: Request, token: str, slug: str = ""):
+    """Validate a one-time impersonation token and create an admin session.
+    Works from any domain — resolves the school from control_db using the slug param."""
     from fastapi.responses import RedirectResponse
     from fastapi import HTTPException
-    frontend_url = os.environ['FRONTEND_URL']
+    from control_db import control_db
+    from database import client
 
-    if not token:
+    frontend_url = os.environ['FRONTEND_URL']
+    base_domain = os.environ.get("BASE_DOMAIN", "welltrack.com.au")
+    app_env = os.environ.get("APP_ENV", "production")
+
+    if not token or not slug:
         return RedirectResponse(url=f"{frontend_url}/login?error=auth_failed")
+
+    # Resolve school from control_db
+    school = await control_db.schools.find_one({"slug": slug}, {"_id": 0})
+    if not school or school.get("status") not in ("active", "trial"):
+        return RedirectResponse(url=f"{frontend_url}/login?error=invalid_token")
+
+    db = client[school["db_name"]]
 
     # Look up the token in school's impersonation_tokens collection
     imp_doc = await db.impersonation_tokens.find_one({"token": token})
@@ -339,8 +352,14 @@ async def impersonate(request: Request, token: str, db=Depends(get_tenant_db)):
         "impersonated_by": imp_doc.get("super_admin_id"),
     })
 
-    redirect = RedirectResponse(url=f"{frontend_url}/dashboard")
-    _set_session_cookie(redirect, session_token)
+    # Redirect to the school's subdomain in production
+    if app_env == "production":
+        redirect_url = f"https://{slug}.{base_domain}/dashboard"
+    else:
+        redirect_url = f"{frontend_url}/dashboard"
+
+    redirect = RedirectResponse(url=redirect_url)
+    _set_session_cookie(redirect, session_token, cross_subdomain=True)
     return redirect
 
 

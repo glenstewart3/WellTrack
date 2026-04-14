@@ -94,8 +94,14 @@ export default function SASchoolDetailPage() {
               try {
                 const res = await saApi.post(`/schools/${schoolId}/impersonate`);
                 const { token, school_slug } = res.data;
-                const frontendUrl = process.env.REACT_APP_BACKEND_URL || '';
-                window.open(`${frontendUrl}/api/auth/impersonate?token=${token}`, '_blank');
+                const baseDomain = process.env.REACT_APP_BASE_DOMAIN || 'welltrack.com.au';
+                const isProduction = window.location.hostname.endsWith(baseDomain);
+                if (isProduction) {
+                  window.open(`https://${school_slug}.${baseDomain}/api/auth/impersonate?token=${token}&slug=${school_slug}`, '_blank');
+                } else {
+                  const frontendUrl = process.env.REACT_APP_BACKEND_URL || '';
+                  window.open(`${frontendUrl}/api/auth/impersonate?token=${token}&slug=${school_slug}`, '_blank');
+                }
               } catch {}
             }}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg transition-colors"
