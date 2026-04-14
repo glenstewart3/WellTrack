@@ -36,10 +36,16 @@ const TAB_CONFIG = [
   { key: 'Data',                icon: Database },
 ];
 
-function TabNav({ active, onChange }) {
+function TabNav({ active, onChange, featureFlags }) {
+  const ff = featureFlags || {};
+  const visibleTabs = TAB_CONFIG.filter(tab => {
+    // Hide Integrations tab entirely if ai_suggestions is disabled
+    if (tab.key === 'Integrations' && ff.ai_suggestions === false) return false;
+    return true;
+  });
   return (
     <div className="flex flex-wrap gap-1 mb-8 p-1.5 bg-slate-100 rounded-2xl">
-      {TAB_CONFIG.map(({ key, icon: Icon }) => (
+      {visibleTabs.map(({ key, icon: Icon }) => (
         <button
           key={key}
           onClick={() => onChange(key)}
@@ -393,7 +399,8 @@ function ConfigList({ label, items, onChange, semanticKey }) {
   );
 }
 
-function InterventionsTab({ settings: s, onSave, saving, msg, msgType }) {
+function InterventionsTab({ settings: s, onSave, saving, msg, msgType, featureFlags }) {
+  const ff = featureFlags || {};
   const [intTypes, setIntTypes] = useState(() => (s.intervention_types || []).map(normalizeType));
   const [newType, setNewType] = useState('');
   const [expanded, setExpanded] = useState({});
@@ -440,6 +447,7 @@ function InterventionsTab({ settings: s, onSave, saving, msg, msgType }) {
                     </span>
                   )}
                 </button>
+                {ff.appointments !== false && (
                 <button
                   onClick={() => toggleScheduling(t.name)}
                   title="Enable/disable appointment scheduling for this type"
@@ -452,6 +460,7 @@ function InterventionsTab({ settings: s, onSave, saving, msg, msgType }) {
                   <CalendarDays size={11} />
                   {t.appointment_scheduling_enabled ? 'Scheduling On' : 'Scheduling Off'}
                 </button>
+                )}
                 <button onClick={() => removeType(t.name)} className="text-slate-300 hover:text-rose-500 transition-colors shrink-0">
                   <X size={14} />
                 </button>
@@ -710,7 +719,8 @@ function StudentDataTab({ settings: s, onSave, saving, msg, msgType }) {
 }
 
 // ── GENERAL TAB ──────────────────────────────────────────────────────────────
-function GeneralTab({ settings: s, onSave, saving, msg, msgType }) {
+function GeneralTab({ settings: s, onSave, saving, msg, msgType, featureFlags }) {
+  const ff = featureFlags || {};
   const [schoolName, setSchoolName] = useState(s.school_name || '');
   const [schoolType, setSchoolType] = useState(s.school_type || 'both');
   const [currentTerm, setCurrentTerm] = useState(s.current_term || 'Term 1');
@@ -804,7 +814,7 @@ function GeneralTab({ settings: s, onSave, saving, msg, msgType }) {
         </div>
         {[
           { key: 'email', label: 'Email & Password Login', desc: 'Staff sign in with an email and password. Passwords are set by admins in User Management.', state: emailAuthEnabled, setState: setEmailAuthEnabled, testid: 'email-auth-toggle' },
-          { key: 'google', label: 'Google Login', desc: 'Staff sign in with their Google account. Requires valid Google OAuth credentials in server settings.', state: googleAuthEnabled, setState: setGoogleAuthEnabled, testid: 'google-auth-toggle' },
+          ...(ff.google_auth !== false ? [{ key: 'google', label: 'Google Login', desc: 'Staff sign in with their Google account. Requires valid Google OAuth credentials in server settings.', state: googleAuthEnabled, setState: setGoogleAuthEnabled, testid: 'google-auth-toggle' }] : []),
         ].map(opt => (
           <div key={opt.key} className="flex items-start justify-between gap-4">
             <div className="min-w-0">
@@ -1933,7 +1943,8 @@ const SCREENING_PERIODS = [
   'Term 4 - P1', 'Term 4 - P2',
 ];
 
-function ScreeningSessionsTab({ settings: s, onSave, saving, msg, msgType }) {
+function ScreeningSessionsTab({ settings: s, onSave, saving, msg, msgType, featureFlags }) {
+  const ff = featureFlags || {};
   const [activePeriod, setActivePeriod] = useState(s.active_screening_period || '');
   const [modules, setModules] = useState({ saebrs_plus: true, ...s.modules_enabled });
 
@@ -1994,6 +2005,7 @@ function ScreeningSessionsTab({ settings: s, onSave, saving, msg, msgType }) {
       </div>
 
       {/* Screening Modules */}
+      {ff.saebrs_plus !== false && (
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Screening Modules</h3>
         <p className="text-xs text-slate-400 mb-4">Enable or disable screening components for your school.</p>
@@ -2017,12 +2029,14 @@ function ScreeningSessionsTab({ settings: s, onSave, saving, msg, msgType }) {
           ))}
         </div>
       </div>
+      )}
     </div>
   );
 }
 
 // ── INTEGRATIONS TAB ──────────────────────────────────────────────────────────
-function IntegrationsTab({ settings: s, onSave, saving, msg, msgType }) {
+function IntegrationsTab({ settings: s, onSave, saving, msg, msgType, featureFlags }) {
+  const ff = featureFlags || {};
   const [ollamaUrl, setOllamaUrl] = useState(s.ollama_url || 'http://localhost:11434');
   const [ollamaModel, setOllamaModel] = useState(s.ollama_model || 'llama3.2');
   const [aiEnabled, setAiEnabled] = useState(s.ai_suggestions_enabled !== false);
@@ -2120,6 +2134,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [msgType, setMsgType] = useState('success');
+  const featureFlags = settings.feature_flags || {};
 
   useEffect(() => { loadFullSettings(); }, [loadFullSettings]);
 
@@ -2136,7 +2151,7 @@ export default function SettingsPage() {
     } finally { setSaving(false); }
   };
 
-  const tabProps = { settings, onSave: saveSettings, saving, msg, msgType };
+  const tabProps = { settings, onSave: saveSettings, saving, msg, msgType, featureFlags };
 
   return (
     <div className="p-6 lg:p-8 max-w-3xl mx-auto fade-in">
@@ -2148,6 +2163,7 @@ export default function SettingsPage() {
       <TabNav
         active={activeTab}
         onChange={setActiveTab}
+        featureFlags={featureFlags}
       />
 
       {activeTab === 'General' && <GeneralTab {...tabProps} />}

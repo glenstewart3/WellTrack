@@ -80,7 +80,7 @@ export default function LoginPage() {
             )}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0" style={{ backgroundColor: accent }}>
-                <Shield size={20} className="text-white" />
+                <Shield size={20} className="text-emerald-400" />
               </div>
               <div>
                 <p className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{settings.platform_name || 'WellTrack'}</p>
