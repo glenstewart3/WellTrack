@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { School, Plus, Search, Users, Loader2, ExternalLink, X, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { SA_PATH_PREFIX } from '../../context/SABasePath';
 import saApi from '../../api-superadmin';
 
 export default function SASchoolsPage() {
@@ -90,7 +91,7 @@ export default function SASchoolsPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filtered.map(s => (
-                  <tr key={s.school_id || s.slug} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate(`/sa/schools/${s.school_id}`)}>
+                  <tr key={s.school_id || s.slug} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate(`${SA_PATH_PREFIX}/schools/${s.school_id}`)}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
@@ -108,7 +109,7 @@ export default function SASchoolsPage() {
                     <td className="px-4 py-3 text-center text-slate-500">{s.user_count ?? 0}</td>
                     <td className="px-4 py-3 text-xs text-slate-400">{s.last_active ? new Date(s.last_active).toLocaleDateString() : '-'}</td>
                     <td className="px-4 py-3 text-right">
-                      <Link to={`/sa/schools/${s.school_id}`} className="text-blue-600 hover:text-blue-700" onClick={e => e.stopPropagation()}>
+                      <Link to={`${SA_PATH_PREFIX}/schools/${s.school_id}`} className="text-blue-600 hover:text-blue-700" onClick={e => e.stopPropagation()}>
                         <ExternalLink size={14} />
                       </Link>
                     </td>

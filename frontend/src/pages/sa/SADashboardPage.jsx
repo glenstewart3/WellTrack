@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { School, Users, Activity, AlertTriangle, ArrowRight, Loader2, Clock } from 'lucide-react';
+import { SA_PATH_PREFIX } from '../../context/SABasePath';
 import saApi from '../../api-superadmin';
 
 export default function SADashboardPage() {
@@ -69,7 +70,7 @@ export default function SADashboardPage() {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <h2 className="text-sm font-semibold text-slate-800">Recent Schools</h2>
-          <Link to="/sa/schools" className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+          <Link to={`${SA_PATH_PREFIX}/schools`} className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
             View all <ArrowRight size={12} />
           </Link>
         </div>
@@ -79,7 +80,7 @@ export default function SADashboardPage() {
           ) : recentSchools.map(s => (
             <Link
               key={s.school_id || s.slug}
-              to={`/sa/schools/${s.school_id}`}
+              to={`${SA_PATH_PREFIX}/schools/${s.school_id}`}
               className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition-colors"
             >
               <div className="flex items-center gap-3">

@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useSAAuth } from '../context/SuperAdminAuthContext';
+import { SA_PATH_PREFIX } from '../context/SABasePath';
 import {
   LayoutDashboard, School, Shield, ScrollText, LogOut,
   Menu, X, ChevronDown, Settings
 } from 'lucide-react';
 
 const navItems = [
-  { path: '/sa/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { path: '/sa/schools', icon: School, label: 'Schools' },
-  { path: '/sa/admins', icon: Shield, label: 'Super Admins' },
-  { path: '/sa/audit', icon: ScrollText, label: 'Audit Log' },
+  { path: `${SA_PATH_PREFIX}/dashboard`, icon: LayoutDashboard, label: 'Dashboard' },
+  { path: `${SA_PATH_PREFIX}/schools`, icon: School, label: 'Schools' },
+  { path: `${SA_PATH_PREFIX}/admins`, icon: Shield, label: 'Super Admins' },
+  { path: `${SA_PATH_PREFIX}/audit`, icon: ScrollText, label: 'Audit Log' },
 ];
 
 export default function SALayout() {
@@ -31,7 +32,7 @@ export default function SALayout() {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/sa/login');
+    navigate(`${SA_PATH_PREFIX}/login`);
   };
 
   const Sidebar = () => (

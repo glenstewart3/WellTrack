@@ -30,6 +30,7 @@ import SASchoolsPage from './pages/sa/SASchoolsPage';
 import SASchoolDetailPage from './pages/sa/SASchoolDetailPage';
 import SASuperAdminsPage from './pages/sa/SASuperAdminsPage';
 import SAAuditPage from './pages/sa/SAAuditPage';
+import { SA_PATH_PREFIX } from './context/SABasePath';
 
 // Detect which portal to show based on hostname
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || 'welltrack.com.au';
@@ -72,7 +73,7 @@ function SAProtectedRoute() {
   const { admin, loading } = useSAAuth();
   const location = useLocation();
   if (loading) return <Spinner />;
-  if (!admin) return <Navigate to="/sa/login" state={{ from: location }} replace />;
+  if (!admin) return <Navigate to={`${SA_PATH_PREFIX}/login`} state={{ from: location }} replace />;
   return <SALayout />;
 }
 

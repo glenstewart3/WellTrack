@@ -4,6 +4,7 @@ import {
   ArrowLeft, School, Users, Activity, Globe, Pencil, Trash2, UserPlus, Key, Loader2,
   AlertCircle, CheckCircle, XCircle, X, Eye, EyeOff, ExternalLink, Shield, ToggleLeft, ToggleRight
 } from 'lucide-react';
+import { SA_PATH_PREFIX } from '../../context/SABasePath';
 import saApi from '../../api-superadmin';
 
 export default function SASchoolDetailPage() {
@@ -65,14 +66,14 @@ export default function SASchoolDetailPage() {
     return (
       <div className="text-center py-20 text-slate-400">
         <p>School not found</p>
-        <Link to="/sa/schools" className="text-blue-600 text-sm mt-2 inline-block">Back to Schools</Link>
+        <Link to={`${SA_PATH_PREFIX}/schools`} className="text-blue-600 text-sm mt-2 inline-block">Back to Schools</Link>
       </div>
     );
   }
 
   return (
     <div data-testid="sa-school-detail-page">
-      <Link to="/sa/schools" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-4">
+      <Link to={`${SA_PATH_PREFIX}/schools`} className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-4">
         <ArrowLeft size={14} /> Back to Schools
       </Link>
 
