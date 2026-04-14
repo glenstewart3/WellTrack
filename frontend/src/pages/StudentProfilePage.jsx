@@ -870,7 +870,7 @@ export default function StudentProfilePage() {
                 <p className="text-sm font-semibold text-indigo-800">AI Intervention Suggestions</p>
                 <button onClick={() => setShowAiPanel(false)} className="text-indigo-400 hover:text-indigo-600"><X size={15} /></button>
               </div>
-              {aiLoading && <div className="flex items-center gap-2 text-sm text-indigo-600 py-4 justify-center"><Loader size={16} className="animate-spin" /> Generating suggestions…</div>}
+              {aiLoading && <div className="flex flex-col items-center gap-2 text-sm text-indigo-600 py-6"><Loader size={16} className="animate-spin" /> <span>Generating suggestions...</span><span className="text-xs text-slate-400 font-normal">This may take 30 seconds to a minute</span></div>}
               {aiError && <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg p-3">{aiError}</p>}
               {aiSuggestions && (
                 <div className="grid sm:grid-cols-3 gap-3">
