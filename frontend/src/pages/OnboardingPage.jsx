@@ -303,11 +303,11 @@ export default function OnboardingPage({ onComplete }) {
                   <label className="text-sm font-medium text-slate-700 shrink-0">Number of demo students:</label>
                   <input
                     type="number" min="8" max="400" value={demoStudentCount}
-                    onChange={e => setDemoStudentCount(Math.max(8, Math.min(400, parseInt(e.target.value) || 32)))}
+                    onChange={e => setDemoStudentCount(Math.max(8, Math.min(2000, parseInt(e.target.value) || 32)))}
                     data-testid="demo-student-count-input"
                     className="w-24 px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-center font-medium focus:outline-none focus:ring-2 focus:ring-slate-900/20"
                   />
-                  <span className="text-xs text-slate-400">(8 - 400)</span>
+                  <span className="text-xs text-slate-400">(8 - 2,000)</span>
                 </div>
               )}
 

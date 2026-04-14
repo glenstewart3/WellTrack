@@ -10,56 +10,81 @@ from helpers import (compute_saebrs_risk, compute_wellbeing_tier,
 
 
 async def seed_database(db, student_count: int = 32):
-    student_count = max(8, min(400, student_count))
+    student_count = max(8, min(2000, student_count))
 
     for col in ["students", "attendance", "attendance_records", "school_days", "screening_sessions",
-                "saebrs_results", "self_report_results", "interventions", "case_notes", "alerts"]:
+                "saebrs_results", "self_report_results", "interventions", "case_notes", "alerts",
+                "appointments"]:
         await db[col].delete_many({})
 
     await db.school_settings.update_one({}, {"$set": {
         "excluded_absence_types": ["Camp", "Excursion", "School Event"],
     }}, upsert=True)
-    # NOTE: school_name, school_type, current_term, current_year are NOT reset here
-    # so that onboarding values are preserved when user chooses "Load Demo Data"
 
-    # Determine year to seed — use the school's configured current_year or today's year
     settings_doc = await db.school_settings.find_one({}, {"_id": 0})
     seed_year = (settings_doc or {}).get("current_year") or date_type.today().year
 
     rng = random.Random(42)
 
-    classes_data = [
-        {"class": "F/1A", "teacher": "Ms Patel",     "year": "Foundation"},
-        {"class": "1/2B", "teacher": "Ms Lee",        "year": "Year 1"},
-        {"class": "3A",   "teacher": "Ms Thompson",   "year": "Year 3"},
-        {"class": "5B",   "teacher": "Mr Rodriguez",  "year": "Year 5"},
+    # ── Build classes dynamically (max 25 per class) ─────────────────────────
+    base_classes = [
+        {"prefix": "F/1", "year": "Foundation", "teachers": ["Ms Patel", "Ms Chen", "Mr Brooks"]},
+        {"prefix": "1/2", "year": "Year 1",     "teachers": ["Ms Lee", "Ms Adams", "Mr Wright"]},
+        {"prefix": "3",   "year": "Year 3",     "teachers": ["Ms Thompson", "Ms Gray", "Mr Hall"]},
+        {"prefix": "5",   "year": "Year 5",     "teachers": ["Mr Rodriguez", "Ms Evans", "Mr King"]},
     ]
-    # Distribute student_count evenly across 4 classes; first (student_count % 4) classes get one extra
-    base_per_class = student_count // 4
-    extra_classes = student_count % 4
-    class_sizes = [base_per_class + (1 if i < extra_classes else 0) for i in range(len(classes_data))]
+    MAX_PER_CLASS = 25
+    classes_data = []
+    students_per_group = student_count // len(base_classes)
+    remainder = student_count % len(base_classes)
+
+    for grp_idx, grp in enumerate(base_classes):
+        grp_size = students_per_group + (1 if grp_idx < remainder else 0)
+        num_classes = max(1, (grp_size + MAX_PER_CLASS - 1) // MAX_PER_CLASS)
+        per_class = grp_size // num_classes
+        extra = grp_size % num_classes
+        for c in range(num_classes):
+            suffix = chr(ord('A') + c)
+            size = per_class + (1 if c < extra else 0)
+            teacher = grp["teachers"][c % len(grp["teachers"])]
+            classes_data.append({
+                "class": f"{grp['prefix']}{suffix}",
+                "teacher": teacher,
+                "year": grp["year"],
+                "size": size,
+            })
 
     first_names = ["Emma", "Liam", "Olivia", "Noah", "Ava", "Ethan", "Sophia", "Mason",
                    "Isabella", "James", "Charlotte", "Alexander", "Amelia", "William", "Harper",
                    "Benjamin", "Evelyn", "Lucas", "Abigail", "Henry", "Emily", "Sebastian",
                    "Elizabeth", "Jack", "Sofia", "Owen", "Avery", "Theodore", "Ella", "Carter",
-                   "Scarlett", "Jayden"]
-    preferred_names = [None, None, None, "Ollie", None, None, None, None,
-                       "Izzy", None, None, "Alex", None, "Will", None,
-                       "Ben", None, None, "Abby", "Hank", None, "Seb",
-                       "Liz", None, None, None, None, "Theo", None, None,
-                       None, "Jay"]
+                   "Scarlett", "Jayden", "Mia", "Logan", "Aria", "Aiden", "Chloe", "Daniel",
+                   "Riley", "Jackson", "Lily", "Caleb", "Zoe", "Matthew", "Layla", "Ryan",
+                   "Grace", "Nathan", "Hannah", "Leo"]
+    preferred_names = {3: "Ollie", 8: "Izzy", 11: "Alex", 13: "Will", 15: "Ben",
+                       18: "Abby", 19: "Hank", 21: "Seb", 22: "Liz", 27: "Theo", 31: "Jay"}
     last_names = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
                   "Wilson", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin",
                   "Thompson", "Moore", "Young", "Lee", "Walker", "Allen", "Hall", "Nguyen",
-                  "Robinson", "King", "Wright", "Scott", "Torres", "Green"]
+                  "Robinson", "King", "Wright", "Scott", "Torres", "Green", "Baker", "Hill",
+                  "Adams", "Nelson", "Carter", "Mitchell", "Roberts", "Campbell", "Phillips", "Evans"]
+
+    # ── Tier distribution: ~15% T3, ~30% T2, ~55% T1 (with variance) ────────
+    target_t3_pct = rng.uniform(0.10, 0.15)
+    target_t2_pct = rng.uniform(0.25, 0.30)
+    t3_count = int(student_count * target_t3_pct)
+    t2_count = int(student_count * target_t2_pct)
+    t1_count = student_count - t3_count - t2_count
+
+    risk_assignments = ["high"] * t3_count + ["some"] * t2_count + ["low"] * t1_count
+    rng.shuffle(risk_assignments)
 
     students = []
     name_idx = 0
-    for cls_idx, cls_data in enumerate(classes_data):
-        for i in range(class_sizes[cls_idx]):
+    for cls_data in classes_data:
+        for i in range(cls_data["size"]):
             fname = first_names[name_idx % len(first_names)]
-            pname = preferred_names[name_idx % len(preferred_names)]
+            pname = preferred_names.get(name_idx % len(first_names))
             lname = last_names[(name_idx + 7) % len(last_names)]
             sussi = f"YUS{name_idx + 1:04d}"
             students.append({
@@ -106,14 +131,6 @@ async def seed_database(db, student_count: int = 32):
         "high": [72, 68, 82, 75],
     }
 
-    risk_overrides = {
-        3: ("some", "high"),
-        7: ("high", "some"),
-        11: ("low", "some"),
-        15: ("some", "low"),
-    }
-    risk_cycle = ["low", "low", "low", "some", "some", "some", "high", "high"]
-
     def vary(items, delta=1):
         return [max(0, min(3, x + rng.randint(-delta, delta))) for x in items]
 
@@ -140,16 +157,31 @@ async def seed_database(db, student_count: int = 32):
         ],
     }
 
+    # ── Appointment templates ────────────────────────────────────────────────
+    apt_types = ["Individual Counselling", "Wellbeing Check-In", "Parent Meeting",
+                 "SSG Meeting", "Behaviour Review", "Academic Support"]
+    apt_rooms = ["Wellbeing Room", "Meeting Room 1", "Counsellor Office", "Staff Room"]
+    apt_staff = ["Ms Parker (Wellbeing)", "Mr Lewis (Counsellor)", "Ms Ahmed (SENCO)"]
+    apt_statuses = ["completed", "completed", "completed", "completed",
+                    "scheduled", "scheduled", "cancelled"]
+    apt_outcomes = ["Progressing well", "Requires follow-up", "Referred to external service",
+                    "Monitoring", "Goals reviewed and updated", None]
+
     all_s1, all_s2, all_p1, all_p2 = [], [], [], []
-    all_att_recs, all_int, all_notes, all_alerts = [], [], [], []
+    all_att_recs, all_int, all_notes, all_alerts, all_appts = [], [], [], [], []
     school_days_set = set(all_school_days)
 
     for idx, student in enumerate(students):
         sid = student["student_id"]
-        base_risk = risk_cycle[idx % len(risk_cycle)]
+        base_risk = risk_assignments[idx]
 
-        if idx in risk_overrides:
-            risk_t1, risk_t2 = risk_overrides[idx]
+        # Allow some trajectory variation between terms
+        if rng.random() < 0.15:
+            risk_t1 = rng.choice(["low", "some", "high"])
+            risk_t2 = base_risk
+        elif rng.random() < 0.10:
+            risk_t1 = base_risk
+            risk_t2 = rng.choice(["low", "some"])
         else:
             risk_t1 = risk_t2 = base_risk
 
@@ -300,6 +332,27 @@ async def seed_database(db, student_count: int = 32):
                     "created_at": f"{seed_year}-0{3 + tmpl_idx}-10T11:00:00"
                 })
 
+            # Tier 3 students get 2-4 appointments
+            for _ in range(rng.randint(2, 4)):
+                apt_date = date_type(seed_year, rng.randint(3, 5), rng.randint(1, 28))
+                apt_time = f"{rng.randint(9, 14)}:{rng.choice(['00', '15', '30', '45'])}:00"
+                status = rng.choice(["completed", "completed", "completed", "scheduled"])
+                all_appts.append({
+                    "appointment_id": f"apt_{uuid.uuid4().hex[:8]}",
+                    "student_id": sid, "student_name": display,
+                    "class_name": student["class_name"],
+                    "appointment_type": rng.choice(apt_types[:3]),
+                    "staff_member": rng.choice(apt_staff),
+                    "date": apt_date.isoformat(),
+                    "time": apt_time,
+                    "duration": rng.choice([30, 45, 60]),
+                    "room": rng.choice(apt_rooms),
+                    "status": status,
+                    "outcome": rng.choice(apt_outcomes[:3]) if status == "completed" else None,
+                    "notes": f"Session with {display} — {rng.choice(['discussed coping strategies', 'reviewed goals', 'parent phone call follow-up', 'check-in on attendance', 'SSG preparation'])}" if status == "completed" else "",
+                    "created_at": f"{apt_date.isoformat()}T{apt_time}",
+                })
+
         elif final_tier == 2:
             all_int.append({
                 "intervention_id": f"int_{uuid.uuid4().hex[:8]}", "student_id": sid,
@@ -329,12 +382,32 @@ async def seed_database(db, student_count: int = 32):
                     "created_at": f"{seed_year}-0{4 + tmpl_idx}-07T09:30:00"
                 })
 
+            # Tier 2 students get 1-2 appointments
+            for _ in range(rng.randint(1, 2)):
+                apt_date = date_type(seed_year, rng.randint(3, 5), rng.randint(1, 28))
+                apt_time = f"{rng.randint(9, 14)}:{rng.choice(['00', '15', '30', '45'])}:00"
+                status = rng.choice(apt_statuses[:5])
+                all_appts.append({
+                    "appointment_id": f"apt_{uuid.uuid4().hex[:8]}",
+                    "student_id": sid, "student_name": display,
+                    "class_name": student["class_name"],
+                    "appointment_type": rng.choice(apt_types),
+                    "staff_member": rng.choice(apt_staff),
+                    "date": apt_date.isoformat(),
+                    "time": apt_time,
+                    "duration": rng.choice([20, 30, 45]),
+                    "room": rng.choice(apt_rooms),
+                    "status": status,
+                    "outcome": rng.choice(apt_outcomes) if status == "completed" else None,
+                    "notes": f"Check-in with {display}" if status == "completed" else "",
+                    "created_at": f"{apt_date.isoformat()}T{apt_time}",
+                })
+
     # Insert demo school days by default; override with term-based days if terms are defined
     await db.school_days.insert_many([{"date": d, "year": seed_year} for d in sorted(school_days_set)])
     settings_doc = await db.school_settings.find_one({}, {"_id": 0})
     terms = (settings_doc or {}).get("terms", [])
     if terms:
-        # Re-apply term-based school days so the Calendar settings are not overwritten by seed
         from datetime import date as _dt, timedelta as _td
         excluded = {d["date"] for d in (settings_doc or {}).get("non_school_days", [])}
         term_days = set()
@@ -360,6 +433,7 @@ async def seed_database(db, student_count: int = 32):
         (all_int,         "interventions"),
         (all_notes,       "case_notes"),
         (all_alerts,      "alerts"),
+        (all_appts,       "appointments"),
     ]:
         if col_data:
             await db[col_name].insert_many(col_data)
@@ -372,4 +446,5 @@ async def seed_database(db, student_count: int = 32):
         "interventions": len(all_int),
         "case_notes": len(all_notes),
         "alerts": len(all_alerts),
+        "appointments": len(all_appts),
     }
