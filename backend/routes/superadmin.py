@@ -581,3 +581,63 @@ async def delete_super_admin(sa_id: str, admin=Depends(get_super_admin)):
     await control_db.super_admin_sessions.delete_many({"super_admin_id": sa_id})
     await _log_sa_audit(admin, "deleted_super_admin", "super_admin", sa_id, target.get("name", ""))
     return {"message": "Super admin deleted"}
+
+
+# ── Platform Configuration (Ollama / AI) ─────────────────────────────────────
+
+@router.get("/superadmin/platform-config")
+async def get_platform_config(admin=Depends(get_super_admin)):
+    doc = await control_db.platform_config.find_one({"key": "ai"}, {"_id": 0})
+    defaults = {
+        "key": "ai",
+        "ollama_url": "http://localhost:11434",
+        "ollama_model": "llama3.2",
+        "ai_suggestions_enabled": True,
+    }
+    if doc:
+        defaults.update(doc)
+    return defaults
+
+
+@router.put("/superadmin/platform-config")
+async def update_platform_config(data: dict, admin=Depends(get_super_admin)):
+    allowed = {"ollama_url", "ollama_model", "ai_suggestions_enabled"}
+    update = {k: v for k, v in data.items() if k in allowed}
+    if not update:
+        raise HTTPException(400, "No valid fields to update")
+    await control_db.platform_config.update_one(
+        {"key": "ai"}, {"$set": update}, upsert=True,
+    )
+    await _log_sa_audit(admin, "updated_platform_config", "platform", "ai", "AI/Ollama config",
+                        {"changes": update})
+    doc = await control_db.platform_config.find_one({"key": "ai"}, {"_id": 0})
+    return doc
+
+
+@router.get("/superadmin/test-ollama")
+async def sa_test_ollama(admin=Depends(get_super_admin)):
+    """Test Ollama connectivity from the SA portal."""
+    import httpx
+    doc = await control_db.platform_config.find_one({"key": "ai"}, {"_id": 0}) or {}
+    ollama_url = doc.get("ollama_url", "http://localhost:11434")
+    ollama_model = doc.get("ollama_model", "llama3.2")
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as hc:
+            tags_resp = await hc.get(f"{ollama_url}/api/tags")
+            tags_resp.raise_for_status()
+            models = [m["name"] for m in tags_resp.json().get("models", [])]
+            model_available = any(m.split(":")[0] == ollama_model.split(":")[0] for m in models)
+            return {
+                "connected": True,
+                "url": ollama_url,
+                "models": models[:8],
+                "model": ollama_model,
+                "model_available": model_available,
+                "message": f"Connected to Ollama. {len(models)} model(s) found." + (
+                    f" Model '{ollama_model}' is ready." if model_available
+                    else f" Warning: model '{ollama_model}' not found — run: ollama pull {ollama_model}"
+                ),
+            }
+    except Exception as e:
+        return {"connected": False, "url": ollama_url, "message": f"Cannot connect to Ollama at {ollama_url}. {str(e)}"}
+

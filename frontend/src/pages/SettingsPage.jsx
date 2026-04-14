@@ -32,17 +32,12 @@ const TAB_CONFIG = [
   { key: 'Screening',           icon: ClipboardCheck },
   { key: 'Calendar',            icon: CalendarDays },
   { key: 'Imports',             icon: FileUp },
-  { key: 'Integrations',        icon: Wifi },
   { key: 'Data',                icon: Database },
 ];
 
 function TabNav({ active, onChange, featureFlags }) {
   const ff = featureFlags || {};
-  const visibleTabs = TAB_CONFIG.filter(tab => {
-    // Hide Integrations tab entirely if ai_suggestions is disabled
-    if (tab.key === 'Integrations' && ff.ai_suggestions === false) return false;
-    return true;
-  });
+  const visibleTabs = TAB_CONFIG.filter(() => true);
   return (
     <div className="flex flex-wrap gap-1 mb-8 p-1.5 bg-slate-100 rounded-2xl">
       {visibleTabs.map(({ key, icon: Icon }) => (
@@ -2174,7 +2169,6 @@ export default function SettingsPage() {
       {activeTab === 'Screening' && <ScreeningSessionsTab {...tabProps} />}
       {activeTab === 'Calendar' && <CalendarTab msg={msg} msgType={msgType} setMsg={setMsg} setMsgType={setMsgType} />}
       {activeTab === 'Imports' && <ImportsTab msg={msg} msgType={msgType} setMsg={setMsg} setMsgType={setMsgType} settings={settings} onSave={saveSettings} />}
-      {activeTab === 'Integrations' && <IntegrationsTab {...tabProps} />}
       {activeTab === 'Data' && <DataTab msg={msg} msgType={msgType} setMsg={setMsg} setMsgType={setMsgType} />}
     </div>
   );

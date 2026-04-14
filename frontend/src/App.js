@@ -30,6 +30,7 @@ import SASchoolsPage from './pages/sa/SASchoolsPage';
 import SASchoolDetailPage from './pages/sa/SASchoolDetailPage';
 import SASuperAdminsPage from './pages/sa/SASuperAdminsPage';
 import SAAuditPage from './pages/sa/SAAuditPage';
+import SAPlatformSettingsPage from './pages/sa/SAPlatformSettingsPage';
 import { SA_PATH_PREFIX } from './context/SABasePath';
 
 // Detect which portal to show based on hostname
@@ -209,6 +210,7 @@ function SAPortalApp() {
             <Route path="schools/:schoolId" element={<SASchoolDetailPage />} />
             <Route path="admins" element={<SASuperAdminsPage />} />
             <Route path="audit" element={<SAAuditPage />} />
+            <Route path="platform" element={<SAPlatformSettingsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
@@ -264,6 +266,7 @@ function DevApp() {
                   <Route path="schools/:schoolId" element={<SASchoolDetailPage />} />
                   <Route path="admins" element={<SASuperAdminsPage />} />
                   <Route path="audit" element={<SAAuditPage />} />
+                  <Route path="platform" element={<SAPlatformSettingsPage />} />
                 </Route>
                 <Route path="/*" element={<SchoolRouter />} />
               </Routes>

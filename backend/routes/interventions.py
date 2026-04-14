@@ -160,8 +160,13 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user), db
         if not settings_doc.get("ai_suggestions_enabled", True):
             raise HTTPException(403, "AI suggestions are disabled. Enable in Settings > Integrations.")
 
-        ollama_url = settings_doc.get("ollama_url", "http://localhost:11434")
-        ollama_model = settings_doc.get("ollama_model", "llama3.2")
+        # Read Ollama config from platform-level config (control_db), fall back to school settings
+        from control_db import control_db as _cdb
+        platform_cfg = await _cdb.platform_config.find_one({"key": "ai"}, {"_id": 0}) or {}
+        if platform_cfg.get("ai_suggestions_enabled") is False:
+            raise HTTPException(403, "AI suggestions are disabled by the platform administrator.")
+        ollama_url = platform_cfg.get("ollama_url") or settings_doc.get("ollama_url", "http://localhost:11434")
+        ollama_model = platform_cfg.get("ollama_model") or settings_doc.get("ollama_model", "llama3.2")
 
         student = await db.students.find_one({"student_id": student_id}, {"_id": 0})
         if not student:

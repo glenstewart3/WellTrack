@@ -12,6 +12,7 @@ const navItems = [
   { path: `${SA_PATH_PREFIX}/schools`, icon: School, label: 'Schools' },
   { path: `${SA_PATH_PREFIX}/admins`, icon: Shield, label: 'Super Admins' },
   { path: `${SA_PATH_PREFIX}/audit`, icon: ScrollText, label: 'Audit Log' },
+  { path: `${SA_PATH_PREFIX}/platform`, icon: Settings, label: 'Platform Settings' },
 ];
 
 export default function SALayout() {
