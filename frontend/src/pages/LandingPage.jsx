@@ -4,8 +4,11 @@ import {
   Target, ClipboardCheck, Loader2, XCircle
 } from 'lucide-react';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = process.env.REACT_APP_BACKEND_URL || '';
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || 'welltrack.com.au';
+// On root domain in production, use relative paths
+const isRootDomain = window.location.hostname === BASE_DOMAIN || window.location.hostname === `www.${BASE_DOMAIN}`;
+const API_BASE = isRootDomain ? '' : API;
 
 export default function LandingPage() {
   const [showFinder, setShowFinder] = useState(false);
@@ -23,7 +26,7 @@ export default function LandingPage() {
     setChecking(true);
     setResult(null);
     try {
-      const r = await fetch(`${API}/api/school-lookup?slug=${encodeURIComponent(slug.trim().toLowerCase())}`);
+      const r = await fetch(`${API_BASE}/api/school-lookup?slug=${encodeURIComponent(slug.trim().toLowerCase())}`);
       const data = await r.json();
       setResult(data);
       if (data.exists) {
