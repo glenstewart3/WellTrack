@@ -224,6 +224,8 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user), db
         context += f"Current active interventions: {', '.join(active_types) if active_types else 'None'}\n"
 
         available = settings_doc.get("intervention_types") or []
+        # Normalize: items may be strings or dicts with a "name" key
+        available = [t if isinstance(t, str) else t.get('name', str(t)) for t in available]
         if available:
             context += f"\nAvailable interventions at this school: {', '.join(available)}\n"
 
