@@ -62,8 +62,13 @@ def _normalize_rec(rec: dict) -> dict:
 
 
 def _extract_json_array(text: str):
-    """Try multiple strategies to extract a JSON array from an LLM response."""
+    """Try multiple strategies to extract a JSON array from an LLM response, including truncated ones."""
     text = text.strip()
+    # Strip markdown fences
+    if text.startswith('```'):
+        text = re.sub(r'^```(?:json)?\s*', '', text)
+        text = re.sub(r'\s*```$', '', text)
+    # Direct parse
     try:
         data = _json.loads(text)
         if isinstance(data, list):
@@ -72,12 +77,14 @@ def _extract_json_array(text: str):
             return [data]
     except Exception:
         pass
+    # Markdown code block
     md = re.search(r'```(?:json)?\s*(\[.*?\])\s*```', text, re.DOTALL | re.IGNORECASE)
     if md:
         try:
             return _json.loads(md.group(1))
         except Exception:
             pass
+    # Find array brackets
     start = text.find('[')
     end = text.rfind(']')
     if start != -1 and end > start:
@@ -85,6 +92,7 @@ def _extract_json_array(text: str):
             return _json.loads(text[start:end + 1])
         except Exception:
             pass
+    # Extract individual complete JSON objects (handles truncated arrays)
     objects = []
     depth = 0
     obj_start = None
@@ -104,6 +112,21 @@ def _extract_json_array(text: str):
                 obj_start = None
     if objects:
         return objects
+    # Last resort: try to repair truncated single object by closing braces/quotes
+    brace_start = text.find('{')
+    if brace_start != -1:
+        fragment = text[brace_start:]
+        # Close any unclosed quotes and braces
+        if fragment.count('"') % 2 != 0:
+            fragment += '"'
+        open_braces = fragment.count('{') - fragment.count('}')
+        fragment += '}' * max(0, open_braces)
+        try:
+            obj = _json.loads(fragment)
+            if isinstance(obj, dict):
+                return [obj]
+        except Exception:
+            pass
     return None
 
 
@@ -350,10 +373,15 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user), db
 
         logger.info(f"AI suggest for {student_id}: prompt length={len(prompt)}, model={ollama_model}, url={ollama_url}")
 
-        async with httpx.AsyncClient(timeout=90.0) as client:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             resp = await client.post(
                 f"{ollama_url}/api/generate",
-                json={"model": ollama_model, "prompt": prompt, "stream": False}
+                json={
+                    "model": ollama_model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"num_predict": 4096},
+                }
             )
             if resp.status_code == 404:
                 raise HTTPException(503, f"Model '{ollama_model}' not found. Run: ollama pull {ollama_model}")
