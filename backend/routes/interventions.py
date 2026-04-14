@@ -167,9 +167,18 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user), db
         if not student:
             raise HTTPException(404, "Student not found")
 
-        latest_saebrs = await db.saebrs_results.find_one({"student_id": student_id}, {"_id": 0}, sort=[("created_at", -1)])
+        # Fetch full screening history (up to 10 most recent), self-reports, attendance, case notes, interventions
+        saebrs_history = await db.saebrs_results.find(
+            {"student_id": student_id}, {"_id": 0}
+        ).sort("created_at", -1).to_list(10)
+        plus_history = await db.self_report_results.find(
+            {"student_id": student_id}, {"_id": 0}
+        ).sort("created_at", -1).to_list(10)
         att_pct = await get_student_attendance_pct(db, student_id)
         active_ints = await db.interventions.find({"student_id": student_id, "status": "active"}, {"_id": 0}).to_list(10)
+        past_ints = await db.interventions.find({"student_id": student_id, "status": {"$ne": "active"}}, {"_id": 0}).sort("created_at", -1).to_list(5)
+        recent_notes = await db.case_notes.find({"student_id": student_id}, {"_id": 0}).sort("date", -1).to_list(3)
+        att_records = await db.attendance_records.find({"student_id": student_id}, {"_id": 0}).sort("date", -1).to_list(20)
 
         first = student.get('first_name', '')
         pref = student.get('preferred_name')
@@ -178,23 +187,70 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user), db
         context = f"Student: {display_name}, Year Level: {student.get('year_level', 'Unknown')}"
         if student.get('gender'):
             context += f", {student.get('gender')}"
+        if student.get('class_name'):
+            context += f", Class: {student.get('class_name')}"
         context += "\n"
 
-        if latest_saebrs:
+        # ── SAEBRS screening history with per-domain scores ──
+        if saebrs_history:
+            latest = saebrs_history[0]
             domains = {
-                'Social':    (int(latest_saebrs.get('social_score') or 0),    18),
-                'Academic':  (int(latest_saebrs.get('academic_score') or 0),  18),
-                'Emotional': (int(latest_saebrs.get('emotional_score') or 0), 21),
+                'Social':    (int(latest.get('social_score') or 0),    18),
+                'Academic':  (int(latest.get('academic_score') or 0),  18),
+                'Emotional': (int(latest.get('emotional_score') or 0), 21),
             }
             weakest = min(domains, key=lambda k: domains[k][0] / domains[k][1])
-            total = int(latest_saebrs.get('total_score') or 0)
-            context += f"SAEBRS Score: {total}/57 ({latest_saebrs.get('risk_level', 'Unknown')})\n"
-            context += f"  - Social: {domains['Social'][0]}/18, Academic: {domains['Academic'][0]}/18, Emotional: {domains['Emotional'][0]}/21\n"
-            context += f"  - Area of greatest concern: {weakest} ({domains[weakest][0]}/{domains[weakest][1]})\n"
+            total = int(latest.get('total_score') or 0)
+            context += "\nSAEBRS Teacher Rating (most recent):\n"
+            context += f"  Total: {total}/57 — Overall Risk: {latest.get('risk_level', 'Unknown')}\n"
+            context += f"  Social Behaviour: {domains['Social'][0]}/18 — {latest.get('social_risk', 'Unknown')}\n"
+            context += f"  Academic Behaviour: {domains['Academic'][0]}/18 — {latest.get('academic_risk', 'Unknown')}\n"
+            context += f"  Emotional Behaviour: {domains['Emotional'][0]}/21 — {latest.get('emotional_risk', 'Unknown')}\n"
+            context += f"  Primary area of concern: {weakest} ({domains[weakest][0]}/{domains[weakest][1]})\n"
+
+            # Trajectory: show change over time if multiple screenings exist
+            if len(saebrs_history) >= 2:
+                context += f"\nScreening trajectory ({len(saebrs_history)} screenings, newest first):\n"
+                for i, s in enumerate(saebrs_history[:5]):
+                    date = s.get('created_at', 'Unknown date')
+                    if isinstance(date, str) and len(date) > 10:
+                        date = date[:10]
+                    t = int(s.get('total_score') or 0)
+                    soc = int(s.get('social_score') or 0)
+                    aca = int(s.get('academic_score') or 0)
+                    emo = int(s.get('emotional_score') or 0)
+                    context += f"  {date}: Total={t}/57, Social={soc}/18, Academic={aca}/18, Emotional={emo}/21 ({s.get('risk_level', '?')})\n"
+
+                oldest = saebrs_history[-1]
+                old_total = int(oldest.get('total_score') or 0)
+                diff = total - old_total
+                direction = "improving" if diff > 0 else ("declining" if diff < 0 else "stable")
+                context += f"  Trend: {direction} (change of {diff:+d} points from first to latest screening)\n"
         else:
             context += "SAEBRS: Not yet screened\n"
 
-        context += f"Attendance: {(att_pct or 0):.1f}%\n"
+        # ── SAEBRS+ Self-report data ──
+        if plus_history:
+            latest_plus = plus_history[0]
+            wb_total = int(latest_plus.get('wellbeing_total') or latest_plus.get('total_score') or 0)
+            wb_tier = latest_plus.get('wellbeing_tier', '?')
+            context += "\nSAEBRS+ Student Self-Report (most recent):\n"
+            context += f"  Wellbeing Total: {wb_total}, Tier: {wb_tier}\n"
+            if len(plus_history) >= 2:
+                old_plus = plus_history[-1]
+                old_wb = int(old_plus.get('wellbeing_total') or old_plus.get('total_score') or 0)
+                wb_diff = wb_total - old_wb
+                wb_dir = "improving" if wb_diff > 0 else ("declining" if wb_diff < 0 else "stable")
+                context += f"  Self-report trend: {wb_dir} ({wb_diff:+d} points across {len(plus_history)} assessments)\n"
+
+        # ── Attendance ──
+        context += f"\nAttendance: {(att_pct or 0):.1f}%\n"
+        if att_records:
+            from collections import Counter
+            absence_types = Counter(r.get('absence_type', 'Unknown') for r in att_records if r.get('absence_type') and r.get('absence_type') != 'Present')
+            if absence_types:
+                top_reasons = absence_types.most_common(3)
+                context += f"  Recent absence reasons: {', '.join(f'{t} ({c}x)' for t, c in top_reasons)}\n"
 
         _EAL_YES = {'yes', 'y', 'true', '1', 'eal', 'eal/d', 'eald', 'lbote', 'lote',
                     'english as additional language', 'english as an additional language',
@@ -222,6 +278,29 @@ async def get_ai_suggestions(student_id: str, user=Depends(get_current_user), db
 
         active_types = [i.get('intervention_type', '') for i in active_ints if i.get('intervention_type')]
         context += f"Current active interventions: {', '.join(active_types) if active_types else 'None'}\n"
+
+        # Past/completed interventions
+        if past_ints:
+            context += f"Past interventions ({len(past_ints)} most recent):\n"
+            for pi in past_ints:
+                pi_type = pi.get('intervention_type', 'Unknown')
+                pi_status = pi.get('status', 'unknown')
+                pi_outcome = pi.get('outcome', '')
+                context += f"  - {pi_type} ({pi_status})"
+                if pi_outcome:
+                    context += f" — Outcome: {pi_outcome}"
+                context += "\n"
+
+        # Recent case notes (summaries only)
+        if recent_notes:
+            context += "Recent case notes:\n"
+            for cn in recent_notes:
+                cn_date = cn.get('date', 'Unknown')
+                if isinstance(cn_date, str) and len(cn_date) > 10:
+                    cn_date = cn_date[:10]
+                cn_type = cn.get('note_type', '')
+                cn_content = str(cn.get('content', ''))[:150]
+                context += f"  - [{cn_date}] {cn_type}: {cn_content}\n"
 
         available = settings_doc.get("intervention_types") or []
         # Normalize: items may be strings or dicts with a "name" key
