@@ -180,7 +180,6 @@ function InlineEditNote({ note, onSave, onDelete, canDelete }) {
 }
 
 export default function StudentProfilePage() {
-  useDocumentTitle(profile?.student ? `${profile.student.first_name} ${profile.student.last_name}` : 'Student Profile');
   const { settings } = useSettings();
   const { canDo } = usePermissions();
   const customFields = settings.custom_student_fields || [];
@@ -188,6 +187,7 @@ export default function StudentProfilePage() {
   const { studentId } = useParams();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
+  useDocumentTitle(profile?.student ? `${profile.student.first_name} ${profile.student.last_name}` : 'Student Profile');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [showAddIntervention, setShowAddIntervention] = useState(false);
