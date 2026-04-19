@@ -59,18 +59,22 @@ export default function DashboardPage() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [aptAlerts, setAptAlerts] = useState({ overdue: 0, approaching: 0, caseReview: 0, dna: 0 });
+  const [terms, setTerms] = useState([]);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [tierRes, moveRes, alertRes, studRes] = await Promise.all([
+        const currentYear = new Date().getFullYear();
+        const [tierRes, moveRes, alertRes, studRes, termsRes] = await Promise.all([
           api.get('/analytics/tier-distribution'),
           api.get('/analytics/tier-movement?limit=8'),
           api.get('/alerts?resolved=false'),
           api.get('/students/summary'),
+          api.get(`/settings/terms?year=${currentYear}`).catch(() => ({ data: { terms: [] } })),
         ]);
         setStats(tierRes.data);
         setMovement(moveRes.data);
+        setTerms(termsRes.data?.terms || []);
         const allAlerts = alertRes.data;
         setAlerts(allAlerts.slice(0, 5));
         setStudents(studRes.data.filter(s => (s.mtss_tier || 0) >= 2).slice(0, 6));
@@ -142,12 +146,26 @@ export default function DashboardPage() {
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const firstName = user?.name?.split(' ')[0] || '';
   const termLabel = (() => {
-    const now = new Date();
-    const month = now.getMonth();
-    const term = month < 4 ? 1 : month < 7 ? 2 : month < 10 ? 3 : 4;
-    const start = new Date(now.getFullYear(), [0, 4, 7, 10][term - 1], 1);
-    const weekNum = Math.max(1, Math.ceil((now - start) / (7 * 86400000)));
-    return `Term ${term} · Week ${weekNum}`;
+    const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const today = new Date(todayStr + 'T00:00:00');
+    // Find the term that contains today
+    const active = (terms || []).find(t =>
+      t.start_date && t.end_date && todayStr >= t.start_date && todayStr <= t.end_date
+    );
+    if (!active) {
+      // If terms are configured but today is outside them → School Holidays
+      const anyTerm = (terms || []).some(t => t.start_date && t.end_date);
+      if (anyTerm) return 'School Holidays';
+      // No terms configured at all → show friendly date
+      return new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    }
+    const start = new Date(active.start_date + 'T00:00:00');
+    const diffDays = Math.floor((today - start) / (24 * 3600 * 1000));
+    const weekNum = Math.max(1, Math.floor(diffDays / 7) + 1);
+    // Extract term number from name ("Term 1", "Term 2: ...") or fallback
+    const match = (active.name || '').match(/Term\s*(\d+)/i);
+    const termNum = match ? match[1] : '';
+    return termNum ? `Term ${termNum} · Week ${weekNum}` : `Week ${weekNum}`;
   })();
 
   const showAptAlerts = (user?.appointment_access || user?.role === 'admin' || user?.role === 'professional') &&
