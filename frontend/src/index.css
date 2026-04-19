@@ -130,6 +130,37 @@ code {
   text-transform: uppercase;
 }
 
+/* ── Ambient blur drift — slow, varied, respects reduced-motion ──────────── */
+@keyframes wt-drift-a {
+  0%,100% { transform: translate(0, 0) scale(1); }
+  50%     { transform: translate(-40px, 30px) scale(1.08); }
+}
+@keyframes wt-drift-b {
+  0%,100% { transform: translate(0, 0) scale(1); }
+  50%     { transform: translate(-50px, -35px) scale(0.94); }
+}
+@keyframes wt-drift-c {
+  0%,100% { transform: translate(0, 0) scale(1); }
+  50%     { transform: translate(60px, -25px) scale(1.1); }
+}
+@keyframes wt-drift-d {
+  0%,100% { transform: translate(0, 0) scale(1); }
+  50%     { transform: translate(40px, -40px) scale(0.92); }
+}
+@keyframes wt-drift-e {
+  0%,100% { transform: translate(0, 0) scale(1); }
+  50%     { transform: translate(-55px, 25px) scale(1.06); }
+}
+.wt-blur-drift-a { animation: wt-drift-a 85s ease-in-out infinite; }
+.wt-blur-drift-b { animation: wt-drift-b 110s ease-in-out infinite; }
+.wt-blur-drift-c { animation: wt-drift-c  95s ease-in-out infinite; }
+.wt-blur-drift-d { animation: wt-drift-d 125s ease-in-out infinite; }
+.wt-blur-drift-e { animation: wt-drift-e 100s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .wt-blur-drift-a, .wt-blur-drift-b, .wt-blur-drift-c,
+  .wt-blur-drift-d, .wt-blur-drift-e { animation: none; }
+}
+
 /* ── WellTrack tier utility classes (app-wide badge palette) ────────────── */
 .wt-tier1-bg { background-color: var(--wt-tier1-soft); }
 .wt-tier2-bg { background-color: var(--wt-tier2-soft); }
