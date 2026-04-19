@@ -48,7 +48,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-white">
+    <div className="relative min-h-screen overflow-hidden" style={{ backgroundColor: '#fbfaf6' }}>
       {/* Blurred color spots */}
       <div className="pointer-events-none absolute inset-0 -z-0">
         <div className="absolute -top-20 left-1/2 h-[600px] w-[900px] -translate-x-1/2 rounded-full opacity-80 blur-3xl" style={{ background: 'rgba(16, 185, 129, 0.25)' }} />
