@@ -50,6 +50,103 @@ async def tier_distribution(user=Depends(get_current_user), db=Depends(get_tenan
     return {"tier_distribution": counts, "total_students": len(students), "class_breakdown": class_breakdown}
 
 
+@router.get("/analytics/tier-movement")
+async def tier_movement(weeks: int = 8, user=Depends(get_current_user), db=Depends(get_tenant_db)):
+    """Returns weekly tier distribution for the last N weeks.
+
+    For each week cutoff (end of week), each student's tier is computed from their
+    most-recent SAEBRS + SAEBRS-plus results created on/before that cutoff. Students
+    without a prior SAEBRS result at that cutoff are bucketed as 'unscreened'.
+    """
+    from datetime import datetime, timedelta, timezone
+    weeks = max(1, min(weeks, 26))
+
+    students = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
+    student_ids = [s["student_id"] for s in students]
+    if not student_ids:
+        return {"weeks": [], "current": {"tier1": 0, "tier2": 0, "tier3": 0, "unscreened": 0, "total": 0}}
+
+    # Pull full histories once
+    saebrs_hist_map = await get_all_saebrs_bulk(db, student_ids)
+    plus_pipeline = [
+        {"$match": {"student_id": {"$in": student_ids}}},
+        {"$sort": {"created_at": 1}},
+        {"$group": {"_id": "$student_id", "docs": {"$push": "$$ROOT"}}},
+    ]
+    plus_agg = await db.self_report_results.aggregate(plus_pipeline).to_list(500)
+    plus_hist_map = {
+        r["_id"]: [{k: v for k, v in d.items() if k != "_id"} for d in r["docs"]]
+        for r in plus_agg
+    }
+    att_map = await get_bulk_attendance_stats(db, student_ids)
+
+    # Compute week-end cutoffs (Sunday 23:59:59 UTC), most recent first
+    def _to_dt(v):
+        if isinstance(v, datetime):
+            return v if v.tzinfo else v.replace(tzinfo=timezone.utc)
+        try:
+            dt = datetime.fromisoformat(str(v).replace("Z", "+00:00"))
+            return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+        except Exception:
+            return None
+
+    now = datetime.now(timezone.utc)
+    # Anchor on today's end-of-day UTC
+    today_end = now.replace(hour=23, minute=59, second=59, microsecond=0)
+    # Weekly points at today, today-7, today-14 ...
+    week_cutoffs = [today_end - timedelta(days=7 * i) for i in range(weeks)]
+    week_cutoffs.reverse()  # oldest first
+
+    def _tier_as_of(hist_s, hist_p, att_pct, cutoff):
+        # latest saebrs <= cutoff
+        s_doc = None
+        for d in hist_s:
+            cat = _to_dt(d.get("created_at"))
+            if cat and cat <= cutoff:
+                s_doc = d
+            else:
+                break
+        p_doc = None
+        for d in hist_p:
+            cat = _to_dt(d.get("created_at"))
+            if cat and cat <= cutoff:
+                p_doc = d
+            else:
+                break
+        if s_doc and p_doc:
+            return compute_mtss_tier(s_doc["risk_level"], p_doc["wellbeing_tier"], att_pct)
+        if s_doc:
+            rl = s_doc["risk_level"]
+            return 3 if rl == "High Risk" else (2 if rl == "Some Risk" else 1)
+        return 0  # unscreened
+
+    series = []
+    for idx, cutoff in enumerate(week_cutoffs):
+        bucket = {"tier1": 0, "tier2": 0, "tier3": 0, "unscreened": 0}
+        for s in students:
+            sid = s["student_id"]
+            hist_s = saebrs_hist_map.get(sid, [])
+            hist_p = plus_hist_map.get(sid, [])
+            att_pct = att_map.get(sid, {}).get("pct", 100.0)
+            t = _tier_as_of(hist_s, hist_p, att_pct, cutoff)
+            if t == 0:
+                bucket["unscreened"] += 1
+            else:
+                bucket[f"tier{t}"] += 1
+        label_idx = idx - (len(week_cutoffs) - 1)  # 0 for current, -1 prev, etc.
+        series.append({
+            "week": f"W{idx + 1}",
+            "week_end": cutoff.date().isoformat(),
+            "label_offset": label_idx,
+            **bucket,
+            "total": len(students),
+        })
+
+    current = series[-1] if series else {"tier1": 0, "tier2": 0, "tier3": 0, "unscreened": 0, "total": 0}
+    previous = series[-2] if len(series) >= 2 else None
+    return {"weeks": series, "current": current, "previous": previous}
+
+
 @router.get("/analytics/classroom-radar/{class_name}")
 async def classroom_radar(class_name: str, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     students = await db.students.find(

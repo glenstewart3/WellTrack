@@ -44,6 +44,18 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - [x] School login only appears on school subdomains (not root domain)
 - [x] 12/12 backend + all frontend tests passed (iteration_44.json)
 
+### Dashboard UI Refresh — Lovable Design System (COMPLETED - 2026-04-19)
+- [x] Added `/api/analytics/tier-movement?weeks=N` endpoint — returns weekly tier distribution for last N weeks by replaying SAEBRS + SAEBRS-plus history per student at each week cutoff
+- [x] Added Lovable warm cream + tier palette as CSS vars in `index.css` (light + dark)
+- [x] Rewrote `DashboardPage.jsx`:
+  - Full-width responsive (removed `max-w-7xl`)
+  - Term/week micro-label + hero greeting + "This week" / "New screening" top-right buttons
+  - 4 KPI cards with tier-colored icon chips + week-over-week trend chips (delta vs prior week)
+  - Tier movement stacked Area chart (2/3) + Tier distribution donut (1/3)
+  - Recent alerts (2/3) + Lovable-style Watchlist (1/3) — avatar + name + "Year X · Class" + tier badge
+  - Removed Quick Actions section
+  - Replaced JetBrains Mono with `.wt-mono-label` Manrope utility
+
 ### Pre-existing Features (from single-tenant)
 - Student management, SAEBRS screening, MTSS tier calculation
 - Attendance, Interventions, Appointments, Analytics, Reports
