@@ -13,9 +13,9 @@ import {
 import { exportAnalyticsReport } from '../utils/pdfExport';
 import { usePermissions } from '../hooks/usePermissions';
 
-const COLORS = ['#22c55e', '#f59e0b', '#ef4444'];
-const DOMAIN_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#3b82f6', '#ec4899'];
-const RISK_COLORS = { 'Low Risk': '#22c55e', 'Some Risk': '#f59e0b', 'High Risk': '#ef4444' };
+const COLORS = ['#3d8b6e', '#c49234', '#c55544'];
+const DOMAIN_COLORS = ['#6366f1', '#3d8b6e', '#c49234', '#3b82f6', '#ec4899'];
+const RISK_COLORS = { 'Low Risk': '#3d8b6e', 'Some Risk': '#c49234', 'High Risk': '#c55544' };
 
 function statCard(label, value, sub, color = 'text-slate-900') {
   return (
@@ -186,9 +186,9 @@ export default function AnalyticsPage() {
     class: cls, tier1: d.tier1 || 0, tier2: d.tier2 || 0, tier3: d.tier3 || 0,
   }));
   const riskPieData = [
-    { risk: 'Low Risk', count: sd.risk_distribution?.low || 0, color: '#22c55e' },
-    { risk: 'Some Risk', count: sd.risk_distribution?.some || 0, color: '#f59e0b' },
-    { risk: 'High Risk', count: sd.risk_distribution?.high || 0, color: '#ef4444' },
+    { risk: 'Low Risk', count: sd.risk_distribution?.low || 0, color: '#3d8b6e' },
+    { risk: 'Some Risk', count: sd.risk_distribution?.some || 0, color: '#c49234' },
+    { risk: 'High Risk', count: sd.risk_distribution?.high || 0, color: '#c55544' },
   ];
   const totalRisk = riskPieData.reduce((a, b) => a + b.count, 0);
   const domainRisk = sd.domain_risk || {};
@@ -373,7 +373,7 @@ export default function AnalyticsPage() {
                   <Tooltip formatter={(v) => [`${v}%`, 'Attendance Rate']} />
                   <Bar dataKey="attendance_rate" radius={[6, 6, 0, 0]} isAnimationActive={!pdfLoading}>
                     {attTrends.day_of_week.map((d, i) => (
-                      <Cell key={i} fill={d.attendance_rate >= 95 ? '#22c55e' : d.attendance_rate >= 90 ? '#f59e0b' : '#ef4444'} />
+                      <Cell key={i} fill={d.attendance_rate >= 95 ? '#3d8b6e' : d.attendance_rate >= 90 ? '#c49234' : '#c55544'} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -395,8 +395,8 @@ export default function AnalyticsPage() {
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                   <YAxis unit="%" tick={{ fontSize: 11 }} domain={[80, 100]} />
                   <Tooltip formatter={(v) => [`${v}%`, 'Attendance Rate']} />
-                  <ReferenceLine y={95} stroke="#22c55e" strokeDasharray="4 2" label={{ value: '95%', position: 'right', fontSize: 10, fill: '#22c55e' }} />
-                  <ReferenceLine y={90} stroke="#f59e0b" strokeDasharray="4 2" label={{ value: '90%', position: 'right', fontSize: 10, fill: '#f59e0b' }} />
+                  <ReferenceLine y={95} stroke="#22c55e" strokeDasharray="4 2" label={{ value: '95%', position: 'right', fontSize: 10, fill: '#3d8b6e' }} />
+                  <ReferenceLine y={90} stroke="#f59e0b" strokeDasharray="4 2" label={{ value: '90%', position: 'right', fontSize: 10, fill: '#c49234' }} />
                   <Line type="monotone" dataKey="attendance_rate" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} isAnimationActive={!pdfLoading} />
                 </LineChart>
               </ResponsiveContainer>
@@ -555,7 +555,7 @@ export default function AnalyticsPage() {
                   <Tooltip formatter={(v) => [`${v}%`, 'Coverage']} />
                   <Bar dataKey="coverage_pct" radius={[0, 6, 6, 0]} isAnimationActive={!pdfLoading}>
                     {coverage.map((d, i) => (
-                      <Cell key={i} fill={d.coverage_pct === 100 ? '#22c55e' : d.coverage_pct >= 75 ? '#f59e0b' : '#ef4444'} />
+                      <Cell key={i} fill={d.coverage_pct === 100 ? '#3d8b6e' : d.coverage_pct >= 75 ? '#c49234' : '#c55544'} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -748,7 +748,7 @@ export default function AnalyticsPage() {
                     <Tooltip formatter={(v) => [`${v}%`, 'Avg Attendance']} />
                     <Bar dataKey="avg_attendance" name="Avg Attendance" radius={[6, 6, 0, 0]} isAnimationActive={!pdfLoading}>
                       {cohortData.map((c, i) => (
-                        <Cell key={i} fill={c.avg_attendance >= 95 ? '#22c55e' : c.avg_attendance >= 90 ? '#f59e0b' : '#ef4444'} />
+                        <Cell key={i} fill={c.avg_attendance >= 95 ? '#3d8b6e' : c.avg_attendance >= 90 ? '#c49234' : '#c55544'} />
                       ))}
                     </Bar>
                   </BarChart>

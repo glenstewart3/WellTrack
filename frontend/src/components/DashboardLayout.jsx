@@ -53,11 +53,11 @@ export default function DashboardLayout() {
 
   useEffect(() => { loadFullSettings(); }, [loadFullSettings]);
 
-  const accent = settings.accent_color || '#0f172a';
+  const accent = settings.accent_color || '#1c1c2b';
   // Use theme-specific nav active color when not on default theme
   const activeNavColor = THEME_NAV_ACTIVE[theme] || accent;
-  // Only apply wt-sidebar class for non-default themes (avoids overriding role badge colors on default)
-  const sidebarClass = theme === 'dark' ? 'wt-sidebar' : 'bg-white border-slate-200';
+  // Sidebar is always dark
+  const sidebarClass = 'wt-sidebar';
 
   // Trial banner: show if school is on trial and expires within 14 days
   const featureFlags = settings.feature_flags || {};

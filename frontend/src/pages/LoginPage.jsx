@@ -204,14 +204,14 @@ export default function LoginPage() {
       </div>
 
       {/* Right panel */}
-      <div className="hidden lg:flex flex-1 bg-slate-900 flex-col justify-between p-12">
+      <div className="hidden lg:flex flex-1 flex-col justify-between p-12" style={{ backgroundColor: '#1c1c2b' }}>
         <div />
         <div>
           <div className="grid grid-cols-3 gap-3 mb-8">
             {[
-              { label: 'Tier 1', count: '100%', color: 'bg-emerald-500', desc: 'Universal' },
-              { label: 'Tier 2', count: '20%',  color: 'bg-amber-400',  desc: 'Targeted' },
-              { label: 'Tier 3', count: '5%',   color: 'bg-rose-500',   desc: 'Intensive' },
+              { label: 'Tier 1', count: '100%', color: 'bg-[#3d8b6e]', desc: 'Universal' },
+              { label: 'Tier 2', count: '20%',  color: 'bg-[#c49234]',  desc: 'Targeted' },
+              { label: 'Tier 3', count: '5%',   color: 'bg-[#c55544]',   desc: 'Intensive' },
             ].map(item => (
               <div key={item.label} className="bg-white/10 rounded-xl p-4">
                 <div className={`w-3 h-3 rounded-full ${item.color} mb-2`} />
