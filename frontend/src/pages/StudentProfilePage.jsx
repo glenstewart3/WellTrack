@@ -36,51 +36,51 @@ function InlineEditIntervention({ intv, interventionTypes, onSave, onDelete, can
   };
 
   return (
-    <div className={`bg-white border rounded-xl p-5 transition-all ${editing ? 'border-indigo-300 ring-2 ring-indigo-100' : intv.status === 'active' ? 'border-stone-200' : 'border-stone-100 opacity-70'}`}>
+    <div className={`bg-white border rounded-xl p-5 transition-all ${editing ? 'border-indigo-300 ring-2 ring-indigo-100' : intv.status === 'active' ? 'border-slate-200' : 'border-slate-100 opacity-70'}`}>
       <div className="flex justify-between items-start mb-2">
-        <h3 className="font-semibold text-stone-900" style={{fontFamily:'Manrope,sans-serif'}}>{intv.intervention_type}</h3>
+        <h3 className="font-semibold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>{intv.intervention_type}</h3>
         <div className="flex items-center gap-2">
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${intv.status === 'active' ? 'bg-teal-100 text-teal-700' : intv.status === 'completed' ? 'bg-blue-100 text-blue-700' : 'bg-stone-100 text-stone-600'}`}>
+          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${intv.status === 'active' ? 'bg-emerald-100 text-emerald-700' : intv.status === 'completed' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
             {form.status}
           </span>
           {!editing && canDelete && !confirmDelete && (
             <button onClick={() => setConfirmDelete(true)} data-testid={`delete-intervention-${intv.intervention_id}`}
-              className="p-1 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
               <Trash2 size={14} />
             </button>
           )}
           {!editing && (
             <button onClick={() => setEditing(true)} data-testid={`edit-intervention-${intv.intervention_id}`}
-              className="p-1 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+              className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
               <Edit2 size={14} />
             </button>
           )}
         </div>
       </div>
       {confirmDelete && (
-        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
-          <span className="text-xs text-red-700 flex-1">Delete this intervention?</span>
-          <button onClick={() => onDelete(intv.intervention_id)} className="text-xs font-semibold text-red-700 hover:text-red-900">Delete</button>
-          <button onClick={() => setConfirmDelete(false)} className="text-xs text-stone-500 hover:text-stone-700">Cancel</button>
+        <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 mb-3">
+          <span className="text-xs text-rose-700 flex-1">Delete this intervention?</span>
+          <button onClick={() => onDelete(intv.intervention_id)} className="text-xs font-semibold text-rose-700 hover:text-rose-900">Delete</button>
+          <button onClick={() => setConfirmDelete(false)} className="text-xs text-slate-500 hover:text-slate-700">Cancel</button>
         </div>
       )}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-stone-600 mb-3">
-        <div><span className="text-stone-400">Staff:</span> {intv.assigned_staff}</div>
-        <div><span className="text-stone-400">Frequency:</span> {intv.frequency || '—'}</div>
-        <div><span className="text-stone-400">Review:</span> {intv.review_date}</div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-slate-600 mb-3">
+        <div><span className="text-slate-400">Staff:</span> {intv.assigned_staff}</div>
+        <div><span className="text-slate-400">Frequency:</span> {intv.frequency || '—'}</div>
+        <div><span className="text-slate-400">Review:</span> {intv.review_date}</div>
       </div>
       {editing ? (
         <div className="space-y-3 mt-3">
           <textarea rows={2} value={form.rationale} onChange={e => setForm(p => ({...p, rationale: e.target.value}))}
-            placeholder="Reason for intervention..." className="w-full px-3 py-2 text-sm border border-stone-200 rounded-xl focus:outline-none resize-none" />
+            placeholder="Reason for intervention..." className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none resize-none" />
           <textarea rows={3} value={form.goals} onChange={e => setForm(p => ({...p, goals: e.target.value}))}
-            placeholder="Goals..." className="w-full px-3 py-2 text-sm border border-stone-200 rounded-xl focus:outline-none resize-none" />
+            placeholder="Goals..." className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none resize-none" />
           <textarea rows={3} value={form.progress_notes} onChange={e => setForm(p => ({...p, progress_notes: e.target.value}))}
-            placeholder="Progress notes..." className="w-full px-3 py-2 text-sm border border-stone-200 rounded-xl focus:outline-none resize-none" />
+            placeholder="Progress notes..." className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none resize-none" />
           <div className="flex gap-2">
             {['active', 'completed', 'discontinued'].map(s => (
               <button key={s} onClick={() => setForm(p => ({...p, status: s}))}
-                className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${form.status === s ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+                className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${form.status === s ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                 {s}
               </button>
             ))}
@@ -91,15 +91,15 @@ function InlineEditIntervention({ intv, interventionTypes, onSave, onDelete, can
               {saving ? <Loader size={13} className="animate-spin" /> : <Check size={13} />} Save
             </button>
             <button onClick={() => { setEditing(false); setForm({...intv}); }}
-              className="flex-1 py-2 text-sm text-stone-600 bg-stone-100 rounded-lg hover:bg-stone-200">Cancel</button>
+              className="flex-1 py-2 text-sm text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200">Cancel</button>
           </div>
         </div>
       ) : (
         <>
-          {form.rationale && <p className="text-sm text-stone-600 mb-1"><span className="font-medium">Reason:</span> {form.rationale}</p>}
-          {form.goals && <p className="text-sm text-stone-600 mb-1"><span className="font-medium">Goals:</span> {form.goals}</p>}
-          {form.progress_notes && <p className="text-sm text-stone-500 italic">{form.progress_notes}</p>}
-          <p className="text-xs text-stone-300 mt-2">Click edit to update notes or status</p>
+          {form.rationale && <p className="text-sm text-slate-600 mb-1"><span className="font-medium">Reason:</span> {form.rationale}</p>}
+          {form.goals && <p className="text-sm text-slate-600 mb-1"><span className="font-medium">Goals:</span> {form.goals}</p>}
+          {form.progress_notes && <p className="text-sm text-slate-500 italic">{form.progress_notes}</p>}
+          <p className="text-xs text-slate-300 mt-2">Click edit to update notes or status</p>
         </>
       )}
     </div>
@@ -126,52 +126,52 @@ function InlineEditNote({ note, onSave, onDelete, canDelete }) {
   };
 
   return (
-    <div className={`bg-white border rounded-xl p-5 transition-all ${editing ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-stone-200'}`}>
+    <div className={`bg-white border rounded-xl p-5 transition-all ${editing ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-slate-200'}`}>
       <div className="flex justify-between items-center mb-2">
         <div className="flex items-center gap-2">
-          <span className="bg-stone-100 text-stone-700 text-xs px-2 py-0.5 rounded-full font-medium">{note.note_type}</span>
-          <span className="text-sm font-medium text-stone-900">{note.staff_member}</span>
+          <span className="bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded-full font-medium">{note.note_type}</span>
+          <span className="text-sm font-medium text-slate-900">{note.staff_member}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-stone-400">{note.date}</span>
+          <span className="text-xs text-slate-400">{note.date}</span>
           {!editing && canDelete && !confirmDelete && (
             <button onClick={() => setConfirmDelete(true)} data-testid={`delete-note-${note.case_id}`}
-              className="p-1 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
               <Trash2 size={14} />
             </button>
           )}
           {!editing && (
             <button onClick={() => setEditing(true)} data-testid={`edit-note-${note.case_id}`}
-              className="p-1 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+              className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
               <Edit2 size={14} />
             </button>
           )}
         </div>
       </div>
       {confirmDelete && (
-        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
-          <span className="text-xs text-red-700 flex-1">Delete this case note?</span>
-          <button onClick={() => onDelete(note.case_id)} className="text-xs font-semibold text-red-700 hover:text-red-900">Delete</button>
-          <button onClick={() => setConfirmDelete(false)} className="text-xs text-stone-500 hover:text-stone-700">Cancel</button>
+        <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 mb-3">
+          <span className="text-xs text-rose-700 flex-1">Delete this case note?</span>
+          <button onClick={() => onDelete(note.case_id)} className="text-xs font-semibold text-rose-700 hover:text-rose-900">Delete</button>
+          <button onClick={() => setConfirmDelete(false)} className="text-xs text-slate-500 hover:text-slate-700">Cancel</button>
         </div>
       )}
       {editing ? (
         <div className="space-y-2">
           <textarea rows={4} value={notes} onChange={e => setNotes(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-stone-200 rounded-xl focus:outline-none resize-none" />
+            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none resize-none" />
           <div className="flex gap-2">
             <button onClick={handleSave} disabled={saving}
               className="flex-1 flex items-center justify-center gap-1 py-2 text-white text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-60" style={{ backgroundColor: 'var(--wt-accent)' }}>
               {saving ? <Loader size={13} className="animate-spin" /> : <Check size={13} />} Save
             </button>
             <button onClick={() => { setEditing(false); setNotes(note.notes || ''); }}
-              className="flex-1 py-2 text-sm text-stone-600 bg-stone-100 rounded-lg hover:bg-stone-200">Cancel</button>
+              className="flex-1 py-2 text-sm text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200">Cancel</button>
           </div>
         </div>
       ) : (
         <>
-          <p className="text-sm text-stone-700 leading-relaxed">{notes}</p>
-          <p className="text-xs text-stone-300 mt-2">Click edit to update this note</p>
+          <p className="text-sm text-slate-700 leading-relaxed">{notes}</p>
+          <p className="text-xs text-slate-300 mt-2">Click edit to update this note</p>
         </>
       )}
     </div>
@@ -307,8 +307,8 @@ export default function StudentProfilePage() {
     } catch (e) { console.error(e); }
   };
 
-  if (loading) return <div className="p-8"><div className="h-64 bg-white rounded-xl animate-pulse border border-stone-200" /></div>;
-  if (!profile) return <div className="p-8 text-stone-500">Student not found</div>;
+  if (loading) return <div className="p-8"><div className="h-64 bg-white rounded-xl animate-pulse border border-slate-200" /></div>;
+  if (!profile) return <div className="p-8 text-slate-500">Student not found</div>;
 
   const { student, mtss_tier, attendance_pct, saebrs_results, self_report_results, interventions, case_notes, alerts } = profile;
   const tierColors = getTierColors(mtss_tier);
@@ -387,7 +387,7 @@ export default function StudentProfilePage() {
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto fade-in">
       {/* Header */}
-      <button onClick={() => navigate('/students')} className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-900 mb-6 transition-colors">
+      <button onClick={() => navigate('/students')} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-6 transition-colors">
         <ArrowLeft size={16} /> Back to Students
       </button>
 
@@ -401,8 +401,8 @@ export default function StudentProfilePage() {
               }
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-stone-900" style={{fontFamily:'Manrope,sans-serif'}}>{displayName}</h1>
-              <p className="text-stone-500 text-sm">{student.year_level} · {student.class_name} · {student.teacher}{student.gender ? ` · ${student.gender}` : ''}</p>
+              <h1 className="text-2xl font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>{displayName}</h1>
+              <p className="text-slate-500 text-sm">{student.year_level} · {student.class_name} · {student.teacher}{student.gender ? ` · ${student.gender}` : ''}</p>
               {/* EAL / Aboriginal / NCCD tags */}
               {(student.eal_status && student.eal_status !== 'Not EAL') || student.aboriginal_status === 'Aboriginal' || (student.nccd_disability && student.nccd_disability !== 'No') ? (
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
@@ -425,25 +425,25 @@ export default function StudentProfilePage() {
                 </div>
               ) : null}
               {alerts?.length > 0 && (
-                <p className="text-xs text-red-600 font-medium mt-1">{alerts.length} active alert{alerts.length > 1 ? 's' : ''}</p>
+                <p className="text-xs text-rose-600 font-medium mt-1">{alerts.length} active alert{alerts.length > 1 ? 's' : ''}</p>
               )}
             </div>
           </div>
           <div className="flex flex-wrap gap-3 items-center">
             {mtss_tier && <TierBadge tier={mtss_tier} />}
             <div className="text-right">
-              <p className={`text-lg font-bold ${attendance_pct < 80 ? 'text-red-600' : attendance_pct < 90 ? 'text-amber-600' : 'text-teal-600'}`}>{attendance_pct}%</p>
-              <p className="text-xs text-stone-400">Attendance</p>
+              <p className={`text-lg font-bold ${attendance_pct < 80 ? 'text-rose-600' : attendance_pct < 90 ? 'text-amber-600' : 'text-emerald-600'}`}>{attendance_pct}%</p>
+              <p className="text-xs text-slate-400">Attendance</p>
             </div>
             <button onClick={async () => { await exportStudentProfile(profile); }} data-testid="export-profile-pdf-btn"
-              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-stone-200 text-stone-600 rounded-xl text-xs font-medium hover:bg-stone-50 transition-colors">
+              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-medium hover:bg-slate-50 transition-colors">
               Export PDF
             </button>
           </div>
         </div>
 
         {/* Quick stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5 pt-5 border-t border-stone-100">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5 pt-5 border-t border-slate-100">
           {[
             { label: 'SAEBRS Total', value: latestSaebrs ? `${latestSaebrs.total_score}/57` : '—', sub: latestSaebrs?.risk_level },
             { label: 'Wellbeing Score', value: latestPlus ? `${latestPlus.wellbeing_total}/66` : '—', sub: latestPlus ? `Tier ${latestPlus.wellbeing_tier}` : '—' },
@@ -451,16 +451,16 @@ export default function StudentProfilePage() {
             { label: 'Case Notes', value: case_notes?.length || 0 },
           ].map(stat => (
             <div key={stat.label}>
-              <p className="text-xl font-bold text-stone-900" style={{fontFamily:'Manrope,sans-serif'}}>{stat.value}</p>
-              <p className="text-xs text-stone-400 mt-0.5">{stat.label}</p>
-              {stat.sub && <p className="text-xs font-medium text-stone-500">{stat.sub}</p>}
+              <p className="text-xl font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>{stat.value}</p>
+              <p className="text-xs text-slate-400 mt-0.5">{stat.label}</p>
+              {stat.sub && <p className="text-xs font-medium text-slate-500">{stat.sub}</p>}
             </div>
           ))}
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-white border border-stone-200 rounded-xl p-1 mb-6 overflow-x-auto">
+      <div className="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 mb-6 overflow-x-auto">
         {[['overview', 'Overview'], ['attendance', 'Attendance'], ['screening', 'Screening History'], ['interventions', 'Interventions'], ['notes', 'Case Notes'], ['sessions', 'Sessions']].map(([key, label]) => (
           <button
             key={key}
@@ -471,7 +471,7 @@ export default function StudentProfilePage() {
               if (key === 'interventions') fetchProfessionals();
             }}
             data-testid={`tab-${key}`}
-            className={`px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${activeTab === key ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-50'}`}
+            className={`px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${activeTab === key ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
           >
             {label}
           </button>
@@ -482,16 +482,16 @@ export default function StudentProfilePage() {
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* SAEBRS Trend */}
-          <div className="bg-white border border-stone-200 rounded-xl p-6">
+          <div className="bg-white border border-slate-200 rounded-xl p-6">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-stone-900" style={{fontFamily:'Manrope,sans-serif'}}>SAEBRS Score Trend</h3>
-              <div className="flex gap-1 bg-stone-100 rounded-lg p-0.5">
+              <h3 className="font-semibold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>SAEBRS Score Trend</h3>
+              <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5">
                 <button onClick={() => setSaebrsView('total')}
-                  className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${saebrsView === 'total' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'}`}>
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${saebrsView === 'total' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>
                   Total
                 </button>
                 <button onClick={() => setSaebrsView('domains')}
-                  className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${saebrsView === 'domains' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'}`}>
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${saebrsView === 'domains' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>
                   Domains
                 </button>
               </div>
@@ -520,12 +520,12 @@ export default function StudentProfilePage() {
                   </LineChart>
                 )}
               </ResponsiveContainer>
-            ) : <p className="text-sm text-stone-400 py-8 text-center">No screening data available</p>}
+            ) : <p className="text-sm text-slate-400 py-8 text-center">No screening data available</p>}
           </div>
 
           {/* Wellbeing Radar */}
-          <div className="bg-white border border-stone-200 rounded-xl p-6">
-            <h3 className="font-semibold text-stone-900 mb-3" style={{fontFamily:'Manrope,sans-serif'}}>Wellbeing Domain Profile</h3>
+          <div className="bg-white border border-slate-200 rounded-xl p-6">
+            <h3 className="font-semibold text-slate-900 mb-3" style={{fontFamily:'Manrope,sans-serif'}}>Wellbeing Domain Profile</h3>
             {radarAlerts.length > 0 && (
               <div className="flex flex-col gap-1.5 mb-4">
                 {radarAlerts.map((msg, i) => (
@@ -548,8 +548,8 @@ export default function StudentProfilePage() {
             <div className="grid grid-cols-3 gap-2 mt-2">
               {radarData.map(d => (
                 <div key={d.domain} className="text-center">
-                  <p className="text-sm font-bold text-stone-900">{d.score}<span className="text-xs text-stone-400">/{d.max}</span></p>
-                  <p className="text-xs text-stone-400">{d.domain}</p>
+                  <p className="text-sm font-bold text-slate-900">{d.score}<span className="text-xs text-slate-400">/{d.max}</span></p>
+                  <p className="text-xs text-slate-400">{d.domain}</p>
                 </div>
               ))}
             </div>
@@ -557,8 +557,8 @@ export default function StudentProfilePage() {
 
           {/* SAEBRS detail */}
           {latestSaebrs && (
-            <div className="bg-white border border-stone-200 rounded-xl p-6">
-              <h3 className="font-semibold text-stone-900 mb-4" style={{fontFamily:'Manrope,sans-serif'}}>Latest SAEBRS Results</h3>
+            <div className="bg-white border border-slate-200 rounded-xl p-6">
+              <h3 className="font-semibold text-slate-900 mb-4" style={{fontFamily:'Manrope,sans-serif'}}>Latest SAEBRS Results</h3>
               <div className="space-y-3">
                 {[
                   { label: 'Social Behavior', score: latestSaebrs.social_score, max: 18, risk: latestSaebrs.social_risk },
@@ -567,22 +567,22 @@ export default function StudentProfilePage() {
                 ].map(item => (
                   <div key={item.label}>
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm text-stone-700">{item.label}</span>
+                      <span className="text-sm text-slate-700">{item.label}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-stone-900">{item.score}/{item.max}</span>
+                        <span className="text-sm font-semibold text-slate-900">{item.score}/{item.max}</span>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getRiskColors(item.risk)}`}>{item.risk}</span>
                       </div>
                     </div>
-                    <div className="w-full bg-stone-100 rounded-full h-1.5">
-                      <div className={`h-1.5 rounded-full ${item.risk === 'High Risk' ? 'bg-red-500' : item.risk === 'Some Risk' ? 'bg-amber-400' : 'bg-teal-500'}`}
+                    <div className="w-full bg-slate-100 rounded-full h-1.5">
+                      <div className={`h-1.5 rounded-full ${item.risk === 'High Risk' ? 'bg-rose-500' : item.risk === 'Some Risk' ? 'bg-amber-400' : 'bg-emerald-500'}`}
                         style={{ width: `${(item.score / item.max) * 100}%` }} />
                     </div>
                   </div>
                 ))}
-                <div className="pt-2 border-t border-stone-100 flex justify-between items-center">
-                  <span className="text-sm font-semibold text-stone-700">Total Score</span>
+                <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
+                  <span className="text-sm font-semibold text-slate-700">Total Score</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-stone-900">{latestSaebrs.total_score}/57</span>
+                    <span className="text-sm font-bold text-slate-900">{latestSaebrs.total_score}/57</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getRiskColors(latestSaebrs.risk_level)}`}>{latestSaebrs.risk_level}</span>
                   </div>
                 </div>
@@ -592,13 +592,13 @@ export default function StudentProfilePage() {
 
           {/* Active Alerts */}
           {alerts?.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-              <h3 className="font-semibold text-red-900 mb-3" style={{fontFamily:'Manrope,sans-serif'}}>Active Alerts</h3>
+            <div className="bg-rose-50 border border-rose-200 rounded-xl p-6">
+              <h3 className="font-semibold text-rose-900 mb-3" style={{fontFamily:'Manrope,sans-serif'}}>Active Alerts</h3>
               <div className="space-y-2">
                 {alerts.map(a => (
                   <div key={a.alert_id} className="flex gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-2 shrink-0" />
-                    <p className="text-sm text-red-800">{a.message}</p>
+                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-2 shrink-0" />
+                    <p className="text-sm text-rose-800">{a.message}</p>
                   </div>
                 ))}
               </div>
@@ -607,14 +607,14 @@ export default function StudentProfilePage() {
 
           {/* Custom Student Fields */}
           {customFields.length > 0 && (
-            <div className="bg-white border border-stone-200 rounded-xl p-6 lg:col-span-2">
-              <h3 className="font-semibold text-stone-900 mb-4" style={{fontFamily:'Manrope,sans-serif'}}>Additional Information</h3>
+            <div className="bg-white border border-slate-200 rounded-xl p-6 lg:col-span-2">
+              <h3 className="font-semibold text-slate-900 mb-4" style={{fontFamily:'Manrope,sans-serif'}}>Additional Information</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {customFields.map(f => (
                   <div key={f.id}>
-                    <p className="text-xs text-stone-400 mb-0.5">{f.label}</p>
-                    <p className="text-sm font-medium text-stone-700">
-                      {profile?.student?.custom_fields?.[f.id] || <span className="text-stone-300 italic">Not set</span>}
+                    <p className="text-xs text-slate-400 mb-0.5">{f.label}</p>
+                    <p className="text-sm font-medium text-slate-700">
+                      {profile?.student?.custom_fields?.[f.id] || <span className="text-slate-300 italic">Not set</span>}
                     </p>
                   </div>
                 ))}
@@ -627,12 +627,12 @@ export default function StudentProfilePage() {
       {activeTab === 'attendance' && (
         <div className="space-y-5">
           {attendanceLoading && (
-            <div className="flex items-center justify-center py-16 text-stone-400">
+            <div className="flex items-center justify-center py-16 text-slate-400">
               <Loader size={20} className="animate-spin mr-2" /> Loading attendance data…
             </div>
           )}
           {!attendanceLoading && !attendanceData && (
-            <div className="bg-white border border-stone-200 rounded-xl p-12 text-center text-stone-400">
+            <div className="bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-400">
               <p>No attendance data recorded for this student.</p>
             </div>
           )}
@@ -641,21 +641,21 @@ export default function StudentProfilePage() {
               {/* Summary stats */}
               <div className="grid grid-cols-3 gap-4">
                 {[
-                  { label: 'Attendance Rate', value: `${attendanceData.attendance_pct}%`, color: attendanceData.attendance_pct >= 95 ? 'text-teal-600' : attendanceData.attendance_pct >= 90 ? 'text-amber-600' : 'text-red-600' },
+                  { label: 'Attendance Rate', value: `${attendanceData.attendance_pct}%`, color: attendanceData.attendance_pct >= 95 ? 'text-emerald-600' : attendanceData.attendance_pct >= 90 ? 'text-amber-600' : 'text-rose-600' },
                   { label: 'Days Absent', value: attendanceData.absent_days },
                   { label: 'School Days', value: attendanceData.total_days },
                 ].map(s => (
-                  <div key={s.label} className="bg-white border border-stone-200 rounded-xl p-4 text-center">
-                    <p className={`text-2xl font-bold ${s.color || 'text-stone-900'}`}>{s.value}</p>
-                    <p className="text-xs text-stone-400 mt-1">{s.label}</p>
+                  <div key={s.label} className="bg-white border border-slate-200 rounded-xl p-4 text-center">
+                    <p className={`text-2xl font-bold ${s.color || 'text-slate-900'}`}>{s.value}</p>
+                    <p className="text-xs text-slate-400 mt-1">{s.label}</p>
                   </div>
                 ))}
               </div>
 
               {/* Monthly trend chart */}
               {attendanceData.monthly_trend?.length > 1 && (
-                <div className="bg-white border border-stone-200 rounded-xl p-5">
-                  <h4 className="text-sm font-semibold text-stone-700 mb-4">Monthly Attendance Trend</h4>
+                <div className="bg-white border border-slate-200 rounded-xl p-5">
+                  <h4 className="text-sm font-semibold text-slate-700 mb-4">Monthly Attendance Trend</h4>
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart
                       data={attendanceData.monthly_trend.map(d => ({ ...d, attendance_pct: Math.max(70, d.attendance_pct) }))}
@@ -679,13 +679,13 @@ export default function StudentProfilePage() {
 
               {/* Absence type breakdown */}
               {Object.keys(attendanceData.absence_types || {}).length > 0 && (
-                <div className="bg-white border border-stone-200 rounded-xl p-5">
-                  <h4 className="text-sm font-semibold text-stone-700 mb-3">Absence Breakdown</h4>
+                <div className="bg-white border border-slate-200 rounded-xl p-5">
+                  <h4 className="text-sm font-semibold text-slate-700 mb-3">Absence Breakdown</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {Object.entries(attendanceData.absence_types).map(([type, count]) => (
-                      <div key={type} className="flex justify-between items-center px-3 py-2 bg-stone-50 rounded-lg text-xs">
-                        <span className="text-stone-600 truncate mr-2">{type}</span>
-                        <span className="font-semibold text-stone-900 shrink-0">{count}</span>
+                      <div key={type} className="flex justify-between items-center px-3 py-2 bg-slate-50 rounded-lg text-xs">
+                        <span className="text-slate-600 truncate mr-2">{type}</span>
+                        <span className="font-semibold text-slate-900 shrink-0">{count}</span>
                       </div>
                     ))}
                   </div>
@@ -704,14 +704,14 @@ export default function StudentProfilePage() {
                 }).sort((a, b) => b.date.localeCompare(a.date));
                 if (!absences.length) return null;
                 return (
-                  <div className="bg-white border border-stone-200 rounded-xl p-5">
-                    <h4 className="text-sm font-semibold text-stone-700 mb-3">Absence Records <span className="text-stone-400 font-normal">({absences.length})</span></h4>
+                  <div className="bg-white border border-slate-200 rounded-xl p-5">
+                    <h4 className="text-sm font-semibold text-slate-700 mb-3">Absence Records <span className="text-slate-400 font-normal">({absences.length})</span></h4>
                     <div className="space-y-1 max-h-80 overflow-y-auto pr-1">
                       {absences.map((r, i) => (
-                        <div key={i} className="flex items-center gap-4 py-1.5 px-3 bg-stone-50 rounded-lg text-xs">
-                          <span className="font-medium text-stone-700 w-24 shrink-0">{r.date}</span>
-                          <span className="text-stone-500 flex-1">AM: <span className="font-medium text-stone-700">{r.am_status || '—'}</span></span>
-                          <span className="text-stone-500 flex-1">PM: <span className="font-medium text-stone-700">{r.pm_status || '—'}</span></span>
+                        <div key={i} className="flex items-center gap-4 py-1.5 px-3 bg-slate-50 rounded-lg text-xs">
+                          <span className="font-medium text-slate-700 w-24 shrink-0">{r.date}</span>
+                          <span className="text-slate-500 flex-1">AM: <span className="font-medium text-slate-700">{r.am_status || '—'}</span></span>
+                          <span className="text-slate-500 flex-1">PM: <span className="font-medium text-slate-700">{r.pm_status || '—'}</span></span>
                         </div>
                       ))}
                     </div>
@@ -726,16 +726,16 @@ export default function StudentProfilePage() {
       {activeTab === 'screening' && (
         <div className="space-y-6">
           {saebrs_results?.length === 0 && self_report_results?.length === 0 ? (
-            <div className="bg-white border border-stone-200 rounded-xl p-12 text-center text-stone-400">
+            <div className="bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-400">
               <p>No screening data recorded</p>
             </div>
           ) : (
             <>
               {/* SAEBRS Trend Chart */}
               {saebrs_results?.length > 0 && (
-                <div className="bg-white border border-stone-200 rounded-xl p-6" data-testid="saebrs-trend-chart">
-                  <h3 className="font-semibold text-stone-900 mb-0.5" style={{fontFamily:'Manrope,sans-serif'}}>SAEBRS Score Trend</h3>
-                  <p className="text-xs text-stone-400 mb-4">Green zone = Tier 1 (&gt;37) · Amber = Tier 2 (24–37) · Red = Tier 3 (&lt;24)</p>
+                <div className="bg-white border border-slate-200 rounded-xl p-6" data-testid="saebrs-trend-chart">
+                  <h3 className="font-semibold text-slate-900 mb-0.5" style={{fontFamily:'Manrope,sans-serif'}}>SAEBRS Score Trend</h3>
+                  <p className="text-xs text-slate-400 mb-4">Green zone = Tier 1 (&gt;37) · Amber = Tier 2 (24–37) · Red = Tier 3 (&lt;24)</p>
                   <ResponsiveContainer width="100%" height={240}>
                     <LineChart data={screeningChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -757,9 +757,9 @@ export default function StudentProfilePage() {
 
               {/* Domain comparison across screenings — only if 2+ */}
               {saebrs_results?.length >= 2 && (
-                <div className="bg-white border border-stone-200 rounded-xl p-6" data-testid="domain-comparison-chart">
-                  <h3 className="font-semibold text-stone-900 mb-0.5" style={{fontFamily:'Manrope,sans-serif'}}>Domain Comparison</h3>
-                  <p className="text-xs text-stone-400 mb-4">Side-by-side domain scores across each screening</p>
+                <div className="bg-white border border-slate-200 rounded-xl p-6" data-testid="domain-comparison-chart">
+                  <h3 className="font-semibold text-slate-900 mb-0.5" style={{fontFamily:'Manrope,sans-serif'}}>Domain Comparison</h3>
+                  <p className="text-xs text-slate-400 mb-4">Side-by-side domain scores across each screening</p>
                   <ResponsiveContainer width="100%" height={200}>
                     <BarChart layout="vertical" data={[
                       { domain: 'Social (/18)', ...Object.fromEntries(saebrs_results.map((r, i) => [`S${i + 1}`, r.social_score])) },
@@ -783,9 +783,9 @@ export default function StudentProfilePage() {
 
               {/* Wellbeing trend */}
               {self_report_results?.length > 0 && (
-                <div className="bg-white border border-stone-200 rounded-xl p-6" data-testid="wellbeing-trend-chart">
-                  <h3 className="font-semibold text-stone-900 mb-0.5" style={{fontFamily:'Manrope,sans-serif'}}>Student Wellbeing Trend</h3>
-                  <p className="text-xs text-stone-400 mb-4">Self-reported wellbeing over time — higher score = better wellbeing</p>
+                <div className="bg-white border border-slate-200 rounded-xl p-6" data-testid="wellbeing-trend-chart">
+                  <h3 className="font-semibold text-slate-900 mb-0.5" style={{fontFamily:'Manrope,sans-serif'}}>Student Wellbeing Trend</h3>
+                  <p className="text-xs text-slate-400 mb-4">Self-reported wellbeing over time — higher score = better wellbeing</p>
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart data={wellbeingChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -807,15 +807,15 @@ export default function StudentProfilePage() {
                 const prev = i > 0 ? saebrs_results[i - 1] : null;
                 const change = prev !== null ? r.total_score - prev.total_score : null;
                 return (
-                  <div key={r.result_id || i} className="bg-white border border-stone-200 rounded-xl p-6">
+                  <div key={r.result_id || i} className="bg-white border border-slate-200 rounded-xl p-6">
                     <div className="flex justify-between items-center mb-4">
                       <div>
-                        <h3 className="font-semibold text-stone-900" style={{fontFamily:'Manrope,sans-serif'}}>Screening {i + 1}</h3>
-                        <p className="text-xs text-stone-400">{r.created_at?.split('T')[0]}</p>
+                        <h3 className="font-semibold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>Screening {i + 1}</h3>
+                        <p className="text-xs text-slate-400">{r.created_at?.split('T')[0]}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         {change !== null && (
-                          <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${change > 0 ? 'bg-teal-100 text-teal-700' : change < 0 ? 'bg-red-100 text-red-700' : 'bg-stone-100 text-stone-600'}`}>
+                          <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${change > 0 ? 'bg-emerald-100 text-emerald-700' : change < 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}`}>
                             {change > 0 ? '+' : ''}{change} pts
                           </span>
                         )}
@@ -823,15 +823,15 @@ export default function StudentProfilePage() {
                       </div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                      <div><p className="font-bold text-stone-900">{r.total_score}/57</p><p className="text-stone-400 text-xs">Total SAEBRS</p></div>
-                      <div><p className="font-bold text-stone-900">{r.social_score}/18</p><p className="text-stone-400 text-xs">Social</p></div>
-                      <div><p className="font-bold text-stone-900">{r.academic_score}/18</p><p className="text-stone-400 text-xs">Academic</p></div>
-                      <div><p className="font-bold text-stone-900">{r.emotional_score}/21</p><p className="text-stone-400 text-xs">Emotional</p></div>
+                      <div><p className="font-bold text-slate-900">{r.total_score}/57</p><p className="text-slate-400 text-xs">Total SAEBRS</p></div>
+                      <div><p className="font-bold text-slate-900">{r.social_score}/18</p><p className="text-slate-400 text-xs">Social</p></div>
+                      <div><p className="font-bold text-slate-900">{r.academic_score}/18</p><p className="text-slate-400 text-xs">Academic</p></div>
+                      <div><p className="font-bold text-slate-900">{r.emotional_score}/21</p><p className="text-slate-400 text-xs">Emotional</p></div>
                       {plus && <>
-                        <div><p className="font-bold text-indigo-700">{plus.wellbeing_total}/66</p><p className="text-stone-400 text-xs">Wellbeing Total</p></div>
-                        <div><p className="font-bold text-stone-900">{plus.social_domain}/18</p><p className="text-stone-400 text-xs">Social WB</p></div>
-                        <div><p className="font-bold text-stone-900">{plus.belonging_domain}/12</p><p className="text-stone-400 text-xs">Belonging</p></div>
-                        <div><p className="font-bold text-stone-900">{plus.emotional_domain}/9</p><p className="text-stone-400 text-xs">Emotional WB</p></div>
+                        <div><p className="font-bold text-indigo-700">{plus.wellbeing_total}/66</p><p className="text-slate-400 text-xs">Wellbeing Total</p></div>
+                        <div><p className="font-bold text-slate-900">{plus.social_domain}/18</p><p className="text-slate-400 text-xs">Social WB</p></div>
+                        <div><p className="font-bold text-slate-900">{plus.belonging_domain}/12</p><p className="text-slate-400 text-xs">Belonging</p></div>
+                        <div><p className="font-bold text-slate-900">{plus.emotional_domain}/9</p><p className="text-slate-400 text-xs">Emotional WB</p></div>
                       </>}
                     </div>
                   </div>
@@ -845,7 +845,7 @@ export default function StudentProfilePage() {
       {activeTab === 'interventions' && (
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <p className="text-sm text-stone-500">{interventions?.length || 0} intervention{interventions?.length !== 1 ? 's' : ''} recorded</p>
+            <p className="text-sm text-slate-500">{interventions?.length || 0} intervention{interventions?.length !== 1 ? 's' : ''} recorded</p>
             <div className="flex gap-2">
               {settings?.ai_suggestions_enabled !== false && canDo('interventions.ai_suggest') && (
                 <button onClick={getAiSuggestions} disabled={aiLoading} data-testid="get-ai-suggestions-btn"
@@ -856,7 +856,7 @@ export default function StudentProfilePage() {
               )}
               {canDo('interventions.add_edit') && (
                 <button onClick={() => { setShowAddIntervention(true); fetchProfessionals(); }} data-testid="add-intervention-btn"
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-stone-900 text-white rounded-lg hover:bg-stone-800 transition-colors">
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors">
                   <Plus size={14} /> Add Intervention
                 </button>
               )}
@@ -870,8 +870,8 @@ export default function StudentProfilePage() {
                 <p className="text-sm font-semibold text-indigo-800">AI Intervention Suggestions</p>
                 <button onClick={() => setShowAiPanel(false)} className="text-indigo-400 hover:text-indigo-600"><X size={15} /></button>
               </div>
-              {aiLoading && <div className="flex flex-col items-center gap-2 text-sm text-indigo-600 py-6"><Loader size={16} className="animate-spin" /> <span>Generating suggestions...</span><span className="text-xs text-stone-400 font-normal">This may take 30 seconds to a minute</span></div>}
-              {aiError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{aiError}</p>}
+              {aiLoading && <div className="flex flex-col items-center gap-2 text-sm text-indigo-600 py-6"><Loader size={16} className="animate-spin" /> <span>Generating suggestions...</span><span className="text-xs text-slate-400 font-normal">This may take 30 seconds to a minute</span></div>}
+              {aiError && <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg p-3">{aiError}</p>}
               {aiSuggestions && (
                 <div className="grid sm:grid-cols-3 gap-3">
                   {aiSuggestions.map((rec, i) => {
@@ -882,16 +882,16 @@ export default function StudentProfilePage() {
                     return (
                     <div key={i} className="bg-white rounded-xl p-4 border border-indigo-100 flex flex-col">
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold text-stone-900 text-sm leading-snug pr-2">{title}</h4>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${priority === 'high' ? 'bg-red-100 text-red-700' : priority === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'}`}>
+                        <h4 className="font-semibold text-slate-900 text-sm leading-snug pr-2">{title}</h4>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${priority === 'high' ? 'bg-rose-100 text-rose-700' : priority === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
                           {priority}
                         </span>
                       </div>
-                      {rationale && <p className="text-xs text-stone-600 mb-2 leading-relaxed">{rationale}</p>}
+                      {rationale && <p className="text-xs text-slate-600 mb-2 leading-relaxed">{rationale}</p>}
                       {goals && (
-                        <p className="text-xs text-stone-700 mb-2"><span className="font-semibold">Goal:</span> {goals}</p>
+                        <p className="text-xs text-slate-700 mb-2"><span className="font-semibold">Goal:</span> {goals}</p>
                       )}
-                      <p className="text-xs text-stone-400 mt-auto">{[rec.frequency, rec.timeline].filter(Boolean).join(' · ')}</p>
+                      <p className="text-xs text-slate-400 mt-auto">{[rec.frequency, rec.timeline].filter(Boolean).join(' · ')}</p>
                       <button
                         onClick={() => {
                           setNewIntervention(p => ({
@@ -925,7 +925,7 @@ export default function StudentProfilePage() {
           <div className="flex justify-end">
             {canDo('case_notes.add_edit') && (
               <button onClick={() => setShowAddNote(true)} data-testid="add-note-btn"
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-stone-900 text-white rounded-lg hover:bg-stone-800 transition-colors">
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors">
                 <Plus size={14} /> Add Case Note
               </button>
             )}
@@ -933,69 +933,69 @@ export default function StudentProfilePage() {
           {case_notes?.map(note => (
             <InlineEditNote key={note.case_id} note={note} onSave={editCaseNote} onDelete={deleteCaseNote} canDelete={canDo('case_notes.delete')} />
           ))}
-          {case_notes?.length === 0 && <div className="bg-white border border-stone-200 rounded-xl p-12 text-center text-stone-400">No case notes recorded</div>}
+          {case_notes?.length === 0 && <div className="bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-400">No case notes recorded</div>}
         </div>
       )}
 
       {activeTab === 'sessions' && (
         <div className="space-y-4">
           {sessionsLoading && (
-            <div className="py-16 text-center text-stone-400">
+            <div className="py-16 text-center text-slate-400">
               <Loader size={20} className="animate-spin mx-auto mb-2" />
               Loading sessions…
             </div>
           )}
           {!sessionsLoading && sessions !== null && sessions.length === 0 && (
-            <div className="bg-white border border-stone-200 rounded-xl p-12 text-center text-stone-400">
+            <div className="bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-400">
               <Stethoscope size={28} className="mx-auto mb-3 opacity-30" />
               <p className="font-medium">No appointment sessions recorded for this student</p>
-              <p className="text-xs mt-1 text-stone-300">Sessions logged in Appointments will appear here</p>
+              <p className="text-xs mt-1 text-slate-300">Sessions logged in Appointments will appear here</p>
             </div>
           )}
           {sessions?.map((s, idx) => {
             const statusColors = {
-              completed: 'bg-teal-100 text-teal-700',
-              dna: 'bg-red-100 text-red-700',
+              completed: 'bg-emerald-100 text-emerald-700',
+              dna: 'bg-rose-100 text-rose-700',
               scheduled: 'bg-blue-100 text-blue-700',
-              cancelled: 'bg-stone-100 text-stone-500',
+              cancelled: 'bg-slate-100 text-slate-500',
             };
             return (
-              <div key={s.appointment_id || idx} className="bg-white border border-stone-200 rounded-xl p-5"
+              <div key={s.appointment_id || idx} className="bg-white border border-slate-200 rounded-xl p-5"
                 data-testid={`session-entry-${s.appointment_id}`}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="font-semibold text-stone-900 text-sm">{s.intervention_type}</span>
-                      {s.session_type && <span className="text-xs text-stone-500">· {s.session_type}</span>}
+                      <span className="font-semibold text-slate-900 text-sm">{s.intervention_type}</span>
+                      {s.session_type && <span className="text-xs text-slate-500">· {s.session_type}</span>}
                       {s.status && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[s.status?.toLowerCase()] || 'bg-stone-100 text-stone-600'}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[s.status?.toLowerCase()] || 'bg-slate-100 text-slate-600'}`}>
                           {s.status}
                         </span>
                       )}
                       {s.flags?.length > 0 && s.flags.map(f => (
-                        <span key={f} className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-100 font-medium">{f}</span>
+                        <span key={f} className="text-xs px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-100 font-medium">{f}</span>
                       ))}
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-stone-400 flex-wrap">
+                    <div className="flex items-center gap-3 text-xs text-slate-400 flex-wrap">
                       <span>{s.date}{s.time ? ` at ${s.time}` : ''}</span>
                       {s.room && <span>· {s.room}</span>}
                       {s.professional_name_fallback && <span>· {s.professional_name_fallback}</span>}
                     </div>
                     {s.reason_for_visit && (
-                      <p className="text-sm text-stone-600 mt-2"><span className="font-medium">Reason:</span> {s.reason_for_visit}</p>
+                      <p className="text-sm text-slate-600 mt-2"><span className="font-medium">Reason:</span> {s.reason_for_visit}</p>
                     )}
                     {s.session_notes && (
-                      <p className="text-sm text-stone-600 mt-1 leading-relaxed">{s.session_notes}</p>
+                      <p className="text-sm text-slate-600 mt-1 leading-relaxed">{s.session_notes}</p>
                     )}
                     {s.outcome_rating && (
-                      <p className="text-xs text-stone-500 mt-2">Outcome: <span className="font-medium text-stone-700">{s.outcome_rating}</span></p>
+                      <p className="text-xs text-slate-500 mt-2">Outcome: <span className="font-medium text-slate-700">{s.outcome_rating}</span></p>
                     )}
                     {s.follow_up_date && (
                       <p className="text-xs text-amber-600 mt-1">Follow-up: {s.follow_up_date}</p>
                     )}
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-xs text-stone-400">{idx === 0 ? 'Latest' : `#${sessions.length - idx}`}</p>
+                    <p className="text-xs text-slate-400">{idx === 0 ? 'Latest' : `#${sessions.length - idx}`}</p>
                   </div>
                 </div>
               </div>
@@ -1009,8 +1009,8 @@ export default function StudentProfilePage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold text-stone-900" style={{fontFamily:'Manrope,sans-serif'}}>Add Intervention</h3>
-              <button onClick={() => setShowAddIntervention(false)}><X size={18} className="text-stone-400" /></button>
+              <h3 className="font-semibold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>Add Intervention</h3>
+              <button onClick={() => setShowAddIntervention(false)}><X size={18} className="text-slate-400" /></button>
             </div>
             <div className="space-y-3">
               <input
@@ -1018,14 +1018,14 @@ export default function StudentProfilePage() {
                 value={newIntervention.intervention_type}
                 onChange={e => setNewIntervention(p => ({...p, intervention_type: e.target.value}))}
                 placeholder="Select or type intervention type"
-                className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20"
               />
               <datalist id="profile-intervention-types">
                 {INTERVENTION_TYPES.map(t => <option key={t} value={t} />)}
               </datalist>
               {professionals.length > 0 ? (
                 <select value={newIntervention.assigned_staff} onChange={e => setNewIntervention(p => ({...p, assigned_staff: e.target.value}))}
-                  className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20 bg-white">
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20 bg-white">
                   <option value="">Select Assigned Staff…</option>
                   {professionals.map(p => (
                     <option key={p.user_id} value={p.name}>{p.name}{p.professional_type ? ` — ${p.professional_type}` : ''}</option>
@@ -1033,26 +1033,26 @@ export default function StudentProfilePage() {
                 </select>
               ) : (
                 <input placeholder="Assigned Staff" value={newIntervention.assigned_staff} onChange={e => setNewIntervention(p => ({...p, assigned_staff: e.target.value}))}
-                  className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20" />
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
               )}
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-xs text-stone-400 block mb-1">Start Date</label>
+                <div><label className="text-xs text-slate-400 block mb-1">Start Date</label>
                   <input type="date" value={newIntervention.start_date} onChange={e => setNewIntervention(p => ({...p, start_date: e.target.value}))}
-                    className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20" /></div>
-                <div><label className="text-xs text-stone-400 block mb-1">Review Date</label>
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" /></div>
+                <div><label className="text-xs text-slate-400 block mb-1">Review Date</label>
                   <input type="date" value={newIntervention.review_date} onChange={e => setNewIntervention(p => ({...p, review_date: e.target.value}))}
-                    className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20" /></div>
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" /></div>
               </div>
               <input placeholder="Frequency (e.g. Weekly)" value={newIntervention.frequency} onChange={e => setNewIntervention(p => ({...p, frequency: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20" />
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
               <textarea placeholder="Reason for intervention" rows={2} value={newIntervention.rationale} onChange={e => setNewIntervention(p => ({...p, rationale: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20 resize-none" />
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20 resize-none" />
               <textarea placeholder="Goals" rows={3} value={newIntervention.goals} onChange={e => setNewIntervention(p => ({...p, goals: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20 resize-none" />
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20 resize-none" />
             </div>
             <div className="flex gap-2 mt-4">
-              <button onClick={addIntervention} className="flex-1 bg-stone-900 text-white py-2 text-sm font-medium rounded-lg hover:bg-stone-800 transition-colors">Save</button>
-              <button onClick={() => setShowAddIntervention(false)} className="flex-1 bg-stone-100 text-stone-700 py-2 text-sm font-medium rounded-lg hover:bg-stone-200 transition-colors">Cancel</button>
+              <button onClick={addIntervention} className="flex-1 bg-slate-900 text-white py-2 text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors">Save</button>
+              <button onClick={() => setShowAddIntervention(false)} className="flex-1 bg-slate-100 text-slate-700 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors">Cancel</button>
             </div>
           </div>
         </div>
@@ -1063,24 +1063,24 @@ export default function StudentProfilePage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold text-stone-900" style={{fontFamily:'Manrope,sans-serif'}}>Add Case Note</h3>
-              <button onClick={() => setShowAddNote(false)}><X size={18} className="text-stone-400" /></button>
+              <h3 className="font-semibold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>Add Case Note</h3>
+              <button onClick={() => setShowAddNote(false)}><X size={18} className="text-slate-400" /></button>
             </div>
             <div className="space-y-3">
               <select value={newNote.note_type} onChange={e => setNewNote(p => ({...p, note_type: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20">
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20">
                 {NOTE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
               <input placeholder="Staff Member" value={newNote.staff_member} onChange={e => setNewNote(p => ({...p, staff_member: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20" />
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
               <input type="date" value={newNote.date} onChange={e => setNewNote(p => ({...p, date: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20" />
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
               <textarea placeholder="Note details..." rows={4} value={newNote.notes} onChange={e => setNewNote(p => ({...p, notes: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900/20 resize-none" />
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20 resize-none" />
             </div>
             <div className="flex gap-2 mt-4">
-              <button onClick={addNote} className="flex-1 bg-stone-900 text-white py-2 text-sm font-medium rounded-lg hover:bg-stone-800 transition-colors">Save</button>
-              <button onClick={() => setShowAddNote(false)} className="flex-1 bg-stone-100 text-stone-700 py-2 text-sm font-medium rounded-lg hover:bg-stone-200 transition-colors">Cancel</button>
+              <button onClick={addNote} className="flex-1 bg-slate-900 text-white py-2 text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors">Save</button>
+              <button onClick={() => setShowAddNote(false)} className="flex-1 bg-slate-100 text-slate-700 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors">Cancel</button>
             </div>
           </div>
         </div>

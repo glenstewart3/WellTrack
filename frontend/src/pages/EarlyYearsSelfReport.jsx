@@ -516,22 +516,22 @@ export function F2SelfReportForm({ student, period, screeningId, onSave, onBack 
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(160deg, #FFF8F0 0%, #EEF4FF 100%)' }}>
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-stone-100">
+      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-slate-100">
         <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-between">
-          <button onClick={handleBack} className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-800 transition-colors font-medium">
+          <button onClick={handleBack} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition-colors font-medium">
             <ArrowLeft size={16} /> Back
           </button>
           <div className="text-center">
-            <p className="text-base font-bold text-stone-900" style={{ fontFamily: 'Manrope, sans-serif' }}>{displayName}</p>
-            <p className="text-xs text-stone-400">{period}</p>
+            <p className="text-base font-bold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>{displayName}</p>
+            <p className="text-xs text-slate-400">{period}</p>
           </div>
           {/* Progress badge */}
-          <div className={`text-xs font-bold px-3 py-1 rounded-full ${allAnswered ? 'bg-teal-100 text-teal-700' : 'bg-indigo-100 text-indigo-700'}`}>
+          <div className={`text-xs font-bold px-3 py-1 rounded-full ${allAnswered ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'}`}>
             {answeredCount}/7
           </div>
         </div>
         {/* Progress bar */}
-        <div className="h-1 bg-stone-100">
+        <div className="h-1 bg-slate-100">
           <div
             className="h-full transition-all duration-500 ease-out"
             style={{ width: `${(answeredCount / 7) * 100}%`, background: allAnswered ? '#10B981' : '#6366F1' }}
@@ -547,7 +547,7 @@ export function F2SelfReportForm({ student, period, screeningId, onSave, onBack 
             <div
               key={q.id}
               data-testid={`f2-question-${q.id}`}
-              className={`bg-white rounded-3xl shadow-sm border-2 overflow-hidden mb-10 transition-all duration-300 ${answered ? 'border-teal-200' : 'border-stone-100'}`}
+              className={`bg-white rounded-3xl shadow-sm border-2 overflow-hidden mb-10 transition-all duration-300 ${answered ? 'border-emerald-200' : 'border-slate-100'}`}
             >
               {/* Illustration */}
               <div className="bg-gradient-to-br from-sky-50 to-amber-50 overflow-hidden">
@@ -557,7 +557,7 @@ export function F2SelfReportForm({ student, period, screeningId, onSave, onBack 
               <div className="p-6 pt-5">
                 {/* Question header */}
                 <div className="flex justify-between items-start mb-3">
-                  <span className="text-xs font-bold text-stone-400 tracking-wider uppercase">Question {q.id}</span>
+                  <span className="text-xs font-bold text-slate-400 tracking-wider uppercase">Question {q.id}</span>
                   {/* Audio button */}
                   <button
                     onClick={() => handleSpeak(qIdx, q)}
@@ -566,7 +566,7 @@ export function F2SelfReportForm({ student, period, screeningId, onSave, onBack 
                     className={`flex items-center justify-center gap-1 text-xs font-semibold border rounded-full w-16 py-1 transition-colors ${
                       activeQ === qIdx && speaking
                         ? 'bg-indigo-100 border-indigo-400 text-indigo-700 ring-2 ring-indigo-300'
-                        : 'border-stone-200 text-stone-400 hover:border-indigo-300 hover:text-indigo-500'
+                        : 'border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500'
                     }`}
                   >
                     <Volume2
@@ -579,14 +579,14 @@ export function F2SelfReportForm({ student, period, screeningId, onSave, onBack 
 
                 {/* Main question */}
                 <h2
-                  className="text-2xl font-extrabold text-stone-900 leading-snug mb-2"
+                  className="text-2xl font-extrabold text-slate-900 leading-snug mb-2"
                   style={{ fontFamily: 'Manrope, sans-serif' }}
                 >
                   {q.question}
                 </h2>
 
                 {/* Support question */}
-                <p className="text-base text-stone-400 leading-relaxed mb-8">{q.support}</p>
+                <p className="text-base text-slate-400 leading-relaxed mb-8">{q.support}</p>
 
                 {/* Face buttons */}
                 <div className="grid grid-cols-3 gap-3">
@@ -600,11 +600,11 @@ export function F2SelfReportForm({ student, period, screeningId, onSave, onBack 
                         className={`flex flex-col items-center py-5 px-2 rounded-2xl border-2 transition-all duration-150 active:scale-95 select-none ${
                           selected
                             ? 'border-indigo-400 bg-indigo-50 shadow-md scale-105'
-                            : 'border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50'
+                            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                         }`}
                       >
                         <span className="text-5xl mb-2 leading-none">{opt.emoji}</span>
-                        <span className={`text-sm font-bold ${selected ? 'text-indigo-700' : 'text-stone-500'}`}>
+                        <span className={`text-sm font-bold ${selected ? 'text-indigo-700' : 'text-slate-500'}`}>
                           {opt.label}
                         </span>
                       </button>
@@ -614,7 +614,7 @@ export function F2SelfReportForm({ student, period, screeningId, onSave, onBack 
 
                 {/* Answered tick */}
                 {answered && (
-                  <div className="flex items-center gap-1.5 mt-4 text-teal-600">
+                  <div className="flex items-center gap-1.5 mt-4 text-emerald-600">
                     <CheckCircle size={14} />
                     <span className="text-xs font-semibold">Answered</span>
                   </div>
@@ -626,7 +626,7 @@ export function F2SelfReportForm({ student, period, screeningId, onSave, onBack 
 
         {/* Save */}
         {saveError && (
-          <p className="text-sm text-red-600 text-center mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{saveError}</p>
+          <p className="text-sm text-rose-600 text-center mb-4 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">{saveError}</p>
         )}
         <button
           data-testid="f2-save-btn"

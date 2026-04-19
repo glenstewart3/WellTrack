@@ -27,7 +27,7 @@ const navItems = [
 ];
 
 const roleLabels = { teacher: 'Teacher', screener: 'Screener', wellbeing: 'Wellbeing Staff', professional: 'Professional', leadership: 'Leadership', admin: 'Administrator' };
-const roleBadgeColors = { teacher: 'bg-blue-100 text-blue-700', screener: 'bg-indigo-100 text-indigo-700', wellbeing: 'bg-purple-100 text-purple-700', professional: 'bg-violet-100 text-violet-700', leadership: 'bg-teal-100 text-teal-700', admin: 'bg-stone-100 text-stone-700' };
+const roleBadgeColors = { teacher: 'bg-blue-100 text-blue-700', screener: 'bg-indigo-100 text-indigo-700', wellbeing: 'bg-purple-100 text-purple-700', professional: 'bg-violet-100 text-violet-700', leadership: 'bg-emerald-100 text-emerald-700', admin: 'bg-slate-100 text-slate-700' };
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
@@ -53,11 +53,11 @@ export default function DashboardLayout() {
 
   useEffect(() => { loadFullSettings(); }, [loadFullSettings]);
 
-  const accent = settings.accent_color || '#2d7d5f';
+  const accent = settings.accent_color || '#0f172a';
   // Use theme-specific nav active color when not on default theme
   const activeNavColor = THEME_NAV_ACTIVE[theme] || accent;
-  // Sidebar is always dark forest green
-  const sidebarClass = 'wt-sidebar';
+  // Only apply wt-sidebar class for non-default themes (avoids overriding role badge colors on default)
+  const sidebarClass = theme === 'dark' ? 'wt-sidebar' : 'bg-white border-slate-200';
 
   // Trial banner: show if school is on trial and expires within 14 days
   const featureFlags = settings.feature_flags || {};
@@ -86,7 +86,7 @@ export default function DashboardLayout() {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo / Brand */}
-      <div className="px-6 py-5 border-b border-stone-100">
+      <div className="px-6 py-5 border-b border-slate-100">
         {(() => {
           const isEffectivelyDark = theme === 'dark' ||
             (theme === 'system' && window.matchMedia?.('(prefers-color-scheme: dark)').matches);
@@ -98,12 +98,12 @@ export default function DashboardLayout() {
           ) : null;
         })()}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-stone-900">
-            <Shield size={17} className="text-teal-400" />
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-slate-900">
+            <Shield size={17} className="text-emerald-400" />
           </div>
           <div>
-            <p className="text-sm font-bold text-stone-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{settings.platform_name || 'WellTrack'}</p>
-            <p className="text-xs text-stone-400">{settings.school_name || 'MTSS Wellbeing Platform'}</p>
+            <p className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{settings.platform_name || 'WellTrack'}</p>
+            <p className="text-xs text-slate-400">{settings.school_name || 'MTSS Wellbeing Platform'}</p>
           </div>
         </div>
       </div>
@@ -138,9 +138,10 @@ export default function DashboardLayout() {
                 setMobileOpen(false);
               }}
               data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
+              style={({ isActive }) => isActive ? { backgroundColor: activeNavColor } : {}}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
-                  isActive ? 'bg-teal-600 text-white shadow-sm' : 'text-white/60 hover:text-white hover:bg-white/10'
+                  isActive ? 'text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`
               }
             >
@@ -152,18 +153,18 @@ export default function DashboardLayout() {
       </nav>
 
       {/* User info */}
-      <div className="px-4 py-4 border-t border-stone-100">
+      <div className="px-4 py-4 border-t border-slate-100">
         <div className="flex items-center gap-3 mb-3">
           {user?.picture ? (
             <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
           ) : (
-            <div className="w-8 h-8 bg-stone-200 rounded-full flex items-center justify-center">
-              <span className="text-xs font-semibold text-stone-600">{user?.name?.[0] || 'U'}</span>
+            <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center">
+              <span className="text-xs font-semibold text-slate-600">{user?.name?.[0] || 'U'}</span>
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-stone-900 truncate">{user?.name || 'User'}</p>
-            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${roleBadgeColors[user?.role] || 'bg-stone-100 text-stone-600'}`}>
+            <p className="text-sm font-medium text-slate-900 truncate">{user?.name || 'User'}</p>
+            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${roleBadgeColors[user?.role] || 'bg-slate-100 text-slate-600'}`}>
               {roleLabels[user?.role] || 'User'}
             </span>
           </div>
@@ -195,19 +196,19 @@ export default function DashboardLayout() {
         <header className="border-b px-4 lg:px-6 py-3 flex items-center gap-4 shrink-0" style={{ backgroundColor: 'var(--wt-header-bg)', borderColor: 'var(--wt-header-border)' }}>
           <button
             onClick={() => setMobileOpen(true)}
-            className="lg:hidden p-2 rounded-lg hover:bg-stone-100 text-stone-600"
+            className="lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-600"
             data-testid="mobile-menu-btn"
           >
             <Menu size={20} />
           </button>
           <div className="flex-1" />
           {/* Alert indicator */}
-          <NavLink to="/alerts" className="relative p-2 rounded-lg hover:bg-stone-100 text-stone-600 transition-colors" data-testid="alert-bell">
+          <NavLink to="/alerts" className="relative p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors" data-testid="alert-bell">
             <Bell size={18} />
             {alertCount > 0 && (
               <span
                 data-testid="alert-badge"
-                className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none"
+                className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none"
               >
                 {alertCount > 99 ? '99+' : alertCount}
               </span>
@@ -217,23 +218,23 @@ export default function DashboardLayout() {
           <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => setUserMenuOpen(p => !p)}
-              className="rounded-full focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-stone-400"
+              className="rounded-full focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-slate-400"
               data-testid="user-menu-trigger"
             >
               {user?.picture ? (
                 <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
               ) : (
-                <div className="w-8 h-8 bg-stone-200 rounded-full flex items-center justify-center">
-                  <span className="text-xs font-semibold text-stone-600">{user?.name?.[0] || 'U'}</span>
+                <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center">
+                  <span className="text-xs font-semibold text-slate-600">{user?.name?.[0] || 'U'}</span>
                 </div>
               )}
             </button>
             {userMenuOpen && (
               <div className="absolute right-0 top-full pt-1 z-50" data-testid="user-menu-dropdown">
-                <div className="w-52 bg-white border border-stone-200 rounded-xl shadow-xl py-1.5 overflow-hidden">
+                <div className="w-52 bg-white border border-slate-200 rounded-xl shadow-xl py-1.5 overflow-hidden">
                   {/* Theme selector */}
-                  <div className="px-4 py-2 border-b border-stone-100">
-                    <p className="text-xs font-medium text-stone-400 mb-2">Appearance</p>
+                  <div className="px-4 py-2 border-b border-slate-100">
+                    <p className="text-xs font-medium text-slate-400 mb-2">Appearance</p>
                     <div className="flex items-center gap-2">
                       {[
                         { key: 'system',  title: 'System (follows device)',   background: 'linear-gradient(135deg, #f8fafc 50%, #1e293b 50%)', border: '#94a3b8', checkColor: '#3b82f6' },
@@ -261,26 +262,26 @@ export default function DashboardLayout() {
                   </div>
                   <button
                     onClick={() => { navigate('/settings'); setUserMenuOpen(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50 transition-colors"
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                     data-testid="user-menu-settings"
                   >
-                    <Settings size={15} className="text-stone-400 shrink-0" />
+                    <Settings size={15} className="text-slate-400 shrink-0" />
                     Settings
                   </button>
                   {user?.role === 'admin' && (
                     <button
                       onClick={() => { navigate('/admin'); setUserMenuOpen(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50 transition-colors"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                       data-testid="user-menu-admin"
                     >
-                      <UserCog size={15} className="text-stone-400 shrink-0" />
+                      <UserCog size={15} className="text-slate-400 shrink-0" />
                       Administration
                     </button>
                   )}
-                  <div className="my-1 border-t border-stone-100" />
+                  <div className="my-1 border-t border-slate-100" />
                   <button
                     onClick={() => { setUserMenuOpen(false); handleLogout(); }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-rose-600 hover:bg-rose-50 transition-colors"
                     data-testid="user-menu-signout"
                   >
                     <LogOut size={15} className="shrink-0" />

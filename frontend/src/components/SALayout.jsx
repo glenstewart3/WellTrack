@@ -38,7 +38,7 @@ export default function SALayout() {
 
   const Sidebar = () => (
     <div className="flex flex-col h-full">
-      <div className="px-5 py-5 border-b border-stone-700/50">
+      <div className="px-5 py-5 border-b border-slate-700/50">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shadow-md shadow-blue-600/30">
             <Shield size={18} className="text-white" />
@@ -59,7 +59,7 @@ export default function SALayout() {
               `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors
               ${isActive
                 ? 'bg-blue-600/20 text-blue-300'
-                : 'text-stone-400 hover:text-white hover:bg-stone-700/50'}`
+                : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`
             }
           >
             <item.icon size={17} />
@@ -67,11 +67,11 @@ export default function SALayout() {
           </NavLink>
         ))}
       </nav>
-      <div className="p-3 border-t border-stone-700/50">
+      <div className="p-3 border-t border-slate-700/50">
         <div ref={menuRef} className="relative">
           <button
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-stone-300 hover:bg-stone-700/50 transition-colors"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-700/50 transition-colors"
             data-testid="sa-user-menu-button"
           >
             <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-xs text-white font-bold shrink-0">
@@ -81,11 +81,11 @@ export default function SALayout() {
             <ChevronDown size={14} />
           </button>
           {userMenuOpen && (
-            <div className="absolute bottom-full left-0 right-0 mb-1 bg-stone-700 rounded-lg shadow-xl border border-stone-600 py-1 z-50">
-              <div className="px-3 py-2 border-b border-stone-600">
-                <p className="text-xs text-stone-400">{admin?.email}</p>
+            <div className="absolute bottom-full left-0 right-0 mb-1 bg-slate-700 rounded-lg shadow-xl border border-slate-600 py-1 z-50">
+              <div className="px-3 py-2 border-b border-slate-600">
+                <p className="text-xs text-slate-400">{admin?.email}</p>
               </div>
-              <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-stone-600/50" data-testid="sa-logout-button">
+              <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-slate-600/50" data-testid="sa-logout-button">
                 <LogOut size={14} />
                 Sign out
               </button>
@@ -97,28 +97,28 @@ export default function SALayout() {
   );
 
   return (
-    <div className="min-h-screen bg-stone-100 flex" data-testid="sa-layout">
+    <div className="min-h-screen bg-slate-100 flex" data-testid="sa-layout">
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-60 bg-stone-800 border-r border-stone-700 flex-col fixed inset-y-0 z-30">
+      <aside className="hidden lg:flex w-60 bg-slate-800 border-r border-slate-700 flex-col fixed inset-y-0 z-30">
         <Sidebar />
       </aside>
       {/* Mobile sidebar */}
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-40">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-64 bg-stone-800 border-r border-stone-700 flex flex-col z-50">
+          <aside className="absolute inset-y-0 left-0 w-64 bg-slate-800 border-r border-slate-700 flex flex-col z-50">
             <Sidebar />
           </aside>
         </div>
       )}
       {/* Main content */}
       <div className="flex-1 lg:ml-60">
-        <header className="sticky top-0 z-20 bg-white border-b border-stone-200 h-14 flex items-center px-4 lg:px-6 shadow-sm">
-          <button onClick={() => setMobileOpen(true)} className="lg:hidden mr-3 text-stone-500 hover:text-stone-800">
+        <header className="sticky top-0 z-20 bg-white border-b border-slate-200 h-14 flex items-center px-4 lg:px-6 shadow-sm">
+          <button onClick={() => setMobileOpen(true)} className="lg:hidden mr-3 text-slate-500 hover:text-slate-800">
             <Menu size={22} />
           </button>
           <div className="flex-1" />
-          <span className="text-xs text-stone-400 mr-3 hidden sm:inline">{admin?.email}</span>
+          <span className="text-xs text-slate-400 mr-3 hidden sm:inline">{admin?.email}</span>
         </header>
         <main className="p-4 lg:p-6">
           <Outlet />

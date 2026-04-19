@@ -50,10 +50,10 @@ function detectPortal() {
 
 function Spinner() {
   return (
-    <div className="min-h-screen bg-stone-50 flex items-center justify-center">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
       <div className="text-center">
-        <div className="w-8 h-8 border-2 border-stone-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-stone-600 font-medium">Loading WellTrack...</p>
+        <div className="w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-slate-600 font-medium">Loading WellTrack...</p>
       </div>
     </div>
   );
@@ -81,18 +81,18 @@ function SAProtectedRoute() {
 function SchoolNotFound() {
   const baseDomain = process.env.REACT_APP_BASE_DOMAIN || 'welltrack.com.au';
   return (
-    <div className="min-h-screen bg-stone-50 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
       <div className="text-center max-w-md">
-        <div className="w-14 h-14 bg-stone-900 rounded-2xl flex items-center justify-center mx-auto mb-5">
+        <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center mx-auto mb-5">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
         </div>
-        <h1 className="text-2xl font-bold text-stone-900 mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>School not found</h1>
-        <p className="text-stone-500 mb-6">
+        <h1 className="text-2xl font-bold text-slate-900 mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>School not found</h1>
+        <p className="text-slate-500 mb-6">
           This school portal doesn't exist or is no longer active. Check the URL or contact your WellTrack administrator.
         </p>
         <a
           href={`https://${baseDomain}`}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-stone-900 text-white text-sm font-semibold rounded-xl hover:bg-stone-800 transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white text-sm font-semibold rounded-xl hover:bg-slate-800 transition-colors"
         >
           Go to {baseDomain}
         </a>
@@ -103,13 +103,13 @@ function SchoolNotFound() {
 
 function SchoolSuspended({ message }) {
   return (
-    <div className="min-h-screen bg-stone-50 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
       <div className="text-center max-w-md">
         <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-5">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
         </div>
-        <h1 className="text-2xl font-bold text-stone-900 mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>School unavailable</h1>
-        <p className="text-stone-500 mb-6">{message || 'This school portal is currently unavailable. Please contact your WellTrack administrator.'}</p>
+        <h1 className="text-2xl font-bold text-slate-900 mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>School unavailable</h1>
+        <p className="text-slate-500 mb-6">{message || 'This school portal is currently unavailable. Please contact your WellTrack administrator.'}</p>
       </div>
     </div>
   );
