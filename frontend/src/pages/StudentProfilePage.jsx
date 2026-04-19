@@ -10,6 +10,7 @@ import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceArea, ReferenceLine, Legend
 } from 'recharts';
 import { exportStudentProfile } from '../utils/pdfExport';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 function TierBadge({ tier }) {
   const c = getTierColors(tier);
@@ -179,6 +180,7 @@ function InlineEditNote({ note, onSave, onDelete, canDelete }) {
 }
 
 export default function StudentProfilePage() {
+  useDocumentTitle(profile?.student ? `${profile.student.first_name} ${profile.student.last_name}` : 'Student Profile');
   const { settings } = useSettings();
   const { canDo } = usePermissions();
   const customFields = settings.custom_student_fields || [];

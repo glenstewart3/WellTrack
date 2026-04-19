@@ -8,6 +8,7 @@ import {
   Sliders, ToggleLeft, ToggleRight, Tag, User, Shield, RotateCcw, Bot, Wifi, FileUp,
   Calendar, CalendarDays, BookOpen, Target, ClipboardCheck
 } from 'lucide-react';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const ROLE_OPTIONS = [
   { value: 'teacher', label: 'Teacher', desc: 'Can complete screenings & view class data' },
@@ -2124,6 +2125,7 @@ function IntegrationsTab({ settings: s, onSave, saving, msg, msgType, featureFla
 
 // ── MAIN SETTINGS PAGE ────────────────────────────────────────────────────────
 export default function SettingsPage() {
+  useDocumentTitle('Settings');
   const { settings, loadFullSettings } = useSettings();
   const [activeTab, setActiveTab] = useState('Branding');
   const [saving, setSaving] = useState(false);

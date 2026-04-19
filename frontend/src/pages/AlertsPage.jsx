@@ -4,6 +4,7 @@ import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { Bell, CheckCircle, AlertTriangle, TrendingUp, TrendingDown, ThumbsUp, ThumbsDown, ArrowRight } from 'lucide-react';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const ALERT_TYPE_LABELS = {
   high_risk_saebrs: 'High Risk SAEBRS',
@@ -85,6 +86,7 @@ function AlertCard({ alert, canApprove, showResolved, onMarkRead, onResolve, onA
 }
 
 export default function AlertsPage() {
+  useDocumentTitle('Alerts');
   const navigate = useNavigate();
   const { user } = useAuth();
   const { canDo } = usePermissions();

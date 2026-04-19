@@ -3,6 +3,7 @@ import {
   Shield, ArrowRight, Search, CheckCircle, Users, BarChart3,
   Target, ClipboardCheck, Loader2, XCircle
 } from 'lucide-react';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || 'welltrack.com.au';
@@ -11,6 +12,7 @@ const isRootDomain = window.location.hostname === BASE_DOMAIN || window.location
 const API_BASE = isRootDomain ? '' : API;
 
 export default function LandingPage() {
+  useDocumentTitle('Welcome');
   const [showFinder, setShowFinder] = useState(false);
   const [slug, setSlug] = useState('');
   const [checking, setChecking] = useState(false);

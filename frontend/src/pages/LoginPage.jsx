@@ -4,6 +4,7 @@ import { Shield, AlertCircle, Eye, EyeOff, Mail, Lock, ArrowLeft } from 'lucide-
 import { useSettings } from '../context/SettingsContext';
 import { useTheme } from '../context/ThemeContext';
 import api from '../api';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const ERROR_MESSAGES = {
   access_denied: 'Access denied. Your account has not been registered. Please contact your school administrator.',
@@ -12,6 +13,7 @@ const ERROR_MESSAGES = {
 };
 
 export default function LoginPage() {
+  useDocumentTitle('Login');
   const location = useLocation();
   const { settings } = useSettings();
   const { theme } = useTheme();

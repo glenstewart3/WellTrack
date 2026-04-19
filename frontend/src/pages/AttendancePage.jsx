@@ -3,6 +3,7 @@ import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { CalendarDays, AlertTriangle, Users, TrendingDown, Loader, X, Info } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 function TierBadge({ tier }) {
   const c = tier === 1
@@ -81,6 +82,7 @@ function getPeriodLabel(period, year, month, week, termsArr) {
 }
 
 export default function AttendancePage() {
+  useDocumentTitle('Attendance');
   const { user } = useAuth();
 
   const [summary, setSummary] = useState([]);

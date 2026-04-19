@@ -10,6 +10,7 @@ import {
   LayoutList, Users, CheckCircle, User,
 } from 'lucide-react';
 import { exportInterventionsReport } from '../utils/pdfExport';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const BURL = process.env.REACT_APP_BACKEND_URL;
 
@@ -257,6 +258,7 @@ function InterventionDetailModal({ intv, students, onClose, onUpdated, canEdit }
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function InterventionsPage() {
+  useDocumentTitle('Interventions');
   const navigate = useNavigate();
   const { canDo } = usePermissions();
   const { settings } = useSettings();

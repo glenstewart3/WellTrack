@@ -4,6 +4,7 @@ import api from '../api';
 import { getTierColors, getRiskColors } from '../utils/tierUtils';
 import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight, UserPlus, Archive, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Camera } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const CSV_TEMPLATE = `first_name,last_name,year_level,class_name,teacher,gender,date_of_birth
 Emma,Smith,Year 3,Year 3A,Ms Thompson,Female,2014-03-15
@@ -234,6 +235,7 @@ function ImportModal({ onClose, onSuccess }) {
 }
 
 export default function StudentsPage() {
+  useDocumentTitle('Students');
   const navigate = useNavigate();
   const { canDo } = usePermissions();
   const location = useLocation();

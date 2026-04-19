@@ -5,8 +5,10 @@ import { useAuth } from '../context/AuthContext';
 import { getTierColors } from '../utils/tierUtils';
 import { AlertTriangle, Users, Target, Bell, TrendingUp, ArrowRight, CheckCircle, Stethoscope, Clock, AlertCircle } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 export default function DashboardPage() {
+  useDocumentTitle('Dashboard');
   const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);

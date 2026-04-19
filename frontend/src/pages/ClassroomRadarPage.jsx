@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { getTierColors, getRiskColors, RISK_INDICATOR_LABELS, RISK_INDICATOR_COLORS } from '../utils/tierUtils';
 import { Radar, ChevronUp, ChevronDown } from 'lucide-react';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 export default function ClassroomRadarPage() {
+  useDocumentTitle('Class Risk Radar');
   const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState('');

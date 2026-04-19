@@ -4,6 +4,7 @@ import api from '../api';
 import { getTierColors, getRiskColors } from '../utils/tierUtils';
 import { Users2, Download, ChevronRight, TrendingUp, TrendingDown, ArrowRight, FileText } from 'lucide-react';
 import { exportMeetingReport } from '../utils/pdfExport';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 function studentDisplayName(s) {
   if (!s) return '';
@@ -14,6 +15,7 @@ function studentDisplayName(s) {
 }
 
 export default function MeetingPrepPage() {
+  useDocumentTitle('MTSS Meeting');
   const navigate = useNavigate();
   const [data, setData] = useState({ students: [], tier_changes: [] });
   const [loading, setLoading] = useState(true);

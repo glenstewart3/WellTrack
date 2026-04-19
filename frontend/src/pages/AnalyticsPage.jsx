@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { exportAnalyticsReport } from '../utils/pdfExport';
 import { usePermissions } from '../hooks/usePermissions';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const COLORS = ['#22c55e', '#f59e0b', '#ef4444'];
 const DOMAIN_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#3b82f6', '#ec4899'];
@@ -40,6 +41,7 @@ function SectionHeader({ icon: Icon, title, sub }) {
 }
 
 export default function AnalyticsPage() {
+  useDocumentTitle('Analytics & Reports');
   const navigate = useNavigate();
   const { canDo } = usePermissions();
   const [schoolData, setSchoolData] = useState(null);
@@ -55,6 +57,7 @@ export default function AnalyticsPage() {
   const [filterType, setFilterType] = useState('school');
   const [filterValue, setFilterValue] = useState('');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [cohortLoading, setCohortLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
@@ -89,7 +92,8 @@ export default function AnalyticsPage() {
   // Main data load — re-runs on filter change
   useEffect(() => {
     const load = async () => {
-      setLoading(true);
+      // First load → full skeleton; subsequent filter changes → subtle overlay
+      if (schoolData) setRefreshing(true); else setLoading(true);
       const q = qs(filterParams);
       try {
         const [sw, at, io, abs, cov, gaps] = await Promise.all([
@@ -107,7 +111,7 @@ export default function AnalyticsPage() {
         setCoverage(cov.data);
         setSupportGaps(gaps.data);
       } catch (e) { console.error(e); }
-      finally { setLoading(false); }
+      finally { setLoading(false); setRefreshing(false); }
     };
     load();
   }, [filterType, filterValue]);
@@ -203,7 +207,7 @@ export default function AnalyticsPage() {
   ];
 
   return (
-    <div className="p-6 lg:p-8 max-w-6xl mx-auto fade-in">
+    <div className="p-6 lg:p-8 max-w-6xl mx-auto fade-in" style={{ opacity: refreshing ? 0.5 : 1, transition: 'opacity 0.15s ease', pointerEvents: refreshing ? 'none' : 'auto' }}>
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>

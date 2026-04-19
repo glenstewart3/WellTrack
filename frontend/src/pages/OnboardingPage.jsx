@@ -6,6 +6,7 @@ import {
   Upload, Database, FileJson, ArrowRight, Building2,
   User, Mail, Lock, Eye, EyeOff,
 } from 'lucide-react';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 function StepProgress({ steps, stepIndex }) {
   return (
@@ -34,6 +35,7 @@ function StepProgress({ steps, stepIndex }) {
 }
 
 export default function OnboardingPage({ onComplete }) {
+  useDocumentTitle('Setup');
   const { user } = useAuth();
   // If user is already authenticated (SA-provisioned school), skip the account step
   const hasAuth = !!user;

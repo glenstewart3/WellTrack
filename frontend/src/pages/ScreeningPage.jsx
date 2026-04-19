@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
 import { ClipboardCheck, User, ChevronRight, CheckCircle, ArrowLeft, X, AlertTriangle } from 'lucide-react';
 import { F2SelfReportForm, isF2Student } from './EarlyYearsSelfReport';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 // ─── SAEBRS question banks ───────────────────────────────────────────────────
 const SOCIAL_ITEMS = [
@@ -595,6 +596,7 @@ function SelfReportFlow({ className, period, onDone }) {
 
 // ─── Main Screening Page ──────────────────────────────────────────────────────
 export default function ScreeningPage() {
+  useDocumentTitle('Screening');
   const { settings } = useSettings();
   const location = useLocation();
   const activePeriod = settings?.active_screening_period || '';

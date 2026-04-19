@@ -10,6 +10,7 @@ import {
   RotateCcw, Zap, Stethoscope, Settings2, FileText,
 } from 'lucide-react';
 import { DEFAULT_FEATURE_PERMISSIONS } from '../hooks/usePermissions';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const ROLE_OPTIONS = [
   { value: 'teacher',      label: 'Teacher',          color: 'bg-blue-100 text-blue-700' },
@@ -1061,6 +1062,7 @@ function AuditLogTab() {
 
 // ── MAIN ADMINISTRATION PAGE ──────────────────────────────────────────────────
 export default function AdministrationPage() {
+  useDocumentTitle('Administration');
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('User Management');

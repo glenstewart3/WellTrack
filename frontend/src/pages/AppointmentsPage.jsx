@@ -5,6 +5,7 @@ import {
   Plus, X, Eye, EyeOff, ChevronLeft, ChevronRight, Loader,
   CheckCircle, RefreshCw, Target, AlertTriangle, Users2,
 } from 'lucide-react';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 // ── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -751,6 +752,7 @@ function AvailabilityTab({ students, onAddSession }) {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function AppointmentsPage() {
+  useDocumentTitle('Appointments');
   const { user } = useAuth();
   const [tab, setTab] = useState('schedule');
   const [confidential, setConfidential] = useState(false);
