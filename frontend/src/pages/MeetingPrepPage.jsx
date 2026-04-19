@@ -79,7 +79,7 @@ export default function MeetingPrepPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-5xl mx-auto fade-in">
+    <div className="p-6 lg:p-8 fade-in">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3" style={{fontFamily:'Manrope,sans-serif'}}>

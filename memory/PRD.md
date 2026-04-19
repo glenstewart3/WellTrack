@@ -44,17 +44,16 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - [x] School login only appears on school subdomains (not root domain)
 - [x] 12/12 backend + all frontend tests passed (iteration_44.json)
 
-### Dashboard UI Refresh — Lovable Design System (COMPLETED - 2026-04-19)
-- [x] Added `/api/analytics/tier-movement?limit=N` endpoint — one data point per unique screening date in past 365 days (not weekly, schools screen ~twice/term)
-- [x] Added Lovable warm cream + sage/amber/terracotta tier palette as CSS vars in `index.css` (light + dark)
-- [x] Rewrote `DashboardPage.jsx`:
-  - Full-width responsive (removed `max-w-7xl`)
-  - Term/week micro-label + hero (H1 extra-bold Manrope 800) + "This week" / "New screening" buttons
-  - 4 KPI cards with tier-colored icon chips + trend chips labelled "vs last screening"
-  - Tier movement Area chart keyed by actual screening dates (2/3) + Tier distribution donut (1/3)
-  - Recent alerts with clean straight dividers (2/3) + Lovable-style Watchlist with avatar + "Year X · Class" + tier badge (1/3)
-  - Quick Actions section removed
-- [x] Sidebar + top-bar now use page cream bg in light mode (matches Lovable reference); dark mode unchanged
+### Dashboard + App-wide UI Refresh — Lovable Design System (COMPLETED - 2026-04-19)
+- [x] Backend: `/api/analytics/tier-movement?limit=N` endpoint — one data point per unique screening date over past 365 days
+- [x] CSS: Lovable warm cream + sage/amber/terracotta tier palette as CSS vars in `index.css` (light + dark); `wt-tier{1,2,3}-{bg,text,border,badge,dot}` utility classes
+- [x] Light-mode CSS cascade swaps `.border-slate-{100,200}` → `var(--wt-border)` and `.bg-slate-50` → warm surface-muted; H1 `.text-3xl/.text-2xl` auto-bumped to weight 800
+- [x] `tierUtils.js`: `getTierColors()` + `getRiskColors()` now return `wt-tier*-badge` classes — propagates palette app-wide
+- [x] `DashboardPage.jsx`: hero + KPI cards ("Tier 1/2/3" labels, delta vs last screening) + Tier movement area chart (screening dates) + donut + Recent alerts with clean dividers + Lovable Watchlist
+- [x] `StudentsPage.jsx`: ROSTER micro-label, tier-soft avatar backgrounds, new pill TierBadge in table
+- [x] Removed `max-w-{5,6,7}xl mx-auto` from all 12 inner pages (full-width responsive)
+- [x] Sidebar + top-bar match page cream in light mode
+- [x] No functional changes — all hooks, APIs, modals, filters, data-testids preserved
 
 ### Pre-existing Features (from single-tenant)
 - Student management, SAEBRS screening, MTSS tier calculation

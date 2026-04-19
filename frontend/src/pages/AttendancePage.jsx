@@ -215,7 +215,7 @@ export default function AttendancePage() {
   ];
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto fade-in">
+    <div className="p-4 sm:p-6 lg:p-8 fade-in">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Attendance</h1>
         <p className="text-slate-500 mt-1 text-sm">Student attendance tracking — upload files in <strong>Settings → Imports</strong></p>

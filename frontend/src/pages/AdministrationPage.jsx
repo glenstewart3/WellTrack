@@ -1074,7 +1074,7 @@ export default function AdministrationPage() {
   if (user?.role !== 'admin') return null;
 
   return (
-    <div className="p-6 lg:p-8 max-w-5xl mx-auto fade-in">
+    <div className="p-6 lg:p-8 fade-in">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3" style={{ fontFamily: 'Manrope,sans-serif' }}>
           <Shield size={26} className="text-slate-600" /> Administration

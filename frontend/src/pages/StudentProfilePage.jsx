@@ -387,7 +387,7 @@ export default function StudentProfilePage() {
   const displayName = `${student.first_name}${student.preferred_name && student.preferred_name !== student.first_name ? ` (${student.preferred_name})` : ''} ${student.last_name}`;
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto fade-in">
+    <div className="p-6 lg:p-8 fade-in">
       {/* Header */}
       <button onClick={() => navigate('/students')} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-6 transition-colors">
         <ArrowLeft size={16} /> Back to Students

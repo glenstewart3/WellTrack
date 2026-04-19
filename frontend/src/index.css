@@ -130,6 +130,23 @@ code {
   text-transform: uppercase;
 }
 
+/* ── WellTrack tier utility classes (app-wide badge palette) ────────────── */
+.wt-tier1-bg { background-color: var(--wt-tier1-soft); }
+.wt-tier2-bg { background-color: var(--wt-tier2-soft); }
+.wt-tier3-bg { background-color: var(--wt-tier3-soft); }
+.wt-tier1-text { color: var(--wt-tier1-foreground); }
+.wt-tier2-text { color: var(--wt-tier2-foreground); }
+.wt-tier3-text { color: var(--wt-tier3-foreground); }
+.wt-tier1-border { border-color: var(--wt-tier1-border); }
+.wt-tier2-border { border-color: var(--wt-tier2-border); }
+.wt-tier3-border { border-color: var(--wt-tier3-border); }
+.wt-tier1-dot { background-color: var(--wt-tier1); }
+.wt-tier2-dot { background-color: var(--wt-tier2); }
+.wt-tier3-dot { background-color: var(--wt-tier3); }
+.wt-tier1-badge { background-color: var(--wt-tier1-soft); color: var(--wt-tier1-foreground); }
+.wt-tier2-badge { background-color: var(--wt-tier2-soft); color: var(--wt-tier2-foreground); }
+.wt-tier3-badge { background-color: var(--wt-tier3-soft); color: var(--wt-tier3-foreground); }
+
 /* ── Sidebar — dark theme only ─────────────────────────────────────────────── */
 .wt-sidebar {
   background-color: #1e293b;
@@ -307,6 +324,27 @@ code {
 /* Input placeholder text */
 [data-theme="dark"] input::placeholder,
 [data-theme="dark"] textarea::placeholder { color: #475569 !important; }
+
+/* ── Light-mode: swap slate card/border tokens for the warm Lovable palette ─
+   Applies ONLY when data-theme != "dark". Dark mode keeps its slate scheme. */
+:root:not([data-theme="dark"]) .border-slate-200,
+:root:not([data-theme="dark"]) .border-slate-100 {
+  border-color: var(--wt-border) !important;
+}
+:root:not([data-theme="dark"]) .divide-slate-200 > * + *,
+:root:not([data-theme="dark"]) .divide-slate-100 > * + * {
+  border-color: var(--wt-border) !important;
+}
+/* Subtle warm surface for bg-slate-50 zones (table heads, sub-panels) */
+:root:not([data-theme="dark"]) .bg-slate-50 {
+  background-color: var(--wt-surface-muted) !important;
+}
+/* Main-page headings pick up the Lovable heavier weight */
+h1.text-3xl, h1.text-2xl {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
 
 /* Recharts dark mode */
 [data-theme="dark"] .recharts-cartesian-axis-tick-value { fill: #64748b !important; }

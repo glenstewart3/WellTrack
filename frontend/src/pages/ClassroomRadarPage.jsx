@@ -82,7 +82,7 @@ export default function ClassroomRadarPage() {
   const tierRowColors = { 3: 'border-l-4 border-l-rose-400 bg-rose-50', 2: 'border-l-4 border-l-amber-400 bg-amber-50', 1: '', 0: 'opacity-60' };
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto fade-in">
+    <div className="p-6 lg:p-8 fade-in">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3" style={{fontFamily:'Manrope,sans-serif'}}>

@@ -478,7 +478,7 @@ export default function InterventionsPage() {
 
   // ── Page render ───────────────────────────────────────────────────────────
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto fade-in">
+    <div className="p-6 lg:p-8 fade-in">
 
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-5">

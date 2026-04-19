@@ -415,10 +415,11 @@ export default function StudentsPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto fade-in">
+    <div className="px-4 py-6 lg:px-8 lg:py-8 fade-in">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>Students</h1>
+          <p className="wt-mono-label text-[10px]" style={{ color: 'var(--wt-muted-fg)' }}>Roster</p>
+          <h1 className="mt-1 text-3xl font-extrabold text-slate-900" style={{fontFamily:'Manrope,sans-serif', fontWeight: 800}}>Students</h1>
           <div className="flex items-center gap-3 mt-1 flex-wrap">
             <p className="text-slate-500">{students.length} {filterStatus === 'archived' ? 'archived' : 'enrolled'} students</p>
             {filterStatus === 'active' && (() => {
@@ -664,10 +665,27 @@ export default function StudentsPage() {
                       )}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center shrink-0 overflow-hidden">
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 overflow-hidden"
+                            style={{
+                              backgroundColor: s.mtss_tier === 3 ? 'var(--wt-tier3-soft)'
+                                : s.mtss_tier === 2 ? 'var(--wt-tier2-soft)'
+                                : s.mtss_tier === 1 ? 'var(--wt-tier1-soft)'
+                                : 'var(--wt-surface-muted)',
+                            }}
+                          >
                             {s.photo_url
                               ? <img src={`${process.env.REACT_APP_BACKEND_URL}${s.photo_url}`} alt="" className="w-full h-full object-cover" />
-                              : <span className="text-xs font-semibold text-slate-600">{s.first_name[0]}{s.last_name[0]}</span>
+                              : <span
+                                  className="text-xs font-bold"
+                                  style={{
+                                    fontFamily: 'Manrope, sans-serif',
+                                    color: s.mtss_tier === 3 ? 'var(--wt-tier3-foreground)'
+                                      : s.mtss_tier === 2 ? 'var(--wt-tier2-foreground)'
+                                      : s.mtss_tier === 1 ? 'var(--wt-tier1-foreground)'
+                                      : 'var(--wt-foreground)',
+                                  }}
+                                >{s.first_name[0]}{s.last_name[0]}</span>
                             }
                           </div>
                           <div className="flex flex-col min-w-0">
@@ -693,8 +711,29 @@ export default function StudentsPage() {
                       <td className="py-3 px-4 text-slate-600 text-sm hidden md:table-cell">{s.year_level}</td>
                       <td className="py-3 px-4">
                         {s.mtss_tier ? (
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${colors.badge}`}>
-                            T{s.mtss_tier}
+                          <span
+                            className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold"
+                            style={{
+                              backgroundColor: s.mtss_tier === 3 ? 'var(--wt-tier3-soft)'
+                                : s.mtss_tier === 2 ? 'var(--wt-tier2-soft)'
+                                : 'var(--wt-tier1-soft)',
+                              color: s.mtss_tier === 3 ? 'var(--wt-tier3-foreground)'
+                                : s.mtss_tier === 2 ? 'var(--wt-tier2-foreground)'
+                                : 'var(--wt-tier1-foreground)',
+                              borderColor: s.mtss_tier === 3 ? 'var(--wt-tier3-border)'
+                                : s.mtss_tier === 2 ? 'var(--wt-tier2-border)'
+                                : 'var(--wt-tier1-border)',
+                            }}
+                          >
+                            <span
+                              className="h-1.5 w-1.5 rounded-full"
+                              style={{
+                                backgroundColor: s.mtss_tier === 3 ? 'var(--wt-tier3)'
+                                  : s.mtss_tier === 2 ? 'var(--wt-tier2)'
+                                  : 'var(--wt-tier1)',
+                              }}
+                            />
+                            Tier {s.mtss_tier}
                           </span>
                         ) : <span className="text-xs text-slate-400">—</span>}
                       </td>

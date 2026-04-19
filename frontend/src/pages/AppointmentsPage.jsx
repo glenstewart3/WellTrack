@@ -787,7 +787,7 @@ export default function AppointmentsPage() {
   const handleSaved = () => { setSessionModal(null); setRefreshKey(k => k + 1); };
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto fade-in">
+    <div className="p-6 lg:p-8 fade-in">
       <div className="flex items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Appointments</h1>

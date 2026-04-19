@@ -158,7 +158,7 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="p-6 lg:p-8 max-w-6xl mx-auto">
+      <div className="p-6 lg:p-8">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-slate-200 rounded w-1/3" />
           <div className="grid grid-cols-4 gap-4">{[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-slate-100 rounded-xl" />)}</div>
@@ -207,7 +207,7 @@ export default function AnalyticsPage() {
   ];
 
   return (
-    <div className="p-6 lg:p-8 max-w-6xl mx-auto fade-in" style={{ opacity: refreshing ? 0.5 : 1, transition: 'opacity 0.15s ease', pointerEvents: refreshing ? 'none' : 'auto' }}>
+    <div className="p-6 lg:p-8 fade-in" style={{ opacity: refreshing ? 0.5 : 1, transition: 'opacity 0.15s ease', pointerEvents: refreshing ? 'none' : 'auto' }}>
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
