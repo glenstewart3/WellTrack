@@ -61,7 +61,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-stone-50 flex">
       {/* Left panel */}
       <div className="flex-1 flex flex-col justify-center px-8 py-12 lg:px-16">
         <div className="max-w-md w-full mx-auto">
@@ -79,21 +79,21 @@ export default function LoginPage() {
               />
             )}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0" style={{ backgroundColor: accent }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-stone-900">
                 <Shield size={20} className="text-emerald-400" />
               </div>
               <div>
-                <p className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{settings.platform_name || 'WellTrack'}</p>
-                <p className="text-xs text-slate-400 font-medium">{settings.school_name || 'MTSS Student Wellbeing Platform'}</p>
+                <p className="text-lg font-bold text-stone-900 tracking-tight" style={{ fontFamily: 'Manrope,sans-serif' }}>{settings.platform_name || 'WellTrack'}</p>
+                <p className="text-xs text-stone-400 font-medium">{settings.school_name || 'MTSS Student Wellbeing Platform'}</p>
               </div>
             </div>
           </div>
 
           {/* Heading */}
-          <h1 className="text-4xl font-bold text-slate-900 mb-3" style={{ fontFamily: 'Manrope,sans-serif' }}>
+          <h1 className="text-4xl font-bold text-stone-900 tracking-tight mb-3" style={{ fontFamily: 'Manrope,sans-serif' }}>
             Welcome back
           </h1>
-          <p className="text-slate-500 mb-8 text-base leading-relaxed">
+          <p className="text-stone-500 mb-8 text-base leading-relaxed">
             {settings.welcome_message || "Sign in to access your school's MTSS wellbeing platform."}
           </p>
 
@@ -204,33 +204,39 @@ export default function LoginPage() {
       </div>
 
       {/* Right panel */}
-      <div className="hidden lg:flex flex-1 bg-slate-900 flex-col justify-between p-12">
-        <div />
-        <div>
+      <div
+        className="hidden lg:flex flex-1 flex-col justify-between p-12 relative overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, #1c1917 0%, #292524 50%, #1c1917 100%)',
+        }}
+      >
+        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
+        <div className="relative z-10" />
+        <div className="relative z-10">
           <div className="grid grid-cols-3 gap-3 mb-8">
             {[
               { label: 'Tier 1', count: '100%', color: 'bg-emerald-500', desc: 'Universal' },
-              { label: 'Tier 2', count: '20%',  color: 'bg-amber-400',  desc: 'Targeted' },
+              { label: 'Tier 2', count: '20%',  color: 'bg-amber-500',  desc: 'Targeted' },
               { label: 'Tier 3', count: '5%',   color: 'bg-rose-500',   desc: 'Intensive' },
             ].map(item => (
-              <div key={item.label} className="bg-white/10 rounded-xl p-4">
-                <div className={`w-3 h-3 rounded-full ${item.color} mb-2`} />
-                <p className="text-2xl font-bold text-white" style={{fontFamily:'Manrope,sans-serif'}}>{item.count}</p>
-                <p className="text-xs text-white/60 mt-1">{item.label}</p>
-                <p className="text-xs text-white/40">{item.desc}</p>
+              <div key={item.label} className="bg-white/[0.06] border border-white/[0.08] rounded-xl p-4 backdrop-blur-sm">
+                <div className={`w-2.5 h-2.5 rounded-full ${item.color} mb-3`} />
+                <p className="text-2xl font-bold text-white tracking-tight" style={{fontFamily:'Manrope,sans-serif'}}>{item.count}</p>
+                <p className="text-xs text-white/50 mt-1 font-medium">{item.label}</p>
+                <p className="text-xs text-white/30">{item.desc}</p>
               </div>
             ))}
           </div>
-          <h1 className="text-4xl font-bold text-white mb-3" style={{fontFamily:'Manrope,sans-serif'}}>
+          <h1 className="text-4xl font-bold text-white mb-3 tracking-tight" style={{fontFamily:'Manrope,sans-serif'}}>
             Every student matters.
           </h1>
-          <p className="text-white/60 text-sm leading-relaxed max-w-sm">
+          <p className="text-white/50 text-sm leading-relaxed max-w-sm">
             WellTrack helps your school identify students who need support before they fall through the cracks — using evidence-based SAEBRS screening and wellbeing analytics.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="relative z-10 flex flex-wrap gap-2">
           {['Universal Screening', 'Early Intervention', 'Progress Monitoring', 'Data-Driven'].map(tag => (
-            <span key={tag} className="text-xs text-white/50 bg-white/10 px-3 py-1 rounded-full">{tag}</span>
+            <span key={tag} className="text-xs text-white/40 bg-white/[0.05] border border-white/[0.08] px-3 py-1.5 rounded-full font-medium">{tag}</span>
           ))}
         </div>
       </div>
