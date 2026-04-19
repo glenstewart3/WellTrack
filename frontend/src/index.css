@@ -65,32 +65,32 @@ code {
 
 /* ── WellTrack Theme Variables ─────────────────────────────────────────────── */
 :root {
-  --wt-page-bg: #fbfaf6;
-  --wt-header-bg: #fbfaf6;
-  --wt-header-border: #e9e4d8;
+  --wt-page-bg: #f8fafc;        /* slate-50 neutral canvas */
+  --wt-header-bg: #f8fafc;
+  --wt-header-border: #e2e8f0;  /* slate-200 */
 
-  /* Lovable-inspired warm surface + tier palette */
+  /* Neutral surface + bright tier palette (matches Analytics charts) */
   --wt-surface: #ffffff;
-  --wt-surface-muted: #f3f0e6;
+  --wt-surface-muted: #f1f5f9;  /* slate-100 */
   --wt-card: #ffffff;
-  --wt-border: #e9e4d8;
-  --wt-foreground: #1e293b;
-  --wt-muted-fg: #78716c;
+  --wt-border: #e2e8f0;         /* slate-200 */
+  --wt-foreground: #0f172a;     /* slate-900 */
+  --wt-muted-fg: #64748b;       /* slate-500 */
 
-  --wt-tier1: #4d9a7a;          /* sage green */
-  --wt-tier1-soft: #e8f2ec;
-  --wt-tier1-foreground: #2d6149;
-  --wt-tier1-border: #c2ddc9;
+  --wt-tier1: #22c55e;          /* green-500 — matches Analytics */
+  --wt-tier1-soft: #dcfce7;     /* green-100 */
+  --wt-tier1-foreground: #166534; /* green-800 */
+  --wt-tier1-border: #bbf7d0;   /* green-200 */
 
-  --wt-tier2: #cc9a3a;           /* warm amber/gold */
-  --wt-tier2-soft: #faf0de;
-  --wt-tier2-foreground: #7a5722;
-  --wt-tier2-border: #ead0a2;
+  --wt-tier2: #f59e0b;          /* amber-500 */
+  --wt-tier2-soft: #fef3c7;     /* amber-100 */
+  --wt-tier2-foreground: #92400e; /* amber-800 */
+  --wt-tier2-border: #fde68a;   /* amber-200 */
 
-  --wt-tier3: #c8613a;           /* warm terracotta red */
-  --wt-tier3-soft: #f9e6dc;
-  --wt-tier3-foreground: #8a3819;
-  --wt-tier3-border: #ecc1ab;
+  --wt-tier3: #ef4444;          /* red-500 */
+  --wt-tier3-soft: #fee2e2;     /* red-100 */
+  --wt-tier3-foreground: #991b1b; /* red-800 */
+  --wt-tier3-border: #fecaca;   /* red-200 */
 }
 
 [data-theme="dark"] {
@@ -105,20 +105,20 @@ code {
   --wt-foreground: #f1f5f9;
   --wt-muted-fg: #94a3b8;
 
-  --wt-tier1: #6dbd99;
-  --wt-tier1-soft: rgba(77, 154, 122, 0.16);
-  --wt-tier1-foreground: #a9d7bf;
-  --wt-tier1-border: rgba(77, 154, 122, 0.30);
+  --wt-tier1: #22c55e;
+  --wt-tier1-soft: rgba(34, 197, 94, 0.16);
+  --wt-tier1-foreground: #86efac;
+  --wt-tier1-border: rgba(34, 197, 94, 0.32);
 
-  --wt-tier2: #e6b85a;
-  --wt-tier2-soft: rgba(204, 154, 58, 0.16);
-  --wt-tier2-foreground: #f0d59a;
-  --wt-tier2-border: rgba(204, 154, 58, 0.30);
+  --wt-tier2: #f59e0b;
+  --wt-tier2-soft: rgba(245, 158, 11, 0.16);
+  --wt-tier2-foreground: #fcd34d;
+  --wt-tier2-border: rgba(245, 158, 11, 0.32);
 
-  --wt-tier3: #e08060;
-  --wt-tier3-soft: rgba(200, 97, 58, 0.16);
-  --wt-tier3-foreground: #f0b29a;
-  --wt-tier3-border: rgba(200, 97, 58, 0.30);
+  --wt-tier3: #ef4444;
+  --wt-tier3-soft: rgba(239, 68, 68, 0.16);
+  --wt-tier3-foreground: #fca5a5;
+  --wt-tier3-border: rgba(239, 68, 68, 0.32);
 }
 
 /* Manrope micro-label (tabular, wide tracking) — replaces JetBrains Mono */

@@ -44,15 +44,16 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - [x] School login only appears on school subdomains (not root domain)
 - [x] 12/12 backend + all frontend tests passed (iteration_44.json)
 
-### Dashboard + App-wide UI Refresh — Lovable Design System (COMPLETED - 2026-04-19)
-- [x] Backend: `/api/analytics/tier-movement?limit=N` endpoint — one data point per unique screening date over past 365 days
-- [x] CSS: Lovable warm cream + sage/amber/terracotta tier palette as CSS vars in `index.css` (light + dark); `wt-tier{1,2,3}-{bg,text,border,badge,dot}` utility classes
-- [x] Light-mode CSS cascade swaps `.border-slate-{100,200}` → `var(--wt-border)` and `.bg-slate-50` → warm surface-muted; H1 `.text-3xl/.text-2xl` auto-bumped to weight 800
-- [x] `tierUtils.js`: `getTierColors()` + `getRiskColors()` now return `wt-tier*-badge` classes — propagates palette app-wide
-- [x] `DashboardPage.jsx`: hero + KPI cards ("Tier 1/2/3" labels, delta vs last screening) + Tier movement area chart (screening dates) + donut + Recent alerts with clean dividers + Lovable Watchlist
+### Dashboard + App-wide UI Refresh (COMPLETED - 2026-04-19)
+- [x] Backend: `/api/analytics/tier-movement?limit=N` — one data point per unique screening date over past 365 days
+- [x] CSS palette: bright green/amber/red tier colors matching Analytics donut (`#22c55e` / `#f59e0b` / `#ef4444`); neutral slate-50 page bg, slate-200 borders, cool-neutral surfaces
+- [x] CSS vars + `.wt-tier{1,2,3}-{bg,text,border,badge,dot}` utility classes drive tier styling app-wide
+- [x] `tierUtils.js`: `getTierColors()` + `getRiskColors()` now return `wt-tier*-badge` classes — one palette change propagates to every tier/risk pill across Students, Alerts, Profile, Radar, etc.
+- [x] `DashboardPage.jsx`: hero + KPI cards ("Tier 1/2/3" labels showing counts, delta vs last screening) + Tier movement area chart + donut + Recent alerts + Lovable Watchlist
 - [x] `StudentsPage.jsx`: ROSTER micro-label, tier-soft avatar backgrounds, new pill TierBadge in table
-- [x] Removed `max-w-{5,6,7}xl mx-auto` from all 12 inner pages (full-width responsive)
-- [x] Sidebar + top-bar match page cream in light mode
+- [x] Removed `max-w-*xl mx-auto` from all 12 inner pages (full-width responsive)
+- [x] Sidebar + top-bar match page background in light mode
+- [x] H1s globally weight-800 (Manrope extrabold)
 - [x] No functional changes — all hooks, APIs, modals, filters, data-testids preserved
 
 ### Pre-existing Features (from single-tenant)
