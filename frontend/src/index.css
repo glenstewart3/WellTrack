@@ -66,8 +66,8 @@ code {
 /* ── WellTrack Theme Variables ─────────────────────────────────────────────── */
 :root {
   --wt-page-bg: #fbfaf6;
-  --wt-header-bg: #ffffff;
-  --wt-header-border: #e2e8f0;
+  --wt-header-bg: #fbfaf6;
+  --wt-header-border: #e9e4d8;
 
   /* Lovable-inspired warm surface + tier palette */
   --wt-surface: #ffffff;

@@ -56,8 +56,9 @@ export default function DashboardLayout() {
   const accent = settings.accent_color || '#0f172a';
   // Use theme-specific nav active color when not on default theme
   const activeNavColor = THEME_NAV_ACTIVE[theme] || accent;
-  // Only apply wt-sidebar class for non-default themes (avoids overriding role badge colors on default)
-  const sidebarClass = theme === 'dark' ? 'wt-sidebar' : 'bg-white border-slate-200';
+  // Sidebar: match page bg (warm cream) in light, dark surface in dark
+  const sidebarClass = theme === 'dark' ? 'wt-sidebar' : '';
+  const sidebarStyle = theme === 'dark' ? {} : { backgroundColor: 'var(--wt-page-bg)', borderColor: 'var(--wt-header-border)' };
 
   // Trial banner: show if school is on trial and expires within 14 days
   const featureFlags = settings.feature_flags || {};
@@ -176,7 +177,7 @@ export default function DashboardLayout() {
   return (
     <div className="flex h-dvh overflow-hidden" style={{ backgroundColor: 'var(--wt-page-bg, #fbfaf6)' }}>
       {/* Desktop Sidebar */}
-      <aside className={`hidden lg:flex flex-col w-60 border-r shrink-0 ${sidebarClass}`}>
+      <aside className={`hidden lg:flex flex-col w-60 border-r shrink-0 ${sidebarClass}`} style={sidebarStyle}>
         <SidebarContent />
       </aside>
 
@@ -184,7 +185,7 @@ export default function DashboardLayout() {
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
-          <aside className={`relative z-10 flex flex-col w-60 h-full shadow-xl border-r ${sidebarClass}`}>
+          <aside className={`relative z-10 flex flex-col w-60 h-full shadow-xl border-r ${sidebarClass}`} style={sidebarStyle}>
             <SidebarContent />
           </aside>
         </div>

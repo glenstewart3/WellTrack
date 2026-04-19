@@ -65,7 +65,7 @@ export default function DashboardPage() {
       try {
         const [tierRes, moveRes, alertRes, studRes] = await Promise.all([
           api.get('/analytics/tier-distribution'),
-          api.get('/analytics/tier-movement?weeks=8'),
+          api.get('/analytics/tier-movement?limit=8'),
           api.get('/alerts?resolved=false'),
           api.get('/students/summary'),
         ]);
@@ -139,12 +139,12 @@ export default function DashboardPage() {
     { name: 'Unscreened', value: unscreened, color: '#94a3b8' },
   ].filter(d => d.value > 0);
 
-  // Format movement for chart
-  const movementData = (movement?.weeks || []).map((w, i, arr) => ({
-    week: `W${i + 1}`,
-    tier1: w.tier1,
-    tier2: w.tier2,
-    tier3: w.tier3,
+  // Format movement for chart (one point per screening event)
+  const movementData = (movement?.events || []).map(e => ({
+    label: e.label,
+    tier1: e.tier1,
+    tier2: e.tier2,
+    tier3: e.tier3,
   }));
 
   const hour = new Date().getHours();
@@ -201,7 +201,7 @@ export default function DashboardPage() {
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="wt-mono-label text-[10px]" style={{ color: 'var(--wt-muted-fg)' }}>{termLabel}</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight" style={{ fontFamily: 'Manrope, sans-serif', color: 'var(--wt-foreground)' }}>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight" style={{ fontFamily: 'Manrope, sans-serif', color: 'var(--wt-foreground)', fontWeight: 800 }}>
             {greeting}{firstName ? `, ${firstName}.` : '.'}
           </h1>
           <p className="mt-1 text-sm" style={{ color: 'var(--wt-muted-fg)' }}>
@@ -250,7 +250,7 @@ export default function DashboardPage() {
             </div>
             <div className="mt-4 flex items-center gap-2">
               <TrendChip delta={k.delta} suffix={k.suffix} positiveIsGood={k.positiveIsGood !== false} />
-              <span className="text-xs" style={{ color: 'var(--wt-muted-fg)' }}>vs last week</span>
+              <span className="text-xs" style={{ color: 'var(--wt-muted-fg)' }}>vs last screening</span>
             </div>
           </button>
         ))}
@@ -315,7 +315,7 @@ export default function DashboardPage() {
                 Tier movement
               </h3>
               <p className="text-xs" style={{ color: 'var(--wt-muted-fg)' }}>
-                Share of students by tier · last 8 weeks
+                Share of students by tier · last {movementData.length || 8} screenings
               </p>
             </div>
             <div className="flex items-center gap-3 text-[11px]" style={{ color: 'var(--wt-muted-fg)' }}>
@@ -342,7 +342,7 @@ export default function DashboardPage() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--wt-border)" />
-                <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--wt-muted-fg)' }} />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--wt-muted-fg)' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--wt-muted-fg)' }} width={32} />
                 <Tooltip
                   contentStyle={{ borderRadius: '0.5rem', border: '1px solid var(--wt-border)', fontSize: '12px', backgroundColor: 'var(--wt-card)' }}
@@ -425,8 +425,8 @@ export default function DashboardPage() {
               <p className="text-sm">No active alerts</p>
             </div>
           ) : (
-            <div className="divide-y" style={{ borderColor: 'var(--wt-border)' }}>
-              {alerts.map(alert => {
+            <div>
+              {alerts.map((alert, idx) => {
                 const alertTier = alert.severity === 'high' ? 3 : 2;
                 const t = TIER_VAR[alertTier];
                 return (
@@ -434,7 +434,8 @@ export default function DashboardPage() {
                     key={alert.alert_id}
                     onClick={() => navigate(`/students/${alert.student_id}`)}
                     data-testid={`alert-item-${alert.alert_id}`}
-                    className="flex items-center justify-between gap-3 py-3 cursor-pointer -mx-2 px-2 rounded-lg hover:bg-black/5 transition-colors"
+                    className="flex items-center justify-between gap-3 py-3 cursor-pointer transition-colors hover:opacity-80"
+                    style={idx > 0 ? { borderTop: '1px solid var(--wt-border)' } : {}}
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: t.solid }} />

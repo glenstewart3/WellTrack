@@ -51,22 +51,22 @@ async def tier_distribution(user=Depends(get_current_user), db=Depends(get_tenan
 
 
 @router.get("/analytics/tier-movement")
-async def tier_movement(weeks: int = 8, user=Depends(get_current_user), db=Depends(get_tenant_db)):
-    """Returns weekly tier distribution for the last N weeks.
+async def tier_movement(limit: int = 8, user=Depends(get_current_user), db=Depends(get_tenant_db)):
+    """Returns tier distribution at each of the last N screening events over the past year.
 
-    For each week cutoff (end of week), each student's tier is computed from their
-    most-recent SAEBRS + SAEBRS-plus results created on/before that cutoff. Students
-    without a prior SAEBRS result at that cutoff are bucketed as 'unscreened'.
+    A 'screening event' = any unique calendar date on which at least one SAEBRS or
+    SAEBRS-plus result was created. At each event, each student's tier is computed
+    from their most-recent SAEBRS + SAEBRS-plus created on/before that date.
     """
     from datetime import datetime, timedelta, timezone
-    weeks = max(1, min(weeks, 26))
+    limit = max(1, min(limit, 20))
 
     students = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
     student_ids = [s["student_id"] for s in students]
     if not student_ids:
-        return {"weeks": [], "current": {"tier1": 0, "tier2": 0, "tier3": 0, "unscreened": 0, "total": 0}}
+        return {"events": [], "current": {"tier1": 0, "tier2": 0, "tier3": 0, "unscreened": 0, "total": 0}, "previous": None}
 
-    # Pull full histories once
+    # Full SAEBRS + SAEBRS-plus histories (per student, sorted asc)
     saebrs_hist_map = await get_all_saebrs_bulk(db, student_ids)
     plus_pipeline = [
         {"$match": {"student_id": {"$in": student_ids}}},
@@ -80,7 +80,6 @@ async def tier_movement(weeks: int = 8, user=Depends(get_current_user), db=Depen
     }
     att_map = await get_bulk_attendance_stats(db, student_ids)
 
-    # Compute week-end cutoffs (Sunday 23:59:59 UTC), most recent first
     def _to_dt(v):
         if isinstance(v, datetime):
             return v if v.tzinfo else v.replace(tzinfo=timezone.utc)
@@ -90,15 +89,26 @@ async def tier_movement(weeks: int = 8, user=Depends(get_current_user), db=Depen
         except Exception:
             return None
 
+    # Collect all unique screening dates (past 365 days) across both result types
     now = datetime.now(timezone.utc)
-    # Anchor on today's end-of-day UTC
-    today_end = now.replace(hour=23, minute=59, second=59, microsecond=0)
-    # Weekly points at today, today-7, today-14 ...
-    week_cutoffs = [today_end - timedelta(days=7 * i) for i in range(weeks)]
-    week_cutoffs.reverse()  # oldest first
+    year_ago = now - timedelta(days=365)
+    date_set = set()
+    for hist in saebrs_hist_map.values():
+        for d in hist:
+            cat = _to_dt(d.get("created_at"))
+            if cat and cat >= year_ago:
+                date_set.add(cat.date())
+    for hist in plus_hist_map.values():
+        for d in hist:
+            cat = _to_dt(d.get("created_at"))
+            if cat and cat >= year_ago:
+                date_set.add(cat.date())
+
+    event_dates = sorted(date_set)[-limit:]  # oldest-first, keep last N
+    # Cutoff = end of that day UTC
+    event_cutoffs = [datetime.combine(d, datetime.max.time(), tzinfo=timezone.utc) for d in event_dates]
 
     def _tier_as_of(hist_s, hist_p, att_pct, cutoff):
-        # latest saebrs <= cutoff
         s_doc = None
         for d in hist_s:
             cat = _to_dt(d.get("created_at"))
@@ -118,33 +128,29 @@ async def tier_movement(weeks: int = 8, user=Depends(get_current_user), db=Depen
         if s_doc:
             rl = s_doc["risk_level"]
             return 3 if rl == "High Risk" else (2 if rl == "Some Risk" else 1)
-        return 0  # unscreened
+        return 0
 
-    series = []
-    for idx, cutoff in enumerate(week_cutoffs):
+    events = []
+    for idx, (ev_date, cutoff) in enumerate(zip(event_dates, event_cutoffs)):
         bucket = {"tier1": 0, "tier2": 0, "tier3": 0, "unscreened": 0}
         for s in students:
             sid = s["student_id"]
-            hist_s = saebrs_hist_map.get(sid, [])
-            hist_p = plus_hist_map.get(sid, [])
             att_pct = att_map.get(sid, {}).get("pct", 100.0)
-            t = _tier_as_of(hist_s, hist_p, att_pct, cutoff)
+            t = _tier_as_of(saebrs_hist_map.get(sid, []), plus_hist_map.get(sid, []), att_pct, cutoff)
             if t == 0:
                 bucket["unscreened"] += 1
             else:
                 bucket[f"tier{t}"] += 1
-        label_idx = idx - (len(week_cutoffs) - 1)  # 0 for current, -1 prev, etc.
-        series.append({
-            "week": f"W{idx + 1}",
-            "week_end": cutoff.date().isoformat(),
-            "label_offset": label_idx,
+        events.append({
+            "label": ev_date.strftime("%d %b"),  # "19 Apr"
+            "date": ev_date.isoformat(),
             **bucket,
             "total": len(students),
         })
 
-    current = series[-1] if series else {"tier1": 0, "tier2": 0, "tier3": 0, "unscreened": 0, "total": 0}
-    previous = series[-2] if len(series) >= 2 else None
-    return {"weeks": series, "current": current, "previous": previous}
+    current = events[-1] if events else {"tier1": 0, "tier2": 0, "tier3": 0, "unscreened": 0, "total": 0}
+    previous = events[-2] if len(events) >= 2 else None
+    return {"events": events, "current": current, "previous": previous}
 
 
 @router.get("/analytics/classroom-radar/{class_name}")
