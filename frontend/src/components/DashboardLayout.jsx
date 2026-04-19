@@ -323,13 +323,13 @@ export default function DashboardLayout() {
           {theme !== 'dark' && (
             <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" aria-hidden="true">
               {/* Top row */}
-              <div className="wt-blur-drift-a absolute -top-32 right-[18%] h-[460px] w-[460px] rounded-full opacity-55 blur-3xl" style={{ background: 'rgba(34, 197, 94, 0.38)' }} />
+              <div className="wt-blur-drift-a absolute -top-32 right-[18%] h-[460px] w-[460px] rounded-full opacity-40 blur-3xl" style={{ background: 'rgba(34, 197, 94, 0.38)' }} />
               {/* Mid row */}
-              <div className="wt-blur-drift-b absolute top-1/3 right-[-6%] h-[400px] w-[400px] rounded-full opacity-50 blur-3xl" style={{ background: 'rgba(245, 158, 11, 0.34)' }} />
-              <div className="wt-blur-drift-c absolute top-1/2 left-[28%] h-[300px] w-[300px] rounded-full opacity-35 blur-3xl" style={{ background: 'rgba(168, 85, 247, 0.18)' }} />
+              <div className="wt-blur-drift-b absolute top-1/3 right-[-6%] h-[400px] w-[400px] rounded-full opacity-35 blur-3xl" style={{ background: 'rgba(245, 158, 11, 0.34)' }} />
+              <div className="wt-blur-drift-c absolute top-1/2 left-[28%] h-[300px] w-[300px] rounded-full opacity-25 blur-3xl" style={{ background: 'rgba(168, 85, 247, 0.18)' }} />
               {/* Bottom row */}
-              <div className="wt-blur-drift-d absolute bottom-[-8%] left-[6%] h-[380px] w-[380px] rounded-full opacity-50 blur-3xl" style={{ background: 'rgba(239, 68, 68, 0.28)' }} />
-              <div className="wt-blur-drift-e absolute bottom-[-10%] right-[22%] h-[320px] w-[320px] rounded-full opacity-40 blur-3xl" style={{ background: 'rgba(16, 185, 129, 0.24)' }} />
+              <div className="wt-blur-drift-d absolute bottom-[-8%] left-[6%] h-[380px] w-[380px] rounded-full opacity-35 blur-3xl" style={{ background: 'rgba(239, 68, 68, 0.28)' }} />
+              <div className="wt-blur-drift-e absolute bottom-[-10%] right-[22%] h-[320px] w-[320px] rounded-full opacity-30 blur-3xl" style={{ background: 'rgba(16, 185, 129, 0.24)' }} />
             </div>
           )}
           <div className="relative z-10">
