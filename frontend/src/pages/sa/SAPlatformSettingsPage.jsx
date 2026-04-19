@@ -60,38 +60,38 @@ export default function SAPlatformSettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 size={20} className="animate-spin text-slate-400" />
+        <Loader2 size={20} className="animate-spin text-stone-400" />
       </div>
     );
   }
 
   return (
     <div className="max-w-2xl" data-testid="sa-platform-settings-page">
-      <h1 className="text-2xl font-bold text-slate-900 mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>Platform Settings</h1>
-      <p className="text-sm text-slate-500 mb-6">Configure platform-wide integrations. These settings apply to all schools.</p>
+      <h1 className="text-2xl font-bold text-stone-900 mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>Platform Settings</h1>
+      <p className="text-sm text-stone-500 mb-6">Configure platform-wide integrations. These settings apply to all schools.</p>
 
       {msg.text && (
-        <div className={`flex items-center gap-2 rounded-xl p-3 mb-5 ${msg.type === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
-          {msg.type === 'error' ? <AlertCircle size={14} className="text-rose-600" /> : <CheckCircle size={14} className="text-emerald-600" />}
-          <p className={`text-sm ${msg.type === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg.text}</p>
+        <div className={`flex items-center gap-2 rounded-xl p-3 mb-5 ${msg.type === 'error' ? 'bg-red-50 border border-red-200' : 'bg-teal-50 border border-teal-200'}`}>
+          {msg.type === 'error' ? <AlertCircle size={14} className="text-red-600" /> : <CheckCircle size={14} className="text-teal-600" />}
+          <p className={`text-sm ${msg.type === 'error' ? 'text-red-700' : 'text-teal-700'}`}>{msg.text}</p>
         </div>
       )}
 
       {/* AI Toggle */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 mb-5">
+      <div className="bg-white border border-stone-200 rounded-xl p-5 mb-5">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">AI Intervention Suggestions</h2>
-            <p className="text-xs text-slate-400 mt-0.5">When enabled, school staff can request AI-generated intervention recommendations on student profiles.</p>
+            <h2 className="text-sm font-semibold text-stone-900">AI Intervention Suggestions</h2>
+            <p className="text-xs text-stone-400 mt-0.5">When enabled, school staff can request AI-generated intervention recommendations on student profiles.</p>
           </div>
           <button onClick={() => setAiEnabled(p => !p)} data-testid="sa-ai-toggle">
-            {aiEnabled ? <ToggleRight size={32} className="text-emerald-500" /> : <ToggleLeft size={32} className="text-slate-300" />}
+            {aiEnabled ? <ToggleRight size={32} className="text-teal-500" /> : <ToggleLeft size={32} className="text-stone-300" />}
           </button>
         </div>
 
         {aiEnabled && (
-          <div className="mt-4 pt-4 border-t border-slate-100">
-            <label className="text-sm font-semibold text-slate-700 mb-2 block">Suggestions per request</label>
+          <div className="mt-4 pt-4 border-t border-stone-100">
+            <label className="text-sm font-semibold text-stone-700 mb-2 block">Suggestions per request</label>
             <div className="flex gap-2">
               {[1, 2, 3].map(n => (
                 <button
@@ -100,51 +100,51 @@ export default function SAPlatformSettingsPage() {
                   data-testid={`sa-suggestion-count-${n}`}
                   className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
                     suggestionCount === n
-                      ? 'bg-slate-900 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      ? 'bg-stone-900 text-white'
+                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                   }`}
                 >
                   {n}
                 </button>
               ))}
             </div>
-            <p className="text-xs text-slate-400 mt-1.5">How many intervention suggestions the AI generates per student request.</p>
+            <p className="text-xs text-stone-400 mt-1.5">How many intervention suggestions the AI generates per student request.</p>
           </div>
         )}
       </div>
 
       {/* Ollama Config */}
-      <div className={`bg-white border border-slate-200 rounded-xl p-5 mb-5 space-y-4 transition-opacity ${!aiEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+      <div className={`bg-white border border-stone-200 rounded-xl p-5 mb-5 space-y-4 transition-opacity ${!aiEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
         <div className="flex items-center gap-2">
-          <Bot size={16} className="text-slate-500" />
-          <h2 className="text-sm font-semibold text-slate-900">Ollama Configuration</h2>
+          <Bot size={16} className="text-stone-500" />
+          <h2 className="text-sm font-semibold text-stone-900">Ollama Configuration</h2>
         </div>
-        <p className="text-xs text-slate-400">
-          WellTrack connects to your local <a href="https://ollama.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-700">Ollama</a> instance.
+        <p className="text-xs text-stone-400">
+          WellTrack connects to your local <a href="https://ollama.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-stone-700">Ollama</a> instance.
           Ollama must be running on the same server as the WellTrack backend.
         </p>
 
         <div>
-          <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Ollama API URL</label>
-          <p className="text-xs text-slate-400 mb-2">Default: <code className="bg-slate-100 px-1 rounded text-[11px]">http://localhost:11434</code></p>
+          <label className="text-sm font-semibold text-stone-700 mb-1.5 block">Ollama API URL</label>
+          <p className="text-xs text-stone-400 mb-2">Default: <code className="bg-stone-100 px-1 rounded text-[11px]">http://localhost:11434</code></p>
           <input
             type="text" value={ollamaUrl} onChange={e => setOllamaUrl(e.target.value)}
             data-testid="sa-ollama-url-input"
             placeholder="http://localhost:11434"
-            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-slate-900/20"
+            className="w-full px-4 py-2.5 border border-stone-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-stone-900/20"
           />
         </div>
 
         <div>
-          <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Model Name</label>
-          <p className="text-xs text-slate-400 mb-2">
-            Must be pulled first: <code className="bg-slate-100 px-1 rounded text-[11px]">ollama pull {ollamaModel}</code>
+          <label className="text-sm font-semibold text-stone-700 mb-1.5 block">Model Name</label>
+          <p className="text-xs text-stone-400 mb-2">
+            Must be pulled first: <code className="bg-stone-100 px-1 rounded text-[11px]">ollama pull {ollamaModel}</code>
           </p>
           <input
             type="text" value={ollamaModel} onChange={e => setOllamaModel(e.target.value)}
             data-testid="sa-ollama-model-input"
             placeholder="llama3.2"
-            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-slate-900/20"
+            className="w-full px-4 py-2.5 border border-stone-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-stone-900/20"
           />
         </div>
 
@@ -152,20 +152,20 @@ export default function SAPlatformSettingsPage() {
           <button
             onClick={testConnection} disabled={testing}
             data-testid="sa-test-ollama-btn"
-            className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors disabled:opacity-60"
+            className="flex items-center gap-2 px-4 py-2 bg-stone-100 text-stone-700 rounded-lg text-sm font-medium hover:bg-stone-200 transition-colors disabled:opacity-60"
           >
             {testing ? <Loader2 size={14} className="animate-spin" /> : <Wifi size={14} />}
             {testing ? 'Testing...' : 'Test Connection'}
           </button>
           {testResult && (
-            <span className={`text-xs ${testResult.connected ? 'text-emerald-600' : 'text-rose-600'}`}>
+            <span className={`text-xs ${testResult.connected ? 'text-teal-600' : 'text-red-600'}`}>
               {testResult.message}
             </span>
           )}
         </div>
 
         {testResult?.connected && testResult.models?.length > 0 && (
-          <div className="text-xs text-slate-500 bg-slate-50 rounded-lg p-3">
+          <div className="text-xs text-stone-500 bg-stone-50 rounded-lg p-3">
             <span className="font-semibold">Available models:</span>{' '}
             {testResult.models.join(', ')}
           </div>
@@ -176,7 +176,7 @@ export default function SAPlatformSettingsPage() {
       <button
         onClick={handleSave} disabled={saving}
         data-testid="sa-save-platform-config"
-        className="w-full py-3 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
+        className="w-full py-3 bg-stone-900 text-white rounded-xl text-sm font-semibold hover:bg-stone-800 disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
       >
         {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
         {saving ? 'Saving...' : 'Save Platform Settings'}

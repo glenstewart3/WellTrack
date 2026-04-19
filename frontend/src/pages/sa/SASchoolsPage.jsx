@@ -35,8 +35,8 @@ export default function SASchoolsPage() {
     <div data-testid="sa-schools-page">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Schools</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{schools.length} school(s) registered</p>
+          <h1 className="text-xl font-bold text-stone-900">Schools</h1>
+          <p className="text-sm text-stone-500 mt-0.5">{schools.length} school(s) registered</p>
         </div>
         <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-sm transition-colors" data-testid="sa-add-school-button">
           <Plus size={16} /> Add School
@@ -46,12 +46,12 @@ export default function SASchoolsPage() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search schools..."
-            className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-9 pr-3 py-2 text-sm border border-stone-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             data-testid="sa-school-search"
           />
         </div>
@@ -60,7 +60,7 @@ export default function SASchoolsPage() {
             <button
               key={f}
               onClick={() => setStatusFilter(f)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors capitalize ${statusFilter === f ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors capitalize ${statusFilter === f ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'}`}
               data-testid={`sa-filter-${f}`}
             >
               {f}
@@ -73,41 +73,41 @@ export default function SASchoolsPage() {
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 text-blue-500 animate-spin" /></div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-slate-400 text-sm">No schools match your filters</div>
+        <div className="text-center py-16 text-stone-400 text-sm">No schools match your filters</div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm" data-testid="sa-schools-table">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">School</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Slug</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Status</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Students</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Users</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Last Active</th>
+                <tr className="bg-stone-50 border-b border-stone-200">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500 uppercase">School</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500 uppercase">Slug</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-stone-500 uppercase">Status</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-stone-500 uppercase">Students</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-stone-500 uppercase">Users</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500 uppercase">Last Active</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-stone-100">
                 {filtered.map(s => (
-                  <tr key={s.school_id || s.slug} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate(`${SA_PATH_PREFIX}/schools/${s.school_id}`)}>
+                  <tr key={s.school_id || s.slug} className="hover:bg-stone-50 transition-colors cursor-pointer" onClick={() => navigate(`${SA_PATH_PREFIX}/schools/${s.school_id}`)}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+                        <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center text-stone-400 shrink-0">
                           <School size={14} />
                         </div>
                         <div>
-                          <p className="font-medium text-slate-800">{s.name}</p>
-                          <p className="text-xs text-slate-400">{s.contact_email || '-'}</p>
+                          <p className="font-medium text-stone-800">{s.name}</p>
+                          <p className="text-xs text-stone-400">{s.contact_email || '-'}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-slate-500 font-mono text-xs">{s.slug}</td>
+                    <td className="px-4 py-3 text-stone-500 font-mono text-xs">{s.slug}</td>
                     <td className="px-4 py-3 text-center"><StatusBadge status={s.status} /></td>
-                    <td className="px-4 py-3 text-center font-medium text-slate-700">{s.student_count ?? 0}</td>
-                    <td className="px-4 py-3 text-center text-slate-500">{s.user_count ?? 0}</td>
-                    <td className="px-4 py-3 text-xs text-slate-400">{s.last_active ? new Date(s.last_active).toLocaleDateString() : '-'}</td>
+                    <td className="px-4 py-3 text-center font-medium text-stone-700">{s.student_count ?? 0}</td>
+                    <td className="px-4 py-3 text-center text-stone-500">{s.user_count ?? 0}</td>
+                    <td className="px-4 py-3 text-xs text-stone-400">{s.last_active ? new Date(s.last_active).toLocaleDateString() : '-'}</td>
                     <td className="px-4 py-3 text-right">
                       <Link to={`${SA_PATH_PREFIX}/schools/${s.school_id}`} className="text-blue-600 hover:text-blue-700" onClick={e => e.stopPropagation()}>
                         <ExternalLink size={14} />
@@ -128,12 +128,12 @@ export default function SASchoolsPage() {
 
 function StatusBadge({ status }) {
   const styles = {
-    active: 'bg-emerald-100 text-emerald-700',
+    active: 'bg-teal-100 text-teal-700',
     trial: 'bg-amber-100 text-amber-700',
     suspended: 'bg-red-100 text-red-700',
-    archived: 'bg-slate-100 text-slate-500',
+    archived: 'bg-stone-100 text-stone-500',
   };
-  return <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${styles[status] || 'bg-slate-100 text-slate-500'}`}>{status}</span>;
+  return <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${styles[status] || 'bg-stone-100 text-stone-500'}`}>{status}</span>;
 }
 
 function AddSchoolModal({ onClose, onCreated }) {
@@ -169,10 +169,10 @@ function AddSchoolModal({ onClose, onCreated }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" data-testid="sa-add-school-modal">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h2 className="text-lg font-semibold text-slate-900">Add New School</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+      <div className="bg-white rounded-2xl shadow-2xl border border-stone-200 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100">
+          <h2 className="text-lg font-semibold text-stone-900">Add New School</h2>
+          <button onClick={onClose} className="text-stone-400 hover:text-stone-600"><X size={20} /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
@@ -182,19 +182,19 @@ function AddSchoolModal({ onClose, onCreated }) {
           )}
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-slate-600 mb-1">School Name *</label>
-              <input value={form.name} onChange={e => handleNameChange(e.target.value)} required className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Mooroopna Primary School" data-testid="sa-school-name-input" />
+              <label className="block text-xs font-medium text-stone-600 mb-1">School Name *</label>
+              <input value={form.name} onChange={e => handleNameChange(e.target.value)} required className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Mooroopna Primary School" data-testid="sa-school-name-input" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Slug * <span className="text-slate-400 font-normal">(subdomain)</span></label>
+              <label className="block text-xs font-medium text-stone-600 mb-1">Slug * <span className="text-stone-400 font-normal">(subdomain)</span></label>
               <div className="flex items-center gap-1">
-                <input value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })} required className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="mooroopna" data-testid="sa-school-slug-input" />
+                <input value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })} required className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="mooroopna" data-testid="sa-school-slug-input" />
               </div>
-              <p className="text-[10px] text-slate-400 mt-1">{form.slug || '...'}.{process.env.REACT_APP_BASE_DOMAIN || 'welltrack.com.au'}</p>
+              <p className="text-[10px] text-stone-400 mt-1">{form.slug || '...'}.{process.env.REACT_APP_BASE_DOMAIN || 'welltrack.com.au'}</p>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Status</label>
-              <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label className="block text-xs font-medium text-stone-600 mb-1">Status</label>
+              <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="active">Active</option>
                 <option value="trial">Trial</option>
               </select>
@@ -202,38 +202,38 @@ function AddSchoolModal({ onClose, onCreated }) {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Contact Name</label>
-              <input value={form.contact_name} onChange={e => setForm({ ...form, contact_name: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Jane Smith" />
+              <label className="block text-xs font-medium text-stone-600 mb-1">Contact Name</label>
+              <input value={form.contact_name} onChange={e => setForm({ ...form, contact_name: e.target.value })} className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Jane Smith" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Contact Email</label>
-              <input type="email" value={form.contact_email} onChange={e => setForm({ ...form, contact_email: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="jane@school.edu.au" />
+              <label className="block text-xs font-medium text-stone-600 mb-1">Contact Email</label>
+              <input type="email" value={form.contact_email} onChange={e => setForm({ ...form, contact_email: e.target.value })} className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="jane@school.edu.au" />
             </div>
           </div>
-          <div className="pt-2 border-t border-slate-100">
-            <p className="text-xs font-semibold text-slate-700 mb-3">School Admin Account</p>
+          <div className="pt-2 border-t border-stone-100">
+            <p className="text-xs font-semibold text-stone-700 mb-3">School Admin Account</p>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Admin Name *</label>
-                <input value={form.admin_name} onChange={e => setForm({ ...form, admin_name: e.target.value })} required className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Admin name" data-testid="sa-admin-name-input" />
+                <label className="block text-xs font-medium text-stone-600 mb-1">Admin Name *</label>
+                <input value={form.admin_name} onChange={e => setForm({ ...form, admin_name: e.target.value })} required className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Admin name" data-testid="sa-admin-name-input" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Admin Email *</label>
-                <input type="email" value={form.admin_email} onChange={e => setForm({ ...form, admin_email: e.target.value })} required className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="admin@school.edu.au" data-testid="sa-admin-email-input" />
+                <label className="block text-xs font-medium text-stone-600 mb-1">Admin Email *</label>
+                <input type="email" value={form.admin_email} onChange={e => setForm({ ...form, admin_email: e.target.value })} required className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="admin@school.edu.au" data-testid="sa-admin-email-input" />
               </div>
             </div>
             <div className="mt-3">
-              <label className="block text-xs font-medium text-slate-600 mb-1">Admin Password *</label>
+              <label className="block text-xs font-medium text-stone-600 mb-1">Admin Password *</label>
               <div className="relative">
-                <input type={showPw ? 'text' : 'password'} value={form.admin_password} onChange={e => setForm({ ...form, admin_password: e.target.value })} required minLength={8} className="w-full border border-slate-200 rounded-lg px-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Min 8 characters" data-testid="sa-admin-password-input" />
-                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <input type={showPw ? 'text' : 'password'} value={form.admin_password} onChange={e => setForm({ ...form, admin_password: e.target.value })} required minLength={8} className="w-full border border-stone-200 rounded-lg px-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Min 8 characters" data-testid="sa-admin-password-input" />
+                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">
                   {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Cancel</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-stone-600 hover:text-stone-800 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors">Cancel</button>
             <button type="submit" disabled={submitting} className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm" data-testid="sa-add-school-submit">
               {submitting && <Loader2 size={14} className="animate-spin" />}
               Create School

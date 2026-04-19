@@ -49,14 +49,14 @@ const scrollTop = () => { const m = document.querySelector('main'); if (m) m.scr
 // ─── Score bar helper ─────────────────────────────────────────────────────────
 function ScoreBar({ score, max, risk }) {
   const pct = Math.round((score / max) * 100);
-  const col = risk === 'High Risk' ? 'bg-rose-500' : risk === 'Some Risk' ? 'bg-amber-400' : 'bg-emerald-500';
+  const col = risk === 'High Risk' ? 'bg-red-500' : risk === 'Some Risk' ? 'bg-amber-400' : 'bg-teal-500';
   return (
     <div>
-      <div className="flex justify-between text-xs text-slate-500 mb-1">
+      <div className="flex justify-between text-xs text-stone-500 mb-1">
         <span>{score}/{max}</span>
-        <span className={`font-medium ${risk === 'High Risk' ? 'text-rose-600' : risk === 'Some Risk' ? 'text-amber-600' : 'text-emerald-600'}`}>{risk}</span>
+        <span className={`font-medium ${risk === 'High Risk' ? 'text-red-600' : risk === 'Some Risk' ? 'text-amber-600' : 'text-teal-600'}`}>{risk}</span>
       </div>
-      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+      <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${col}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
@@ -68,14 +68,14 @@ function ModeSelect({ onSelect, activePeriod }) {
   return (
     <div className="p-6 lg:p-8 max-w-3xl mx-auto fade-in">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Screening</h1>
-        <p className="text-slate-500 mt-1">Choose what you'd like to complete today</p>
+        <h1 className="text-3xl font-bold text-stone-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Screening</h1>
+        <p className="text-stone-500 mt-1">Choose what you'd like to complete today</p>
       </div>
 
       {activePeriod ? (
-        <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl mb-6 w-fit">
-          <CheckCircle size={15} className="text-emerald-600 shrink-0" />
-          <p className="text-sm font-semibold text-emerald-800">Active period: <span className="font-bold">{activePeriod}</span></p>
+        <div className="flex items-center gap-3 px-4 py-3 bg-teal-50 border border-teal-200 rounded-xl mb-6 w-fit">
+          <CheckCircle size={15} className="text-teal-600 shrink-0" />
+          <p className="text-sm font-semibold text-teal-800">Active period: <span className="font-bold">{activePeriod}</span></p>
         </div>
       ) : (
         <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl mb-6">
@@ -86,20 +86,20 @@ function ModeSelect({ onSelect, activePeriod }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <button onClick={() => onSelect('saebrs')} disabled={!activePeriod} data-testid="mode-saebrs-btn"
-          className="bg-white border-2 border-slate-200 rounded-2xl p-7 text-left hover:border-slate-900 hover:shadow-md transition-all group disabled:opacity-50 disabled:cursor-not-allowed">
-          <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+          className="bg-white border-2 border-stone-200 rounded-2xl p-7 text-left hover:border-stone-900 hover:shadow-md transition-all group disabled:opacity-50 disabled:cursor-not-allowed">
+          <div className="w-12 h-12 bg-stone-900 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
             <ClipboardCheck size={22} className="text-white" />
           </div>
-          <h2 className="text-lg font-bold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>SAEBRS Screener</h2>
-          <p className="text-sm text-slate-500">Teacher or ES staff completes SAEBRS for each student in a class. Resume any time — completed students are saved automatically.</p>
+          <h2 className="text-lg font-bold text-stone-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>SAEBRS Screener</h2>
+          <p className="text-sm text-stone-500">Teacher or ES staff completes SAEBRS for each student in a class. Resume any time — completed students are saved automatically.</p>
         </button>
         <button onClick={() => onSelect('self-report')} disabled={!activePeriod} data-testid="mode-self-report-btn"
-          className="bg-white border-2 border-slate-200 rounded-2xl p-7 text-left hover:border-indigo-500 hover:shadow-md transition-all group disabled:opacity-50 disabled:cursor-not-allowed">
+          className="bg-white border-2 border-stone-200 rounded-2xl p-7 text-left hover:border-indigo-500 hover:shadow-md transition-all group disabled:opacity-50 disabled:cursor-not-allowed">
           <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
             <User size={22} className="text-white" />
           </div>
-          <h2 className="text-lg font-bold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Student Self-Report</h2>
-          <p className="text-sm text-slate-500">Sit with an individual student and complete the 7-item self-report together. Select a class, then pick a student.</p>
+          <h2 className="text-lg font-bold text-stone-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Student Self-Report</h2>
+          <p className="text-sm text-stone-500">Sit with an individual student and complete the 7-item self-report together. Select a class, then pick a student.</p>
         </button>
       </div>
     </div>
@@ -121,32 +121,32 @@ function ClassSelect({ mode, activePeriod, onNext, onBack }) {
 
   return (
     <div className="p-6 lg:p-8 max-w-xl mx-auto fade-in">
-      <button onClick={onBack} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-6 transition-colors">
+      <button onClick={onBack} className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-900 mb-6 transition-colors">
         <ArrowLeft size={16} /> Back
       </button>
-      <div className="bg-white border border-slate-200 rounded-2xl p-7 space-y-5">
+      <div className="bg-white border border-stone-200 rounded-2xl p-7 space-y-5">
         <div>
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${mode === 'saebrs' ? 'bg-slate-900' : 'bg-indigo-600'}`}>
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${mode === 'saebrs' ? 'bg-stone-900' : 'bg-indigo-600'}`}>
             {mode === 'saebrs' ? <ClipboardCheck size={18} className="text-white" /> : <User size={18} className="text-white" />}
           </div>
-          <h2 className="text-xl font-bold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>
+          <h2 className="text-xl font-bold text-stone-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>
             {mode === 'saebrs' ? 'SAEBRS Screener' : 'Student Self-Report'}
           </h2>
           <div className="flex items-center gap-2 mt-2">
-            <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full">{activePeriod}</span>
+            <span className="px-2.5 py-1 bg-teal-100 text-teal-800 text-xs font-semibold rounded-full">{activePeriod}</span>
           </div>
         </div>
 
         <div>
-          <label className="text-sm font-semibold text-slate-700 mb-2 block">Select Class</label>
-          {loadingClasses ? <p className="text-sm text-slate-400">Loading classes…</p> : (
+          <label className="text-sm font-semibold text-stone-700 mb-2 block">Select Class</label>
+          {loadingClasses ? <p className="text-sm text-stone-400">Loading classes…</p> : (
             <div className="grid grid-cols-2 gap-2">
               {classes.map(c => (
                 <button key={c.class_name} onClick={() => setSelectedClass(c.class_name)}
                   data-testid={`class-btn-${c.class_name}`}
-                  className={`p-3 rounded-xl border text-left transition-all ${selectedClass === c.class_name ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'}`}>
+                  className={`p-3 rounded-xl border text-left transition-all ${selectedClass === c.class_name ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-700 border-stone-200 hover:border-stone-400'}`}>
                   <p className="text-sm font-semibold">{c.class_name}</p>
-                  <p className={`text-xs mt-0.5 ${selectedClass === c.class_name ? 'text-white/60' : 'text-slate-400'}`}>{c.teacher}</p>
+                  <p className={`text-xs mt-0.5 ${selectedClass === c.class_name ? 'text-white/60' : 'text-stone-400'}`}>{c.teacher}</p>
                 </button>
               ))}
             </div>
@@ -157,7 +157,7 @@ function ClassSelect({ mode, activePeriod, onNext, onBack }) {
           onClick={() => selectedClass && onNext(selectedClass)}
           disabled={!selectedClass}
           data-testid="begin-screening-btn"
-          className="w-full py-3.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+          className="w-full py-3.5 bg-stone-900 text-white rounded-xl text-sm font-semibold hover:bg-stone-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
           Continue <ChevronRight size={16} />
         </button>
       </div>
@@ -229,7 +229,7 @@ function SAEBRSFlow({ className, period, onDone }) {
     scrollTop();
   };
 
-  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full" /></div>;
+  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin w-6 h-6 border-2 border-stone-900 border-t-transparent rounded-full" /></div>;
 
   // Student list view
   if (current === null) {
@@ -238,14 +238,14 @@ function SAEBRSFlow({ className, period, onDone }) {
       <div className="p-6 lg:p-8 max-w-2xl mx-auto fade-in">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>SAEBRS — {className}</h2>
+            <h2 className="text-2xl font-bold text-stone-900" style={{ fontFamily: 'Manrope,sans-serif' }}>SAEBRS — {className}</h2>
             <div className="flex items-center gap-2 mt-1">
-              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full">{period}</span>
-              <span className="text-sm text-slate-500">{completedStudents.size} of {students.length} completed</span>
+              <span className="px-2 py-0.5 bg-teal-100 text-teal-800 text-xs font-semibold rounded-full">{period}</span>
+              <span className="text-sm text-stone-500">{completedStudents.size} of {students.length} completed</span>
             </div>
           </div>
           <button onClick={onDone} data-testid="finish-saebrs-btn"
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${allDone ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${allDone ? 'bg-teal-600 text-white hover:bg-teal-700' : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-50'}`}>
             {allDone ? <CheckCircle size={15} /> : <X size={14} />}
             {allDone ? 'All Done' : 'Finish Session'}
           </button>
@@ -258,16 +258,16 @@ function SAEBRSFlow({ className, period, onDone }) {
           </div>
         )}
 
-        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+        <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden">
           {students.map((s, i) => {
             const done = completedStudents.has(s.student_id);
             return (
               <div key={s.student_id}
-                className={`flex items-center justify-between px-5 py-4 border-b border-slate-50 last:border-0 transition-colors ${done ? 'bg-emerald-50/40' : 'hover:bg-slate-50 cursor-pointer'}`}
+                className={`flex items-center justify-between px-5 py-4 border-b border-stone-50 last:border-0 transition-colors ${done ? 'bg-teal-50/40' : 'hover:bg-stone-50 cursor-pointer'}`}
                 onClick={() => !done && openStudent(i)}
                 data-testid={`student-saebrs-row-${s.student_id}`}>
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden ${done ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden ${done ? 'bg-teal-100 text-teal-600' : 'bg-stone-100 text-stone-600'}`}>
                     {done
                       ? <CheckCircle size={16} />
                       : s.photo_url
@@ -275,13 +275,13 @@ function SAEBRSFlow({ className, period, onDone }) {
                         : s.first_name[0]}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{s.first_name} {s.last_name}</p>
-                    <p className="text-xs text-slate-400">{s.year_level}</p>
+                    <p className="text-sm font-semibold text-stone-900">{s.first_name} {s.last_name}</p>
+                    <p className="text-xs text-stone-400">{s.year_level}</p>
                   </div>
                 </div>
                 {done
-                  ? <span className="text-xs text-emerald-600 font-semibold">Completed</span>
-                  : <ChevronRight size={16} className="text-slate-300" />}
+                  ? <span className="text-xs text-teal-600 font-semibold">Completed</span>
+                  : <ChevronRight size={16} className="text-stone-300" />}
               </div>
             );
           })}
@@ -307,14 +307,14 @@ function SAEBRSFlow({ className, period, onDone }) {
 
   return (
     <>
-      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-slate-100">
+      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-stone-100">
         <div className="max-w-3xl mx-auto px-6 lg:px-8 py-3 flex items-center justify-between">
-          <span className="text-sm font-semibold text-slate-700">{student.first_name} {student.last_name}</span>
-          <span className={`text-xs font-bold px-3 py-1 rounded-full ${allTouched ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+          <span className="text-sm font-semibold text-stone-700">{student.first_name} {student.last_name}</span>
+          <span className={`text-xs font-bold px-3 py-1 rounded-full ${allTouched ? 'bg-teal-100 text-teal-700' : 'bg-stone-100 text-stone-600'}`}>
             {touchedCount}/19
           </span>
         </div>
-        <div className="h-1 bg-slate-100">
+        <div className="h-1 bg-stone-100">
           <div className="h-full transition-all duration-500 ease-out"
             style={{ width: `${(touchedCount / 19) * 100}%`, background: allTouched ? '#10B981' : '#475569' }}
           />
@@ -324,40 +324,40 @@ function SAEBRSFlow({ className, period, onDone }) {
       <div className="p-6 lg:p-8 max-w-3xl mx-auto fade-in">
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => { setCurrent(null); scrollTop(); }}
-            className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">
+            className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-900 transition-colors">
             <ArrowLeft size={16} /> Back to class
           </button>
-          <span className="text-slate-300">·</span>
-          <span className="text-sm text-slate-500">{current + 1} / {students.length}</span>
-          <span className="ml-auto px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full">{period}</span>
+          <span className="text-stone-300">·</span>
+          <span className="text-sm text-stone-500">{current + 1} / {students.length}</span>
+          <span className="ml-auto px-2 py-0.5 bg-teal-100 text-teal-800 text-xs font-semibold rounded-full">{period}</span>
         </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-7 mb-5">
+      <div className="bg-white border border-stone-200 rounded-2xl p-7 mb-5">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center overflow-hidden">
+          <div className="w-12 h-12 bg-stone-900 rounded-xl flex items-center justify-center overflow-hidden">
             {student.photo_url
               ? <img src={`${process.env.REACT_APP_BACKEND_URL}${student.photo_url}`} alt={student.first_name} className="w-full h-full object-cover" />
               : <span className="text-lg font-bold text-white">{student.first_name[0]}{student.last_name[0]}</span>}
           </div>
           <div>
-            <h2 className="text-xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{student.first_name} {student.last_name}</h2>
-            <p className="text-sm text-slate-500">{student.year_level} · {student.class_name}</p>
+            <h2 className="text-xl font-bold text-stone-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{student.first_name} {student.last_name}</h2>
+            <p className="text-sm text-stone-500">{student.year_level} · {student.class_name}</p>
           </div>
         </div>
 
-        <p className="text-xs text-slate-400 mb-6">Rate each behaviour: 0 = Never, 1 = Sometimes, 2 = Often, 3 = Almost Always</p>
+        <p className="text-xs text-stone-400 mb-6">Rate each behaviour: 0 = Never, 1 = Sometimes, 2 = Often, 3 = Almost Always</p>
 
         {sections.map(sec => (
           <div key={sec.key} className="mb-7">
-            <p className="text-sm font-semibold text-slate-700 mb-4 pb-2 border-b border-slate-100">{sec.label}</p>
+            <p className="text-sm font-semibold text-stone-700 mb-4 pb-2 border-b border-stone-100">{sec.label}</p>
             <div className="space-y-5">
               {sec.items.map((item, idx) => (
                 <div key={idx}>
-                  <p className="text-sm text-slate-700 mb-2 font-medium">{item}</p>
+                  <p className="text-sm text-stone-700 mb-2 font-medium">{item}</p>
                   <div className="flex gap-2">
                     {[0, 1, 2, 3].map(v => (
                       <button key={v} onClick={() => setItem(sec.key, idx, v)}
-                        className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition-all ${scores[sec.key][idx] === v ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
+                        className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition-all ${scores[sec.key][idx] === v ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'}`}>
                         <span className="block">{v}</span>
                         <span className="block text-xs opacity-60">{RESPONSE_LABELS[v]}</span>
                       </button>
@@ -369,11 +369,11 @@ function SAEBRSFlow({ className, period, onDone }) {
           </div>
         ))}
 
-        {saveError && <p className="text-sm text-rose-600 mt-3">{saveError}</p>}
+        {saveError && <p className="text-sm text-red-600 mt-3">{saveError}</p>}
       </div>
 
       <button onClick={saveCurrentStudent} disabled={saving || touchedCount < 19} data-testid="save-saebrs-btn"
-        className="w-full py-3.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+        className="w-full py-3.5 bg-stone-900 text-white rounded-xl text-sm font-semibold hover:bg-stone-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
         {saving ? <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <CheckCircle size={16} />}
         {saving ? 'Saving…' : touchedCount < 19 ? `Rate all questions (${touchedCount}/19)` : 'Save & Return to List'}
       </button>
@@ -438,7 +438,7 @@ function SelfReportFlow({ className, period, onDone }) {
     } finally { setSaving(false); }
   };
 
-  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full" /></div>;
+  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin w-6 h-6 border-2 border-stone-900 border-t-transparent rounded-full" /></div>;
 
   // Student picker
   if (current === null) {
@@ -446,14 +446,14 @@ function SelfReportFlow({ className, period, onDone }) {
       <div className="p-6 lg:p-8 max-w-2xl mx-auto fade-in">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Self-Report — {className}</h2>
+            <h2 className="text-2xl font-bold text-stone-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Self-Report — {className}</h2>
             <div className="flex items-center gap-2 mt-1">
               <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-xs font-semibold rounded-full">{period}</span>
-              <span className="text-sm text-slate-500">{completedStudents.size} of {students.length} completed</span>
+              <span className="text-sm text-stone-500">{completedStudents.size} of {students.length} completed</span>
             </div>
           </div>
           <button onClick={onDone} data-testid="finish-self-report-btn"
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors">
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-200 text-stone-700 rounded-xl text-sm font-medium hover:bg-stone-50 transition-colors">
             <X size={14} /> Finish Session
           </button>
         </div>
@@ -465,16 +465,16 @@ function SelfReportFlow({ className, period, onDone }) {
           </div>
         )}
 
-        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+        <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden">
           {students.map((s, i) => {
             const done = completedStudents.has(s.student_id);
             return (
               <div key={s.student_id}
                 onClick={() => !done && (setCurrent(i), setItems(Array(7).fill(null)), setSrTouched(new Set()), scrollTop())}
                 data-testid={`select-student-${s.student_id}`}
-                className={`flex items-center justify-between px-5 py-4 border-b border-slate-50 last:border-0 transition-colors ${done ? 'bg-emerald-50/40' : 'hover:bg-indigo-50 cursor-pointer'}`}>
+                className={`flex items-center justify-between px-5 py-4 border-b border-stone-50 last:border-0 transition-colors ${done ? 'bg-teal-50/40' : 'hover:bg-indigo-50 cursor-pointer'}`}>
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden ${done ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-100 text-indigo-600'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden ${done ? 'bg-teal-100 text-teal-600' : 'bg-indigo-100 text-indigo-600'}`}>
                     {done
                       ? <CheckCircle size={16} />
                       : s.photo_url
@@ -482,15 +482,15 @@ function SelfReportFlow({ className, period, onDone }) {
                         : s.first_name[0]}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{s.first_name} {s.last_name}</p>
-                    <p className="text-xs text-slate-400">{s.year_level}</p>
+                    <p className="text-sm font-semibold text-stone-900">{s.first_name} {s.last_name}</p>
+                    <p className="text-xs text-stone-400">{s.year_level}</p>
 
 
                   </div>
                 </div>
                 {done
-                  ? <span className="text-xs text-emerald-600 font-semibold">Completed</span>
-                  : <ChevronRight size={16} className="text-slate-300" />}
+                  ? <span className="text-xs text-teal-600 font-semibold">Completed</span>
+                  : <ChevronRight size={16} className="text-stone-300" />}
               </div>
             );
           })}
@@ -522,14 +522,14 @@ function SelfReportFlow({ className, period, onDone }) {
 
   return (
     <>
-      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-slate-100">
+      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-stone-100">
         <div className="max-w-2xl mx-auto px-6 lg:px-8 py-3 flex items-center justify-between">
-          <span className="text-sm font-semibold text-slate-700">{student.first_name} {student.last_name}</span>
-          <span className={`text-xs font-bold px-3 py-1 rounded-full ${allSrTouched ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'}`}>
+          <span className="text-sm font-semibold text-stone-700">{student.first_name} {student.last_name}</span>
+          <span className={`text-xs font-bold px-3 py-1 rounded-full ${allSrTouched ? 'bg-teal-100 text-teal-700' : 'bg-indigo-100 text-indigo-700'}`}>
             {srTouchedCount}/7
           </span>
         </div>
-        <div className="h-1 bg-slate-100">
+        <div className="h-1 bg-stone-100">
           <div className="h-full transition-all duration-500 ease-out"
             style={{ width: `${(srTouchedCount / 7) * 100}%`, background: allSrTouched ? '#10B981' : '#4F46E5' }}
           />
@@ -538,11 +538,11 @@ function SelfReportFlow({ className, period, onDone }) {
 
       <div className="p-6 lg:p-8 max-w-2xl mx-auto fade-in">
         <button onClick={() => { setCurrent(null); scrollTop(); }}
-          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-6 transition-colors">
+          className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-900 mb-6 transition-colors">
           <ArrowLeft size={16} /> Back to student list
         </button>
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-7">
+      <div className="bg-white border border-stone-200 rounded-2xl p-7">
         <div className="flex items-center gap-4 mb-6">
           <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center overflow-hidden">
             {student.photo_url
@@ -550,15 +550,15 @@ function SelfReportFlow({ className, period, onDone }) {
               : <span className="text-lg font-bold text-white">{student.first_name[0]}{student.last_name[0]}</span>}
           </div>
           <div>
-            <h2 className="text-xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{student.first_name} {student.last_name}</h2>
+            <h2 className="text-xl font-bold text-stone-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{student.first_name} {student.last_name}</h2>
             <div className="flex items-center gap-2 mt-0.5">
-              <p className="text-sm text-slate-500">Student Self-Report</p>
+              <p className="text-sm text-stone-500">Student Self-Report</p>
               <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-xs font-semibold rounded-full">{period}</span>
             </div>
           </div>
         </div>
 
-        <p className="text-xs text-slate-400 mb-6 bg-indigo-50 rounded-xl p-3 border border-indigo-100">
+        <p className="text-xs text-stone-400 mb-6 bg-indigo-50 rounded-xl p-3 border border-indigo-100">
           Read each question aloud. Ask the student: "How often do you feel this way?"
           0 = Never, 1 = Sometimes, 2 = Often, 3 = Almost Always
         </p>
@@ -566,11 +566,11 @@ function SelfReportFlow({ className, period, onDone }) {
         <div className="space-y-5">
           {SELF_REPORT_ITEMS.map((item, idx) => (
             <div key={idx}>
-              <p className="text-sm text-slate-700 mb-2 font-medium">{idx + 1}. {item.q}</p>
+              <p className="text-sm text-stone-700 mb-2 font-medium">{idx + 1}. {item.q}</p>
               <div className="flex gap-2">
                 {[0, 1, 2, 3].map(v => (
                   <button key={v} onClick={() => { setItems(p => p.map((x, i) => i === idx ? v : x)); setSrTouched(p => new Set([...p, idx])); }}
-                    className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition-all ${items[idx] === v ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}>
+                    className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition-all ${items[idx] === v ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-stone-600 border-stone-200 hover:border-indigo-300'}`}>
                     <span className="block">{v}</span>
                     <span className="block text-xs opacity-60">{RESPONSE_LABELS[v]}</span>
                   </button>
@@ -580,7 +580,7 @@ function SelfReportFlow({ className, period, onDone }) {
           ))}
         </div>
 
-        {saveError && <p className="text-sm text-rose-600 mt-4">{saveError}</p>}
+        {saveError && <p className="text-sm text-red-600 mt-4">{saveError}</p>}
 
         <button onClick={save} disabled={saving || srTouchedCount < 7} data-testid="save-self-report-btn"
           className="w-full mt-6 py-3.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">

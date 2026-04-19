@@ -26,7 +26,7 @@ export default function SADashboardPage() {
 
   const statCards = [
     { label: 'Total Schools', value: stats?.total_schools ?? 0, icon: School, color: 'bg-blue-50 text-blue-600 border-blue-200' },
-    { label: 'Active Schools', value: stats?.active_schools ?? 0, icon: Activity, color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+    { label: 'Active Schools', value: stats?.active_schools ?? 0, icon: Activity, color: 'bg-teal-50 text-teal-600 border-teal-200' },
     { label: 'Trial Schools', value: stats?.trial_schools ?? 0, icon: Clock, color: 'bg-amber-50 text-amber-600 border-amber-200' },
     { label: 'Total Students', value: stats?.total_students ?? 0, icon: Users, color: 'bg-violet-50 text-violet-600 border-violet-200' },
   ];
@@ -38,8 +38,8 @@ export default function SADashboardPage() {
   return (
     <div data-testid="sa-dashboard-page">
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-slate-900">Platform Overview</h1>
-        <p className="text-sm text-slate-500 mt-0.5">WellTrack multi-tenant administration</p>
+        <h1 className="text-xl font-bold text-stone-900">Platform Overview</h1>
+        <p className="text-sm text-stone-500 mt-0.5">WellTrack multi-tenant administration</p>
       </div>
 
       {/* Stat cards */}
@@ -67,32 +67,32 @@ export default function SADashboardPage() {
       )}
 
       {/* Recent schools */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-800">Recent Schools</h2>
+      <div className="bg-white rounded-2xl border border-stone-200 shadow-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100">
+          <h2 className="text-sm font-semibold text-stone-800">Recent Schools</h2>
           <Link to={`${SA_PATH_PREFIX}/schools`} className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
             View all <ArrowRight size={12} />
           </Link>
         </div>
-        <div className="divide-y divide-slate-100" data-testid="sa-recent-schools">
+        <div className="divide-y divide-stone-100" data-testid="sa-recent-schools">
           {recentSchools.length === 0 ? (
-            <div className="px-5 py-8 text-center text-sm text-slate-400">No schools provisioned yet</div>
+            <div className="px-5 py-8 text-center text-sm text-stone-400">No schools provisioned yet</div>
           ) : recentSchools.map(s => (
             <Link
               key={s.school_id || s.slug}
               to={`${SA_PATH_PREFIX}/schools/${s.school_id}`}
-              className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition-colors"
+              className="flex items-center justify-between px-5 py-3 hover:bg-stone-50 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
+                <div className="w-9 h-9 rounded-lg bg-stone-100 flex items-center justify-center text-stone-500">
                   <School size={16} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-800">{s.name}</p>
-                  <p className="text-xs text-slate-400">{s.slug}.{process.env.REACT_APP_BASE_DOMAIN || 'welltrack.com.au'}</p>
+                  <p className="text-sm font-medium text-stone-800">{s.name}</p>
+                  <p className="text-xs text-stone-400">{s.slug}.{process.env.REACT_APP_BASE_DOMAIN || 'welltrack.com.au'}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4 text-xs text-slate-500">
+              <div className="flex items-center gap-4 text-xs text-stone-500">
                 <span>{s.student_count ?? 0} students</span>
                 <StatusBadge status={s.status} />
               </div>
@@ -106,13 +106,13 @@ export default function SADashboardPage() {
 
 function StatusBadge({ status }) {
   const styles = {
-    active: 'bg-emerald-100 text-emerald-700',
+    active: 'bg-teal-100 text-teal-700',
     trial: 'bg-amber-100 text-amber-700',
     suspended: 'bg-red-100 text-red-700',
-    archived: 'bg-slate-100 text-slate-500',
+    archived: 'bg-stone-100 text-stone-500',
   };
   return (
-    <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${styles[status] || 'bg-slate-100 text-slate-500'}`} data-testid={`status-badge-${status}`}>
+    <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${styles[status] || 'bg-stone-100 text-stone-500'}`} data-testid={`status-badge-${status}`}>
       {status}
     </span>
   );

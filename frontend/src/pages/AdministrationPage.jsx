@@ -16,11 +16,11 @@ const ROLE_OPTIONS = [
   { value: 'screener',     label: 'Screener',         color: 'bg-indigo-100 text-indigo-700' },
   { value: 'wellbeing',    label: 'Wellbeing Staff',  color: 'bg-purple-100 text-purple-700' },
   { value: 'professional', label: 'Professional',     color: 'bg-violet-100 text-violet-700' },
-  { value: 'leadership',   label: 'Leadership',       color: 'bg-emerald-100 text-emerald-700' },
-  { value: 'admin',        label: 'Administrator',    color: 'bg-slate-900 text-white' },
+  { value: 'leadership',   label: 'Leadership',       color: 'bg-teal-100 text-teal-700' },
+  { value: 'admin',        label: 'Administrator',    color: 'bg-stone-900 text-white' },
 ];
 
-const getRoleBadge = (role) => ROLE_OPTIONS.find(r => r.value === role)?.color || 'bg-slate-100 text-slate-600';
+const getRoleBadge = (role) => ROLE_OPTIONS.find(r => r.value === role)?.color || 'bg-stone-100 text-stone-600';
 
 // Pages that can be toggled per role (key matches route path without leading slash)
 const PERMISSION_PAGES = [
@@ -80,7 +80,7 @@ const TABS = [
 
 function TabNav({ active, onChange }) {
   return (
-    <div className="flex gap-1 mb-8 p-1.5 bg-slate-100 rounded-2xl w-fit">
+    <div className="flex gap-1 mb-8 p-1.5 bg-stone-100 rounded-2xl w-fit">
       {TABS.map(({ key, icon: Icon }) => (
         <button
           key={key}
@@ -88,8 +88,8 @@ function TabNav({ active, onChange }) {
           data-testid={`admin-tab-${key.toLowerCase().replace(/\s+/g, '-')}`}
           className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-all whitespace-nowrap ${
             active === key
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700 hover:bg-white/60'
+              ? 'bg-white text-stone-900 shadow-sm'
+              : 'text-stone-500 hover:text-stone-700 hover:bg-white/60'
           }`}
         >
           <Icon size={13} />
@@ -236,18 +236,18 @@ function UserManagementTab() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Users</h2>
-          <p className="text-sm text-slate-500 mt-0.5">Only registered users can sign in to WellTrack.</p>
+          <h2 className="text-lg font-bold text-stone-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Users</h2>
+          <p className="text-sm text-stone-500 mt-0.5">Only registered users can sign in to WellTrack.</p>
         </div>
         <button onClick={() => setShowAdd(true)} data-testid="add-user-btn"
-          className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors" style={{ backgroundColor: 'var(--wt-accent)' }}>
+          className="flex items-center gap-2 px-4 py-2.5 bg-stone-900 text-white rounded-xl text-sm font-semibold hover:bg-stone-800 transition-colors" style={{ backgroundColor: 'var(--wt-accent)' }}>
           <Plus size={15} /> Add User
         </button>
       </div>
 
       {msg.text && (
-        <div className={`flex items-start gap-3 rounded-xl p-4 ${msg.type === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
-          <p className={`text-sm ${msg.type === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg.text}</p>
+        <div className={`flex items-start gap-3 rounded-xl p-4 ${msg.type === 'error' ? 'bg-red-50 border border-red-200' : 'bg-teal-50 border border-teal-200'}`}>
+          <p className={`text-sm ${msg.type === 'error' ? 'text-red-700' : 'text-teal-700'}`}>{msg.text}</p>
         </div>
       )}
 
@@ -258,75 +258,75 @@ function UserManagementTab() {
         </p>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
         {loading ? (
-          <div className="p-8 space-y-3">{[1,2,3,4].map(i => <div key={i} className="h-14 bg-slate-100 rounded animate-pulse" />)}</div>
+          <div className="p-8 space-y-3">{[1,2,3,4].map(i => <div key={i} className="h-14 bg-stone-100 rounded animate-pulse" />)}</div>
         ) : users.length === 0 ? (
-          <div className="p-16 text-center text-slate-400">No users registered yet</div>
+          <div className="p-16 text-center text-stone-400">No users registered yet</div>
         ) : (
           <>
             {/* Desktop table */}
             <table className="w-full text-sm hidden sm:table">
-              <thead className="bg-slate-50 border-b border-slate-200">
+              <thead className="bg-stone-50 border-b border-stone-200">
                 <tr>
                   {['User', 'Email', 'Role', 'Added', 'Actions'].map(h => (
-                    <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-stone-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {users.map(u => (
-                  <tr key={u.user_id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors" data-testid={`user-row-${u.user_id}`}>
+                  <tr key={u.user_id} className="border-b border-stone-50 hover:bg-stone-50 transition-colors" data-testid={`user-row-${u.user_id}`}>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
                         {u.picture
                           ? <img src={u.picture} alt={u.name} className="w-7 h-7 rounded-full object-cover" />
-                          : <div className="w-7 h-7 bg-slate-200 rounded-full flex items-center justify-center"><span className="text-xs font-semibold text-slate-600">{(u.name || u.email)[0]?.toUpperCase()}</span></div>
+                          : <div className="w-7 h-7 bg-stone-200 rounded-full flex items-center justify-center"><span className="text-xs font-semibold text-stone-600">{(u.name || u.email)[0]?.toUpperCase()}</span></div>
                         }
-                        <span className="font-medium text-slate-900">{u.name || '—'}</span>
+                        <span className="font-medium text-stone-900">{u.name || '—'}</span>
                         {u.user_id === user?.user_id && <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-medium">You</span>}
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 text-slate-500">
-                      <div className="flex items-center gap-1.5"><Mail size={12} className="text-slate-400 shrink-0" />{u.email}</div>
+                    <td className="py-3.5 px-4 text-stone-500">
+                      <div className="flex items-center gap-1.5"><Mail size={12} className="text-stone-400 shrink-0" />{u.email}</div>
                     </td>
                     <td className="py-3.5 px-4">
                       {editUser === u.user_id ? (
                         <div className="flex items-center gap-2">
                           <select defaultValue={u.role} onChange={e => updateRole(u.user_id, e.target.value)}
                             data-testid={`role-select-${u.user_id}`}
-                            className="px-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none bg-white">
+                            className="px-2 py-1 text-xs border border-stone-200 rounded-lg focus:outline-none bg-white">
                             {ROLE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                           </select>
-                          <button onClick={() => setEditUser(null)} className="text-slate-400 hover:text-slate-600"><X size={14} /></button>
+                          <button onClick={() => setEditUser(null)} className="text-stone-400 hover:text-stone-600"><X size={14} /></button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
                           <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${getRoleBadge(u.role)}`}>
                             {ROLE_OPTIONS.find(r => r.value === u.role)?.label || u.role}
                           </span>
-                          <button onClick={() => setEditUser(u.user_id)} className="text-slate-300 hover:text-slate-600 transition-colors" title="Edit role"><Edit2 size={13} /></button>
+                          <button onClick={() => setEditUser(u.user_id)} className="text-stone-300 hover:text-stone-600 transition-colors" title="Edit role"><Edit2 size={13} /></button>
                         </div>
                       )}
                     </td>
-                    <td className="py-3.5 px-4 text-slate-400 text-xs">{u.created_at?.split('T')[0] || '—'}</td>
+                    <td className="py-3.5 px-4 text-stone-400 text-xs">{u.created_at?.split('T')[0] || '—'}</td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-1">
                         {u.role === 'professional' && (
                           <button onClick={() => openProfSettings(u)}
                             data-testid={`prof-settings-${u.user_id}`}
-                            className="p-1.5 text-slate-300 hover:text-violet-500 hover:bg-violet-50 rounded-lg transition-colors" title="Professional / Appointment settings">
+                            className="p-1.5 text-stone-300 hover:text-violet-500 hover:bg-violet-50 rounded-lg transition-colors" title="Professional / Appointment settings">
                             <Settings2 size={14} />
                           </button>
                         )}
                         <button onClick={() => { setSetPasswordUser(u); setPasswordForm({ password: '', confirm: '' }); setShowPw(false); }}
                           data-testid={`set-password-${u.user_id}`}
-                          className="p-1.5 text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors" title="Set password">
+                          className="p-1.5 text-stone-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors" title="Set password">
                           <KeyRound size={14} />
                         </button>
                         {u.user_id !== user?.user_id && (
                           <button onClick={() => setDeleteConfirm(u)} data-testid={`delete-user-${u.user_id}`}
-                            className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="Remove user">
+                            className="p-1.5 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Remove user">
                             <Trash2 size={14} />
                           </button>
                         )}
@@ -338,36 +338,36 @@ function UserManagementTab() {
             </table>
 
             {/* Mobile cards */}
-            <div className="sm:hidden divide-y divide-slate-50">
+            <div className="sm:hidden divide-y divide-stone-50">
               {users.map(u => (
                 <div key={u.user_id} className="p-4" data-testid={`user-row-${u.user_id}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       {u.picture
                         ? <img src={u.picture} alt={u.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
-                        : <div className="w-9 h-9 bg-slate-200 rounded-full flex items-center justify-center shrink-0"><span className="text-sm font-semibold text-slate-600">{(u.name || u.email)[0]?.toUpperCase()}</span></div>
+                        : <div className="w-9 h-9 bg-stone-200 rounded-full flex items-center justify-center shrink-0"><span className="text-sm font-semibold text-stone-600">{(u.name || u.email)[0]?.toUpperCase()}</span></div>
                       }
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-slate-900 text-sm">{u.name || '—'}</span>
+                          <span className="font-semibold text-stone-900 text-sm">{u.name || '—'}</span>
                           {u.user_id === user?.user_id && <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-medium">You</span>}
                         </div>
-                        <p className="text-xs text-slate-500 truncate mt-0.5">{u.email}</p>
+                        <p className="text-xs text-stone-500 truncate mt-0.5">{u.email}</p>
                         <div className="flex items-center gap-2 mt-1.5">
                           {editUser === u.user_id ? (
                             <div className="flex items-center gap-2">
                               <select defaultValue={u.role} onChange={e => updateRole(u.user_id, e.target.value)}
-                                className="px-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none bg-white">
+                                className="px-2 py-1 text-xs border border-stone-200 rounded-lg focus:outline-none bg-white">
                                 {ROLE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                               </select>
-                              <button onClick={() => setEditUser(null)} className="text-slate-400"><X size={13} /></button>
+                              <button onClick={() => setEditUser(null)} className="text-stone-400"><X size={13} /></button>
                             </div>
                           ) : (
                             <div className="flex items-center gap-1.5">
                               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getRoleBadge(u.role)}`}>
                                 {ROLE_OPTIONS.find(r => r.value === u.role)?.label || u.role}
                               </span>
-                              <button onClick={() => setEditUser(u.user_id)} className="text-slate-300 hover:text-slate-600"><Edit2 size={12} /></button>
+                              <button onClick={() => setEditUser(u.user_id)} className="text-stone-300 hover:text-stone-600"><Edit2 size={12} /></button>
                             </div>
                           )}
                         </div>
@@ -377,18 +377,18 @@ function UserManagementTab() {
                       {u.role === 'professional' && (
                         <button onClick={() => openProfSettings(u)}
                           data-testid={`prof-settings-mobile-${u.user_id}`}
-                          className="p-2 text-slate-300 hover:text-violet-500 hover:bg-violet-50 rounded-lg transition-colors">
+                          className="p-2 text-stone-300 hover:text-violet-500 hover:bg-violet-50 rounded-lg transition-colors">
                           <Settings2 size={15} />
                         </button>
                       )}
                       <button onClick={() => { setSetPasswordUser(u); setPasswordForm({ password: '', confirm: '' }); setShowPw(false); }}
                         data-testid={`set-password-${u.user_id}`}
-                        className="p-2 text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors">
+                        className="p-2 text-stone-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors">
                         <KeyRound size={15} />
                       </button>
                       {u.user_id !== user?.user_id && (
                         <button onClick={() => setDeleteConfirm(u)} data-testid={`delete-user-${u.user_id}`}
-                          className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
+                          className="p-2 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                           <Trash2 size={15} />
                         </button>
                       )}
@@ -407,30 +407,30 @@ function UserManagementTab() {
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
             <div className="flex justify-between items-center mb-5">
               <div>
-                <h3 className="font-bold text-slate-900 text-lg" style={{ fontFamily: 'Manrope,sans-serif' }}>Add User</h3>
-                <p className="text-xs text-slate-400 mt-0.5">The user will be able to sign in with their Google account or email &amp; password</p>
+                <h3 className="font-bold text-stone-900 text-lg" style={{ fontFamily: 'Manrope,sans-serif' }}>Add User</h3>
+                <p className="text-xs text-stone-400 mt-0.5">The user will be able to sign in with their Google account or email &amp; password</p>
               </div>
-              <button onClick={() => setShowAdd(false)}><X size={18} className="text-slate-400" /></button>
+              <button onClick={() => setShowAdd(false)}><X size={18} className="text-stone-400" /></button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Full Name</label>
+                <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider block mb-1">Full Name</label>
                 <input placeholder="e.g. Jane Smith" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                   data-testid="add-user-name"
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+                  className="w-full px-4 py-3 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/20" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Email Address</label>
+                <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider block mb-1">Email Address</label>
                 <input type="email" placeholder="e.g. jane.smith@school.edu.au" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
                   data-testid="add-user-email"
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+                  className="w-full px-4 py-3 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/20" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-2">Role</label>
+                <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider block mb-2">Role</label>
                 <div className="grid grid-cols-2 gap-2">
                   {ROLE_OPTIONS.map(opt => (
                     <button key={opt.value} onClick={() => setForm(p => ({ ...p, role: opt.value }))}
-                      className={`py-2.5 px-3 text-left rounded-xl border text-sm font-medium transition-all ${form.role === opt.value ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
+                      className={`py-2.5 px-3 text-left rounded-xl border text-sm font-medium transition-all ${form.role === opt.value ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'}`}>
                       {opt.label}
                     </button>
                   ))}
@@ -439,12 +439,12 @@ function UserManagementTab() {
             </div>
             <div className="flex gap-2 mt-5">
               <button onClick={addUser} disabled={saving || !form.email || !form.name} data-testid="save-user-btn"
-                className="flex-1 bg-slate-900 text-white py-3 text-sm font-semibold rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                className="flex-1 bg-stone-900 text-white py-3 text-sm font-semibold rounded-xl hover:bg-stone-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
                 {saving ? <Loader size={14} className="animate-spin" /> : null}
                 {saving ? 'Adding...' : 'Add User'}
               </button>
               <button onClick={() => setShowAdd(false)}
-                className="flex-1 bg-slate-100 text-slate-700 py-3 text-sm font-medium rounded-xl hover:bg-slate-200 transition-colors">Cancel</button>
+                className="flex-1 bg-stone-100 text-stone-700 py-3 text-sm font-medium rounded-xl hover:bg-stone-200 transition-colors">Cancel</button>
             </div>
           </div>
         </div>
@@ -456,40 +456,40 @@ function UserManagementTab() {
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
             <div className="flex justify-between items-center mb-5">
               <div>
-                <h3 className="font-bold text-slate-900 text-lg" style={{ fontFamily: 'Manrope,sans-serif' }}>Set Password</h3>
-                <p className="text-xs text-slate-400 mt-0.5">For <strong>{setPasswordUser.name}</strong></p>
+                <h3 className="font-bold text-stone-900 text-lg" style={{ fontFamily: 'Manrope,sans-serif' }}>Set Password</h3>
+                <p className="text-xs text-stone-400 mt-0.5">For <strong>{setPasswordUser.name}</strong></p>
               </div>
-              <button onClick={() => setSetPasswordUser(null)}><X size={18} className="text-slate-400" /></button>
+              <button onClick={() => setSetPasswordUser(null)}><X size={18} className="text-stone-400" /></button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">New Password</label>
+                <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider block mb-1">New Password</label>
                 <div className="relative">
                   <input type={showPw ? 'text' : 'password'} value={passwordForm.password}
                     onChange={e => setPasswordForm(p => ({ ...p, password: e.target.value }))}
                     placeholder="At least 8 characters" data-testid="set-password-input"
-                    className="w-full pr-10 px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
-                  <button type="button" onClick={() => setShowPw(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                    className="w-full pr-10 px-4 py-3 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/20" />
+                  <button type="button" onClick={() => setShowPw(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400">
                     {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Confirm Password</label>
+                <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider block mb-1">Confirm Password</label>
                 <input type={showPw ? 'text' : 'password'} value={passwordForm.confirm}
                   onChange={e => setPasswordForm(p => ({ ...p, confirm: e.target.value }))}
                   placeholder="Repeat password" data-testid="confirm-set-password-input"
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+                  className="w-full px-4 py-3 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/20" />
               </div>
             </div>
             <div className="flex gap-2 mt-5">
               <button onClick={setPassword} disabled={pwSaving || !passwordForm.password} data-testid="save-set-password-btn"
-                className="flex-1 bg-slate-900 text-white py-3 text-sm font-semibold rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                className="flex-1 bg-stone-900 text-white py-3 text-sm font-semibold rounded-xl hover:bg-stone-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
                 {pwSaving ? <Loader size={14} className="animate-spin" /> : <KeyRound size={14} />}
                 {pwSaving ? 'Setting…' : 'Set Password'}
               </button>
               <button onClick={() => setSetPasswordUser(null)}
-                className="flex-1 bg-slate-100 text-slate-700 py-3 text-sm font-medium rounded-xl hover:bg-slate-200 transition-colors">Cancel</button>
+                className="flex-1 bg-stone-100 text-stone-700 py-3 text-sm font-medium rounded-xl hover:bg-stone-200 transition-colors">Cancel</button>
             </div>
           </div>
         </div>
@@ -499,25 +499,25 @@ function UserManagementTab() {
       {profUser && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100 shrink-0">
               <div>
-                <h3 className="font-bold text-slate-900 text-lg" style={{ fontFamily: 'Manrope,sans-serif' }}>Professional Settings</h3>
-                <p className="text-xs text-slate-400 mt-0.5">{profUser.name}</p>
+                <h3 className="font-bold text-stone-900 text-lg" style={{ fontFamily: 'Manrope,sans-serif' }}>Professional Settings</h3>
+                <p className="text-xs text-stone-400 mt-0.5">{profUser.name}</p>
               </div>
-              <button onClick={() => setProfUser(null)}><X size={18} className="text-slate-400" /></button>
+              <button onClick={() => setProfUser(null)}><X size={18} className="text-stone-400" /></button>
             </div>
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
               {/* Appointment Access */}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">Appointment System Access</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Allow this user to use the Appointments module</p>
+                  <p className="text-sm font-semibold text-stone-800">Appointment System Access</p>
+                  <p className="text-xs text-stone-400 mt-0.5">Allow this user to use the Appointments module</p>
                 </div>
                 <button
                   onClick={() => setProfForm(p => ({ ...p, appointment_access: !p.appointment_access }))}
                   data-testid="toggle-appointment-access"
                   className={`relative inline-flex h-6 w-11 rounded-full transition-colors shrink-0 ${
-                    profForm.appointment_access ? 'bg-emerald-500' : 'bg-slate-200'
+                    profForm.appointment_access ? 'bg-teal-500' : 'bg-stone-200'
                   }`}>
                   <span className={`inline-block w-4 h-4 bg-white rounded-full shadow transform transition-transform mt-1 ${
                     profForm.appointment_access ? 'translate-x-6' : 'translate-x-1'
@@ -527,24 +527,24 @@ function UserManagementTab() {
 
               {/* Professional Type */}
               <div>
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Professional Type</label>
+                <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider block mb-1">Professional Type</label>
                 <input value={profForm.professional_type} onChange={e => setProfForm(p => ({ ...p, professional_type: e.target.value }))}
                   placeholder="e.g. School Counsellor, Psychologist..."
                   data-testid="professional-type-input"
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-200" />
+                  className="w-full px-3 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-200" />
               </div>
 
               {/* Visit Days */}
               <div>
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-2">Visit Days</label>
+                <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider block mb-2">Visit Days</label>
                 <div className="flex gap-2 flex-wrap">
                   {VISIT_DAY_OPTIONS.map(day => (
                     <button key={day} onClick={() => toggleProfDay(day)}
                       data-testid={`visit-day-${day}`}
                       className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
                         profForm.visit_days.includes(day)
-                          ? 'bg-slate-900 text-white border-slate-900'
-                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                          ? 'bg-stone-900 text-white border-stone-900'
+                          : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'
                       }`}>
                       {day}
                     </button>
@@ -555,24 +555,24 @@ function UserManagementTab() {
               {/* Accessible Intervention Types */}
               {profInterventionTypes.length > 0 && (
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">
+                  <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider block mb-1">
                     Accessible Intervention Types
                   </label>
-                  <p className="text-xs text-slate-400 mb-2">Leave all unchecked to allow access to all types</p>
+                  <p className="text-xs text-stone-400 mb-2">Leave all unchecked to allow access to all types</p>
                   <div className="space-y-1.5">
                     {profInterventionTypes.map(type => (
                       <label key={type} className="flex items-center gap-2.5 cursor-pointer group">
                         <button onClick={() => toggleProfType(type)}
                           className={`w-4.5 h-4.5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${
                             profForm.accessible_intervention_types.includes(type)
-                              ? 'bg-emerald-500 border-emerald-500'
-                              : 'border-slate-200 bg-white group-hover:border-slate-400'
+                              ? 'bg-teal-500 border-teal-500'
+                              : 'border-stone-200 bg-white group-hover:border-stone-400'
                           }`}>
                           {profForm.accessible_intervention_types.includes(type) && (
                             <CheckCircle size={10} className="text-white" strokeWidth={3} />
                           )}
                         </button>
-                        <span className="text-sm text-slate-700">{type}</span>
+                        <span className="text-sm text-stone-700">{type}</span>
                       </label>
                     ))}
                   </div>
@@ -582,14 +582,14 @@ function UserManagementTab() {
               {/* Cross-Professional View */}
               <div className="flex items-center justify-between pb-1">
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">Cross-Professional View</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Can view other professionals' sessions</p>
+                  <p className="text-sm font-semibold text-stone-800">Cross-Professional View</p>
+                  <p className="text-xs text-stone-400 mt-0.5">Can view other professionals' sessions</p>
                 </div>
                 <button
                   onClick={() => setProfForm(p => ({ ...p, cross_professional_view: !p.cross_professional_view }))}
                   data-testid="toggle-cross-professional"
                   className={`relative inline-flex h-6 w-11 rounded-full transition-colors shrink-0 ${
-                    profForm.cross_professional_view ? 'bg-emerald-500' : 'bg-slate-200'
+                    profForm.cross_professional_view ? 'bg-teal-500' : 'bg-stone-200'
                   }`}>
                   <span className={`inline-block w-4 h-4 bg-white rounded-full shadow transform transition-transform mt-1 ${
                     profForm.cross_professional_view ? 'translate-x-6' : 'translate-x-1'
@@ -597,16 +597,16 @@ function UserManagementTab() {
                 </button>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-slate-100 flex gap-2 shrink-0">
+            <div className="px-6 py-4 border-t border-stone-100 flex gap-2 shrink-0">
               <button onClick={saveProfSettings} disabled={profSaving}
                 data-testid="save-prof-settings-btn"
-                className="flex-1 bg-slate-900 text-white py-3 text-sm font-semibold rounded-xl hover:bg-slate-800 disabled:opacity-60 flex items-center justify-center gap-2 transition-colors"
+                className="flex-1 bg-stone-900 text-white py-3 text-sm font-semibold rounded-xl hover:bg-stone-800 disabled:opacity-60 flex items-center justify-center gap-2 transition-colors"
                 style={{ backgroundColor: 'var(--wt-accent)' }}>
                 {profSaving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
                 {profSaving ? 'Saving…' : 'Save Settings'}
               </button>
               <button onClick={() => setProfUser(null)}
-                className="flex-1 bg-slate-100 text-slate-700 py-3 text-sm font-medium rounded-xl hover:bg-slate-200 transition-colors">
+                className="flex-1 bg-stone-100 text-stone-700 py-3 text-sm font-medium rounded-xl hover:bg-stone-200 transition-colors">
                 Cancel
               </button>
             </div>
@@ -618,17 +618,17 @@ function UserManagementTab() {
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
-            <h3 className="font-bold text-slate-900 mb-2" style={{ fontFamily: 'Manrope,sans-serif' }}>Remove User?</h3>
-            <p className="text-sm text-slate-600 mb-5">
+            <h3 className="font-bold text-stone-900 mb-2" style={{ fontFamily: 'Manrope,sans-serif' }}>Remove User?</h3>
+            <p className="text-sm text-stone-600 mb-5">
               <strong>{deleteConfirm.name}</strong> ({deleteConfirm.email}) will no longer be able to sign in.
             </p>
             <div className="flex gap-2">
               <button onClick={() => deleteUser(deleteConfirm.user_id)} data-testid="confirm-delete-user"
-                className="flex-1 bg-rose-600 text-white py-3 text-sm font-semibold rounded-xl hover:bg-rose-700 transition-colors">
+                className="flex-1 bg-red-600 text-white py-3 text-sm font-semibold rounded-xl hover:bg-red-700 transition-colors">
                 Remove User
               </button>
               <button onClick={() => setDeleteConfirm(null)}
-                className="flex-1 bg-slate-100 text-slate-700 py-3 text-sm font-medium rounded-xl hover:bg-slate-200 transition-colors">Cancel</button>
+                className="flex-1 bg-stone-100 text-stone-700 py-3 text-sm font-medium rounded-xl hover:bg-stone-200 transition-colors">Cancel</button>
             </div>
           </div>
         </div>
@@ -690,16 +690,16 @@ function RolePermissionsTab() {
     }
   };
 
-  if (!permissions || !featurePerms) return <div className="py-12 text-center text-slate-400 text-sm">Loading…</div>;
+  if (!permissions || !featurePerms) return <div className="py-12 text-center text-stone-400 text-sm">Loading…</div>;
 
   // Shared column grid style
   const gridCols = { gridTemplateColumns: '1fr repeat(5, 90px) 80px' };
 
   // Reusable permission row
   const PermRow = ({ label, roleKey, hasPermFn, onToggle, isLast }) => (
-    <div className={`grid items-center border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${isLast ? 'border-b-0' : ''}`} style={gridCols}>
+    <div className={`grid items-center border-b border-stone-50 hover:bg-stone-50/50 transition-colors ${isLast ? 'border-b-0' : ''}`} style={gridCols}>
       <div className="px-5 py-3.5">
-        <span className="text-sm font-medium text-slate-700">{label}</span>
+        <span className="text-sm font-medium text-stone-700">{label}</span>
       </div>
       {CONFIGURABLE_ROLES.map(role => {
         const allowed = hasPermFn(role.value);
@@ -709,7 +709,7 @@ function RolePermissionsTab() {
               data-testid={`perm-${role.value}-${roleKey}`}
               title={`${allowed ? 'Revoke' : 'Grant'} ${role.label} access`}
               className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-all ${
-                allowed ? 'bg-emerald-500 border-emerald-500 hover:bg-emerald-600' : 'border-slate-200 hover:border-slate-400 bg-white'
+                allowed ? 'bg-teal-500 border-teal-500 hover:bg-teal-600' : 'border-stone-200 hover:border-stone-400 bg-white'
               }`}>
               {allowed && <CheckCircle size={12} className="text-white" strokeWidth={3} />}
             </button>
@@ -717,8 +717,8 @@ function RolePermissionsTab() {
         );
       })}
       <div className="flex items-center justify-center">
-        <div className="w-5 h-5 rounded flex items-center justify-center bg-slate-200 border-2 border-slate-200" title="Administrators always have full access">
-          <Lock size={9} className="text-slate-400" />
+        <div className="w-5 h-5 rounded flex items-center justify-center bg-stone-200 border-2 border-stone-200" title="Administrators always have full access">
+          <Lock size={9} className="text-stone-400" />
         </div>
       </div>
     </div>
@@ -727,19 +727,19 @@ function RolePermissionsTab() {
   return (
     <div className="space-y-5">
       {msg.text && (
-        <div className={`flex items-center gap-2 rounded-xl p-4 ${msg.type === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
-          <CheckCircle size={15} className={msg.type === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
-          <p className={`text-sm ${msg.type === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg.text}</p>
+        <div className={`flex items-center gap-2 rounded-xl p-4 ${msg.type === 'error' ? 'bg-red-50 border border-red-200' : 'bg-teal-50 border border-teal-200'}`}>
+          <CheckCircle size={15} className={msg.type === 'error' ? 'text-red-600' : 'text-teal-600'} />
+          <p className={`text-sm ${msg.type === 'error' ? 'text-red-700' : 'text-teal-700'}`}>{msg.text}</p>
         </div>
       )}
 
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Role Permissions</h2>
-          <p className="text-sm text-slate-500 mt-0.5">Control page access and feature actions per role. Administrators always have full access.</p>
+          <h2 className="text-lg font-bold text-stone-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Role Permissions</h2>
+          <p className="text-sm text-stone-500 mt-0.5">Control page access and feature actions per role. Administrators always have full access.</p>
         </div>
         <button onClick={resetToDefaults} data-testid="reset-permissions-btn"
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shrink-0 mt-1">
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-stone-600 border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors shrink-0 mt-1">
           <RotateCcw size={11} /> Reset to Defaults
         </button>
       </div>
@@ -747,29 +747,29 @@ function RolePermissionsTab() {
       {/* ── PAGE ACCESS ── */}
       <div>
         <div className="flex items-center gap-2 mb-2">
-          <LayoutDashboard size={14} className="text-slate-400" />
-          <h3 className="text-sm font-semibold text-slate-700">Page Access</h3>
-          <span className="text-xs text-slate-400">— which pages each role can navigate to</span>
+          <LayoutDashboard size={14} className="text-stone-400" />
+          <h3 className="text-sm font-semibold text-stone-700">Page Access</h3>
+          <span className="text-xs text-stone-400">— which pages each role can navigate to</span>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-          <div className="grid border-b border-slate-200 bg-slate-50" style={gridCols}>
-            <div className="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Page</div>
+        <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+          <div className="grid border-b border-stone-200 bg-stone-50" style={gridCols}>
+            <div className="px-5 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider">Page</div>
             {CONFIGURABLE_ROLES.map(r => (
-              <div key={r.value} className="py-3 text-xs font-semibold text-slate-600 text-center">{r.label}</div>
+              <div key={r.value} className="py-3 text-xs font-semibold text-stone-600 text-center">{r.label}</div>
             ))}
             <div className="py-3 flex items-center justify-center">
-              <span className="flex items-center gap-1 text-xs font-semibold text-slate-400"><Lock size={10} /> Admin</span>
+              <span className="flex items-center gap-1 text-xs font-semibold text-stone-400"><Lock size={10} /> Admin</span>
             </div>
           </div>
           {PERMISSION_PAGES.map((page, idx) => {
             const Icon = page.icon;
             return (
               <div key={page.key}
-                className={`grid items-center border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${idx === PERMISSION_PAGES.length - 1 ? 'border-b-0' : ''}`}
+                className={`grid items-center border-b border-stone-50 hover:bg-stone-50/50 transition-colors ${idx === PERMISSION_PAGES.length - 1 ? 'border-b-0' : ''}`}
                 style={gridCols}>
                 <div className="px-5 py-3.5 flex items-center gap-2.5">
-                  <Icon size={14} className="text-slate-400 shrink-0" />
-                  <span className="text-sm font-medium text-slate-700">{page.label}</span>
+                  <Icon size={14} className="text-stone-400 shrink-0" />
+                  <span className="text-sm font-medium text-stone-700">{page.label}</span>
                 </div>
                 {CONFIGURABLE_ROLES.map(role => {
                   const allowed = hasPagePerm(role.value, page.key);
@@ -779,7 +779,7 @@ function RolePermissionsTab() {
                         data-testid={`perm-${role.value}-${page.key}`}
                         title={`${allowed ? 'Revoke' : 'Grant'} ${role.label} access to ${page.label}`}
                         className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-all ${
-                          allowed ? 'bg-emerald-500 border-emerald-500 hover:bg-emerald-600' : 'border-slate-200 hover:border-slate-400 bg-white'
+                          allowed ? 'bg-teal-500 border-teal-500 hover:bg-teal-600' : 'border-stone-200 hover:border-stone-400 bg-white'
                         }`}>
                         {allowed && <CheckCircle size={12} className="text-white" strokeWidth={3} />}
                       </button>
@@ -787,8 +787,8 @@ function RolePermissionsTab() {
                   );
                 })}
                 <div className="flex items-center justify-center">
-                  <div className="w-5 h-5 rounded flex items-center justify-center bg-slate-200 border-2 border-slate-200">
-                    <Lock size={9} className="text-slate-400" />
+                  <div className="w-5 h-5 rounded flex items-center justify-center bg-stone-200 border-2 border-stone-200">
+                    <Lock size={9} className="text-stone-400" />
                   </div>
                 </div>
               </div>
@@ -800,23 +800,23 @@ function RolePermissionsTab() {
       {/* ── FEATURE ACTIONS ── */}
       <div>
         <div className="flex items-center gap-2 mb-2">
-          <Zap size={14} className="text-slate-400" />
-          <h3 className="text-sm font-semibold text-slate-700">Feature Actions</h3>
-          <span className="text-xs text-slate-400">— what each role can do within those pages</span>
+          <Zap size={14} className="text-stone-400" />
+          <h3 className="text-sm font-semibold text-stone-700">Feature Actions</h3>
+          <span className="text-xs text-stone-400">— what each role can do within those pages</span>
         </div>
         <div className="space-y-3">
           {ACTION_GROUPS.map(group => {
             const actions = FEATURE_ACTIONS.filter(a => a.group === group);
             return (
-              <div key={group} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+              <div key={group} className="bg-white border border-stone-200 rounded-xl overflow-hidden">
                 {/* Group header */}
-                <div className="grid border-b border-slate-100 bg-slate-50/70" style={gridCols}>
-                  <div className="px-5 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">{group}</div>
+                <div className="grid border-b border-stone-100 bg-stone-50/70" style={gridCols}>
+                  <div className="px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">{group}</div>
                   {CONFIGURABLE_ROLES.map(r => (
-                    <div key={r.value} className="py-2.5 text-xs font-semibold text-slate-500 text-center">{r.label}</div>
+                    <div key={r.value} className="py-2.5 text-xs font-semibold text-stone-500 text-center">{r.label}</div>
                   ))}
                   <div className="py-2.5 flex items-center justify-center">
-                    <span className="flex items-center gap-1 text-xs text-slate-400"><Lock size={9} /> Admin</span>
+                    <span className="flex items-center gap-1 text-xs text-stone-400"><Lock size={9} /> Admin</span>
                   </div>
                 </div>
                 {actions.map((action, idx) => (
@@ -857,15 +857,15 @@ const ENTITY_META = {
   intervention:{ label: 'Intervention',color: 'bg-purple-100 text-purple-700' },
   case_note:   { label: 'Case Note',   color: 'bg-indigo-100 text-indigo-700' },
   appointment: { label: 'Appointment', color: 'bg-violet-100 text-violet-700' },
-  user:        { label: 'User',        color: 'bg-emerald-100 text-emerald-700' },
+  user:        { label: 'User',        color: 'bg-teal-100 text-teal-700' },
   setting:     { label: 'Settings',    color: 'bg-amber-100 text-amber-700' },
   attendance:  { label: 'Attendance',  color: 'bg-cyan-100 text-cyan-700' },
 };
 
 const ACTION_META = {
-  created:          { label: 'Created',    color: 'bg-emerald-100 text-emerald-700' },
+  created:          { label: 'Created',    color: 'bg-teal-100 text-teal-700' },
   updated:          { label: 'Updated',    color: 'bg-blue-100 text-blue-700' },
-  deleted:          { label: 'Deleted',    color: 'bg-rose-100 text-rose-700' },
+  deleted:          { label: 'Deleted',    color: 'bg-red-100 text-red-700' },
   bulk_import:      { label: 'Bulk Import',color: 'bg-violet-100 text-violet-700' },
   bulk_archive:     { label: 'Archived',   color: 'bg-amber-100 text-amber-700' },
   bulk_reactivate:  { label: 'Reactivated',color: 'bg-teal-100 text-teal-700' },
@@ -915,50 +915,50 @@ function AuditLogTab() {
     <div className="space-y-4">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Platform Audit Log</h2>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <h2 className="text-lg font-bold text-stone-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Platform Audit Log</h2>
+          <p className="text-sm text-stone-500 mt-0.5">
             Every change across students, interventions, appointments, users and settings
           </p>
         </div>
-        <span className="text-xs text-slate-400 mt-1">{total.toLocaleString()} entries</span>
+        <span className="text-xs text-stone-400 mt-1">{total.toLocaleString()} entries</span>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-end gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+      <div className="flex flex-wrap items-end gap-3 p-4 bg-stone-50 border border-stone-200 rounded-xl">
         <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Type</label>
+          <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider block mb-1">Type</label>
           <select value={filters.entity_type} onChange={e => setF('entity_type', e.target.value)}
-            className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none">
+            className="px-3 py-2 text-sm border border-stone-200 rounded-lg bg-white focus:outline-none">
             <option value="">All types</option>
             {Object.entries(ENTITY_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
         </div>
         <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Action</label>
+          <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider block mb-1">Action</label>
           <select value={filters.action} onChange={e => setF('action', e.target.value)}
-            className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none">
+            className="px-3 py-2 text-sm border border-stone-200 rounded-lg bg-white focus:outline-none">
             <option value="">All actions</option>
             {Object.entries(ACTION_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
         </div>
         <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">From</label>
+          <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider block mb-1">From</label>
           <input type="date" value={filters.date_from} onChange={e => setF('date_from', e.target.value)}
-            className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none" />
+            className="px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">To</label>
+          <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider block mb-1">To</label>
           <input type="date" value={filters.date_to} onChange={e => setF('date_to', e.target.value)}
-            className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none" />
+            className="px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none" />
         </div>
         <button onClick={applyFilters}
-          className="px-4 py-2 text-sm font-semibold bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+          className="px-4 py-2 text-sm font-semibold bg-stone-900 text-white rounded-lg hover:bg-stone-800 transition-colors"
           style={{ backgroundColor: 'var(--wt-accent)' }}>
           Apply
         </button>
         {hasFilters && (
           <button onClick={clearFilters}
-            className="px-3 py-2 text-sm text-slate-500 hover:text-slate-800 rounded-lg hover:bg-white transition-colors border border-slate-200">
+            className="px-3 py-2 text-sm text-stone-500 hover:text-stone-800 rounded-lg hover:bg-white transition-colors border border-stone-200">
             Clear
           </button>
         )}
@@ -966,19 +966,19 @@ function AuditLogTab() {
 
       {loading ? (
         <div className="space-y-2">
-          {[1,2,3,4,5].map(i => <div key={i} className="h-14 bg-white rounded-xl animate-pulse border border-slate-100" />)}
+          {[1,2,3,4,5].map(i => <div key={i} className="h-14 bg-white rounded-xl animate-pulse border border-stone-100" />)}
         </div>
       ) : !logs.length ? (
         <div className="py-20 text-center">
-          <FileText size={32} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-slate-500 font-medium">No audit entries {hasFilters ? 'matching filters' : 'yet'}</p>
-          {!hasFilters && <p className="text-xs text-slate-400 mt-1">Create, edit, or delete any record to see it appear here</p>}
+          <FileText size={32} className="mx-auto mb-3 text-stone-300" />
+          <p className="text-stone-500 font-medium">No audit entries {hasFilters ? 'matching filters' : 'yet'}</p>
+          {!hasFilters && <p className="text-xs text-stone-400 mt-1">Create, edit, or delete any record to see it appear here</p>}
         </div>
       ) : (
         <>
-          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
             {/* Header */}
-            <div className="grid border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-400 uppercase tracking-wider"
+            <div className="grid border-b border-stone-200 bg-stone-50 text-xs font-semibold text-stone-400 uppercase tracking-wider"
               style={{ gridTemplateColumns: '150px 110px 110px 1fr 130px' }}>
               {['Timestamp', 'Type', 'Action', 'Details', 'User'].map(h => (
                 <div key={h} className="px-4 py-3">{h}</div>
@@ -986,16 +986,16 @@ function AuditLogTab() {
             </div>
 
             {logs.map((entry, idx) => {
-              const em = ENTITY_META[entry.entity_type] || { label: entry.entity_type, color: 'bg-slate-100 text-slate-600' };
-              const am = ACTION_META[entry.action] || { label: entry.action, color: 'bg-slate-100 text-slate-600' };
+              const em = ENTITY_META[entry.entity_type] || { label: entry.entity_type, color: 'bg-stone-100 text-stone-600' };
+              const am = ACTION_META[entry.action] || { label: entry.action, color: 'bg-stone-100 text-stone-600' };
               return (
                 <div key={entry.audit_id || idx}
-                  className={`grid items-start border-b border-slate-50 last:border-b-0 hover:bg-slate-50/60 transition-colors`}
+                  className={`grid items-start border-b border-stone-50 last:border-b-0 hover:bg-stone-50/60 transition-colors`}
                   style={{ gridTemplateColumns: '150px 110px 110px 1fr 130px' }}
                   data-testid={`audit-entry-${idx}`}>
                   <div className="px-4 py-3">
-                    <p className="text-xs font-mono text-slate-600">{entry.timestamp?.split('T')[0]}</p>
-                    <p className="text-xs font-mono text-slate-400">{entry.timestamp?.split('T')[1]?.slice(0,8)}</p>
+                    <p className="text-xs font-mono text-stone-600">{entry.timestamp?.split('T')[0]}</p>
+                    <p className="text-xs font-mono text-stone-400">{entry.timestamp?.split('T')[1]?.slice(0,8)}</p>
                   </div>
                   <div className="px-4 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${em.color}`}>{em.label}</span>
@@ -1003,36 +1003,36 @@ function AuditLogTab() {
                   <div className="px-4 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${am.color}`}>{am.label}</span>
                     {entry.bulk_count != null && (
-                      <p className="text-[10px] text-slate-400 mt-0.5">{entry.bulk_count} records</p>
+                      <p className="text-[10px] text-stone-400 mt-0.5">{entry.bulk_count} records</p>
                     )}
                   </div>
                   <div className="px-4 py-3">
                     {entry.entity_name && (
-                      <p className="text-xs font-semibold text-slate-800 mb-0.5">{entry.entity_name}</p>
+                      <p className="text-xs font-semibold text-stone-800 mb-0.5">{entry.entity_name}</p>
                     )}
                     {Object.keys(entry.changes || {}).length > 0 && (
                       <div className="space-y-0.5">
                         {Object.entries(entry.changes).slice(0, 3).map(([k, v]) => (
-                          <p key={k} className="text-[11px] text-slate-500">
-                            <span className="font-medium text-slate-600">{k}:</span>{' '}
-                            {v?.old !== undefined && <><span className="line-through text-slate-400">{String(v.old ?? '—')}</span> → </>}
-                            <span className="text-slate-700">{String(v?.new ?? v ?? '—')}</span>
+                          <p key={k} className="text-[11px] text-stone-500">
+                            <span className="font-medium text-stone-600">{k}:</span>{' '}
+                            {v?.old !== undefined && <><span className="line-through text-stone-400">{String(v.old ?? '—')}</span> → </>}
+                            <span className="text-stone-700">{String(v?.new ?? v ?? '—')}</span>
                           </p>
                         ))}
                         {Object.keys(entry.changes).length > 3 && (
-                          <p className="text-[10px] text-slate-400">+{Object.keys(entry.changes).length - 3} more</p>
+                          <p className="text-[10px] text-stone-400">+{Object.keys(entry.changes).length - 3} more</p>
                         )}
                       </div>
                     )}
                     {entry.metadata && Object.keys(entry.metadata).length > 0 && !Object.keys(entry.changes || {}).length && (
-                      <p className="text-[11px] text-slate-400 italic">
+                      <p className="text-[11px] text-stone-400 italic">
                         {Object.entries(entry.metadata).slice(0, 2).map(([k, v]) => `${k}: ${v}`).join(' · ')}
                       </p>
                     )}
                   </div>
                   <div className="px-4 py-3">
-                    <p className="text-xs font-medium text-slate-700 truncate">{entry.user_name || '—'}</p>
-                    <p className="text-[10px] text-slate-400 capitalize">{entry.user_role}</p>
+                    <p className="text-xs font-medium text-stone-700 truncate">{entry.user_name || '—'}</p>
+                    <p className="text-[10px] text-stone-400 capitalize">{entry.user_role}</p>
                   </div>
                 </div>
               );
@@ -1042,14 +1042,14 @@ function AuditLogTab() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-stone-400">
                 Showing {page * PER_PAGE + 1}–{Math.min((page + 1) * PER_PAGE, total)} of {total.toLocaleString()}
               </p>
               <div className="flex gap-1">
                 <button onClick={() => goPage(Math.max(0, page - 1))} disabled={page === 0}
-                  className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors">Prev</button>
+                  className="px-3 py-1.5 text-xs border border-stone-200 rounded-lg disabled:opacity-40 hover:bg-stone-50 transition-colors">Prev</button>
                 <button onClick={() => goPage(Math.min(totalPages - 1, page + 1))} disabled={page >= totalPages - 1}
-                  className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors">Next</button>
+                  className="px-3 py-1.5 text-xs border border-stone-200 rounded-lg disabled:opacity-40 hover:bg-stone-50 transition-colors">Next</button>
               </div>
             </div>
           )}
@@ -1074,10 +1074,10 @@ export default function AdministrationPage() {
   return (
     <div className="p-6 lg:p-8 max-w-5xl mx-auto fade-in">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3" style={{ fontFamily: 'Manrope,sans-serif' }}>
-          <Shield size={26} className="text-slate-600" /> Administration
+        <h1 className="text-3xl font-bold text-stone-900 flex items-center gap-3" style={{ fontFamily: 'Manrope,sans-serif' }}>
+          <Shield size={26} className="text-stone-600" /> Administration
         </h1>
-        <p className="text-slate-500 mt-1">Manage users and configure role-based access control</p>
+        <p className="text-stone-500 mt-1">Manage users and configure role-based access control</p>
       </div>
 
       <TabNav active={activeTab} onChange={setActiveTab} />

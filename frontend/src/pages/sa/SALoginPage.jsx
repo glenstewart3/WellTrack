@@ -46,14 +46,14 @@ export default function SALoginPage() {
 
   if (mode === 'loading') {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-stone-900 flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4" data-testid="sa-login-page">
+    <div className="min-h-screen bg-stone-900 flex items-center justify-center px-4" data-testid="sa-login-page">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -65,12 +65,12 @@ export default function SALoginPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6 shadow-2xl">
+        <div className="bg-stone-800 rounded-2xl border border-stone-700 p-6 shadow-2xl">
           <div className="mb-5">
             <h2 className="text-lg font-semibold text-white">
               {mode === 'bootstrap' ? 'Create First Super Admin' : 'Sign In'}
             </h2>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-stone-400 mt-1">
               {mode === 'bootstrap'
                 ? 'Set up the first administrator for the WellTrack platform.'
                 : 'Enter your credentials to access the admin portal.'}
@@ -87,38 +87,38 @@ export default function SALoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'bootstrap' && (
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Full Name</label>
+                <label className="block text-xs font-medium text-stone-300 mb-1.5">Full Name</label>
                 <div className="relative">
-                  <UserPlus size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <UserPlus size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" />
                   <input
                     type="text"
                     value={form.name}
                     onChange={e => setForm({ ...form, name: e.target.value })}
                     placeholder="Your full name"
                     required
-                    className="w-full bg-slate-700/50 border border-slate-600 rounded-lg pl-10 pr-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full bg-stone-700/50 border border-stone-600 rounded-lg pl-10 pr-3 py-2.5 text-sm text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     data-testid="sa-name-input"
                   />
                 </div>
               </div>
             )}
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">Email</label>
+              <label className="block text-xs font-medium text-stone-300 mb-1.5">Email</label>
               <div className="relative">
-                <Shield size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Shield size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" />
                 <input
                   type="email"
                   value={form.email}
                   onChange={e => setForm({ ...form, email: e.target.value })}
                   placeholder="admin@example.com"
                   required
-                  className="w-full bg-slate-700/50 border border-slate-600 rounded-lg pl-10 pr-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full bg-stone-700/50 border border-stone-600 rounded-lg pl-10 pr-3 py-2.5 text-sm text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   data-testid="sa-email-input"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">Password</label>
+              <label className="block text-xs font-medium text-stone-300 mb-1.5">Password</label>
               <div className="relative">
                 <input
                   type={showPw ? 'text' : 'password'}
@@ -127,10 +127,10 @@ export default function SALoginPage() {
                   placeholder={mode === 'bootstrap' ? 'Min 8 characters' : 'Your password'}
                   required
                   minLength={8}
-                  className="w-full bg-slate-700/50 border border-slate-600 rounded-lg pl-3 pr-10 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full bg-stone-700/50 border border-stone-600 rounded-lg pl-3 pr-10 py-2.5 text-sm text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   data-testid="sa-password-input"
                 />
-                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-300">
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
@@ -147,7 +147,7 @@ export default function SALoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-slate-600 mt-6">WellTrack Platform Administration</p>
+        <p className="text-center text-xs text-stone-600 mt-6">WellTrack Platform Administration</p>
       </div>
     </div>
   );

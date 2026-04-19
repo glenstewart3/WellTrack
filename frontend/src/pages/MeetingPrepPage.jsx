@@ -80,14 +80,14 @@ export default function MeetingPrepPage() {
     <div className="p-6 lg:p-8 max-w-5xl mx-auto fade-in">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3" style={{fontFamily:'Manrope,sans-serif'}}>
-            <Users2 size={28} className="text-slate-600" /> MTSS Meeting Prep
+          <h1 className="text-3xl font-bold text-stone-900 flex items-center gap-3" style={{fontFamily:'Manrope,sans-serif'}}>
+            <Users2 size={28} className="text-stone-600" /> MTSS Meeting Prep
           </h1>
-          <p className="text-slate-500 mt-1">Students requiring discussion at your next MTSS meeting</p>
+          <p className="text-stone-500 mt-1">Students requiring discussion at your next MTSS meeting</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => exportMeetingReport(students, tier_changes)} data-testid="export-meeting-pdf-btn"
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-stone-200 rounded-xl text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors">
             <Download size={16} /> Export PDF
           </button>
         </div>
@@ -96,7 +96,7 @@ export default function MeetingPrepPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
-          { label: 'Priority', sub: 'Tier 3', count: tier3.length, color: 'border-rose-200 bg-rose-50', text: 'text-rose-700' },
+          { label: 'Priority', sub: 'Tier 3', count: tier3.length, color: 'border-red-200 bg-red-50', text: 'text-red-700' },
           { label: 'Monitor', sub: 'Tier 2', count: tier2.length, color: 'border-amber-200 bg-amber-50', text: 'text-amber-700' },
           { label: 'Changes', sub: 'Tier', count: tier_changes.length, color: 'border-indigo-200 bg-indigo-50', text: 'text-indigo-700' },
         ].map(card => (
@@ -109,16 +109,16 @@ export default function MeetingPrepPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex overflow-x-auto overflow-y-hidden border-b border-slate-200 mb-5 -mx-6 px-6 sm:mx-0 sm:px-0">
+      <div className="flex overflow-x-auto overflow-y-hidden border-b border-stone-200 mb-5 -mx-6 px-6 sm:mx-0 sm:px-0">
         {[
           { key: 'students', label: `Students (${students.length})`, short: `Students` },
           { key: 'tier_changes', label: `Tier Changes (${tier_changes.length})`, short: `Changes`, highlight: tier_changes.some(tc => tc.direction === 'declined') },
         ].map(({ key, label, short, highlight }) => (
           <button key={key} onClick={() => setActiveTab(key)} data-testid={`meeting-tab-${key}`}
-            className={`flex items-center gap-2 px-4 sm:px-5 py-3 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 ${activeTab === key ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            className={`flex items-center gap-2 px-4 sm:px-5 py-3 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 ${activeTab === key ? 'border-stone-900 text-stone-900' : 'border-transparent text-stone-500 hover:text-stone-700'}`}>
             <span className="hidden sm:inline">{label}</span>
             <span className="sm:hidden">{short}</span>
-            {highlight && <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />}
+            {highlight && <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />}
           </button>
         ))}
 
@@ -126,7 +126,7 @@ export default function MeetingPrepPage() {
           <div className="ml-auto flex items-center gap-1.5 pb-2 shrink-0">
             {[['', 'All'], ['3', 'T3'], ['2', 'T2']].map(([val, label]) => (
               <button key={val} onClick={() => setFilterTier(val)}
-                className={`px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors ${filterTier === val ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
+                className={`px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors ${filterTier === val ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'}`}>
                 {label}
               </button>
             ))}
@@ -137,9 +137,9 @@ export default function MeetingPrepPage() {
       {/* Tier Changes Tab */}
       {activeTab === 'tier_changes' && (
         loading ? (
-          <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-20 bg-white rounded-xl border border-slate-200 animate-pulse" />)}</div>
+          <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-20 bg-white rounded-2xl border border-stone-200 animate-pulse" />)}</div>
         ) : tier_changes.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-xl p-16 text-center text-slate-400">
+          <div className="bg-white border border-stone-200 rounded-xl p-16 text-center text-stone-400">
             <TrendingUp size={40} className="mx-auto mb-3 opacity-30" />
             <p>No tier changes detected</p>
             <p className="text-sm mt-1">Tier changes appear when students are screened more than once</p>
@@ -149,38 +149,38 @@ export default function MeetingPrepPage() {
             {tier_changes.map((tc, idx) => {
               const improved = tc.direction === 'improved';
               return (
-                <div key={idx} className={`bg-white border rounded-xl p-4 ${improved ? 'border-emerald-200' : 'border-rose-200'}`}
+                <div key={idx} className={`bg-white border rounded-xl p-4 ${improved ? 'border-teal-200' : 'border-red-200'}`}
                   data-testid={`tier-change-${tc.student?.student_id}`}>
                   <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-xl shrink-0 ${improved ? 'bg-emerald-100' : 'bg-rose-100'}`}>
-                      {improved ? <TrendingUp size={16} className="text-emerald-600" /> : <TrendingDown size={16} className="text-rose-600" />}
+                    <div className={`p-2 rounded-xl shrink-0 ${improved ? 'bg-teal-100' : 'bg-red-100'}`}>
+                      {improved ? <TrendingUp size={16} className="text-teal-600" /> : <TrendingDown size={16} className="text-red-600" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <button onClick={() => navigate(`/students/${tc.student?.student_id}`)}
-                          className="font-semibold text-slate-900 hover:text-indigo-600 transition-colors">
+                          className="font-semibold text-stone-900 hover:text-indigo-600 transition-colors">
                           {studentDisplayName(tc.student)}
                         </button>
-                        <span className="text-xs text-slate-400">{tc.student?.class_name}</span>
+                        <span className="text-xs text-stone-400">{tc.student?.class_name}</span>
                       </div>
                       <div className="flex flex-wrap items-center gap-2 mt-1.5">
                         <div className="flex items-center gap-1.5 text-sm">
                           <span className={`px-2.5 py-1 rounded-full font-semibold text-xs ${getTierColors(tc.previous_tier).badge}`}>Tier {tc.previous_tier}</span>
-                          <ArrowRight size={14} className="text-slate-400" />
+                          <ArrowRight size={14} className="text-stone-400" />
                           <span className={`px-2.5 py-1 rounded-full font-semibold text-xs ${getTierColors(tc.current_tier).badge}`}>Tier {tc.current_tier}</span>
                         </div>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${improved ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${improved ? 'bg-teal-100 text-teal-700' : 'bg-red-100 text-red-700'}`}>
                           {improved ? 'Improved' : 'Declined'}
                         </span>
                         <button onClick={() => navigate(`/students/${tc.student?.student_id}`)}
-                          className="text-xs text-slate-400 hover:text-indigo-600 transition-colors flex items-center gap-0.5">
+                          className="text-xs text-stone-400 hover:text-indigo-600 transition-colors flex items-center gap-0.5">
                           Profile <ChevronRight size={12} />
                         </button>
                       </div>
                     </div>
                   </div>
                   {tc.saebrs && (
-                    <div className="mt-3 pt-3 border-t border-slate-100 flex gap-4 text-xs text-slate-500">
+                    <div className="mt-3 pt-3 border-t border-stone-100 flex gap-4 text-xs text-stone-500">
                       <span>Latest SAEBRS: <strong>{tc.saebrs.total_score}/57</strong> ({tc.saebrs.risk_level})</span>
                       <span>Screened: {tc.current_screening?.split('T')[0]}</span>
                     </div>
@@ -195,9 +195,9 @@ export default function MeetingPrepPage() {
       {/* Students Tab */}
       {activeTab === 'students' && (
         loading ? (
-          <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-32 bg-white rounded-xl border border-slate-200 animate-pulse" />)}</div>
+          <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-32 bg-white rounded-2xl border border-stone-200 animate-pulse" />)}</div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-xl p-16 text-center text-slate-400">
+          <div className="bg-white border border-stone-200 rounded-xl p-16 text-center text-stone-400">
             No students currently in Tier 2 or Tier 3
           </div>
         ) : (
@@ -216,11 +216,11 @@ export default function MeetingPrepPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="font-semibold text-slate-900 truncate" style={{fontFamily:'Manrope,sans-serif'}}>{sName}</h3>
+                        <h3 className="font-semibold text-stone-900 truncate" style={{fontFamily:'Manrope,sans-serif'}}>{sName}</h3>
                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0 ${tc.badge}`}>Tier {item.mtss_tier}</span>
                       </div>
                       <div className="flex items-center gap-3 mt-0.5">
-                        <p className="text-xs text-slate-400">{item.student.class_name} · {item.student.teacher}</p>
+                        <p className="text-xs text-stone-400">{item.student.class_name} · {item.student.teacher}</p>
                         <button onClick={() => navigate(`/students/${item.student.student_id}`)}
                           className="text-xs text-indigo-500 hover:text-indigo-700 transition-colors flex items-center gap-0.5 font-medium">
                           Profile <ChevronRight size={11} />
@@ -230,29 +230,29 @@ export default function MeetingPrepPage() {
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                    <div className="bg-slate-50 rounded-lg p-2.5">
-                      <p className="text-slate-400 mb-1">SAEBRS</p>
-                      <p className="font-bold text-slate-900">{item.saebrs?.total_score || '—'}/57</p>
+                    <div className="bg-stone-50 rounded-lg p-2.5">
+                      <p className="text-stone-400 mb-1">SAEBRS</p>
+                      <p className="font-bold text-stone-900">{item.saebrs?.total_score || '—'}/57</p>
                       {item.saebrs && <span className={`px-1.5 py-0.5 rounded-full font-medium ${getRiskColors(item.saebrs.risk_level)}`}>{item.saebrs.risk_level}</span>}
                     </div>
-                    <div className="bg-slate-50 rounded-lg p-2.5">
-                      <p className="text-slate-400 mb-1">Wellbeing</p>
-                      <p className="font-bold text-slate-900">{item.saebrs_plus?.wellbeing_total || '—'}/66</p>
+                    <div className="bg-stone-50 rounded-lg p-2.5">
+                      <p className="text-stone-400 mb-1">Wellbeing</p>
+                      <p className="font-bold text-stone-900">{item.saebrs_plus?.wellbeing_total || '—'}/66</p>
                       {item.saebrs_plus && <span className={`px-1.5 py-0.5 rounded-full font-medium ${getTierColors(item.saebrs_plus.wellbeing_tier).badge}`}>Tier {item.saebrs_plus.wellbeing_tier}</span>}
                     </div>
-                    <div className="bg-slate-50 rounded-lg p-2.5">
-                      <p className="text-slate-400 mb-1">Attendance</p>
-                      <p className={`font-bold ${item.attendance_pct < 80 ? 'text-rose-600' : item.attendance_pct < 90 ? 'text-amber-600' : 'text-emerald-600'}`}>{item.attendance_pct}%</p>
+                    <div className="bg-stone-50 rounded-lg p-2.5">
+                      <p className="text-stone-400 mb-1">Attendance</p>
+                      <p className={`font-bold ${item.attendance_pct < 80 ? 'text-red-600' : item.attendance_pct < 90 ? 'text-amber-600' : 'text-teal-600'}`}>{item.attendance_pct}%</p>
                     </div>
-                    <div className="bg-slate-50 rounded-lg p-2.5">
-                      <p className="text-slate-400 mb-1">Interventions</p>
-                      <p className="font-bold text-slate-900">{item.active_interventions.length} active</p>
+                    <div className="bg-stone-50 rounded-lg p-2.5">
+                      <p className="text-stone-400 mb-1">Interventions</p>
+                      <p className="font-bold text-stone-900">{item.active_interventions.length} active</p>
                     </div>
                   </div>
 
                   {item.active_interventions.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-slate-100">
-                      <p className="text-xs font-semibold text-slate-500 mb-2">Active Interventions:</p>
+                    <div className="mt-3 pt-3 border-t border-stone-100">
+                      <p className="text-xs font-semibold text-stone-500 mb-2">Active Interventions:</p>
                       <div className="flex flex-wrap gap-2">
                         {item.active_interventions.map(i => (
                           <span key={i.intervention_id} className="text-xs bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full font-medium">
