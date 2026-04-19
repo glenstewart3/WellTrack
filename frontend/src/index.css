@@ -238,6 +238,20 @@ code {
 [data-theme="dark"] .bg-green-50    { background-color: rgba(34,197,94,0.12)   !important; }
 [data-theme="dark"] .bg-emerald-50  { background-color: rgba(16,185,129,0.12)  !important; }
 [data-theme="dark"] .bg-blue-50     { background-color: rgba(59,130,246,0.12)  !important; }
+
+/* Primary (slate-900) buttons blend into the dark bg — invert to light */
+[data-theme="dark"] .bg-slate-900 { background-color: #f1f5f9 !important; color: #0f172a !important; }
+[data-theme="dark"] .bg-slate-900:hover,
+[data-theme="dark"] .hover\:bg-slate-800:hover { background-color: #ffffff !important; }
+[data-theme="dark"] .bg-slate-900 .text-white,
+[data-theme="dark"] .bg-slate-900 svg { color: #0f172a !important; }
+
+/* Recharts Pie: remove the default white segment stroke that looks like a border in dark mode */
+[data-theme="dark"] .recharts-pie-sector path,
+[data-theme="dark"] .recharts-sector {
+  stroke: transparent !important;
+  stroke-width: 0 !important;
+}
 [data-theme="dark"] .bg-indigo-50   { background-color: rgba(99,102,241,0.12)  !important; }
 [data-theme="dark"] .bg-purple-50   { background-color: rgba(168,85,247,0.12)  !important; }
 [data-theme="dark"] .bg-orange-50   { background-color: rgba(249,115,22,0.12)  !important; }
