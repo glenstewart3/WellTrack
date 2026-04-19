@@ -122,15 +122,6 @@ export default function DashboardPage() {
   const curr = movement?.current;
   const prev = movement?.previous;
   const delta = (k) => (curr && prev ? (curr[k] || 0) - (prev[k] || 0) : null);
-  const deltaTier1Pct = (() => {
-    if (!curr || !prev) return null;
-    const cScreened = curr.tier1 + curr.tier2 + curr.tier3;
-    const pScreened = prev.tier1 + prev.tier2 + prev.tier3;
-    if (!cScreened || !pScreened) return null;
-    const cPct = (curr.tier1 / cScreened) * 100;
-    const pPct = (prev.tier1 / pScreened) * 100;
-    return Math.round((cPct - pPct) * 10) / 10; // 1 decimal
-  })();
 
   const pieData = [
     { name: 'Tier 1', value: tier1Count, color: 'var(--wt-tier1)' },
@@ -171,21 +162,21 @@ export default function DashboardPage() {
       testid: 'stat-card-total-students',
     },
     {
-      label: 'Tier 1 wellbeing', value: `${tier1Pct}%`, icon: TrendingUp,
+      label: 'Tier 1', value: tier1Count, icon: TrendingUp,
       iconBg: 'var(--wt-tier1-soft)', iconFg: 'var(--wt-tier1-foreground)',
-      delta: deltaTier1Pct, suffix: '%', positiveIsGood: true,
+      delta: delta('tier1'), suffix: '', positiveIsGood: true,
       onClick: () => navigate('/students', { state: { filterTier: '1' } }),
       testid: 'stat-card-tier-1',
     },
     {
-      label: 'Tier 2 watch', value: tier2Count, icon: ClipboardCheck,
+      label: 'Tier 2', value: tier2Count, icon: ClipboardCheck,
       iconBg: 'var(--wt-tier2-soft)', iconFg: 'var(--wt-tier2-foreground)',
       delta: delta('tier2'), suffix: '', positiveIsGood: false,
       onClick: () => navigate('/students', { state: { filterTier: '2' } }),
       testid: 'stat-card-tier-2-students',
     },
     {
-      label: 'Tier 3 active', value: tier3Count, icon: AlertTriangle,
+      label: 'Tier 3', value: tier3Count, icon: AlertTriangle,
       iconBg: 'var(--wt-tier3-soft)', iconFg: 'var(--wt-tier3-foreground)',
       delta: delta('tier3'), suffix: '', positiveIsGood: false,
       onClick: () => navigate('/students', { state: { filterTier: '3' } }),
