@@ -175,7 +175,7 @@ export default function DashboardLayout() {
   );
 
   return (
-    <div className="flex h-dvh overflow-hidden" style={{ backgroundColor: 'var(--wt-page-bg, #fbfaf6)' }}>
+    <div className="flex h-dvh overflow-hidden" style={{ backgroundColor: 'var(--wt-page-bg, #f8fafc)' }}>
       {/* Desktop Sidebar */}
       <aside className={`hidden lg:flex flex-col w-60 border-r shrink-0 ${sidebarClass}`} style={sidebarStyle}>
         <SidebarContent />
