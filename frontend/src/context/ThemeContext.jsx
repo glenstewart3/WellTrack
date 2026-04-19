@@ -11,7 +11,7 @@ export const THEMES = {
 // Active nav colour per theme (resolved theme, not 'system')
 export const THEME_NAV_ACTIVE = {
   default: null,      // falls back to school accent_color
-  dark:    '#3b82f6',
+  dark:    '#0f172a',
 };
 
 const ThemeContext = createContext({ theme: 'default', setTheme: () => {} });
