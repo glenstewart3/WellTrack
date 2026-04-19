@@ -12,7 +12,9 @@ TEST_USER_ID = None  # created in fixture
 @pytest.fixture(scope="module")
 def admin_session():
     s = requests.Session()
-    s.cookies.set("session_token", ADMIN_TOKEN, domain="tier-track-1.preview.emergentagent.com", path="/")
+    # Use localhost for test; override via REACT_APP_BACKEND_URL for remote testing
+    domain = os.environ.get('TEST_COOKIE_DOMAIN', 'localhost')
+    s.cookies.set("session_token", ADMIN_TOKEN, domain=domain, path="/")
     return s
 
 

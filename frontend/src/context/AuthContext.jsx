@@ -25,7 +25,7 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try {
       await api.post('/auth/logout', {});
-    } catch {}
+    } catch { /* auth check — 401 expected when not logged in */ }
     setUser(null);
   };
 

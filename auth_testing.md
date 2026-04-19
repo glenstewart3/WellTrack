@@ -27,7 +27,7 @@ print('User ID: ' + userId);
 
 ## Step 2: Test Backend API
 ```bash
-API_URL=$(grep REACT_APP_BACKEND_URL /app/frontend/.env | cut -d '=' -f2)
+API_URL=$(grep REACT_APP_BACKEND_URL frontend/.env | cut -d '=' -f2)  # adjust path to your repo root
 
 # Test auth endpoint
 curl -X GET "$API_URL/api/auth/me" \
@@ -48,16 +48,17 @@ curl -X GET "$API_URL/api/alerts" \
 
 ## Step 3: Browser Testing
 ```python
+# Replace domain/URL with your deployment target
 await page.context.add_cookies([{
     "name": "session_token",
     "value": "YOUR_SESSION_TOKEN",
-    "domain": "tier-track-1.preview.emergentagent.com",
+    "domain": "localhost",  # or your-school.welltrack.com.au
     "path": "/",
     "httpOnly": True,
-    "secure": True,
-    "sameSite": "None"
+    "secure": False,  # True for production HTTPS
+    "sameSite": "Lax"
 }])
-await page.goto("https://welltrack-preview.preview.emergentagent.com")
+await page.goto("http://localhost:3000")
 ```
 
 ## Checklist

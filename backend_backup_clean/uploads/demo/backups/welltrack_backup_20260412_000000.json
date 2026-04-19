@@ -1,0 +1,3920 @@
+{
+  "exported_at": "2026-04-12T00:00:00.002293+00:00",
+  "version": "2.0",
+  "students": [
+    {
+      "student_id": "stu_f2564945",
+      "first_name": "Emma",
+      "preferred_name": null,
+      "last_name": "Davis",
+      "year_level": "Foundation",
+      "class_name": "F/1A",
+      "teacher": "Ms Patel",
+      "date_of_birth": "2014-01-01",
+      "gender": "Male",
+      "enrolment_status": "active",
+      "sussi_id": "YUS0001",
+      "external_id": "YUS0001"
+    },
+    {
+      "student_id": "stu_b1052c2b",
+      "first_name": "Liam",
+      "preferred_name": null,
+      "last_name": "Wilson",
+      "year_level": "Foundation",
+      "class_name": "F/1A",
+      "teacher": "Ms Patel",
+      "date_of_birth": "2014-01-01",
+      "gender": "Female",
+      "enrolment_status": "active",
+      "sussi_id": "YUS0002",
+      "external_id": "YUS0002"
+    },
+    {
+      "student_id": "stu_20b21f5e",
+      "first_name": "Olivia",
+      "preferred_name": null,
+      "last_name": "Taylor",
+      "year_level": "Foundation",
+      "class_name": "F/1A",
+      "teacher": "Ms Patel",
+      "date_of_birth": "2014-01-01",
+      "gender": "Male",
+      "enrolment_status": "active",
+      "sussi_id": "YUS0003",
+      "external_id": "YUS0003"
+    },
+    {
+      "student_id": "stu_7d44fe91",
+      "first_name": "Noah",
+      "preferred_name": "Ollie",
+      "last_name": "Anderson",
+      "year_level": "Foundation",
+      "class_name": "F/1A",
+      "teacher": "Ms Patel",
+      "date_of_birth": "2014-01-01",
+      "gender": "Female",
+      "enrolment_status": "active",
+      "sussi_id": "YUS0004",
+      "external_id": "YUS0004"
+    },
+    {
+      "student_id": "stu_09613a9b",
+      "first_name": "Ava",
+      "preferred_name": null,
+      "last_name": "Thomas",
+      "year_level": "Year 1",
+      "class_name": "1/2B",
+      "teacher": "Ms Lee",
+      "date_of_birth": "2014-01-01",
+      "gender": "Male",
+      "enrolment_status": "active",
+      "sussi_id": "YUS0005",
+      "external_id": "YUS0005"
+    },
+    {
+      "student_id": "stu_3dd35819",
+      "first_name": "Ethan",
+      "preferred_name": null,
+      "last_name": "Jackson",
+      "year_level": "Year 1",
+      "class_name": "1/2B",
+      "teacher": "Ms Lee",
+      "date_of_birth": "2014-01-01",
+      "gender": "Female",
+      "enrolment_status": "active",
+      "sussi_id": "YUS0006",
+      "external_id": "YUS0006"
+    },
+    {
+      "student_id": "stu_36698b8a",
+      "first_name": "Sophia",
+      "preferred_name": null,
+      "last_name": "White",
+      "year_level": "Year 1",
+      "class_name": "1/2B",
+      "teacher": "Ms Lee",
+      "date_of_birth": "2014-01-01",
+      "gender": "Male",
+      "enrolment_status": "active",
+      "sussi_id": "YUS0007",
+      "external_id": "YUS0007"
+    },
+    {
+      "student_id": "stu_235c9d40",
+      "first_name": "Mason",
+      "preferred_name": null,
+      "last_name": "Harris",
+      "year_level": "Year 1",
+      "class_name": "1/2B",
+      "teacher": "Ms Lee",
+      "date_of_birth": "2014-01-01",
+      "gender": "Female",
+      "enrolment_status": "active",
+      "sussi_id": "YUS0008",
+      "external_id": "YUS0008"
+    },
+    {
+      "student_id": "stu_66c1852a",
+      "first_name": "Isabella",
+      "preferred_name": "Izzy",
+      "last_name": "Martin",
+      "year_level": "Year 3",
+      "class_name": "3A",
+      "teacher": "Ms Thompson",
+      "date_of_birth": "2014-01-01",
+      "gender": "Male",
+      "enrolment_status": "active",
+      "sussi_id": "YUS0009",
+      "external_id": "YUS0009"
+    },
+    {
+      "student_id": "stu_e81eba05",
+      "first_name": "James",
+      "preferred_name": null,
+      "last_name": "Thompson",
+      "year_level": "Year 3",
+      "class_name": "3A",
+      "teacher": "Ms Thompson",
+      "date_of_birth": "2014-01-01",
+      "gender": "Female",
+      "enrolment_status": "active",
+      "sussi_id": "YUS0010",
+      "external_id": "YUS0010"
+    },
+    {
+      "student_id": "stu_c59ea807",
+      "first_name": "Charlotte",
+      "preferred_name": null,
+      "last_name": "Moore",
+      "year_level": "Year 3",
+      "class_name": "3A",
+      "teacher": "Ms Thompson",
+      "date_of_birth": "2014-01-01",
+      "gender": "Male",
+      "enrolment_status": "active",
+      "sussi_id": "YUS0011",
+      "external_id": "YUS0011"
+    },
+    {
+      "student_id": "stu_8f63f683",
+      "first_name": "Alexander",
+      "preferred_name": "Alex",
+      "last_name": "Young",
+      "year_level": "Year 3",
+      "class_name": "3A",
+      "teacher": "Ms Thompson",
+      "date_of_birth": "2014-01-01",
+      "gender": "Female",
+      "enrolment_status": "active",
+      "sussi_id": "YUS0012",
+      "external_id": "YUS0012"
+    },
+    {
+      "student_id": "stu_a33fe996",
+      "first_name": "Amelia",
+      "preferred_name": null,
+      "last_name": "Lee",
+      "year_level": "Year 5",
+      "class_name": "5B",
+      "teacher": "Mr Rodriguez",
+      "date_of_birth": "2014-01-01",
+      "gender": "Male",
+      "enrolment_status": "active",
+      "sussi_id": "YUS0013",
+      "external_id": "YUS0013"
+    },
+    {
+      "student_id": "stu_ece279fc",
+      "first_name": "William",
+      "preferred_name": "Will",
+      "last_name": "Walker",
+      "year_level": "Year 5",
+      "class_name": "5B",
+      "teacher": "Mr Rodriguez",
+      "date_of_birth": "2014-01-01",
+      "gender": "Female",
+      "enrolment_status": "active",
+      "sussi_id": "YUS0014",
+      "external_id": "YUS0014"
+    },
+    {
+      "student_id": "stu_026f1a26",
+      "first_name": "Harper",
+      "preferred_name": null,
+      "last_name": "Allen",
+      "year_level": "Year 5",
+      "class_name": "5B",
+      "teacher": "Mr Rodriguez",
+      "date_of_birth": "2014-01-01",
+      "gender": "Male",
+      "enrolment_status": "active",
+      "sussi_id": "YUS0015",
+      "external_id": "YUS0015"
+    },
+    {
+      "student_id": "stu_66d5105f",
+      "first_name": "Benjamin",
+      "preferred_name": "Ben",
+      "last_name": "Hall",
+      "year_level": "Year 5",
+      "class_name": "5B",
+      "teacher": "Mr Rodriguez",
+      "date_of_birth": "2014-01-01",
+      "gender": "Female",
+      "enrolment_status": "active",
+      "sussi_id": "YUS0016",
+      "external_id": "YUS0016"
+    }
+  ],
+  "attendance_records": [
+    {
+      "student_id": "stu_f2564945",
+      "external_id": "YUS0001",
+      "date": "2026-05-05",
+      "am_status": "Late arrival at School",
+      "pm_status": "Late arrival at School"
+    },
+    {
+      "student_id": "stu_f2564945",
+      "external_id": "YUS0001",
+      "date": "2026-05-12",
+      "am_status": "Excursion",
+      "pm_status": "Excursion"
+    },
+    {
+      "student_id": "stu_f2564945",
+      "external_id": "YUS0001",
+      "date": "2026-05-29",
+      "am_status": "School Event",
+      "pm_status": "School Event"
+    },
+    {
+      "student_id": "stu_b1052c2b",
+      "external_id": "YUS0002",
+      "date": "2026-02-25",
+      "am_status": "School Event",
+      "pm_status": "School Event"
+    },
+    {
+      "student_id": "stu_b1052c2b",
+      "external_id": "YUS0002",
+      "date": "2026-05-04",
+      "am_status": "Excursion",
+      "pm_status": "Excursion"
+    },
+    {
+      "student_id": "stu_b1052c2b",
+      "external_id": "YUS0002",
+      "date": "2026-05-21",
+      "am_status": "School Event",
+      "pm_status": "School Event"
+    },
+    {
+      "student_id": "stu_20b21f5e",
+      "external_id": "YUS0003",
+      "date": "2026-02-04",
+      "am_status": "Excursion",
+      "pm_status": "Excursion"
+    },
+    {
+      "student_id": "stu_20b21f5e",
+      "external_id": "YUS0003",
+      "date": "2026-02-12",
+      "am_status": "Excursion",
+      "pm_status": "Excursion"
+    },
+    {
+      "student_id": "stu_7d44fe91",
+      "external_id": "YUS0004",
+      "date": "2026-02-20",
+      "am_status": "Medical/Illness",
+      "pm_status": "Medical/Illness"
+    },
+    {
+      "student_id": "stu_7d44fe91",
+      "external_id": "YUS0004",
+      "date": "2026-04-29",
+      "am_status": "Late arrival at School",
+      "pm_status": "Late arrival at School"
+    },
+    {
+      "student_id": "stu_7d44fe91",
+      "external_id": "YUS0004",
+      "date": "2026-05-04",
+      "am_status": "Unexplained",
+      "pm_status": "Unexplained"
+    },
+    {
+      "student_id": "stu_7d44fe91",
+      "external_id": "YUS0004",
+      "date": "2026-05-14",
+      "am_status": "School refusal or school can't",
+      "pm_status": "School refusal or school can't"
+    },
+    {
+      "student_id": "stu_09613a9b",
+      "external_id": "YUS0005",
+      "date": "2026-02-06",
+      "am_status": "Family Holiday",
+      "pm_status": "Family Holiday"
+    },
+    {
+      "student_id": "stu_09613a9b",
+      "external_id": "YUS0005",
+      "date": "2026-05-04",
+      "am_status": "Late arrival at School",
+      "pm_status": "Late arrival at School"
+    },
+    {
+      "student_id": "stu_09613a9b",
+      "external_id": "YUS0005",
+      "date": "2026-05-07",
+      "am_status": "Late arrival, approved",
+      "pm_status": "Present"
+    },
+    {
+      "student_id": "stu_09613a9b",
+      "external_id": "YUS0005",
+      "date": "2026-05-21",
+      "am_status": "Late arrival, approved",
+      "pm_status": "Present"
+    },
+    {
+      "student_id": "stu_3dd35819",
+      "external_id": "YUS0006",
+      "date": "2026-02-11",
+      "am_status": "Late arrival, approved",
+      "pm_status": "Present"
+    },
+    {
+      "student_id": "stu_3dd35819",
+      "external_id": "YUS0006",
+      "date": "2026-02-12",
+      "am_status": "Unexplained",
+      "pm_status": "Unexplained"
+    },
+    {
+      "student_id": "stu_3dd35819",
+      "external_id": "YUS0006",
+      "date": "2026-02-25",
+      "am_status": "Family Holiday",
+      "pm_status": "Family Holiday"
+    },
+    {
+      "student_id": "stu_3dd35819",
+      "external_id": "YUS0006",
+      "date": "2026-05-21",
+      "am_status": "Unexplained",
+      "pm_status": "Unexplained"
+    },
+    {
+      "student_id": "stu_36698b8a",
+      "external_id": "YUS0007",
+      "date": "2026-02-04",
+      "am_status": "Late arrival, approved",
+      "pm_status": "Late arrival, approved"
+    },
+    {
+      "student_id": "stu_36698b8a",
+      "external_id": "YUS0007",
+      "date": "2026-02-09",
+      "am_status": "Late arrival, approved",
+      "pm_status": "Late arrival, approved"
+    },
+    {
+      "student_id": "stu_36698b8a",
+      "external_id": "YUS0007",
+      "date": "2026-02-19",
+      "am_status": "Medical/Illness",
+      "pm_status": "Medical/Illness"
+    },
+    {
+      "student_id": "stu_36698b8a",
+      "external_id": "YUS0007",
+      "date": "2026-02-23",
+      "am_status": "Unexplained",
+      "pm_status": "Unexplained"
+    },
+    {
+      "student_id": "stu_36698b8a",
+      "external_id": "YUS0007",
+      "date": "2026-02-26",
+      "am_status": "Unexplained",
+      "pm_status": "Unexplained"
+    },
+    {
+      "student_id": "stu_36698b8a",
+      "external_id": "YUS0007",
+      "date": "2026-03-02",
+      "am_status": "Late arrival at School",
+      "pm_status": "Late arrival at School"
+    },
+    {
+      "student_id": "stu_36698b8a",
+      "external_id": "YUS0007",
+      "date": "2026-03-04",
+      "am_status": "Family Holiday",
+      "pm_status": "Family Holiday"
+    },
+    {
+      "student_id": "stu_36698b8a",
+      "external_id": "YUS0007",
+      "date": "2026-03-05",
+      "am_status": "Late arrival, approved",
+      "pm_status": "Present"
+    },
+    {
+      "student_id": "stu_36698b8a",
+      "external_id": "YUS0007",
+      "date": "2026-03-10",
+      "am_status": "Late arrival at School",
+      "pm_status": "Present"
+    },
+    {
+      "student_id": "stu_36698b8a",
+      "external_id": "YUS0007",
+      "date": "2026-03-16",
+      "am_status": "Medical/Illness",
+      "pm_status": "Medical/Illness"
+    },
+    {
+      "student_id": "stu_36698b8a",
+      "external_id": "YUS0007",
+      "date": "2026-05-13",
+      "am_status": "Medical/Illness",
+      "pm_status": "Medical/Illness"
+    },
+    {
+      "student_id": "stu_36698b8a",
+      "external_id": "YUS0007",
+      "date": "2026-05-14",
+      "am_status": "Late arrival, approved",
+      "pm_status": "Late arrival, approved"
+    },
+    {
+      "student_id": "stu_36698b8a",
+      "external_id": "YUS0007",
+      "date": "2026-05-22",
+      "am_status": "Unexplained",
+      "pm_status": "Unexplained"
+    },
+    {
+      "student_id": "stu_36698b8a",
+      "external_id": "YUS0007",
+      "date": "2026-05-26",
+      "am_status": "Medical/Illness",
+      "pm_status": "Medical/Illness"
+    },
+    {
+      "student_id": "stu_36698b8a",
+      "external_id": "YUS0007",
+      "date": "2026-05-28",
+      "am_status": "Family Holiday",
+      "pm_status": "Family Holiday"
+    },
+    {
+      "student_id": "stu_36698b8a",
+      "external_id": "YUS0007",
+      "date": "2026-05-29",
+      "am_status": "Medical/Illness",
+      "pm_status": "Medical/Illness"
+    },
+    {
+      "student_id": "stu_36698b8a",
+      "external_id": "YUS0007",
+      "date": "2026-06-01",
+      "am_status": "Unexplained",
+      "pm_status": "Unexplained"
+    },
+    {
+      "student_id": "stu_235c9d40",
+      "external_id": "YUS0008",
+      "date": "2026-02-03",
+      "am_status": "Late arrival, approved",
+      "pm_status": "Late arrival, approved"
+    },
+    {
+      "student_id": "stu_235c9d40",
+      "external_id": "YUS0008",
+      "date": "2026-02-06",
+      "am_status": "Medical/Illness",
+      "pm_status": "Medical/Illness"
+    },
+    {
+      "student_id": "stu_235c9d40",
+      "external_id": "YUS0008",
+      "date": "2026-02-11",
+      "am_status": "Parental choice",
+      "pm_status": "Parental choice"
+    },
+    {
+      "student_id": "stu_235c9d40",
+      "external_id": "YUS0008",
+      "date": "2026-02-18",
+      "am_status": "Late arrival, approved",
+      "pm_status": "Late arrival, approved"
+    },
+    {
+      "student_id": "stu_235c9d40",
+      "external_id": "YUS0008",
+      "date": "2026-02-23",
+      "am_status": "Parental choice",
+      "pm_status": "Parental choice"
+    },
+    {
+      "student_id": "stu_235c9d40",
+      "external_id": "YUS0008",
+      "date": "2026-03-12",
+      "am_status": "Late arrival, approved",
+      "pm_status": "Late arrival, approved"
+    },
+    {
+      "student_id": "stu_235c9d40",
+      "external_id": "YUS0008",
+      "date": "2026-03-16",
+      "am_status": "Late arrival, approved",
+      "pm_status": "Late arrival, approved"
+    },
+    {
+      "student_id": "stu_235c9d40",
+      "external_id": "YUS0008",
+      "date": "2026-05-01",
+      "am_status": "Medical/Illness",
+      "pm_status": "Medical/Illness"
+    },
+    {
+      "student_id": "stu_235c9d40",
+      "external_id": "YUS0008",
+      "date": "2026-05-13",
+      "am_status": "Parental choice",
+      "pm_status": "Parental choice"
+    },
+    {
+      "student_id": "stu_235c9d40",
+      "external_id": "YUS0008",
+      "date": "2026-05-18",
+      "am_status": "Unexplained",
+      "pm_status": "Unexplained"
+    },
+    {
+      "student_id": "stu_235c9d40",
+      "external_id": "YUS0008",
+      "date": "2026-05-22",
+      "am_status": "Unexplained",
+      "pm_status": "Unexplained"
+    },
+    {
+      "student_id": "stu_235c9d40",
+      "external_id": "YUS0008",
+      "date": "2026-05-25",
+      "am_status": "Late arrival, approved",
+      "pm_status": "Late arrival, approved"
+    },
+    {
+      "student_id": "stu_235c9d40",
+      "external_id": "YUS0008",
+      "date": "2026-05-29",
+      "am_status": "Unexplained",
+      "pm_status": "Unexplained"
+    },
+    {
+      "student_id": "stu_66c1852a",
+      "external_id": "YUS0009",
+      "date": "2026-02-04",
+      "am_status": "School Event",
+      "pm_status": "School Event"
+    },
+    {
+      "student_id": "stu_66c1852a",
+      "external_id": "YUS0009",
+      "date": "2026-02-10",
+      "am_status": "Excursion",
+      "pm_status": "Excursion"
+    },
+    {
+      "student_id": "stu_66c1852a",
+      "external_id": "YUS0009",
+      "date": "2026-05-07",
+      "am_status": "Medical/Illness",
+      "pm_status": "Medical/Illness"
+    },
+    {
+      "student_id": "stu_66c1852a",
+      "external_id": "YUS0009",
+      "date": "2026-05-14",
+      "am_status": "Camp",
+      "pm_status": "Camp"
+    },
+    {
+      "student_id": "stu_e81eba05",
+      "external_id": "YUS0010",
+      "date": "2026-02-09",
+      "am_status": "Unexplained",
+      "pm_status": "Unexplained"
+    },
+    {
+      "student_id": "stu_e81eba05",
+      "external_id": "YUS0010",
+      "date": "2026-05-12",
+      "am_status": "Excursion",
+      "pm_status": "Excursion"
+    },
+    {
+      "student_id": "stu_e81eba05",
+      "external_id": "YUS0010",
+      "date": "2026-05-18",
+      "am_status": "School Event",
+      "pm_status": "School Event"
+    },
+    {
+      "student_id": "stu_e81eba05",
+      "external_id": "YUS0010",
+      "date": "2026-05-29",
+      "am_status": "School Event",
+      "pm_status": "School Event"
+    },
+    {
+      "student_id": "stu_c59ea807",
+      "external_id": "YUS0011",
+      "date": "2026-05-05",
+      "am_status": "Camp",
+      "pm_status": "Camp"
+    },
+    {
+      "student_id": "stu_c59ea807",
+      "external_id": "YUS0011",
+      "date": "2026-05-22",
+      "am_status": "School Event",
+      "pm_status": "School Event"
+    },
+    {
+      "student_id": "stu_8f63f683",
+      "external_id": "YUS0012",
+      "date": "2026-02-05",
+      "am_status": "Medical/Illness",
+      "pm_status": "Medical/Illness"
+    },
+    {
+      "student_id": "stu_8f63f683",
+      "external_id": "YUS0012",
+      "date": "2026-02-13",
+      "am_status": "Medical/Illness",
+      "pm_status": "Medical/Illness"
+    },
+    {
+      "student_id": "stu_8f63f683",
+      "external_id": "YUS0012",
+      "date": "2026-02-26",
+      "am_status": "Parental choice",
+      "pm_status": "Parental choice"
+    },
+    {
+      "student_id": "stu_a33fe996",
+      "external_id": "YUS0013",
+      "date": "2026-02-05",
+      "am_status": "Unexplained",
+      "pm_status": "Unexplained"
+    },
+    {
+      "student_id": "stu_a33fe996",
+      "external_id": "YUS0013",
+      "date": "2026-02-23",
+      "am_status": "Parental choice",
+      "pm_status": "Parental choice"
+    },
+    {
+      "student_id": "stu_a33fe996",
+      "external_id": "YUS0013",
+      "date": "2026-02-27",
+      "am_status": "Unexplained",
+      "pm_status": "Unexplained"
+    },
+    {
+      "student_id": "stu_ece279fc",
+      "external_id": "YUS0014",
+      "date": "2026-02-10",
+      "am_status": "Family Holiday",
+      "pm_status": "Family Holiday"
+    },
+    {
+      "student_id": "stu_ece279fc",
+      "external_id": "YUS0014",
+      "date": "2026-03-05",
+      "am_status": "Medical/Illness",
+      "pm_status": "Medical/Illness"
+    },
+    {
+      "student_id": "stu_ece279fc",
+      "external_id": "YUS0014",
+      "date": "2026-03-11",
+      "am_status": "Family Holiday",
+      "pm_status": "Family Holiday"
+    },
+    {
+      "student_id": "stu_ece279fc",
+      "external_id": "YUS0014",
+      "date": "2026-04-28",
+      "am_status": "Parental choice",
+      "pm_status": "Parental choice"
+    },
+    {
+      "student_id": "stu_026f1a26",
+      "external_id": "YUS0015",
+      "date": "2026-02-03",
+      "am_status": "Medical/Illness",
+      "pm_status": "Medical/Illness"
+    },
+    {
+      "student_id": "stu_026f1a26",
+      "external_id": "YUS0015",
+      "date": "2026-02-09",
+      "am_status": "Parental choice",
+      "pm_status": "Parental choice"
+    },
+    {
+      "student_id": "stu_026f1a26",
+      "external_id": "YUS0015",
+      "date": "2026-02-13",
+      "am_status": "Late arrival, approved",
+      "pm_status": "Late arrival, approved"
+    },
+    {
+      "student_id": "stu_026f1a26",
+      "external_id": "YUS0015",
+      "date": "2026-02-26",
+      "am_status": "School refusal or school can't",
+      "pm_status": "School refusal or school can't"
+    },
+    {
+      "student_id": "stu_026f1a26",
+      "external_id": "YUS0015",
+      "date": "2026-02-27",
+      "am_status": "Family Holiday",
+      "pm_status": "Family Holiday"
+    },
+    {
+      "student_id": "stu_026f1a26",
+      "external_id": "YUS0015",
+      "date": "2026-03-02",
+      "am_status": "Unexplained",
+      "pm_status": "Unexplained"
+    },
+    {
+      "student_id": "stu_026f1a26",
+      "external_id": "YUS0015",
+      "date": "2026-03-04",
+      "am_status": "Unexplained",
+      "pm_status": "Unexplained"
+    },
+    {
+      "student_id": "stu_026f1a26",
+      "external_id": "YUS0015",
+      "date": "2026-03-11",
+      "am_status": "School refusal or school can't",
+      "pm_status": "School refusal or school can't"
+    },
+    {
+      "student_id": "stu_026f1a26",
+      "external_id": "YUS0015",
+      "date": "2026-04-29",
+      "am_status": "Parental choice",
+      "pm_status": "Parental choice"
+    },
+    {
+      "student_id": "stu_026f1a26",
+      "external_id": "YUS0015",
+      "date": "2026-04-30",
+      "am_status": "School refusal or school can't",
+      "pm_status": "School refusal or school can't"
+    },
+    {
+      "student_id": "stu_026f1a26",
+      "external_id": "YUS0015",
+      "date": "2026-05-07",
+      "am_status": "Medical/Illness",
+      "pm_status": "Medical/Illness"
+    },
+    {
+      "student_id": "stu_026f1a26",
+      "external_id": "YUS0015",
+      "date": "2026-05-14",
+      "am_status": "Medical/Illness",
+      "pm_status": "Medical/Illness"
+    },
+    {
+      "student_id": "stu_026f1a26",
+      "external_id": "YUS0015",
+      "date": "2026-05-21",
+      "am_status": "Late arrival at School",
+      "pm_status": "Late arrival at School"
+    },
+    {
+      "student_id": "stu_026f1a26",
+      "external_id": "YUS0015",
+      "date": "2026-05-25",
+      "am_status": "Medical/Illness",
+      "pm_status": "Medical/Illness"
+    },
+    {
+      "student_id": "stu_026f1a26",
+      "external_id": "YUS0015",
+      "date": "2026-05-27",
+      "am_status": "Parental choice",
+      "pm_status": "Parental choice"
+    },
+    {
+      "student_id": "stu_66d5105f",
+      "external_id": "YUS0016",
+      "date": "2026-02-03",
+      "am_status": "Parental choice",
+      "pm_status": "Parental choice"
+    },
+    {
+      "student_id": "stu_66d5105f",
+      "external_id": "YUS0016",
+      "date": "2026-02-16",
+      "am_status": "Late arrival, approved",
+      "pm_status": "Present"
+    },
+    {
+      "student_id": "stu_66d5105f",
+      "external_id": "YUS0016",
+      "date": "2026-02-23",
+      "am_status": "Parental choice",
+      "pm_status": "Parental choice"
+    },
+    {
+      "student_id": "stu_66d5105f",
+      "external_id": "YUS0016",
+      "date": "2026-02-25",
+      "am_status": "Late arrival at School",
+      "pm_status": "Late arrival at School"
+    },
+    {
+      "student_id": "stu_66d5105f",
+      "external_id": "YUS0016",
+      "date": "2026-03-16",
+      "am_status": "School refusal or school can't",
+      "pm_status": "School refusal or school can't"
+    },
+    {
+      "student_id": "stu_66d5105f",
+      "external_id": "YUS0016",
+      "date": "2026-05-12",
+      "am_status": "Parental choice",
+      "pm_status": "Parental choice"
+    },
+    {
+      "student_id": "stu_66d5105f",
+      "external_id": "YUS0016",
+      "date": "2026-05-14",
+      "am_status": "Unexplained",
+      "pm_status": "Unexplained"
+    },
+    {
+      "student_id": "stu_66d5105f",
+      "external_id": "YUS0016",
+      "date": "2026-05-26",
+      "am_status": "Parental choice",
+      "pm_status": "Parental choice"
+    },
+    {
+      "student_id": "stu_66d5105f",
+      "external_id": "YUS0016",
+      "date": "2026-05-28",
+      "am_status": "School refusal or school can't",
+      "pm_status": "School refusal or school can't"
+    }
+  ],
+  "school_days": [
+    {
+      "date": "2026-02-03",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-04",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-05",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-06",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-09",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-10",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-11",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-12",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-13",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-16",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-17",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-18",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-19",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-20",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-23",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-24",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-25",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-26",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-27",
+      "year": 2026
+    },
+    {
+      "date": "2026-03-02",
+      "year": 2026
+    },
+    {
+      "date": "2026-03-03",
+      "year": 2026
+    },
+    {
+      "date": "2026-03-04",
+      "year": 2026
+    },
+    {
+      "date": "2026-03-05",
+      "year": 2026
+    },
+    {
+      "date": "2026-03-06",
+      "year": 2026
+    },
+    {
+      "date": "2026-03-09",
+      "year": 2026
+    },
+    {
+      "date": "2026-03-10",
+      "year": 2026
+    },
+    {
+      "date": "2026-03-11",
+      "year": 2026
+    },
+    {
+      "date": "2026-03-12",
+      "year": 2026
+    },
+    {
+      "date": "2026-03-13",
+      "year": 2026
+    },
+    {
+      "date": "2026-03-16",
+      "year": 2026
+    },
+    {
+      "date": "2026-04-28",
+      "year": 2026
+    },
+    {
+      "date": "2026-04-29",
+      "year": 2026
+    },
+    {
+      "date": "2026-04-30",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-01",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-04",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-05",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-06",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-07",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-08",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-11",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-12",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-13",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-14",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-15",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-18",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-19",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-20",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-21",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-22",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-25",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-26",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-27",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-28",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-29",
+      "year": 2026
+    },
+    {
+      "date": "2026-06-01",
+      "year": 2026
+    }
+  ],
+  "screening_sessions": [
+    {
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "year": 2026,
+      "date": "2026-02-15",
+      "teacher_id": "demo",
+      "class_name": "all",
+      "status": "completed"
+    },
+    {
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "year": 2026,
+      "date": "2026-05-10",
+      "teacher_id": "demo",
+      "class_name": "all",
+      "status": "completed"
+    }
+  ],
+  "saebrs_results": [
+    {
+      "result_id": "1a8cec42-668c-4f24-a7ab-9dc89ae6f856",
+      "student_id": "stu_f2564945",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "social_items": [
+        2,
+        3,
+        3,
+        1,
+        2,
+        2
+      ],
+      "academic_items": [
+        3,
+        2,
+        3,
+        3,
+        3,
+        2
+      ],
+      "emotional_items": [
+        3,
+        3,
+        2,
+        2,
+        1,
+        2,
+        2
+      ],
+      "social_score": 13,
+      "academic_score": 16,
+      "emotional_score": 15,
+      "total_score": 44,
+      "risk_level": "Low Risk",
+      "social_risk": "Low Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "Some Risk",
+      "created_at": "2026-02-15T09:00:00"
+    },
+    {
+      "result_id": "9d8c158f-7b87-4c07-9ac9-f4e2008c995f",
+      "student_id": "stu_b1052c2b",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "social_items": [
+        3,
+        2,
+        2,
+        3,
+        2,
+        3
+      ],
+      "academic_items": [
+        2,
+        2,
+        1,
+        3,
+        2,
+        3
+      ],
+      "emotional_items": [
+        3,
+        3,
+        2,
+        3,
+        2,
+        2,
+        3
+      ],
+      "social_score": 15,
+      "academic_score": 13,
+      "emotional_score": 18,
+      "total_score": 46,
+      "risk_level": "Low Risk",
+      "social_risk": "Low Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "Low Risk",
+      "created_at": "2026-02-15T09:00:00"
+    },
+    {
+      "result_id": "c2be4b43-e0d6-466e-a9e4-7008244939cc",
+      "student_id": "stu_20b21f5e",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "social_items": [
+        3,
+        2,
+        2,
+        3,
+        3,
+        2
+      ],
+      "academic_items": [
+        2,
+        2,
+        1,
+        3,
+        1,
+        3
+      ],
+      "emotional_items": [
+        3,
+        3,
+        2,
+        3,
+        2,
+        3,
+        3
+      ],
+      "social_score": 15,
+      "academic_score": 12,
+      "emotional_score": 19,
+      "total_score": 46,
+      "risk_level": "Low Risk",
+      "social_risk": "Low Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "Low Risk",
+      "created_at": "2026-02-15T09:00:00"
+    },
+    {
+      "result_id": "5a15128e-bfa2-4fa7-81f6-0e8601a2a655",
+      "student_id": "stu_7d44fe91",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "social_items": [
+        1,
+        1,
+        3,
+        1,
+        0,
+        3
+      ],
+      "academic_items": [
+        2,
+        1,
+        2,
+        1,
+        0,
+        3
+      ],
+      "emotional_items": [
+        2,
+        3,
+        1,
+        1,
+        3,
+        3,
+        2
+      ],
+      "social_score": 9,
+      "academic_score": 9,
+      "emotional_score": 15,
+      "total_score": 33,
+      "risk_level": "Some Risk",
+      "social_risk": "Some Risk",
+      "academic_risk": "Some Risk",
+      "emotional_risk": "Some Risk",
+      "created_at": "2026-02-15T09:00:00"
+    },
+    {
+      "result_id": "a43a8ddd-c916-4ebe-95d6-dff37f4bdaff",
+      "student_id": "stu_09613a9b",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "social_items": [
+        3,
+        3,
+        3,
+        1,
+        0,
+        2
+      ],
+      "academic_items": [
+        3,
+        2,
+        0,
+        1,
+        0,
+        1
+      ],
+      "emotional_items": [
+        3,
+        2,
+        1,
+        1,
+        1,
+        2,
+        2
+      ],
+      "social_score": 12,
+      "academic_score": 7,
+      "emotional_score": 12,
+      "total_score": 31,
+      "risk_level": "Some Risk",
+      "social_risk": "Some Risk",
+      "academic_risk": "Some Risk",
+      "emotional_risk": "Some Risk",
+      "created_at": "2026-02-15T09:00:00"
+    },
+    {
+      "result_id": "ffb18d83-3f2a-42d1-a6a6-317cde91628c",
+      "student_id": "stu_3dd35819",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "social_items": [
+        3,
+        3,
+        1,
+        3,
+        0,
+        2
+      ],
+      "academic_items": [
+        3,
+        3,
+        2,
+        3,
+        1,
+        2
+      ],
+      "emotional_items": [
+        1,
+        3,
+        3,
+        1,
+        1,
+        2,
+        2
+      ],
+      "social_score": 12,
+      "academic_score": 14,
+      "emotional_score": 13,
+      "total_score": 39,
+      "risk_level": "Low Risk",
+      "social_risk": "Some Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "Some Risk",
+      "created_at": "2026-02-15T09:00:00"
+    },
+    {
+      "result_id": "da8fd92a-ae26-470d-9800-1b1f7de28700",
+      "student_id": "stu_36698b8a",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "social_items": [
+        2,
+        0,
+        0,
+        2,
+        0,
+        2
+      ],
+      "academic_items": [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "emotional_items": [
+        2,
+        0,
+        1,
+        0,
+        0,
+        2,
+        1
+      ],
+      "social_score": 6,
+      "academic_score": 3,
+      "emotional_score": 6,
+      "total_score": 15,
+      "risk_level": "High Risk",
+      "social_risk": "High Risk",
+      "academic_risk": "High Risk",
+      "emotional_risk": "High Risk",
+      "created_at": "2026-02-15T09:00:00"
+    },
+    {
+      "result_id": "fcde7186-bd99-4be2-91c5-d98dc09e9cf5",
+      "student_id": "stu_235c9d40",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "social_items": [
+        2,
+        0,
+        2,
+        2,
+        0,
+        2
+      ],
+      "academic_items": [
+        1,
+        1,
+        0,
+        2,
+        0,
+        0
+      ],
+      "emotional_items": [
+        1,
+        0,
+        0,
+        2,
+        1,
+        2,
+        0
+      ],
+      "social_score": 8,
+      "academic_score": 4,
+      "emotional_score": 6,
+      "total_score": 18,
+      "risk_level": "High Risk",
+      "social_risk": "Some Risk",
+      "academic_risk": "High Risk",
+      "emotional_risk": "High Risk",
+      "created_at": "2026-02-15T09:00:00"
+    },
+    {
+      "result_id": "476e62d1-225d-45f2-8bb6-4a93875d0cae",
+      "student_id": "stu_66c1852a",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "social_items": [
+        2,
+        2,
+        2,
+        2,
+        3,
+        2
+      ],
+      "academic_items": [
+        3,
+        2,
+        1,
+        3,
+        2,
+        3
+      ],
+      "emotional_items": [
+        3,
+        3,
+        3,
+        2,
+        1,
+        3,
+        3
+      ],
+      "social_score": 13,
+      "academic_score": 14,
+      "emotional_score": 18,
+      "total_score": 45,
+      "risk_level": "Low Risk",
+      "social_risk": "Low Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "Low Risk",
+      "created_at": "2026-02-15T09:00:00"
+    },
+    {
+      "result_id": "65e00fbd-67cf-454b-bfba-e325f935d3e2",
+      "student_id": "stu_e81eba05",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "social_items": [
+        3,
+        3,
+        3,
+        1,
+        3,
+        3
+      ],
+      "academic_items": [
+        3,
+        3,
+        2,
+        3,
+        2,
+        2
+      ],
+      "emotional_items": [
+        3,
+        2,
+        3,
+        3,
+        1,
+        3,
+        2
+      ],
+      "social_score": 16,
+      "academic_score": 15,
+      "emotional_score": 17,
+      "total_score": 48,
+      "risk_level": "Low Risk",
+      "social_risk": "Low Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "Low Risk",
+      "created_at": "2026-02-15T09:00:00"
+    },
+    {
+      "result_id": "6f6992eb-7d63-495a-b95a-d682d2c0bdf1",
+      "student_id": "stu_c59ea807",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "social_items": [
+        3,
+        2,
+        3,
+        2,
+        3,
+        3
+      ],
+      "academic_items": [
+        3,
+        2,
+        2,
+        2,
+        3,
+        3
+      ],
+      "emotional_items": [
+        3,
+        3,
+        3,
+        3,
+        2,
+        3,
+        3
+      ],
+      "social_score": 16,
+      "academic_score": 15,
+      "emotional_score": 20,
+      "total_score": 51,
+      "risk_level": "Low Risk",
+      "social_risk": "Low Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "Low Risk",
+      "created_at": "2026-02-15T09:00:00"
+    },
+    {
+      "result_id": "7328d2d3-2a0f-4ea1-bd43-592f08845084",
+      "student_id": "stu_8f63f683",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "social_items": [
+        3,
+        3,
+        3,
+        2,
+        2,
+        2
+      ],
+      "academic_items": [
+        3,
+        2,
+        2,
+        3,
+        1,
+        3
+      ],
+      "emotional_items": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "social_score": 15,
+      "academic_score": 14,
+      "emotional_score": 21,
+      "total_score": 50,
+      "risk_level": "Low Risk",
+      "social_risk": "Low Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "Low Risk",
+      "created_at": "2026-02-15T09:00:00"
+    },
+    {
+      "result_id": "e57f56b6-0ddb-484d-a087-085a5fb9af47",
+      "student_id": "stu_a33fe996",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "social_items": [
+        1,
+        1,
+        2,
+        2,
+        0,
+        3
+      ],
+      "academic_items": [
+        3,
+        3,
+        0,
+        1,
+        0,
+        3
+      ],
+      "emotional_items": [
+        2,
+        1,
+        1,
+        0,
+        3,
+        2,
+        3
+      ],
+      "social_score": 9,
+      "academic_score": 10,
+      "emotional_score": 12,
+      "total_score": 31,
+      "risk_level": "Some Risk",
+      "social_risk": "Some Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "Some Risk",
+      "created_at": "2026-02-15T09:00:00"
+    },
+    {
+      "result_id": "5f22ad95-c2a1-4ec8-b262-3c32fbc3619a",
+      "student_id": "stu_ece279fc",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "social_items": [
+        2,
+        1,
+        3,
+        1,
+        2,
+        1
+      ],
+      "academic_items": [
+        2,
+        1,
+        0,
+        1,
+        0,
+        2
+      ],
+      "emotional_items": [
+        3,
+        3,
+        3,
+        1,
+        2,
+        1,
+        2
+      ],
+      "social_score": 10,
+      "academic_score": 6,
+      "emotional_score": 15,
+      "total_score": 31,
+      "risk_level": "Some Risk",
+      "social_risk": "Some Risk",
+      "academic_risk": "Some Risk",
+      "emotional_risk": "Some Risk",
+      "created_at": "2026-02-15T09:00:00"
+    },
+    {
+      "result_id": "5e6c7137-86a9-43c7-9032-fb137063cfd5",
+      "student_id": "stu_026f1a26",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "social_items": [
+        2,
+        1,
+        1,
+        1,
+        0,
+        0
+      ],
+      "academic_items": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        0
+      ],
+      "emotional_items": [
+        0,
+        0,
+        0,
+        2,
+        0,
+        1,
+        0
+      ],
+      "social_score": 5,
+      "academic_score": 5,
+      "emotional_score": 3,
+      "total_score": 13,
+      "risk_level": "High Risk",
+      "social_risk": "High Risk",
+      "academic_risk": "High Risk",
+      "emotional_risk": "High Risk",
+      "created_at": "2026-02-15T09:00:00"
+    },
+    {
+      "result_id": "2e6b0040-aedd-4973-aeef-cfdbc68e2e26",
+      "student_id": "stu_66d5105f",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "social_items": [
+        2,
+        3,
+        3,
+        2,
+        2,
+        1
+      ],
+      "academic_items": [
+        2,
+        3,
+        2,
+        2,
+        1,
+        3
+      ],
+      "emotional_items": [
+        3,
+        2,
+        3,
+        0,
+        3,
+        1,
+        1
+      ],
+      "social_score": 13,
+      "academic_score": 13,
+      "emotional_score": 13,
+      "total_score": 39,
+      "risk_level": "Low Risk",
+      "social_risk": "Low Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "Some Risk",
+      "created_at": "2026-02-15T09:00:00"
+    },
+    {
+      "result_id": "a06162f5-2e64-43ad-8d65-37ffcabf6ecb",
+      "student_id": "stu_f2564945",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "social_items": [
+        3,
+        3,
+        1,
+        3,
+        2,
+        3
+      ],
+      "academic_items": [
+        3,
+        2,
+        3,
+        3,
+        2,
+        1
+      ],
+      "emotional_items": [
+        2,
+        3,
+        3,
+        3,
+        1,
+        2,
+        3
+      ],
+      "social_score": 15,
+      "academic_score": 14,
+      "emotional_score": 17,
+      "total_score": 46,
+      "risk_level": "Low Risk",
+      "social_risk": "Low Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "Low Risk",
+      "created_at": "2026-05-10T09:00:00"
+    },
+    {
+      "result_id": "5ba0ea80-2f17-4847-93be-b211b22f761b",
+      "student_id": "stu_b1052c2b",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "social_items": [
+        3,
+        1,
+        3,
+        1,
+        3,
+        2
+      ],
+      "academic_items": [
+        2,
+        3,
+        3,
+        3,
+        3,
+        2
+      ],
+      "emotional_items": [
+        3,
+        1,
+        2,
+        1,
+        2,
+        3,
+        3
+      ],
+      "social_score": 13,
+      "academic_score": 16,
+      "emotional_score": 15,
+      "total_score": 44,
+      "risk_level": "Low Risk",
+      "social_risk": "Low Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "Some Risk",
+      "created_at": "2026-05-10T09:00:00"
+    },
+    {
+      "result_id": "2c73d93f-0431-4f3f-8a5b-85c2d7584a27",
+      "student_id": "stu_20b21f5e",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "social_items": [
+        3,
+        3,
+        3,
+        0,
+        1,
+        3
+      ],
+      "academic_items": [
+        3,
+        3,
+        0,
+        3,
+        3,
+        2
+      ],
+      "emotional_items": [
+        3,
+        1,
+        3,
+        3,
+        1,
+        3,
+        1
+      ],
+      "social_score": 13,
+      "academic_score": 14,
+      "emotional_score": 15,
+      "total_score": 42,
+      "risk_level": "Low Risk",
+      "social_risk": "Low Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "Some Risk",
+      "created_at": "2026-05-10T09:00:00"
+    },
+    {
+      "result_id": "3d11104f-e7c8-450f-8ca5-bd102784cbbb",
+      "student_id": "stu_7d44fe91",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "social_items": [
+        0,
+        2,
+        0,
+        1,
+        1,
+        1
+      ],
+      "academic_items": [
+        1,
+        3,
+        1,
+        0,
+        0,
+        0
+      ],
+      "emotional_items": [
+        0,
+        0,
+        0,
+        3,
+        2,
+        0,
+        2
+      ],
+      "social_score": 5,
+      "academic_score": 5,
+      "emotional_score": 7,
+      "total_score": 17,
+      "risk_level": "High Risk",
+      "social_risk": "High Risk",
+      "academic_risk": "High Risk",
+      "emotional_risk": "High Risk",
+      "created_at": "2026-05-10T09:00:00"
+    },
+    {
+      "result_id": "a7c9c0d6-c100-4a16-a7af-00fa0e5fc4c2",
+      "student_id": "stu_09613a9b",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "social_items": [
+        1,
+        0,
+        3,
+        3,
+        0,
+        0
+      ],
+      "academic_items": [
+        3,
+        0,
+        0,
+        1,
+        0,
+        3
+      ],
+      "emotional_items": [
+        3,
+        3,
+        1,
+        2,
+        0,
+        1,
+        3
+      ],
+      "social_score": 7,
+      "academic_score": 7,
+      "emotional_score": 13,
+      "total_score": 27,
+      "risk_level": "Some Risk",
+      "social_risk": "High Risk",
+      "academic_risk": "Some Risk",
+      "emotional_risk": "Some Risk",
+      "created_at": "2026-05-10T09:00:00"
+    },
+    {
+      "result_id": "ace88e62-fb57-49d1-bfd1-054483a5f553",
+      "student_id": "stu_3dd35819",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "social_items": [
+        1,
+        2,
+        3,
+        2,
+        0,
+        0
+      ],
+      "academic_items": [
+        3,
+        3,
+        3,
+        0,
+        0,
+        3
+      ],
+      "emotional_items": [
+        1,
+        3,
+        2,
+        0,
+        2,
+        0,
+        1
+      ],
+      "social_score": 8,
+      "academic_score": 12,
+      "emotional_score": 9,
+      "total_score": 29,
+      "risk_level": "Some Risk",
+      "social_risk": "Some Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "High Risk",
+      "created_at": "2026-05-10T09:00:00"
+    },
+    {
+      "result_id": "b5283696-45ee-4f1a-a3c8-7e2c3a41aef6",
+      "student_id": "stu_36698b8a",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "social_items": [
+        0,
+        1,
+        0,
+        0,
+        0,
+        1
+      ],
+      "academic_items": [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "emotional_items": [
+        3,
+        1,
+        2,
+        0,
+        0,
+        0,
+        0
+      ],
+      "social_score": 2,
+      "academic_score": 1,
+      "emotional_score": 6,
+      "total_score": 9,
+      "risk_level": "High Risk",
+      "social_risk": "High Risk",
+      "academic_risk": "High Risk",
+      "emotional_risk": "High Risk",
+      "created_at": "2026-05-10T09:00:00"
+    },
+    {
+      "result_id": "01876060-5810-45bd-8220-18c9a317c3ff",
+      "student_id": "stu_235c9d40",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "social_items": [
+        3,
+        3,
+        3,
+        1,
+        3,
+        3
+      ],
+      "academic_items": [
+        1,
+        0,
+        1,
+        3,
+        3,
+        2
+      ],
+      "emotional_items": [
+        0,
+        1,
+        2,
+        0,
+        1,
+        1,
+        0
+      ],
+      "social_score": 16,
+      "academic_score": 10,
+      "emotional_score": 5,
+      "total_score": 31,
+      "risk_level": "Some Risk",
+      "social_risk": "Low Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "High Risk",
+      "created_at": "2026-05-10T09:00:00"
+    },
+    {
+      "result_id": "b740f56e-2bd7-40ab-90c6-b20ddb9bf3ce",
+      "student_id": "stu_66c1852a",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "social_items": [
+        3,
+        1,
+        3,
+        3,
+        3,
+        1
+      ],
+      "academic_items": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "emotional_items": [
+        3,
+        2,
+        3,
+        2,
+        2,
+        3,
+        3
+      ],
+      "social_score": 14,
+      "academic_score": 18,
+      "emotional_score": 18,
+      "total_score": 50,
+      "risk_level": "Low Risk",
+      "social_risk": "Low Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "Low Risk",
+      "created_at": "2026-05-10T09:00:00"
+    },
+    {
+      "result_id": "f87e30df-8f51-4a92-a36b-5c0bc9bf86fd",
+      "student_id": "stu_e81eba05",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "social_items": [
+        1,
+        1,
+        1,
+        1,
+        2,
+        1
+      ],
+      "academic_items": [
+        3,
+        2,
+        1,
+        2,
+        3,
+        1
+      ],
+      "emotional_items": [
+        3,
+        2,
+        3,
+        3,
+        2,
+        2,
+        3
+      ],
+      "social_score": 7,
+      "academic_score": 12,
+      "emotional_score": 18,
+      "total_score": 37,
+      "risk_level": "Low Risk",
+      "social_risk": "High Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "Low Risk",
+      "created_at": "2026-05-10T09:00:00"
+    },
+    {
+      "result_id": "3b35979a-2b47-4d54-b54d-ae6da96f321c",
+      "student_id": "stu_c59ea807",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "social_items": [
+        3,
+        3,
+        3,
+        1,
+        1,
+        3
+      ],
+      "academic_items": [
+        3,
+        2,
+        3,
+        3,
+        3,
+        3
+      ],
+      "emotional_items": [
+        3,
+        1,
+        3,
+        3,
+        1,
+        3,
+        2
+      ],
+      "social_score": 14,
+      "academic_score": 17,
+      "emotional_score": 16,
+      "total_score": 47,
+      "risk_level": "Low Risk",
+      "social_risk": "Low Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "Low Risk",
+      "created_at": "2026-05-10T09:00:00"
+    },
+    {
+      "result_id": "4fe25ffa-1cc3-4453-91d1-05cfa7e63199",
+      "student_id": "stu_8f63f683",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "social_items": [
+        3,
+        3,
+        2,
+        2,
+        2,
+        2
+      ],
+      "academic_items": [
+        2,
+        2,
+        0,
+        0,
+        0,
+        2
+      ],
+      "emotional_items": [
+        0,
+        3,
+        1,
+        0,
+        1,
+        3,
+        2
+      ],
+      "social_score": 14,
+      "academic_score": 6,
+      "emotional_score": 10,
+      "total_score": 30,
+      "risk_level": "Some Risk",
+      "social_risk": "Low Risk",
+      "academic_risk": "Some Risk",
+      "emotional_risk": "High Risk",
+      "created_at": "2026-05-10T09:00:00"
+    },
+    {
+      "result_id": "acb381b4-247c-4a7e-ba98-6688b21d6291",
+      "student_id": "stu_a33fe996",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "social_items": [
+        3,
+        3,
+        1,
+        3,
+        2,
+        3
+      ],
+      "academic_items": [
+        3,
+        2,
+        3,
+        3,
+        1,
+        3
+      ],
+      "emotional_items": [
+        3,
+        0,
+        3,
+        0,
+        1,
+        1,
+        2
+      ],
+      "social_score": 15,
+      "academic_score": 15,
+      "emotional_score": 10,
+      "total_score": 40,
+      "risk_level": "Low Risk",
+      "social_risk": "Low Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "High Risk",
+      "created_at": "2026-05-10T09:00:00"
+    },
+    {
+      "result_id": "4ed44d33-8102-4fae-8c1c-ce82ea2ac9cd",
+      "student_id": "stu_ece279fc",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "social_items": [
+        2,
+        3,
+        2,
+        3,
+        3,
+        3
+      ],
+      "academic_items": [
+        3,
+        0,
+        3,
+        0,
+        2,
+        2
+      ],
+      "emotional_items": [
+        3,
+        2,
+        0,
+        0,
+        1,
+        3,
+        3
+      ],
+      "social_score": 16,
+      "academic_score": 10,
+      "emotional_score": 12,
+      "total_score": 38,
+      "risk_level": "Low Risk",
+      "social_risk": "Low Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "Some Risk",
+      "created_at": "2026-05-10T09:00:00"
+    },
+    {
+      "result_id": "e4120270-e25b-4685-b41a-26205f9a9f02",
+      "student_id": "stu_026f1a26",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "social_items": [
+        2,
+        0,
+        0,
+        3,
+        0,
+        0
+      ],
+      "academic_items": [
+        0,
+        3,
+        0,
+        3,
+        1,
+        0
+      ],
+      "emotional_items": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        2,
+        0
+      ],
+      "social_score": 5,
+      "academic_score": 7,
+      "emotional_score": 3,
+      "total_score": 15,
+      "risk_level": "High Risk",
+      "social_risk": "High Risk",
+      "academic_risk": "Some Risk",
+      "emotional_risk": "High Risk",
+      "created_at": "2026-05-10T09:00:00"
+    },
+    {
+      "result_id": "54274183-7a2c-4497-97b3-6f4b1a8b55f0",
+      "student_id": "stu_66d5105f",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "social_items": [
+        3,
+        2,
+        1,
+        3,
+        1,
+        1
+      ],
+      "academic_items": [
+        3,
+        2,
+        2,
+        1,
+        0,
+        3
+      ],
+      "emotional_items": [
+        1,
+        3,
+        3,
+        3,
+        3,
+        2,
+        2
+      ],
+      "social_score": 11,
+      "academic_score": 11,
+      "emotional_score": 17,
+      "total_score": 39,
+      "risk_level": "Low Risk",
+      "social_risk": "Some Risk",
+      "academic_risk": "Low Risk",
+      "emotional_risk": "Low Risk",
+      "created_at": "2026-05-10T09:00:00"
+    }
+  ],
+  "self_report_results": [
+    {
+      "result_id": "ff9e8a58-f1bb-4ade-beda-1453388418dc",
+      "student_id": "stu_f2564945",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "self_report_items": [
+        0,
+        2,
+        3,
+        2,
+        3,
+        3,
+        3
+      ],
+      "attendance_pct": 97.0,
+      "social_domain": 13,
+      "academic_domain": 16,
+      "emotional_domain": 8,
+      "belonging_domain": 11,
+      "attendance_domain": 9,
+      "wellbeing_total": 57,
+      "wellbeing_tier": 1,
+      "created_at": "2026-02-15T10:00:00"
+    },
+    {
+      "result_id": "2abda8eb-72ad-4746-bb48-1ccbf3c89d39",
+      "student_id": "stu_b1052c2b",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "self_report_items": [
+        0,
+        2,
+        3,
+        3,
+        3,
+        2,
+        3
+      ],
+      "attendance_pct": 98.0,
+      "social_domain": 15,
+      "academic_domain": 13,
+      "emotional_domain": 8,
+      "belonging_domain": 11,
+      "attendance_domain": 9,
+      "wellbeing_total": 56,
+      "wellbeing_tier": 1,
+      "created_at": "2026-02-15T10:00:00"
+    },
+    {
+      "result_id": "5bca5f6d-5086-4a25-8d07-f8ddd4e91d75",
+      "student_id": "stu_20b21f5e",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "self_report_items": [
+        1,
+        3,
+        3,
+        3,
+        3,
+        2,
+        2
+      ],
+      "attendance_pct": 99.0,
+      "social_domain": 15,
+      "academic_domain": 12,
+      "emotional_domain": 8,
+      "belonging_domain": 10,
+      "attendance_domain": 9,
+      "wellbeing_total": 54,
+      "wellbeing_tier": 1,
+      "created_at": "2026-02-15T10:00:00"
+    },
+    {
+      "result_id": "f1e8ca3f-6c06-4fd9-bb8b-da6898c0376e",
+      "student_id": "stu_7d44fe91",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "self_report_items": [
+        1,
+        1,
+        1,
+        3,
+        3,
+        1,
+        1
+      ],
+      "attendance_pct": 92.0,
+      "social_domain": 9,
+      "academic_domain": 9,
+      "emotional_domain": 4,
+      "belonging_domain": 8,
+      "attendance_domain": 6,
+      "wellbeing_total": 36,
+      "wellbeing_tier": 2,
+      "created_at": "2026-02-15T10:00:00"
+    },
+    {
+      "result_id": "db30822e-b6d3-48bb-a2bf-19be78ea72e5",
+      "student_id": "stu_09613a9b",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "self_report_items": [
+        1,
+        2,
+        2,
+        2,
+        2,
+        2,
+        3
+      ],
+      "attendance_pct": 91.0,
+      "social_domain": 12,
+      "academic_domain": 7,
+      "emotional_domain": 6,
+      "belonging_domain": 9,
+      "attendance_domain": 6,
+      "wellbeing_total": 40,
+      "wellbeing_tier": 2,
+      "created_at": "2026-02-15T10:00:00"
+    },
+    {
+      "result_id": "16d5813a-7ee5-4d7c-9355-ae4ff2099f9d",
+      "student_id": "stu_3dd35819",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "self_report_items": [
+        2,
+        2,
+        1,
+        2,
+        3,
+        3,
+        2
+      ],
+      "attendance_pct": 92.0,
+      "social_domain": 12,
+      "academic_domain": 14,
+      "emotional_domain": 4,
+      "belonging_domain": 10,
+      "attendance_domain": 6,
+      "wellbeing_total": 46,
+      "wellbeing_tier": 2,
+      "created_at": "2026-02-15T10:00:00"
+    },
+    {
+      "result_id": "b027e551-b748-4713-8a97-14026558b923",
+      "student_id": "stu_36698b8a",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "self_report_items": [
+        3,
+        0,
+        0,
+        1,
+        1,
+        0,
+        2
+      ],
+      "attendance_pct": 68.0,
+      "social_domain": 6,
+      "academic_domain": 3,
+      "emotional_domain": 0,
+      "belonging_domain": 4,
+      "attendance_domain": 0,
+      "wellbeing_total": 13,
+      "wellbeing_tier": 3,
+      "created_at": "2026-02-15T10:00:00"
+    },
+    {
+      "result_id": "c65965ad-090e-4d14-9fcf-6d727c7eb0e6",
+      "student_id": "stu_235c9d40",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "self_report_items": [
+        2,
+        0,
+        1,
+        1,
+        0,
+        0,
+        1
+      ],
+      "attendance_pct": 75.0,
+      "social_domain": 8,
+      "academic_domain": 4,
+      "emotional_domain": 2,
+      "belonging_domain": 2,
+      "attendance_domain": 0,
+      "wellbeing_total": 16,
+      "wellbeing_tier": 3,
+      "created_at": "2026-02-15T10:00:00"
+    },
+    {
+      "result_id": "bf641265-5562-4f33-bbb7-b735ba30f0b8",
+      "student_id": "stu_66c1852a",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "self_report_items": [
+        0,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "attendance_pct": 97.0,
+      "social_domain": 13,
+      "academic_domain": 14,
+      "emotional_domain": 9,
+      "belonging_domain": 12,
+      "attendance_domain": 9,
+      "wellbeing_total": 57,
+      "wellbeing_tier": 1,
+      "created_at": "2026-02-15T10:00:00"
+    },
+    {
+      "result_id": "bfe998d0-1ded-4f32-8aa2-f772ec4e8830",
+      "student_id": "stu_e81eba05",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "self_report_items": [
+        1,
+        3,
+        3,
+        2,
+        2,
+        3,
+        2
+      ],
+      "attendance_pct": 97.0,
+      "social_domain": 16,
+      "academic_domain": 15,
+      "emotional_domain": 8,
+      "belonging_domain": 9,
+      "attendance_domain": 9,
+      "wellbeing_total": 57,
+      "wellbeing_tier": 1,
+      "created_at": "2026-02-15T10:00:00"
+    },
+    {
+      "result_id": "788cd199-ff0d-4aec-b314-22084821eac0",
+      "student_id": "stu_c59ea807",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "self_report_items": [
+        0,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "attendance_pct": 99.0,
+      "social_domain": 16,
+      "academic_domain": 15,
+      "emotional_domain": 9,
+      "belonging_domain": 12,
+      "attendance_domain": 9,
+      "wellbeing_total": 61,
+      "wellbeing_tier": 1,
+      "created_at": "2026-02-15T10:00:00"
+    },
+    {
+      "result_id": "187fa0c3-595f-4bee-8081-964f56382d0f",
+      "student_id": "stu_8f63f683",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "self_report_items": [
+        1,
+        3,
+        3,
+        3,
+        3,
+        2,
+        2
+      ],
+      "attendance_pct": 94.0,
+      "social_domain": 15,
+      "academic_domain": 14,
+      "emotional_domain": 8,
+      "belonging_domain": 10,
+      "attendance_domain": 6,
+      "wellbeing_total": 53,
+      "wellbeing_tier": 1,
+      "created_at": "2026-02-15T10:00:00"
+    },
+    {
+      "result_id": "62b75adb-b093-4a06-9103-6b77642d3a25",
+      "student_id": "stu_a33fe996",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "self_report_items": [
+        3,
+        1,
+        1,
+        1,
+        1,
+        3,
+        1
+      ],
+      "attendance_pct": 94.0,
+      "social_domain": 9,
+      "academic_domain": 10,
+      "emotional_domain": 2,
+      "belonging_domain": 6,
+      "attendance_domain": 6,
+      "wellbeing_total": 33,
+      "wellbeing_tier": 3,
+      "created_at": "2026-02-15T10:00:00"
+    },
+    {
+      "result_id": "846153a4-75ed-43a2-a39f-e73883709f8c",
+      "student_id": "stu_ece279fc",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "self_report_items": [
+        1,
+        3,
+        2,
+        3,
+        1,
+        1,
+        2
+      ],
+      "attendance_pct": 92.0,
+      "social_domain": 10,
+      "academic_domain": 6,
+      "emotional_domain": 7,
+      "belonging_domain": 7,
+      "attendance_domain": 6,
+      "wellbeing_total": 36,
+      "wellbeing_tier": 2,
+      "created_at": "2026-02-15T10:00:00"
+    },
+    {
+      "result_id": "68e8c551-ea64-4825-b236-244951027b3d",
+      "student_id": "stu_026f1a26",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "self_report_items": [
+        3,
+        1,
+        1,
+        0,
+        1,
+        0,
+        0
+      ],
+      "attendance_pct": 72.0,
+      "social_domain": 5,
+      "academic_domain": 5,
+      "emotional_domain": 2,
+      "belonging_domain": 1,
+      "attendance_domain": 0,
+      "wellbeing_total": 13,
+      "wellbeing_tier": 3,
+      "created_at": "2026-02-15T10:00:00"
+    },
+    {
+      "result_id": "726b93ac-894e-4f98-a3a5-2129a6eac5b1",
+      "student_id": "stu_66d5105f",
+      "screening_id": "scr_term1_2026",
+      "screening_period": "Term 1 - P1",
+      "self_report_items": [
+        3,
+        2,
+        3,
+        3,
+        1,
+        1,
+        1
+      ],
+      "attendance_pct": 82.0,
+      "social_domain": 13,
+      "academic_domain": 13,
+      "emotional_domain": 5,
+      "belonging_domain": 6,
+      "attendance_domain": 3,
+      "wellbeing_total": 40,
+      "wellbeing_tier": 2,
+      "created_at": "2026-02-15T10:00:00"
+    },
+    {
+      "result_id": "d4ad9521-7f80-4786-b4e2-65a4077e0eb4",
+      "student_id": "stu_f2564945",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "self_report_items": [
+        0,
+        1,
+        3,
+        3,
+        1,
+        3,
+        1
+      ],
+      "attendance_pct": 97.0,
+      "social_domain": 15,
+      "academic_domain": 14,
+      "emotional_domain": 7,
+      "belonging_domain": 8,
+      "attendance_domain": 9,
+      "wellbeing_total": 53,
+      "wellbeing_tier": 1,
+      "created_at": "2026-05-10T10:00:00"
+    },
+    {
+      "result_id": "c8b9262c-64de-4986-aacd-e0053ea0c7a2",
+      "student_id": "stu_b1052c2b",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "self_report_items": [
+        1,
+        3,
+        3,
+        2,
+        3,
+        2,
+        2
+      ],
+      "attendance_pct": 98.0,
+      "social_domain": 13,
+      "academic_domain": 16,
+      "emotional_domain": 8,
+      "belonging_domain": 9,
+      "attendance_domain": 9,
+      "wellbeing_total": 55,
+      "wellbeing_tier": 1,
+      "created_at": "2026-05-10T10:00:00"
+    },
+    {
+      "result_id": "22c9e1d2-e733-4c7f-bb9c-7a4e38637ceb",
+      "student_id": "stu_20b21f5e",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "self_report_items": [
+        0,
+        2,
+        3,
+        3,
+        1,
+        3,
+        3
+      ],
+      "attendance_pct": 99.0,
+      "social_domain": 13,
+      "academic_domain": 14,
+      "emotional_domain": 8,
+      "belonging_domain": 10,
+      "attendance_domain": 9,
+      "wellbeing_total": 54,
+      "wellbeing_tier": 1,
+      "created_at": "2026-05-10T10:00:00"
+    },
+    {
+      "result_id": "4f4add5c-3116-4ff6-a8db-6b9c9fec7bd8",
+      "student_id": "stu_7d44fe91",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "self_report_items": [
+        1,
+        0,
+        1,
+        0,
+        3,
+        0,
+        1
+      ],
+      "attendance_pct": 92.0,
+      "social_domain": 5,
+      "academic_domain": 5,
+      "emotional_domain": 3,
+      "belonging_domain": 4,
+      "attendance_domain": 6,
+      "wellbeing_total": 23,
+      "wellbeing_tier": 3,
+      "created_at": "2026-05-10T10:00:00"
+    },
+    {
+      "result_id": "6f572461-dcc3-459c-bff3-e03dce313c85",
+      "student_id": "stu_09613a9b",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "self_report_items": [
+        3,
+        3,
+        1,
+        1,
+        2,
+        1,
+        0
+      ],
+      "attendance_pct": 91.0,
+      "social_domain": 7,
+      "academic_domain": 7,
+      "emotional_domain": 4,
+      "belonging_domain": 4,
+      "attendance_domain": 6,
+      "wellbeing_total": 28,
+      "wellbeing_tier": 3,
+      "created_at": "2026-05-10T10:00:00"
+    },
+    {
+      "result_id": "f2819d0a-511a-476a-82ec-136a8691ca21",
+      "student_id": "stu_3dd35819",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "self_report_items": [
+        3,
+        3,
+        0,
+        3,
+        2,
+        0,
+        1
+      ],
+      "attendance_pct": 92.0,
+      "social_domain": 8,
+      "academic_domain": 12,
+      "emotional_domain": 3,
+      "belonging_domain": 6,
+      "attendance_domain": 6,
+      "wellbeing_total": 35,
+      "wellbeing_tier": 2,
+      "created_at": "2026-05-10T10:00:00"
+    },
+    {
+      "result_id": "95b92a5c-b832-4e93-9679-f2f53ea6fcc9",
+      "student_id": "stu_36698b8a",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "self_report_items": [
+        2,
+        0,
+        0,
+        0,
+        2,
+        0,
+        2
+      ],
+      "attendance_pct": 68.0,
+      "social_domain": 2,
+      "academic_domain": 1,
+      "emotional_domain": 1,
+      "belonging_domain": 4,
+      "attendance_domain": 0,
+      "wellbeing_total": 8,
+      "wellbeing_tier": 3,
+      "created_at": "2026-05-10T10:00:00"
+    },
+    {
+      "result_id": "0eeb3ad3-1e65-496f-8b47-a06705e3be90",
+      "student_id": "stu_235c9d40",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "self_report_items": [
+        3,
+        1,
+        3,
+        3,
+        3,
+        1,
+        1
+      ],
+      "attendance_pct": 75.0,
+      "social_domain": 16,
+      "academic_domain": 10,
+      "emotional_domain": 4,
+      "belonging_domain": 8,
+      "attendance_domain": 0,
+      "wellbeing_total": 38,
+      "wellbeing_tier": 2,
+      "created_at": "2026-05-10T10:00:00"
+    },
+    {
+      "result_id": "fdeb5909-5199-47db-93dc-c940246adffd",
+      "student_id": "stu_66c1852a",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "self_report_items": [
+        0,
+        3,
+        2,
+        3,
+        3,
+        1,
+        3
+      ],
+      "attendance_pct": 97.0,
+      "social_domain": 14,
+      "academic_domain": 18,
+      "emotional_domain": 8,
+      "belonging_domain": 10,
+      "attendance_domain": 9,
+      "wellbeing_total": 59,
+      "wellbeing_tier": 1,
+      "created_at": "2026-05-10T10:00:00"
+    },
+    {
+      "result_id": "2cb1419d-6c66-423d-9943-17e2126a0cc4",
+      "student_id": "stu_e81eba05",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "self_report_items": [
+        2,
+        1,
+        3,
+        3,
+        3,
+        3,
+        2
+      ],
+      "attendance_pct": 97.0,
+      "social_domain": 7,
+      "academic_domain": 12,
+      "emotional_domain": 5,
+      "belonging_domain": 11,
+      "attendance_domain": 9,
+      "wellbeing_total": 44,
+      "wellbeing_tier": 2,
+      "created_at": "2026-05-10T10:00:00"
+    },
+    {
+      "result_id": "66c0b6ce-2997-4595-b1ee-3836f1de374c",
+      "student_id": "stu_c59ea807",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "self_report_items": [
+        2,
+        1,
+        3,
+        2,
+        1,
+        2,
+        3
+      ],
+      "attendance_pct": 99.0,
+      "social_domain": 14,
+      "academic_domain": 17,
+      "emotional_domain": 5,
+      "belonging_domain": 8,
+      "attendance_domain": 9,
+      "wellbeing_total": 53,
+      "wellbeing_tier": 1,
+      "created_at": "2026-05-10T10:00:00"
+    },
+    {
+      "result_id": "450edda0-ef04-4591-b3bb-e62134d944f0",
+      "student_id": "stu_8f63f683",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "self_report_items": [
+        2,
+        1,
+        2,
+        1,
+        2,
+        0,
+        3
+      ],
+      "attendance_pct": 94.0,
+      "social_domain": 14,
+      "academic_domain": 6,
+      "emotional_domain": 4,
+      "belonging_domain": 6,
+      "attendance_domain": 6,
+      "wellbeing_total": 36,
+      "wellbeing_tier": 2,
+      "created_at": "2026-05-10T10:00:00"
+    },
+    {
+      "result_id": "7dbd26f7-03c1-4d85-b902-81b9f656941e",
+      "student_id": "stu_a33fe996",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "self_report_items": [
+        1,
+        0,
+        3,
+        3,
+        3,
+        3,
+        2
+      ],
+      "attendance_pct": 94.0,
+      "social_domain": 15,
+      "academic_domain": 15,
+      "emotional_domain": 5,
+      "belonging_domain": 11,
+      "attendance_domain": 6,
+      "wellbeing_total": 52,
+      "wellbeing_tier": 1,
+      "created_at": "2026-05-10T10:00:00"
+    },
+    {
+      "result_id": "55f96ed5-f54b-45d2-92a1-732623d3c46f",
+      "student_id": "stu_ece279fc",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "self_report_items": [
+        3,
+        3,
+        2,
+        1,
+        3,
+        3,
+        3
+      ],
+      "attendance_pct": 92.0,
+      "social_domain": 16,
+      "academic_domain": 10,
+      "emotional_domain": 5,
+      "belonging_domain": 10,
+      "attendance_domain": 6,
+      "wellbeing_total": 47,
+      "wellbeing_tier": 2,
+      "created_at": "2026-05-10T10:00:00"
+    },
+    {
+      "result_id": "cfe2c5b1-9879-4642-9071-0faacce02135",
+      "student_id": "stu_026f1a26",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "self_report_items": [
+        3,
+        2,
+        0,
+        1,
+        0,
+        2,
+        3
+      ],
+      "attendance_pct": 72.0,
+      "social_domain": 5,
+      "academic_domain": 7,
+      "emotional_domain": 2,
+      "belonging_domain": 6,
+      "attendance_domain": 0,
+      "wellbeing_total": 20,
+      "wellbeing_tier": 3,
+      "created_at": "2026-05-10T10:00:00"
+    },
+    {
+      "result_id": "e8e3fd99-5d4b-45d7-934a-5b668c13d3ff",
+      "student_id": "stu_66d5105f",
+      "screening_id": "scr_term2_2026",
+      "screening_period": "Term 2 - P1",
+      "self_report_items": [
+        0,
+        3,
+        3,
+        3,
+        2,
+        3,
+        3
+      ],
+      "attendance_pct": 82.0,
+      "social_domain": 11,
+      "academic_domain": 11,
+      "emotional_domain": 9,
+      "belonging_domain": 11,
+      "attendance_domain": 3,
+      "wellbeing_total": 45,
+      "wellbeing_tier": 2,
+      "created_at": "2026-05-10T10:00:00"
+    }
+  ],
+  "interventions": [
+    {
+      "intervention_id": "int_6b6839a8",
+      "student_id": "stu_7d44fe91",
+      "intervention_type": "Counselling",
+      "assigned_staff": "Ms Ahmed (SENCO)",
+      "start_date": "2026-04-28",
+      "review_date": "2026-06-09",
+      "status": "active",
+      "rationale": "Student is presenting with multiple Tier 3 risk indicators including chronic absenteeism, disengaged behaviour and limited peer connections. Intensive support is required to stabilise school attendance and build resilience.",
+      "goals": "Reduce risk indicators, build coping strategies and improve school connectedness.",
+      "progress_notes": "Initial engagement established. Student is attending sessions. Monitoring weekly progress.",
+      "frequency": "3x weekly",
+      "outcome_rating": null,
+      "created_at": "2026-04-28T09:00:00"
+    },
+    {
+      "intervention_id": "int_ae27d8ef",
+      "student_id": "stu_7d44fe91",
+      "intervention_type": "Check-In/Check-Out",
+      "assigned_staff": "Mr Lewis (Counsellor)",
+      "start_date": "2026-02-03",
+      "review_date": "2026-03-28",
+      "status": "completed",
+      "rationale": "Referral raised following teacher concerns about social withdrawal and heightened anxiety. Programme aimed to establish a trusting relationship and develop a clearer picture of the student's support needs.",
+      "goals": "Establish rapport and identify key risk factors.",
+      "progress_notes": "Completed 8-week programme. Student showed moderate improvement in social engagement.",
+      "frequency": "Weekly",
+      "outcome_rating": 4,
+      "created_at": "2026-02-03T09:00:00"
+    },
+    {
+      "intervention_id": "int_33182caa",
+      "student_id": "stu_09613a9b",
+      "intervention_type": "Behaviour Support",
+      "assigned_staff": "Ms Parker (Wellbeing)",
+      "start_date": "2026-04-28",
+      "review_date": "2026-06-09",
+      "status": "active",
+      "rationale": "Student is presenting with multiple Tier 3 risk indicators including chronic absenteeism, disengaged behaviour and limited peer connections. Intensive support is required to stabilise school attendance and build resilience.",
+      "goals": "Reduce risk indicators, build coping strategies and improve school connectedness.",
+      "progress_notes": "Initial engagement established. Student is attending sessions. Monitoring weekly progress.",
+      "frequency": "3x weekly",
+      "outcome_rating": null,
+      "created_at": "2026-04-28T09:00:00"
+    },
+    {
+      "intervention_id": "int_8af8c6ce",
+      "student_id": "stu_09613a9b",
+      "intervention_type": "Counselling",
+      "assigned_staff": "Ms Ahmed (SENCO)",
+      "start_date": "2026-02-03",
+      "review_date": "2026-03-28",
+      "status": "completed",
+      "rationale": "Referral raised following teacher concerns about social withdrawal and heightened anxiety. Programme aimed to establish a trusting relationship and develop a clearer picture of the student's support needs.",
+      "goals": "Establish rapport and identify key risk factors.",
+      "progress_notes": "Completed 8-week programme. Student showed moderate improvement in social engagement.",
+      "frequency": "Weekly",
+      "outcome_rating": 3,
+      "created_at": "2026-02-03T09:00:00"
+    },
+    {
+      "intervention_id": "int_5dd3ca31",
+      "student_id": "stu_3dd35819",
+      "intervention_type": "Attendance Intervention",
+      "assigned_staff": "Ms Parker (Wellbeing)",
+      "start_date": "2026-04-28",
+      "review_date": "2026-06-09",
+      "status": "active",
+      "rationale": "Student has moved into Tier 2 following a pattern of irregular attendance and declining academic engagement. Proactive mentoring support has been initiated to prevent further escalation.",
+      "goals": "Monitor emerging risk factors and build protective factors through regular check-ins.",
+      "progress_notes": "Weekly check-ins established. Student is receptive to support.",
+      "frequency": "Weekly",
+      "outcome_rating": null,
+      "created_at": "2026-04-28T09:00:00"
+    },
+    {
+      "intervention_id": "int_e0ececb0",
+      "student_id": "stu_3dd35819",
+      "intervention_type": "Parent Consultation",
+      "assigned_staff": "Ms Ahmed (SENCO)",
+      "start_date": "2026-02-17",
+      "review_date": "2026-03-28",
+      "status": "completed",
+      "rationale": "Early data indicated the student was beginning to disengage from learning. A short-term monitoring programme was put in place to address this before it developed into a more significant concern.",
+      "goals": "Early monitoring and prevention of further risk escalation.",
+      "progress_notes": "6-week monitoring programme complete. No escalation observed.",
+      "frequency": "Fortnightly",
+      "outcome_rating": 3,
+      "created_at": "2026-02-17T09:00:00"
+    },
+    {
+      "intervention_id": "int_6c23cbcb",
+      "student_id": "stu_36698b8a",
+      "intervention_type": "Check-In/Check-Out",
+      "assigned_staff": "Mr Lewis (Counsellor)",
+      "start_date": "2026-04-28",
+      "review_date": "2026-06-09",
+      "status": "active",
+      "rationale": "Student is presenting with multiple Tier 3 risk indicators including chronic absenteeism, disengaged behaviour and limited peer connections. Intensive support is required to stabilise school attendance and build resilience.",
+      "goals": "Reduce risk indicators, build coping strategies and improve school connectedness.",
+      "progress_notes": "Initial engagement established. Student is attending sessions. Monitoring weekly progress.",
+      "frequency": "3x weekly",
+      "outcome_rating": null,
+      "created_at": "2026-04-28T09:00:00"
+    },
+    {
+      "intervention_id": "int_3077f543",
+      "student_id": "stu_36698b8a",
+      "intervention_type": "Check-In/Check-Out",
+      "assigned_staff": "Ms Ahmed (SENCO)",
+      "start_date": "2026-02-03",
+      "review_date": "2026-03-28",
+      "status": "completed",
+      "rationale": "Referral raised following teacher concerns about social withdrawal and heightened anxiety. Programme aimed to establish a trusting relationship and develop a clearer picture of the student's support needs.",
+      "goals": "Establish rapport and identify key risk factors.",
+      "progress_notes": "Completed 8-week programme. Student showed moderate improvement in social engagement.",
+      "frequency": "Weekly",
+      "outcome_rating": 4,
+      "created_at": "2026-02-03T09:00:00"
+    },
+    {
+      "intervention_id": "int_a9eb1416",
+      "student_id": "stu_235c9d40",
+      "intervention_type": "Counselling",
+      "assigned_staff": "Ms Ahmed (SENCO)",
+      "start_date": "2026-04-28",
+      "review_date": "2026-06-09",
+      "status": "active",
+      "rationale": "Student is presenting with multiple Tier 3 risk indicators including chronic absenteeism, disengaged behaviour and limited peer connections. Intensive support is required to stabilise school attendance and build resilience.",
+      "goals": "Reduce risk indicators, build coping strategies and improve school connectedness.",
+      "progress_notes": "Initial engagement established. Student is attending sessions. Monitoring weekly progress.",
+      "frequency": "3x weekly",
+      "outcome_rating": null,
+      "created_at": "2026-04-28T09:00:00"
+    },
+    {
+      "intervention_id": "int_be99ef97",
+      "student_id": "stu_235c9d40",
+      "intervention_type": "Social Skills Groups",
+      "assigned_staff": "Ms Parker (Wellbeing)",
+      "start_date": "2026-02-03",
+      "review_date": "2026-03-28",
+      "status": "completed",
+      "rationale": "Referral raised following teacher concerns about social withdrawal and heightened anxiety. Programme aimed to establish a trusting relationship and develop a clearer picture of the student's support needs.",
+      "goals": "Establish rapport and identify key risk factors.",
+      "progress_notes": "Completed 8-week programme. Student showed moderate improvement in social engagement.",
+      "frequency": "Weekly",
+      "outcome_rating": 4,
+      "created_at": "2026-02-03T09:00:00"
+    },
+    {
+      "intervention_id": "int_b769d264",
+      "student_id": "stu_e81eba05",
+      "intervention_type": "Mentoring",
+      "assigned_staff": "Ms Parker (Wellbeing)",
+      "start_date": "2026-04-28",
+      "review_date": "2026-06-09",
+      "status": "active",
+      "rationale": "Student has moved into Tier 2 following a pattern of irregular attendance and declining academic engagement. Proactive mentoring support has been initiated to prevent further escalation.",
+      "goals": "Monitor emerging risk factors and build protective factors through regular check-ins.",
+      "progress_notes": "Weekly check-ins established. Student is receptive to support.",
+      "frequency": "Weekly",
+      "outcome_rating": null,
+      "created_at": "2026-04-28T09:00:00"
+    },
+    {
+      "intervention_id": "int_010682b9",
+      "student_id": "stu_e81eba05",
+      "intervention_type": "Parent Consultation",
+      "assigned_staff": "Ms Ahmed (SENCO)",
+      "start_date": "2026-02-17",
+      "review_date": "2026-03-28",
+      "status": "completed",
+      "rationale": "Early data indicated the student was beginning to disengage from learning. A short-term monitoring programme was put in place to address this before it developed into a more significant concern.",
+      "goals": "Early monitoring and prevention of further risk escalation.",
+      "progress_notes": "6-week monitoring programme complete. No escalation observed.",
+      "frequency": "Fortnightly",
+      "outcome_rating": 3,
+      "created_at": "2026-02-17T09:00:00"
+    },
+    {
+      "intervention_id": "int_36ff210e",
+      "student_id": "stu_8f63f683",
+      "intervention_type": "Mentoring",
+      "assigned_staff": "Ms Ahmed (SENCO)",
+      "start_date": "2026-04-28",
+      "review_date": "2026-06-09",
+      "status": "active",
+      "rationale": "Student has moved into Tier 2 following a pattern of irregular attendance and declining academic engagement. Proactive mentoring support has been initiated to prevent further escalation.",
+      "goals": "Monitor emerging risk factors and build protective factors through regular check-ins.",
+      "progress_notes": "Weekly check-ins established. Student is receptive to support.",
+      "frequency": "Weekly",
+      "outcome_rating": null,
+      "created_at": "2026-04-28T09:00:00"
+    },
+    {
+      "intervention_id": "int_9f62eab5",
+      "student_id": "stu_8f63f683",
+      "intervention_type": "Parent Consultation",
+      "assigned_staff": "Ms Ahmed (SENCO)",
+      "start_date": "2026-02-17",
+      "review_date": "2026-03-28",
+      "status": "completed",
+      "rationale": "Early data indicated the student was beginning to disengage from learning. A short-term monitoring programme was put in place to address this before it developed into a more significant concern.",
+      "goals": "Early monitoring and prevention of further risk escalation.",
+      "progress_notes": "6-week monitoring programme complete. No escalation observed.",
+      "frequency": "Fortnightly",
+      "outcome_rating": 3,
+      "created_at": "2026-02-17T09:00:00"
+    },
+    {
+      "intervention_id": "int_90003e11",
+      "student_id": "stu_ece279fc",
+      "intervention_type": "Parent Consultation",
+      "assigned_staff": "Ms Parker (Wellbeing)",
+      "start_date": "2026-04-28",
+      "review_date": "2026-06-09",
+      "status": "active",
+      "rationale": "Student has moved into Tier 2 following a pattern of irregular attendance and declining academic engagement. Proactive mentoring support has been initiated to prevent further escalation.",
+      "goals": "Monitor emerging risk factors and build protective factors through regular check-ins.",
+      "progress_notes": "Weekly check-ins established. Student is receptive to support.",
+      "frequency": "Weekly",
+      "outcome_rating": null,
+      "created_at": "2026-04-28T09:00:00"
+    },
+    {
+      "intervention_id": "int_4a506e41",
+      "student_id": "stu_ece279fc",
+      "intervention_type": "Attendance Intervention",
+      "assigned_staff": "Ms Ahmed (SENCO)",
+      "start_date": "2026-02-17",
+      "review_date": "2026-03-28",
+      "status": "completed",
+      "rationale": "Early data indicated the student was beginning to disengage from learning. A short-term monitoring programme was put in place to address this before it developed into a more significant concern.",
+      "goals": "Early monitoring and prevention of further risk escalation.",
+      "progress_notes": "6-week monitoring programme complete. No escalation observed.",
+      "frequency": "Fortnightly",
+      "outcome_rating": 4,
+      "created_at": "2026-02-17T09:00:00"
+    },
+    {
+      "intervention_id": "int_6f4d3d7d",
+      "student_id": "stu_026f1a26",
+      "intervention_type": "Check-In/Check-Out",
+      "assigned_staff": "Ms Parker (Wellbeing)",
+      "start_date": "2026-04-28",
+      "review_date": "2026-06-09",
+      "status": "active",
+      "rationale": "Student is presenting with multiple Tier 3 risk indicators including chronic absenteeism, disengaged behaviour and limited peer connections. Intensive support is required to stabilise school attendance and build resilience.",
+      "goals": "Reduce risk indicators, build coping strategies and improve school connectedness.",
+      "progress_notes": "Initial engagement established. Student is attending sessions. Monitoring weekly progress.",
+      "frequency": "3x weekly",
+      "outcome_rating": null,
+      "created_at": "2026-04-28T09:00:00"
+    },
+    {
+      "intervention_id": "int_f10700d9",
+      "student_id": "stu_026f1a26",
+      "intervention_type": "Behaviour Support",
+      "assigned_staff": "Mr Lewis (Counsellor)",
+      "start_date": "2026-02-03",
+      "review_date": "2026-03-28",
+      "status": "completed",
+      "rationale": "Referral raised following teacher concerns about social withdrawal and heightened anxiety. Programme aimed to establish a trusting relationship and develop a clearer picture of the student's support needs.",
+      "goals": "Establish rapport and identify key risk factors.",
+      "progress_notes": "Completed 8-week programme. Student showed moderate improvement in social engagement.",
+      "frequency": "Weekly",
+      "outcome_rating": 4,
+      "created_at": "2026-02-03T09:00:00"
+    },
+    {
+      "intervention_id": "int_e18bce8f",
+      "student_id": "stu_66d5105f",
+      "intervention_type": "Attendance Intervention",
+      "assigned_staff": "Ms Ahmed (SENCO)",
+      "start_date": "2026-04-28",
+      "review_date": "2026-06-09",
+      "status": "active",
+      "rationale": "Student has moved into Tier 2 following a pattern of irregular attendance and declining academic engagement. Proactive mentoring support has been initiated to prevent further escalation.",
+      "goals": "Monitor emerging risk factors and build protective factors through regular check-ins.",
+      "progress_notes": "Weekly check-ins established. Student is receptive to support.",
+      "frequency": "Weekly",
+      "outcome_rating": null,
+      "created_at": "2026-04-28T09:00:00"
+    },
+    {
+      "intervention_id": "int_c2e84392",
+      "student_id": "stu_66d5105f",
+      "intervention_type": "Parent Consultation",
+      "assigned_staff": "Ms Ahmed (SENCO)",
+      "start_date": "2026-02-17",
+      "review_date": "2026-03-28",
+      "status": "completed",
+      "rationale": "Early data indicated the student was beginning to disengage from learning. A short-term monitoring programme was put in place to address this before it developed into a more significant concern.",
+      "goals": "Early monitoring and prevention of further risk escalation.",
+      "progress_notes": "6-week monitoring programme complete. No escalation observed.",
+      "frequency": "Fortnightly",
+      "outcome_rating": 3,
+      "created_at": "2026-02-17T09:00:00"
+    }
+  ],
+  "case_notes": [
+    {
+      "case_id": "case_8d307f5a",
+      "student_id": "stu_7d44fe91",
+      "staff_member": "Ms Patel",
+      "date": "2026-03-10",
+      "note_type": "wellbeing",
+      "notes": "Wellbeing check-in. Student reported feeling overwhelmed and anxious about upcoming assessments. Discussed breathing techniques and time management strategies. Will follow up next week.",
+      "created_at": "2026-03-10T11:00:00"
+    },
+    {
+      "case_id": "case_1a5de6a6",
+      "student_id": "stu_7d44fe91",
+      "staff_member": "Ms Patel",
+      "date": "2026-04-14",
+      "note_type": "behaviour",
+      "notes": "Incident report: Student became distressed during group work and left the classroom. Spoke with student after \u2014 they shared they are struggling at home. Referred to school counsellor.",
+      "created_at": "2026-04-10T11:00:00"
+    },
+    {
+      "case_id": "case_e7c2a39f",
+      "student_id": "stu_7d44fe91",
+      "staff_member": "Mr Lewis (Counsellor)",
+      "date": "2026-05-12",
+      "note_type": "general",
+      "notes": "Follow-up meeting with parent/guardian. Family aware of school concerns. Parent noted similar behaviours at home. Collaborative support plan being drafted. Counsellor to lead.",
+      "created_at": "2026-05-10T11:00:00"
+    },
+    {
+      "case_id": "case_92534b1b",
+      "student_id": "stu_09613a9b",
+      "staff_member": "Ms Lee",
+      "date": "2026-03-10",
+      "note_type": "wellbeing",
+      "notes": "Wellbeing check-in. Student reported feeling overwhelmed and anxious about upcoming assessments. Discussed breathing techniques and time management strategies. Will follow up next week.",
+      "created_at": "2026-03-10T11:00:00"
+    },
+    {
+      "case_id": "case_d01d1c3e",
+      "student_id": "stu_09613a9b",
+      "staff_member": "Ms Parker (Wellbeing)",
+      "date": "2026-04-14",
+      "note_type": "behaviour",
+      "notes": "Incident report: Student became distressed during group work and left the classroom. Spoke with student after \u2014 they shared they are struggling at home. Referred to school counsellor.",
+      "created_at": "2026-04-10T11:00:00"
+    },
+    {
+      "case_id": "case_a9bb71bd",
+      "student_id": "stu_09613a9b",
+      "staff_member": "Mr Lewis (Counsellor)",
+      "date": "2026-05-12",
+      "note_type": "general",
+      "notes": "Follow-up meeting with parent/guardian. Family aware of school concerns. Parent noted similar behaviours at home. Collaborative support plan being drafted. Counsellor to lead.",
+      "created_at": "2026-05-10T11:00:00"
+    },
+    {
+      "case_id": "case_833e78a6",
+      "student_id": "stu_3dd35819",
+      "staff_member": "Ms Lee",
+      "date": "2026-04-07",
+      "note_type": "general",
+      "notes": "Regular check-in. Student appears to be managing but showing early signs of disengagement. Monitoring closely and checking in weekly. Encouraged to use check-in card.",
+      "created_at": "2026-04-07T09:30:00"
+    },
+    {
+      "case_id": "case_0e463928",
+      "student_id": "stu_3dd35819",
+      "staff_member": "Ms Parker (Wellbeing)",
+      "date": "2026-05-08",
+      "note_type": "wellbeing",
+      "notes": "Student self-referred to discuss friendship difficulties. Provided social skills strategies. Will observe in unstructured times and check in again next week.",
+      "created_at": "2026-05-07T09:30:00"
+    },
+    {
+      "case_id": "case_4e0b7134",
+      "student_id": "stu_36698b8a",
+      "staff_member": "Mr Lewis (Counsellor)",
+      "date": "2026-03-10",
+      "note_type": "wellbeing",
+      "notes": "Wellbeing check-in. Student reported feeling overwhelmed and anxious about upcoming assessments. Discussed breathing techniques and time management strategies. Will follow up next week.",
+      "created_at": "2026-03-10T11:00:00"
+    },
+    {
+      "case_id": "case_39bbbdd1",
+      "student_id": "stu_36698b8a",
+      "staff_member": "Ms Parker (Wellbeing)",
+      "date": "2026-04-14",
+      "note_type": "behaviour",
+      "notes": "Incident report: Student became distressed during group work and left the classroom. Spoke with student after \u2014 they shared they are struggling at home. Referred to school counsellor.",
+      "created_at": "2026-04-10T11:00:00"
+    },
+    {
+      "case_id": "case_35db5fc4",
+      "student_id": "stu_36698b8a",
+      "staff_member": "Ms Parker (Wellbeing)",
+      "date": "2026-05-12",
+      "note_type": "general",
+      "notes": "Follow-up meeting with parent/guardian. Family aware of school concerns. Parent noted similar behaviours at home. Collaborative support plan being drafted. Counsellor to lead.",
+      "created_at": "2026-05-10T11:00:00"
+    },
+    {
+      "case_id": "case_d569a94a",
+      "student_id": "stu_235c9d40",
+      "staff_member": "Ms Lee",
+      "date": "2026-03-10",
+      "note_type": "wellbeing",
+      "notes": "Wellbeing check-in. Student reported feeling overwhelmed and anxious about upcoming assessments. Discussed breathing techniques and time management strategies. Will follow up next week.",
+      "created_at": "2026-03-10T11:00:00"
+    },
+    {
+      "case_id": "case_7a332c63",
+      "student_id": "stu_235c9d40",
+      "staff_member": "Ms Lee",
+      "date": "2026-04-14",
+      "note_type": "behaviour",
+      "notes": "Incident report: Student became distressed during group work and left the classroom. Spoke with student after \u2014 they shared they are struggling at home. Referred to school counsellor.",
+      "created_at": "2026-04-10T11:00:00"
+    },
+    {
+      "case_id": "case_9731c056",
+      "student_id": "stu_235c9d40",
+      "staff_member": "Mr Lewis (Counsellor)",
+      "date": "2026-05-12",
+      "note_type": "general",
+      "notes": "Follow-up meeting with parent/guardian. Family aware of school concerns. Parent noted similar behaviours at home. Collaborative support plan being drafted. Counsellor to lead.",
+      "created_at": "2026-05-10T11:00:00"
+    },
+    {
+      "case_id": "case_003981c3",
+      "student_id": "stu_e81eba05",
+      "staff_member": "Ms Parker (Wellbeing)",
+      "date": "2026-04-07",
+      "note_type": "general",
+      "notes": "Regular check-in. Student appears to be managing but showing early signs of disengagement. Monitoring closely and checking in weekly. Encouraged to use check-in card.",
+      "created_at": "2026-04-07T09:30:00"
+    },
+    {
+      "case_id": "case_2b2e4cf1",
+      "student_id": "stu_e81eba05",
+      "staff_member": "Ms Thompson",
+      "date": "2026-05-08",
+      "note_type": "wellbeing",
+      "notes": "Student self-referred to discuss friendship difficulties. Provided social skills strategies. Will observe in unstructured times and check in again next week.",
+      "created_at": "2026-05-07T09:30:00"
+    },
+    {
+      "case_id": "case_d76c39b1",
+      "student_id": "stu_8f63f683",
+      "staff_member": "Ms Thompson",
+      "date": "2026-04-07",
+      "note_type": "general",
+      "notes": "Regular check-in. Student appears to be managing but showing early signs of disengagement. Monitoring closely and checking in weekly. Encouraged to use check-in card.",
+      "created_at": "2026-04-07T09:30:00"
+    },
+    {
+      "case_id": "case_ca75d032",
+      "student_id": "stu_8f63f683",
+      "staff_member": "Ms Parker (Wellbeing)",
+      "date": "2026-05-08",
+      "note_type": "wellbeing",
+      "notes": "Student self-referred to discuss friendship difficulties. Provided social skills strategies. Will observe in unstructured times and check in again next week.",
+      "created_at": "2026-05-07T09:30:00"
+    },
+    {
+      "case_id": "case_6c71cced",
+      "student_id": "stu_ece279fc",
+      "staff_member": "Mr Rodriguez",
+      "date": "2026-04-07",
+      "note_type": "general",
+      "notes": "Regular check-in. Student appears to be managing but showing early signs of disengagement. Monitoring closely and checking in weekly. Encouraged to use check-in card.",
+      "created_at": "2026-04-07T09:30:00"
+    },
+    {
+      "case_id": "case_4704acc6",
+      "student_id": "stu_ece279fc",
+      "staff_member": "Ms Parker (Wellbeing)",
+      "date": "2026-05-08",
+      "note_type": "wellbeing",
+      "notes": "Student self-referred to discuss friendship difficulties. Provided social skills strategies. Will observe in unstructured times and check in again next week.",
+      "created_at": "2026-05-07T09:30:00"
+    },
+    {
+      "case_id": "case_86a68e90",
+      "student_id": "stu_026f1a26",
+      "staff_member": "Ms Parker (Wellbeing)",
+      "date": "2026-03-10",
+      "note_type": "wellbeing",
+      "notes": "Wellbeing check-in. Student reported feeling overwhelmed and anxious about upcoming assessments. Discussed breathing techniques and time management strategies. Will follow up next week.",
+      "created_at": "2026-03-10T11:00:00"
+    },
+    {
+      "case_id": "case_cf8470d2",
+      "student_id": "stu_026f1a26",
+      "staff_member": "Ms Parker (Wellbeing)",
+      "date": "2026-04-14",
+      "note_type": "behaviour",
+      "notes": "Incident report: Student became distressed during group work and left the classroom. Spoke with student after \u2014 they shared they are struggling at home. Referred to school counsellor.",
+      "created_at": "2026-04-10T11:00:00"
+    },
+    {
+      "case_id": "case_e4cb089c",
+      "student_id": "stu_026f1a26",
+      "staff_member": "Mr Rodriguez",
+      "date": "2026-05-12",
+      "note_type": "general",
+      "notes": "Follow-up meeting with parent/guardian. Family aware of school concerns. Parent noted similar behaviours at home. Collaborative support plan being drafted. Counsellor to lead.",
+      "created_at": "2026-05-10T11:00:00"
+    },
+    {
+      "case_id": "case_78257880",
+      "student_id": "stu_66d5105f",
+      "staff_member": "Mr Rodriguez",
+      "date": "2026-04-07",
+      "note_type": "general",
+      "notes": "Regular check-in. Student appears to be managing but showing early signs of disengagement. Monitoring closely and checking in weekly. Encouraged to use check-in card.",
+      "created_at": "2026-04-07T09:30:00"
+    },
+    {
+      "case_id": "case_ac1957a3",
+      "student_id": "stu_66d5105f",
+      "staff_member": "Ms Parker (Wellbeing)",
+      "date": "2026-05-08",
+      "note_type": "wellbeing",
+      "notes": "Student self-referred to discuss friendship difficulties. Provided social skills strategies. Will observe in unstructured times and check in again next week.",
+      "created_at": "2026-05-07T09:30:00"
+    }
+  ],
+  "alerts": [
+    {
+      "alert_id": "alrt_ced7850e",
+      "student_id": "stu_7d44fe91",
+      "student_name": "Noah (Ollie) Anderson",
+      "class_name": "F/1A",
+      "type": "early_warning",
+      "alert_type": "high_risk_saebrs",
+      "severity": "high",
+      "message": "Noah (Ollie) Anderson screened High Risk (SAEBRS: 17/57)",
+      "created_at": "2026-05-10T09:30:00",
+      "is_read": false,
+      "resolved": false,
+      "status": "pending"
+    },
+    {
+      "alert_id": "alrt_04d0d11f",
+      "student_id": "stu_7d44fe91",
+      "student_name": "Noah (Ollie) Anderson",
+      "class_name": "F/1A",
+      "type": "tier_change",
+      "alert_type": "tier_change",
+      "from_tier": 2,
+      "to_tier": 3,
+      "severity": "high",
+      "message": "Noah (Ollie) Anderson moved from Tier 2 to Tier 3",
+      "created_at": "2026-05-10T09:30:00",
+      "is_read": false,
+      "resolved": false,
+      "status": "pending"
+    },
+    {
+      "alert_id": "alrt_03d82771",
+      "student_id": "stu_09613a9b",
+      "student_name": "Ava Thomas",
+      "class_name": "1/2B",
+      "type": "tier_change",
+      "alert_type": "tier_change",
+      "from_tier": 2,
+      "to_tier": 3,
+      "severity": "high",
+      "message": "Ava Thomas moved from Tier 2 to Tier 3",
+      "created_at": "2026-05-10T09:30:00",
+      "is_read": false,
+      "resolved": false,
+      "status": "pending"
+    },
+    {
+      "alert_id": "alrt_d7d8572b",
+      "student_id": "stu_36698b8a",
+      "student_name": "Sophia White",
+      "class_name": "1/2B",
+      "type": "early_warning",
+      "alert_type": "high_risk_saebrs",
+      "severity": "high",
+      "message": "Sophia White screened High Risk (SAEBRS: 9/57)",
+      "created_at": "2026-05-10T09:30:00",
+      "is_read": false,
+      "resolved": false,
+      "status": "pending"
+    },
+    {
+      "alert_id": "alrt_c5054ee1",
+      "student_id": "stu_36698b8a",
+      "student_name": "Sophia White",
+      "class_name": "1/2B",
+      "type": "early_warning",
+      "alert_type": "low_attendance_80",
+      "severity": "high",
+      "message": "Sophia White critically low attendance (68%)",
+      "created_at": "2026-05-01T08:00:00",
+      "is_read": false,
+      "resolved": false,
+      "status": "pending"
+    },
+    {
+      "alert_id": "alrt_f28446df",
+      "student_id": "stu_235c9d40",
+      "student_name": "Mason Harris",
+      "class_name": "1/2B",
+      "type": "early_warning",
+      "alert_type": "low_attendance_80",
+      "severity": "high",
+      "message": "Mason Harris critically low attendance (75%)",
+      "created_at": "2026-05-01T08:00:00",
+      "is_read": false,
+      "resolved": false,
+      "status": "pending"
+    },
+    {
+      "alert_id": "alrt_f4c26d25",
+      "student_id": "stu_e81eba05",
+      "student_name": "James Thompson",
+      "class_name": "3A",
+      "type": "tier_change",
+      "alert_type": "tier_change",
+      "from_tier": 1,
+      "to_tier": 2,
+      "severity": "high",
+      "message": "James Thompson moved from Tier 1 to Tier 2",
+      "created_at": "2026-05-10T09:30:00",
+      "is_read": false,
+      "resolved": false,
+      "status": "pending"
+    },
+    {
+      "alert_id": "alrt_07532299",
+      "student_id": "stu_8f63f683",
+      "student_name": "Alexander (Alex) Young",
+      "class_name": "3A",
+      "type": "tier_change",
+      "alert_type": "tier_change",
+      "from_tier": 1,
+      "to_tier": 2,
+      "severity": "high",
+      "message": "Alexander (Alex) Young moved from Tier 1 to Tier 2",
+      "created_at": "2026-05-10T09:30:00",
+      "is_read": false,
+      "resolved": false,
+      "status": "pending"
+    },
+    {
+      "alert_id": "alrt_e1efaa07",
+      "student_id": "stu_a33fe996",
+      "student_name": "Amelia Lee",
+      "class_name": "5B",
+      "type": "tier_change",
+      "alert_type": "tier_change",
+      "from_tier": 3,
+      "to_tier": 1,
+      "severity": "medium",
+      "message": "Amelia Lee moved from Tier 3 to Tier 1",
+      "created_at": "2026-05-10T09:30:00",
+      "is_read": false,
+      "resolved": false,
+      "status": "pending"
+    },
+    {
+      "alert_id": "alrt_f7f6005f",
+      "student_id": "stu_026f1a26",
+      "student_name": "Harper Allen",
+      "class_name": "5B",
+      "type": "early_warning",
+      "alert_type": "high_risk_saebrs",
+      "severity": "high",
+      "message": "Harper Allen screened High Risk (SAEBRS: 15/57)",
+      "created_at": "2026-05-10T09:30:00",
+      "is_read": false,
+      "resolved": false,
+      "status": "pending"
+    },
+    {
+      "alert_id": "alrt_db59f081",
+      "student_id": "stu_026f1a26",
+      "student_name": "Harper Allen",
+      "class_name": "5B",
+      "type": "early_warning",
+      "alert_type": "low_attendance_80",
+      "severity": "high",
+      "message": "Harper Allen critically low attendance (72%)",
+      "created_at": "2026-05-01T08:00:00",
+      "is_read": false,
+      "resolved": false,
+      "status": "pending"
+    },
+    {
+      "alert_id": "alrt_3a26cd94",
+      "student_id": "stu_66d5105f",
+      "student_name": "Benjamin (Ben) Hall",
+      "class_name": "5B",
+      "type": "early_warning",
+      "alert_type": "low_attendance_90",
+      "severity": "medium",
+      "message": "Benjamin (Ben) Hall attendance below 90% (82%)",
+      "created_at": "2026-05-01T08:00:00",
+      "is_read": false,
+      "resolved": false,
+      "status": "pending"
+    }
+  ],
+  "school_settings": [
+    {
+      "current_term": "Term 1",
+      "current_year": 2026,
+      "email_auth_enabled": true,
+      "google_auth_enabled": true,
+      "onboarding_complete": true,
+      "school_name": "Demo School",
+      "school_type": "both",
+      "excluded_absence_types": [
+        "Camp",
+        "Excursion",
+        "School Event"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "user_id": "user_697a4ed49ff2",
+      "email": "admin@test.com",
+      "name": "Admin",
+      "picture": "",
+      "role": "admin",
+      "password_hash": "$2b$12$pmSOZqpTh0Od24ZjGXAMt.oyWJMewRPkCii1J1h52dU6Rz5vn84Aa",
+      "created_at": "2026-04-11T13:26:21.667873+00:00"
+    }
+  ]
+}

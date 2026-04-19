@@ -42,7 +42,7 @@ export default function LandingPage() {
         }, 1200);
       }
     } catch {
-      setResult({ exists: false });
+      setResult({ exists: false }); // network error — treat as not found
     } finally {
       setChecking(false);
     }

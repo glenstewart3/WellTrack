@@ -21,7 +21,7 @@ export function SAAuthProvider({ children }) {
   useEffect(() => { checkAuth(); }, [checkAuth]);
 
   const logout = async () => {
-    try { await saApi.post('/auth/logout', {}); } catch {}
+    try { await saApi.post('/auth/logout', {}); } catch { /* logout best-effort */ }
     setAdmin(null);
   };
 

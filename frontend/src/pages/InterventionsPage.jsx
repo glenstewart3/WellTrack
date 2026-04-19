@@ -336,6 +336,7 @@ export default function InterventionsPage() {
         if (sortBy === 'days')         return dir * ((daysActive(a) ?? -1) - (daysActive(b) ?? -1));
         return 0;
       });
+  // daysActive is a stable pure function — deps list is complete
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interventions, students, filterStatus, filterType, filterTier, searchQuery, sortBy, sortDir]);
 

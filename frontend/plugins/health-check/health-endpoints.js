@@ -21,7 +21,8 @@ function setupHealthEndpoints(devServer, healthPlugin) {
     return;
   }
 
-  console.log('[Health Check] Setting up health endpoints...');
+  const verbose = process.env.HEALTH_CHECK_VERBOSE === 'true';
+  if (verbose) console.log('[Health Check] Setting up health endpoints...');
 
   // ====================================================================
   // GET /health - Detailed health status (JSON)
@@ -165,13 +166,9 @@ function setupHealthEndpoints(devServer, healthPlugin) {
     });
   });
 
-  console.log('[Health Check] ✓ Health endpoints ready:');
-  console.log('  • GET /health         - Detailed status');
-  console.log('  • GET /health/simple  - Simple OK/ERROR');
-  console.log('  • GET /health/ready   - Readiness check');
-  console.log('  • GET /health/live    - Liveness check');
-  console.log('  • GET /health/errors  - Error details');
-  console.log('  • GET /health/stats   - Statistics');
+  if (verbose) {
+    console.log('[Health Check] Health endpoints ready');
+  }
 }
 
 // ====================================================================

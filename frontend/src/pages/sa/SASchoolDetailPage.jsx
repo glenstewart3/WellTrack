@@ -35,7 +35,7 @@ export default function SASchoolDetailPage() {
       const res = await saApi.put(`/schools/${schoolId}`, { status });
       setSchool(res.data);
       setEditStatus(null);
-    } catch {}
+    } catch(e) { console.warn("SA action failed:", e.response?.data?.detail || e.message); }
   };
 
   const handleArchive = async () => {
@@ -43,7 +43,7 @@ export default function SASchoolDetailPage() {
     try {
       await saApi.delete(`/schools/${schoolId}`);
       navigate(`${SA_PATH_PREFIX}/schools`);
-    } catch {}
+    } catch(e) { console.warn("SA action failed:", e.response?.data?.detail || e.message); }
   };
 
   const handlePermanentDelete = async () => {
@@ -52,7 +52,7 @@ export default function SASchoolDetailPage() {
     try {
       await saApi.delete(`/schools/${schoolId}/permanent`);
       navigate(`${SA_PATH_PREFIX}/schools`);
-    } catch {}
+    } catch(e) { console.warn("SA action failed:", e.response?.data?.detail || e.message); }
   };
 
   const handleRemoveUser = async (userId, name) => {
@@ -60,7 +60,7 @@ export default function SASchoolDetailPage() {
     try {
       await saApi.delete(`/schools/${schoolId}/admins/${userId}`);
       load();
-    } catch {}
+    } catch(e) { console.warn("SA action failed:", e.response?.data?.detail || e.message); }
   };
 
   if (loading) {
@@ -111,7 +111,7 @@ export default function SASchoolDetailPage() {
                   const frontendUrl = process.env.REACT_APP_BACKEND_URL || '';
                   window.open(`${frontendUrl}/api/auth/impersonate?token=${token}&slug=${school_slug}`, '_blank');
                 }
-              } catch {}
+              } catch(e) { console.warn("SA action failed:", e.response?.data?.detail || e.message); }
             }}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg transition-colors"
             title="Log in as school admin"
@@ -332,7 +332,7 @@ function FeatureFlagsCard({ schoolId, flags, onUpdated }) {
     try {
       const res = await saApi.put(`/schools/${schoolId}`, { feature_flags: newFlags });
       onUpdated(res.data);
-    } catch {}
+    } catch(e) { console.warn("SA action failed:", e.response?.data?.detail || e.message); }
     setSaving(false);
   };
 

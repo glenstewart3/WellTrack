@@ -25,7 +25,7 @@ export default function SASuperAdminsPage() {
     try {
       await saApi.delete(`/super-admins/${sa.super_admin_id}`);
       load();
-    } catch {}
+    } catch(e) { console.warn("SA action failed:", e.response?.data?.detail || e.message); }
   };
 
   return (
