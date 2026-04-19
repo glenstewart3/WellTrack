@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Shield, AlertCircle, Eye, EyeOff, Mail, Lock, ArrowLeft } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
@@ -17,6 +17,17 @@ export default function LoginPage() {
   const location = useLocation();
   const { settings } = useSettings();
   const { theme } = useTheme();
+
+  // Login page always renders in light mode for consistency with public/marketing pages
+  useEffect(() => {
+    const root = document.documentElement;
+    const previous = root.getAttribute('data-theme');
+    root.setAttribute('data-theme', 'default');
+    return () => {
+      if (previous) root.setAttribute('data-theme', previous);
+      else root.removeAttribute('data-theme');
+    };
+  }, []);
 
   const searchParams = new URLSearchParams(location.search);
   const errorCode = searchParams.get('error');
