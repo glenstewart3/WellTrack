@@ -67,9 +67,9 @@ export default function DashboardPage() {
 
   const tier = stats?.tier_distribution || {};
   const pieData = [
-    { name: 'Tier 1', value: tier.tier1 || 0, color: '#3d8b6e' },
-    { name: 'Tier 2', value: tier.tier2 || 0, color: '#c49234' },
-    { name: 'Tier 3', value: tier.tier3 || 0, color: '#c55544' },
+    { name: 'Tier 1', value: tier.tier1 || 0, color: '#10b981' },
+    { name: 'Tier 2', value: tier.tier2 || 0, color: '#f59e0b' },
+    { name: 'Tier 3', value: tier.tier3 || 0, color: '#f43f5e' },
     { name: 'Unscreened', value: tier.unscreened || 0, color: '#94a3b8' },
   ].filter(d => d.value > 0);
 
