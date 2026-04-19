@@ -127,11 +127,22 @@ code {
 [data-theme="dark"] .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important; }
 
 /* Borders */
+[data-theme="dark"] .border-slate-50   { border-color: #1e293b !important; }
 [data-theme="dark"] .border-slate-100  { border-color: #2d3748 !important; }
 [data-theme="dark"] .border-slate-200  { border-color: #334155 !important; }
 [data-theme="dark"] .border-slate-300  { border-color: #475569 !important; }
+[data-theme="dark"] .divide-slate-50 > * + *  { border-color: #1e293b !important; }
 [data-theme="dark"] .divide-slate-100 > * + * { border-color: #2d3748 !important; }
 [data-theme="dark"] .divide-slate-200 > * + * { border-color: #334155 !important; }
+
+/* Catch-all: any remaining default/uncolored borders */
+[data-theme="dark"] .border-b:not([class*="border-slate-"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-blue"]):not([class*="border-amber"]):not([class*="border-indigo"]):not([class*="border-red"]):not([class*="border-violet"]) {
+  border-color: #334155 !important;
+}
+[data-theme="dark"] .border-t:not([class*="border-slate-"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-blue"]) {
+  border-color: #334155 !important;
+}
+[data-theme="dark"] .last\:border-b-0:last-child { border-bottom-width: 0 !important; }
 
 /* Text */
 [data-theme="dark"] .text-slate-900 { color: #f1f5f9 !important; }
