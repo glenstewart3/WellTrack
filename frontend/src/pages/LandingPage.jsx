@@ -51,9 +51,9 @@ export default function LandingPage() {
     <div className="relative min-h-screen overflow-hidden" style={{ backgroundColor: '#fbfaf6' }}>
       {/* Blurred color spots */}
       <div className="pointer-events-none absolute inset-0 -z-0">
-        <div className="absolute -top-20 left-1/2 h-[600px] w-[900px] -translate-x-1/2 rounded-full opacity-80 blur-3xl" style={{ background: 'rgba(16, 185, 129, 0.25)' }} />
-        <div className="absolute right-[-8%] top-1/4 h-[500px] w-[500px] rounded-full opacity-60 blur-3xl" style={{ background: 'rgba(245, 158, 11, 0.28)' }} />
-        <div className="absolute bottom-[-3%] left-[-3%] h-[400px] w-[400px] rounded-full opacity-50 blur-3xl" style={{ background: 'rgba(244, 63, 94, 0.22)' }} />
+        <div className="absolute -top-20 left-1/2 h-[420px] w-[700px] -translate-x-1/2 rounded-full opacity-60 blur-3xl" style={{ background: 'rgba(16, 185, 129, 0.18)' }} />
+        <div className="absolute right-[-6%] top-1/4 h-[360px] w-[360px] rounded-full opacity-40 blur-3xl" style={{ background: 'rgba(245, 158, 11, 0.20)' }} />
+        <div className="absolute bottom-[-3%] left-[-3%] h-[300px] w-[300px] rounded-full opacity-35 blur-3xl" style={{ background: 'rgba(244, 63, 94, 0.16)' }} />
       </div>
 
       {/* Nav */}

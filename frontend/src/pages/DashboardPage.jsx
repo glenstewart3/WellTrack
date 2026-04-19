@@ -209,23 +209,15 @@ export default function DashboardPage() {
       {/* ── Hero greeting ─────────────────────────────────────────────── */}
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="wt-mono-label text-[10px]" style={{ color: 'var(--wt-muted-fg)' }}>{termLabel}</p>
+          <p className="text-sm font-medium text-slate-500">{termLabel}</p>
           <h1 className="mt-1 text-3xl font-extrabold tracking-tight" style={{ fontFamily: 'Manrope, sans-serif', color: 'var(--wt-foreground)', fontWeight: 800 }}>
             {greeting}{firstName ? `, ${firstName}.` : '.'}
           </h1>
-          <p className="mt-1 text-sm" style={{ color: 'var(--wt-muted-fg)' }}>
-            Here's how your school is feeling this week.
+          <p className="mt-1 text-sm text-slate-500">
+            A snapshot of your school's wellbeing.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate('/analytics')}
-            data-testid="dashboard-this-week-btn"
-            className="inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-medium hover:opacity-90 transition-colors"
-            style={{ backgroundColor: 'var(--wt-surface)', borderColor: 'var(--wt-border)', color: 'var(--wt-foreground)' }}
-          >
-            <Calendar size={14} /> This week
-          </button>
           <button
             onClick={() => navigate('/screening')}
             data-testid="dashboard-new-screening-btn"
@@ -248,18 +240,18 @@ export default function DashboardPage() {
           >
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="wt-mono-label text-[10px]" style={{ color: 'var(--wt-muted-fg)' }}>{k.label}</p>
-                <p className="text-3xl font-semibold tabular-nums" style={{ fontFamily: 'Manrope, sans-serif', color: 'var(--wt-foreground)' }}>
+                <p className="text-3xl font-bold tabular-nums" style={{ fontFamily: 'Manrope, sans-serif', color: 'var(--wt-foreground)' }}>
                   {k.value}
                 </p>
+                <p className="text-sm font-medium text-slate-700">{k.label}</p>
               </div>
               <div className="rounded-xl p-2.5 shrink-0" style={{ backgroundColor: k.iconBg, color: k.iconFg }}>
                 <k.icon size={16} />
               </div>
             </div>
-            <div className="mt-4 flex items-center gap-2">
+            <div className="mt-3 flex items-center gap-2">
               <TrendChip delta={k.delta} suffix={k.suffix} positiveIsGood={k.positiveIsGood !== false} />
-              <span className="text-xs" style={{ color: 'var(--wt-muted-fg)' }}>vs last screening</span>
+              <span className="text-xs text-slate-400">vs last screening</span>
             </div>
           </button>
         ))}
@@ -385,7 +377,7 @@ export default function DashboardPage() {
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
               <p className="text-2xl font-bold" style={{ fontFamily: 'Manrope, sans-serif', color: 'var(--wt-foreground)' }}>{tier1Pct}%</p>
-              <p className="wt-mono-label text-[9px]" style={{ color: 'var(--wt-muted-fg)' }}>Tier 1</p>
+              <p className="text-xs font-medium text-slate-500">Tier 1</p>
             </div>
           </div>
           <div className="mt-3 space-y-2">
@@ -456,7 +448,7 @@ export default function DashboardPage() {
                     <div className="flex shrink-0 items-center gap-3">
                       <TierBadge tier={alertTier} />
                       {alert.class_name && (
-                        <span className="wt-mono-label text-[10px]" style={{ color: 'var(--wt-muted-fg)' }}>
+                        <span className="text-xs font-medium" style={{ color: 'var(--wt-muted-fg)' }}>
                           {alert.class_name}
                         </span>
                       )}

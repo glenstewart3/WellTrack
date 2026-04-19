@@ -318,8 +318,18 @@ export default function DashboardLayout() {
         )}
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto relative">
+          {/* Subtle tier-color ambient blurs (light mode only) */}
+          {theme !== 'dark' && (
+            <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" aria-hidden="true">
+              <div className="absolute -top-24 right-[20%] h-[360px] w-[360px] rounded-full opacity-25 blur-3xl" style={{ background: 'rgba(34, 197, 94, 0.18)' }} />
+              <div className="absolute top-1/3 right-[-4%] h-[300px] w-[300px] rounded-full opacity-20 blur-3xl" style={{ background: 'rgba(245, 158, 11, 0.18)' }} />
+              <div className="absolute bottom-[-6%] left-[8%] h-[280px] w-[280px] rounded-full opacity-20 blur-3xl" style={{ background: 'rgba(239, 68, 68, 0.14)' }} />
+            </div>
+          )}
+          <div className="relative z-10">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>
