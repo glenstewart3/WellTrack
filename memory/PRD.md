@@ -44,6 +44,13 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - [x] School login only appears on school subdomains (not root domain)
 - [x] 12/12 backend + all frontend tests passed (iteration_44.json)
 
+### Dashboard UI Refresh — Lovable Design System (COMPLETED - 2026-04-19)
+- [x] Imported Lovable warm cream + tier palette as CSS variables in `index.css` with dark-mode variants (`--wt-tier1/2/3`, `--wt-tier1-soft/foreground/border`, `--wt-surface-muted`, `--wt-card`)
+- [x] Rewrote `DashboardPage.jsx` with Lovable layout: term/week micro-label, hero greeting, 4 KPI cards with tier-colored icon chips + trend slots, 2-col grid (Recent Alerts 2/3 + Tier Distribution donut 1/3), 2-col grid (Watchlist 2/3 + Quick Actions 1/3)
+- [x] Replaced JetBrains Mono with `.wt-mono-label` utility (Manrope tabular-nums, 0.12em tracking) — user explicit requirement
+- [x] Preserved all React hooks, API calls, data-testids, appointment alerts, role gates
+- [x] Verified light + dark mode via screenshot tool
+
 ### Pre-existing Features (from single-tenant)
 - Student management, SAEBRS screening, MTSS tier calculation
 - Attendance, Interventions, Appointments, Analytics, Reports
