@@ -1,153 +1,148 @@
 {
-  "project_name": "MTSS School Platform",
-  "design_philosophy": {
-    "identity": "E1 - The Anti-AI Designer",
-    "core_principles": [
-      "Clarity over Decoration: Data must be instantly readable.",
-      "Warmth over Sterility: Schools are human places, not hospitals.",
-      "Function as Aesthetic: The Tier colors (Green/Yellow/Red) drive the visual language.",
-      "Mobile-First Ergonomics: Teachers use tablets while walking around."
-    ],
-    "anti_patterns": [
-      "NO standard 'admin dashboard' templates.",
-      "NO stark white backgrounds without texture or warmth.",
-      "NO generic 'Lorem Ipsum'—use real educational terminology.",
-      "NO 'pure black' text—use Slate-900."
-    ]
-  },
-  "typography": {
-    "font_family": {
-      "headings": "Manrope, sans-serif",
-      "body": "Inter, sans-serif",
-      "data": "JetBrains Mono, monospace"
-    },
-    "scale": {
-      "h1": "text-4xl font-bold tracking-tight text-slate-900",
-      "h2": "text-2xl font-semibold tracking-tight text-slate-800",
-      "h3": "text-xl font-medium text-slate-800",
-      "body": "text-base text-slate-600 leading-relaxed",
-      "small": "text-sm text-slate-500",
-      "data_label": "text-xs font-semibold uppercase tracking-wider text-slate-400"
-    }
-  },
+  "theme": "Light",
+  "archetype": "Archetype 1 (Organic & Earthy) mixed with Archetype 4 (Swiss/High-Contrast) for dashboard density",
+  "domain": "Education, School Wellbeing, and Health SaaS",
+  "design_philosophy": "Sophisticated, calm, and actionable. Move away from generic flat dashboards to a tactile, deeply trusted interface with precise data presentation. Keep Tier colors conceptually but apply sophisticated shades (Sage for Tier 1, Warm Amber for Tier 2, Rose for Tier 3). Emphasize density, crisp typography, and extremely high contrast for readability.",
   "colors": {
-    "palette": {
-      "background": "bg-slate-50",
-      "surface": "bg-white",
-      "primary": {
-        "main": "bg-slate-900",
-        "text": "text-slate-900",
-        "hover": "hover:bg-slate-800"
+    "primary": {
+      "light": "#0F172A",
+      "dark": "#F8FAFC",
+      "tw_class": "slate-900"
+    },
+    "background": {
+      "app": "bg-stone-50",
+      "card": "bg-white",
+      "sidebar": "bg-stone-100/50",
+      "dark_app": "bg-stone-950",
+      "dark_card": "bg-stone-900",
+      "dark_sidebar": "bg-stone-900/50"
+    },
+    "text": {
+      "primary": "text-stone-900 dark:text-stone-50",
+      "secondary": "text-stone-500 dark:text-stone-400",
+      "muted": "text-stone-400 dark:text-stone-500"
+    },
+    "borders": {
+      "default": "border-stone-200 dark:border-stone-800"
+    },
+    "mtss_tiers": {
+      "tier_1": {
+        "concept": "Green / Universal",
+        "bg": "bg-emerald-50 dark:bg-emerald-950/30",
+        "text": "text-emerald-700 dark:text-emerald-400",
+        "border": "border-emerald-200 dark:border-emerald-800/50",
+        "chart_fill": "#059669"
       },
-      "secondary": {
-        "main": "bg-slate-100",
-        "text": "text-slate-700",
-        "hover": "hover:bg-slate-200"
+      "tier_2": {
+        "concept": "Orange / Targeted",
+        "bg": "bg-amber-50 dark:bg-amber-950/30",
+        "text": "text-amber-700 dark:text-amber-400",
+        "border": "border-amber-200 dark:border-amber-800/50",
+        "chart_fill": "#d97706"
       },
-      "accent": {
-        "wellbeing": "bg-indigo-50 text-indigo-700 border-indigo-200",
-        "academic": "bg-blue-50 text-blue-700 border-blue-200"
-      },
-      "tiers": {
-        "tier1": {
-          "bg": "bg-emerald-50",
-          "text": "text-emerald-700",
-          "border": "border-emerald-200",
-          "badge": "bg-emerald-100 text-emerald-800"
-        },
-        "tier2": {
-          "bg": "bg-amber-50",
-          "text": "text-amber-700",
-          "border": "border-amber-200",
-          "badge": "bg-amber-100 text-amber-800"
-        },
-        "tier3": {
-          "bg": "bg-rose-50",
-          "text": "text-rose-700",
-          "border": "border-rose-200",
-          "badge": "bg-rose-100 text-rose-800"
-        }
+      "tier_3": {
+        "concept": "Red / Intensive",
+        "bg": "bg-rose-50 dark:bg-rose-950/30",
+        "text": "text-rose-700 dark:text-rose-400",
+        "border": "border-rose-200 dark:border-rose-800/50",
+        "chart_fill": "#e11d48"
       }
     }
   },
-  "layout": {
-    "grid_system": "Bento Grid (Asymmetric)",
-    "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
-    "spacing": {
-      "section_gap": "gap-8",
-      "card_padding": "p-6",
-      "internal_gap": "space-y-4"
+  "typography": {
+    "font_family": {
+      "heading": "Manrope, sans-serif",
+      "body": "Manrope, sans-serif"
     },
-    "border_radius": {
-      "card": "rounded-xl",
-      "button": "rounded-lg",
-      "input": "rounded-md"
-    },
-    "shadows": {
-      "card": "shadow-sm hover:shadow-md transition-shadow duration-200",
-      "dropdown": "shadow-lg ring-1 ring-black ring-opacity-5"
+    "scale": {
+      "h1": "text-3xl sm:text-4xl font-bold tracking-tight text-stone-900 dark:text-stone-50",
+      "h2": "text-xl sm:text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-50",
+      "h3": "text-lg font-semibold tracking-tight text-stone-900 dark:text-stone-50",
+      "card_title": "text-base font-semibold text-stone-900 dark:text-stone-100",
+      "body": "text-sm text-stone-600 dark:text-stone-300",
+      "label": "text-xs font-semibold uppercase tracking-[0.05em] text-stone-500 dark:text-stone-400"
     }
+  },
+  "layout_and_spacing": {
+    "dashboard_grid": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+    "card_padding": "p-6",
+    "page_padding": "p-6 lg:p-8",
+    "border_radius": "rounded-xl",
+    "sidebar_width": "w-64"
   },
   "components": {
-    "buttons": {
-      "primary": "bg-slate-900 text-white hover:bg-slate-800 shadow-sm transition-all active:scale-95",
-      "secondary": "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 shadow-sm",
-      "ghost": "bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-      "destructive": "bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200"
+    "card": {
+      "classes": "bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl shadow-sm overflow-hidden",
+      "instructions": "Do not use heavy drop shadows. Keep cards completely flat with a 1px solid border. Ensure 24px (p-6) padding inside to let content breathe."
     },
-    "cards": {
-      "base": "bg-white border border-slate-200 rounded-xl overflow-hidden relative",
-      "interactive": "hover:border-slate-300 transition-colors cursor-pointer"
+    "button": {
+      "primary": "bg-stone-900 hover:bg-stone-800 text-white dark:bg-stone-100 dark:hover:bg-white dark:text-stone-900 rounded-lg shadow-sm font-medium transition-colors",
+      "secondary": "bg-white hover:bg-stone-50 text-stone-700 border border-stone-200 dark:bg-stone-900 dark:hover:bg-stone-800 dark:text-stone-300 dark:border-stone-800 rounded-lg transition-colors",
+      "instructions": "Always include focus states (focus:ring-2 focus:ring-stone-400). Icons inside buttons should be 16px (w-4 h-4)."
     },
-    "badges": {
-      "base": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-      "tier1": "bg-emerald-100 text-emerald-800",
-      "tier2": "bg-amber-100 text-amber-800",
-      "tier3": "bg-rose-100 text-rose-800"
+    "badge_tier": {
+      "classes": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border",
+      "instructions": "Use the tier-specific colors defined in 'colors.mtss_tiers'. Always include a subtle border that matches the tier color family."
     },
-    "inputs": {
-      "base": "block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+    "table": {
+      "instructions": "Use unbordered tables. Only use border-b on rows (`border-stone-100`). Header row should use label typography (`text-xs uppercase tracking-wider text-stone-500 bg-stone-50/50`). Align numeric columns to the right."
+    },
+    "charts": {
+      "instructions": "Use Recharts. Ensure tooltips have a clean, white background with a subtle border and shadow. Use the exact chart_fill hex colors for Tier distributions."
+    },
+    "sidebar": {
+      "instructions": "Use a light, transparent background (`bg-stone-50/50`). Active links should have a `bg-white shadow-sm border border-stone-200` to stand out physically from the sidebar canvas. Inactive links should be `text-stone-500 hover:bg-stone-100`."
     }
   },
-  "assets": {
-    "images": {
-      "student_avatars": [
-        "https://images.unsplash.com/photo-1727450395991-d76222e6c985?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjh8MHwxfHNlYXJjaHwyfHxkaXZlcnNlJTIwc3R1ZGVudCUyMHBvcnRyYWl0cyUyMHNtaWxpbmclMjBzY2hvb2wlMjB1bmlmb3JtfGVufDB8fHx8MTc3MzM3Njg5NXww&ixlib=rb-4.1.0&q=85",
-        "https://images.unsplash.com/photo-1587425598226-4906c39a362c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjh8MHwxfHNlYXJjaHwzfHxkaXZlcnNlJTIwc3R1ZGVudCUyMHBvcnRyYWl0cyUyMHNtaWxpbmclMjBzY2hvb2wlMjB1bmlmb3JtfGVufDB8fHx8MTc3MzM3Njg5NXww&ixlib=rb-4.1.0&q=85",
-        "https://images.unsplash.com/photo-1698993081947-8a3654303904?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjh8MHwxfHNlYXJjaHw0fHxkaXZlcnNlJTIwc3R1ZGVudCUyMHBvcnRyYWl0cyUyMHNtaWxpbmclMjBzY2hvb2wlMjB1bmlmb3JtfGVufDB8fHx8MTc3MzM3Njg5NXww&ixlib=rb-4.1.0&q=85"
-      ],
-      "school_building": "https://images.unsplash.com/photo-1656426741103-746055f27760?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHwyfHxtb2Rlcm4lMjBwcmltYXJ5JTIwc2Nob29sJTIwYnVpbGRpbmclMjBleHRlcmlvciUyMG1pbmltYWxpc3R8ZW58MHx8fHwxNzczMzc2ODk2fDA&ixlib=rb-4.1.0&q=85",
-      "login_bg": "https://images.unsplash.com/photo-1656426741103-746055f27760?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHwyfHxtb2Rlcm4lMjBwcmltYXJ5JTIwc2Nob29sJTIwYnVpbGRpbmclMjBleHRlcmlvciUyMG1pbmltYWxpc3R8ZW58MHx8fHwxNzczMzc2ODk2fDA&ixlib=rb-4.1.0&q=85"
-    },
+  "motion_and_interaction": {
+    "hover_states": "Interactive elements should have a subtle transform (`hover:-translate-y-[1px]`) and transition properties (`transition-all duration-200 ease-in-out`).",
+    "page_transitions": "Use Framer Motion to stagger dashboard widgets on load. `<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, staggerChildren: 0.1 }}>`."
+  },
+  "accessibility_and_testing": {
+    "contrast": "Ensure text over Tier badges maintains a minimum 4.5:1 contrast. Use dark text (e.g., emerald-800) over light backgrounds (e.g., emerald-50).",
+    "testing_attributes": "All interactive elements, forms, and key metric cards MUST include `data-testid` attributes (e.g., `data-testid=\"tier-1-student-count\"`).",
+    "focus_states": "All focusable elements must have explicit `focus-visible:ring-2` to aid keyboard navigation."
+  },
+  "media": {
+    "backgrounds": [
+      {
+        "category": "login_background",
+        "url": "https://images.unsplash.com/photo-1760489060455-7a22e7ac1246?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzJ8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBhcmNoaXRlY3R1cmUlMjBzY2hvb2wlMjBpbnRlcmlvcnxlbnwwfHx8fDE3NzY1Njg3NzJ8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Modern building interior with glass and concrete structures. Use as split-screen background for the login/auth page with a subtle white/black overlay (bg-black/20)."
+      }
+    ],
+    "avatars": [
+      {
+        "category": "student_avatar_1",
+        "url": "https://images.unsplash.com/photo-1611181355758-089959e2cfb2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2OTV8MHwxfHNlYXJjaHwzfHxzdHVkZW50JTIwcG9ydHJhaXQlMjBzbWlsaW5nfGVufDB8fHx8MTc3NjU2ODc2MXww&ixlib=rb-4.1.0&q=85",
+        "description": "Student portrait. Use in student lists and profiles."
+      },
+      {
+        "category": "student_avatar_2",
+        "url": "https://images.pexels.com/photos/8617732/pexels-photo-8617732.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Student portrait. Use in student lists and profiles."
+      },
+      {
+        "category": "student_avatar_3",
+        "url": "https://images.pexels.com/photos/14075585/pexels-photo-14075585.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Student portrait. Use in student lists and profiles."
+      }
+    ],
     "icons": {
       "library": "lucide-react",
-      "style": "stroke-width={1.5} size={20}"
-    }
-  },
-  "design_rules": {
-    "universal": [
-      "No gradients for backgrounds, only solid colors or subtle patterns.",
-      "Use 'gap-6' or 'gap-8' for grid layouts to create breathing room.",
-      "All interactive elements must have a ':focus-visible' state for accessibility.",
-      "Use 'data-testid' for all key interactive elements.",
-      "Transition duration should be 'duration-200' for snappy feel.",
-      "Avoid 'drop-shadow-xl' except for modals. Use 'shadow-sm' or 'shadow' for cards."
-    ],
-    "charts": {
-      "library": "recharts",
-      "style": "Clean, minimal axis lines. Use brand colors for data series. Tooltips must be rounded-lg and shadowed."
-    },
-    "accessibility": {
-      "contrast": "Ensure text color satisfies WCAG AA against background.",
-      "focus": "ring-2 ring-indigo-500 ring-offset-2"
+      "instructions": "Use Lucide React consistently for sidebar nav, action buttons, and empty states. Size: w-4 h-4 for buttons, w-5 h-5 for sidebar, w-12 h-12 with low opacity for empty states."
     }
   },
   "instructions_to_main_agent": [
-    "1. Setup Layout: Create a 'DashboardLayout' component with a sidebar and top bar.",
-    "2. Theme: Apply 'bg-slate-50' to the body in index.css.",
-    "3. Components: Customize Shadcn components in 'components/ui' to match 'rounded-xl' radius.",
-    "4. Pages: Implement 'Dashboard', 'Screening', 'StudentProfile', 'Intervention', 'Analytics', 'Settings'.",
-    "5. Mock Data: Create a 'mockData.js' file to populate the charts and tables with realistic school data.",
-    "6. Routing: Use 'react-router-dom' for navigation."
+    "Read this JSON fully before modifying the codebase.",
+    "The application is using React, Tailwind CSS, and Shadcn UI. Keep all components responsive and mobile-first.",
+    "Do NOT use the generic default Tailwind green/yellow/red. You MUST use the exact sophisticated MTSS Tier colors defined under `colors.mtss_tiers`.",
+    "Update the dashboard charts to use Recharts, matching the Tier colors in the tooltips and segments.",
+    "Use Manrope for all text. For headings, use `tracking-tight` to make them feel highly professional.",
+    "Avoid thick shadows on cards. Use `border-stone-200` with `shadow-sm` and pure `bg-white`.",
+    "When modifying the Student Profile, focus heavily on the data layout. Use a structured Bento grid rather than scattered cards.",
+    "Never leave empty `src` for images. Always use the provided media URLs for avatars and login backgrounds.",
+    "Ensure the sidebar navigation is clean, utilizing the new color patterns (stone-50 background, white active items).",
+    "Add `data-testid` to all interactive components for the test suite."
   ]
 }
