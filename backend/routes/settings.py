@@ -185,16 +185,6 @@ async def restore_all_data(request: Request, user=Depends(get_current_user), db=
     return {"message": "Data restored successfully", "restored": restored}
 
 
-@router.get("/classes")
-async def get_classes(user=Depends(get_current_user), db=Depends(get_tenant_db)):
-    classes = await db.students.distinct("class_name")
-    result = []
-    for cls in sorted(classes):
-        s = await db.students.find_one({"class_name": cls}, {"_id": 0})
-        result.append({"class_name": cls, "teacher": s["teacher"] if s else ""})
-    return result
-
-
 # ── School Calendar (terms + non-school days) ─────────────────────────────────
 
 def _generate_school_days(terms: list, non_school_days: list) -> list:

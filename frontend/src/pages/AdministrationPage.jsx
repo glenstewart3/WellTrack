@@ -76,6 +76,7 @@ const DEFAULT_PERMISSIONS = {
 // ── TAB NAV ──────────────────────────────────────────────────────────────────
 const TABS = [
   { key: 'User Management', icon: UserCog },
+  { key: 'Classes', icon: Users2 },
   { key: 'Role Permissions', icon: Shield },
   { key: 'Audit Log', icon: ClipboardCheck },
 ];
@@ -1273,6 +1274,134 @@ function AuditLogTab() {
   );
 }
 
+// ── CLASSES TAB ──────────────────────────────────────────────────────────────
+function ClassesTab() {
+  const [classes, setClasses] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState({});
+  const [msg, setMsg] = useState({ text: '', type: '' });
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [cRes, uRes] = await Promise.all([
+        api.get('/classes'),
+        api.get('/users'),
+      ]);
+      setClasses(cRes.data || []);
+      setUsers((uRes.data || []).filter(u => u.is_active !== false));
+    } catch (e) {
+      setMsg({ text: e.response?.data?.detail || 'Failed to load classes', type: 'error' });
+    } finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const showMsg = (text, type = 'success') => {
+    setMsg({ text, type });
+    setTimeout(() => setMsg({ text: '', type: '' }), 4000);
+  };
+
+  const assign = async (className, teacherUserId) => {
+    setSaving(prev => ({ ...prev, [className]: true }));
+    try {
+      const res = await api.put(`/classes/${encodeURIComponent(className)}/teacher`, {
+        teacher_user_id: teacherUserId || null,
+      });
+      setClasses(prev => prev.map(c => c.class_name === className ? { ...c, ...res.data } : c));
+      showMsg(teacherUserId ? `Assigned teacher to ${className}` : `Cleared teacher for ${className}`);
+    } catch (e) {
+      showMsg(e.response?.data?.detail || 'Failed to assign teacher', 'error');
+    } finally {
+      setSaving(prev => ({ ...prev, [className]: false }));
+    }
+  };
+
+  const teacherOptions = users
+    .filter(u => ['teacher', 'leadership', 'wellbeing', 'professional', 'admin'].includes(u.role))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+  return (
+    <div>
+      <div className="mb-5">
+        <h2 className="text-lg font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Classes &amp; Teachers</h2>
+        <p className="text-sm text-slate-500 mt-0.5">
+          Assign one teacher per class (home group). Classes are detected from your imported students' <code className="bg-slate-100 px-1 rounded text-xs">HOME_GROUP</code>. The selected teacher becomes the owner of that class everywhere in WellTrack.
+        </p>
+      </div>
+
+      {msg.text && (
+        <div className={`mb-4 flex items-center gap-2 rounded-xl p-3 text-sm ${msg.type === 'error' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}
+             data-testid="classes-msg">
+          <CheckCircle size={14} />
+          <span>{msg.text}</span>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="space-y-2">
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-14 bg-white rounded-xl animate-pulse border border-slate-100" />)}
+        </div>
+      ) : classes.length === 0 ? (
+        <div className="py-16 text-center bg-white border border-slate-200 rounded-xl">
+          <Users2 size={32} className="mx-auto mb-3 text-slate-300" />
+          <p className="text-slate-500 font-medium">No classes found yet</p>
+          <p className="text-xs text-slate-400 mt-1">Import students with a HOME_GROUP / Form Group column to populate this list.</p>
+        </div>
+      ) : (
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <div className="grid border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-400 uppercase tracking-wider"
+               style={{ gridTemplateColumns: '180px 110px 1fr 100px' }}>
+            <div className="px-4 py-3">Class</div>
+            <div className="px-4 py-3">Students</div>
+            <div className="px-4 py-3">Teacher</div>
+            <div className="px-4 py-3 text-right">&nbsp;</div>
+          </div>
+          {classes.map(c => {
+            const isBusy = !!saving[c.class_name];
+            return (
+              <div key={c.class_name}
+                   className="grid items-center border-b border-slate-50 last:border-b-0 hover:bg-slate-50/60 transition-colors"
+                   style={{ gridTemplateColumns: '180px 110px 1fr 100px' }}
+                   data-testid={`class-row-${c.class_name}`}>
+                <div className="px-4 py-3">
+                  <p className="text-sm font-semibold text-slate-800">{c.class_name}</p>
+                </div>
+                <div className="px-4 py-3 text-sm text-slate-600">{c.student_count}</div>
+                <div className="px-4 py-3">
+                  <select
+                    value={c.teacher_user_id || ''}
+                    onChange={(e) => assign(c.class_name, e.target.value)}
+                    disabled={isBusy}
+                    data-testid={`class-teacher-select-${c.class_name}`}
+                    className="w-full max-w-xs px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:outline-none disabled:opacity-50"
+                  >
+                    <option value="">— Unassigned —</option>
+                    {teacherOptions.map(u => (
+                      <option key={u.user_id} value={u.user_id}>
+                        {u.name || u.email} · {u.role}
+                      </option>
+                    ))}
+                  </select>
+                  {c.teacher_name && c.teacher_user_id && !teacherOptions.find(u => u.user_id === c.teacher_user_id) && (
+                    <p className="text-[11px] text-amber-600 mt-1">
+                      Currently assigned to <strong>{c.teacher_name}</strong> (user no longer in the list)
+                    </p>
+                  )}
+                </div>
+                <div className="px-4 py-3 text-right">
+                  {isBusy && <Loader size={14} className="inline animate-spin text-indigo-500" />}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── MAIN ADMINISTRATION PAGE ──────────────────────────────────────────────────
 export default function AdministrationPage() {
   useDocumentTitle('Administration');
@@ -1298,6 +1427,7 @@ export default function AdministrationPage() {
       <TabNav active={activeTab} onChange={setActiveTab} />
 
       {activeTab === 'User Management' && <UserManagementTab />}
+      {activeTab === 'Classes' && <ClassesTab />}
       {activeTab === 'Role Permissions' && <RolePermissionsTab />}
       {activeTab === 'Audit Log' && <AuditLogTab />}
     </div>

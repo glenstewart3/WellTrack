@@ -428,7 +428,8 @@ async def attendance_trends(year_level: Optional[str] = None, class_name: Option
         sid = s["student_id"]
         recs = records_by_student.get(sid, [])
         exc_by_date = {r["date"]: r for r in recs}
-        stats = compute_att_stats(school_days_list, exc_by_date, excluded_types)
+        stats = compute_att_stats(school_days_list, exc_by_date, excluded_types,
+                                  entry_date=s.get("entry_date"))
         att_pct = stats["pct"]
 
         if att_pct < 90:

@@ -102,12 +102,18 @@ async def create_alert(db, student_id: str, student_name: str, class_name: str,
 
 # ── Attendance calc (single-student) ─────────────────────────────────────────
 
-def compute_att_stats(school_days_list, exc_by_date: dict, excluded_types: set) -> dict:
+def compute_att_stats(school_days_list, exc_by_date: dict, excluded_types: set,
+                      entry_date: str = None) -> dict:
     """Pure-Python computation (no DB calls) — accepts pre-fetched data.
     exc_by_date: {date_str: record_dict} for this student's absence records.
     school_days_list:
       - list (even empty []): normal mode. Empty list → no data (total_days=0).
       - None: legacy fallback only — derives denominator from exception records.
+    entry_date: ISO date string ("YYYY-MM-DD"). If provided, school days earlier
+      than the student's enrolment date are ignored so late-enrolled students
+      aren't penalised for days prior to their start.
+    Records may include a pre-computed `present_pct` (0.0–1.0, new time-based
+    schema); otherwise AM/PM status classification is used (half-day absences).
     Returns {pct, total_days, absent_days}.
     """
     def _classify(s: str) -> str:
@@ -119,47 +125,70 @@ def compute_att_stats(school_days_list, exc_by_date: dict, excluded_types: set) 
             return "present"
         return "absent"
 
+    def _day_absent_fraction(rec) -> float:
+        """Return how much of the day the student was absent (0.0–1.0).
+        Returns None if the record is fully excluded (day should be skipped)."""
+        am = (rec.get("am_status") or "").strip()
+        pm = (rec.get("pm_status") or "").strip()
+        am_cls = _classify(am)
+        pm_cls = _classify(pm)
+        if am_cls == "excluded" and pm_cls == "excluded":
+            return None
+        # Prefer time-based `present_pct` when available (new schema)
+        ppct = rec.get("present_pct")
+        if ppct is not None:
+            try:
+                ppct = float(ppct)
+                return max(0.0, min(1.0, 1.0 - ppct))
+            except (TypeError, ValueError):
+                pass
+        # Fall back to AM/PM classification (legacy half-day model)
+        if am_cls == "absent" and pm_cls == "absent":
+            return 1.0
+        if am_cls == "absent" or pm_cls == "absent":
+            return 0.5
+        return 0.0
+
     if school_days_list is not None:
+        days_iter = school_days_list
+        if entry_date:
+            days_iter = [d for d in school_days_list if d >= entry_date]
         total_days = 0
         absent_days = 0.0
-        for day in school_days_list:
-            if day not in exc_by_date:
+        for day in days_iter:
+            rec = exc_by_date.get(day)
+            if rec is None:
                 total_days += 1
-            else:
-                rec = exc_by_date[day]
-                am_cls = _classify((rec.get("am_status") or "").strip())
-                pm_cls = _classify((rec.get("pm_status") or "").strip())
-                if am_cls == "excluded" and pm_cls == "excluded":
-                    continue
-                total_days += 1
-                if am_cls == "absent" and pm_cls == "absent":
-                    absent_days += 1.0
-                elif am_cls == "absent" or pm_cls == "absent":
-                    absent_days += 0.5
+                continue
+            frac = _day_absent_fraction(rec)
+            if frac is None:
+                continue  # fully excluded
+            total_days += 1
+            absent_days += frac
         if total_days == 0:
             return {"pct": 100.0, "total_days": 0, "absent_days": 0.0}
         pct = max(0.0, min(100.0, ((total_days - absent_days) / total_days) * 100.0))
         return {"pct": pct, "total_days": total_days, "absent_days": absent_days}
-    else:
-        total_days = 0
-        absent_days = 0.0
-        for rec in exc_by_date.values():
-            am = (rec.get("am_status") or "").strip()
-            pm = (rec.get("pm_status") or "").strip()
-            if am or pm:
-                am_cls = _classify(am)
-                pm_cls = _classify(pm)
-                if am_cls == "excluded" and pm_cls == "excluded":
-                    continue
-                total_days += 1
-                if am_cls == "absent" and pm_cls == "absent":
-                    absent_days += 1.0
-                elif am_cls == "absent" or pm_cls == "absent":
-                    absent_days += 0.5
-        if total_days == 0:
-            return {"pct": 100.0, "total_days": 0, "absent_days": 0.0}
-        pct = ((total_days - absent_days) / total_days) * 100
-        return {"pct": pct, "total_days": total_days, "absent_days": absent_days}
+
+    # Legacy fallback: derive denominator from exception records only
+    total_days = 0
+    absent_days = 0.0
+    for day, rec in exc_by_date.items():
+        if entry_date and day < entry_date:
+            continue
+        am = (rec.get("am_status") or "").strip()
+        pm = (rec.get("pm_status") or "").strip()
+        if not (am or pm or rec.get("present_pct") is not None):
+            continue
+        frac = _day_absent_fraction(rec)
+        if frac is None:
+            continue
+        total_days += 1
+        absent_days += frac
+    if total_days == 0:
+        return {"pct": 100.0, "total_days": 0, "absent_days": 0.0}
+    pct = ((total_days - absent_days) / total_days) * 100
+    return {"pct": pct, "total_days": total_days, "absent_days": absent_days}
 
 
 async def get_student_attendance_pct(db, student_id: str) -> float:
@@ -169,9 +198,10 @@ async def get_student_attendance_pct(db, student_id: str) -> float:
 
 async def get_student_attendance_stats(db, student_id: str) -> dict:
     """Single-student lookup. Scoped to the current school year from settings."""
-    settings_doc, exc_records = await asyncio.gather(
+    settings_doc, exc_records, student_doc = await asyncio.gather(
         db.school_settings.find_one({}, {"_id": 0}),
         db.attendance_records.find({"student_id": student_id}, {"_id": 0}).to_list(5000),
+        db.students.find_one({"student_id": student_id}, {"_id": 0, "entry_date": 1}),
     )
     year = (settings_doc or {}).get("current_year")
     today_str = datetime.now(timezone.utc).date().isoformat()
@@ -185,7 +215,8 @@ async def get_student_attendance_stats(db, student_id: str) -> dict:
             )) or None
     excluded_types = set((settings_doc or {}).get("excluded_absence_types", []))
     exc_by_date = {r["date"]: r for r in exc_records}
-    return compute_att_stats(school_days_list, exc_by_date, excluded_types)
+    entry_date = (student_doc or {}).get("entry_date")
+    return compute_att_stats(school_days_list, exc_by_date, excluded_types, entry_date=entry_date)
 
 
 # ── Batch attendance helpers ──────────────────────────────────────────────────
@@ -204,9 +235,20 @@ async def get_bulk_attendance_records(db, student_ids: list) -> dict:
 
 
 async def get_bulk_attendance_stats(db, student_ids: list, school_days_list=None, excluded_types=None) -> dict:
-    """Batch version of get_student_attendance_stats."""
+    """Batch version of get_student_attendance_stats.
+
+    Always respects each student's `entry_date` (from the students collection)
+    so late enrolees aren't penalised for days prior to their start.
+    """
     if not student_ids:
         return {}
+
+    # Always fetch entry_date for every student in the batch
+    entry_docs = await db.students.find(
+        {"student_id": {"$in": student_ids}},
+        {"_id": 0, "student_id": 1, "entry_date": 1},
+    ).to_list(len(student_ids))
+    entry_by_sid = {d["student_id"]: d.get("entry_date") for d in entry_docs}
 
     if excluded_types is None or school_days_list is None:
         settings_doc = await db.school_settings.find_one({}, {"_id": 0})
@@ -230,13 +272,23 @@ async def get_bulk_attendance_stats(db, student_ids: list, school_days_list=None
                     )
                     school_days_list = sorted(all_att_dates) if all_att_dates else None
             return {
-                sid: compute_att_stats(school_days_list, {r["date"]: r for r in records_by_student.get(sid, [])}, excluded_types)
+                sid: compute_att_stats(
+                    school_days_list,
+                    {r["date"]: r for r in records_by_student.get(sid, [])},
+                    excluded_types,
+                    entry_date=entry_by_sid.get(sid),
+                )
                 for sid in student_ids
             }
 
     records_by_student = await get_bulk_attendance_records(db, student_ids)
     return {
-        sid: compute_att_stats(school_days_list, {r["date"]: r for r in records_by_student.get(sid, [])}, excluded_types)
+        sid: compute_att_stats(
+            school_days_list,
+            {r["date"]: r for r in records_by_student.get(sid, [])},
+            excluded_types,
+            entry_date=entry_by_sid.get(sid),
+        )
         for sid in student_ids
     }
 

@@ -27,7 +27,8 @@ def _classify_status(status: str, excluded_types: set) -> str:
 
 
 def _build_monthly_trend(school_days_list: list, exc_by_date: dict, excluded_types: set) -> list:
-    """Aggregate attendance into monthly buckets."""
+    """Aggregate attendance into monthly buckets. Supports new time-based
+    `present_pct` records as well as legacy AM/PM status classification."""
     monthly_data: dict = {}
     for day in school_days_list:
         month = day[:7]
@@ -42,6 +43,13 @@ def _build_monthly_trend(school_days_list: list, exc_by_date: dict, excluded_typ
             if am_cls == "excluded" and pm_cls == "excluded":
                 continue
             monthly_data[month]["school_days"] += 1
+            ppct = rec.get("present_pct")
+            if ppct is not None:
+                try:
+                    monthly_data[month]["absent"] += max(0.0, min(1.0, 1.0 - float(ppct)))
+                    continue
+                except (TypeError, ValueError):
+                    pass
             if am_cls == "absent" and pm_cls == "absent":
                 monthly_data[month]["absent"] += 1.0
             elif am_cls == "absent" or pm_cls == "absent":
@@ -64,6 +72,80 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
         raise HTTPException(403, "Admin or leadership access required")
     content = await file.read()
     fname = (file.filename or "").lower()
+
+    # School session constants (in minutes from midnight)
+    SCHOOL_START = 8 * 60 + 50      # 08:50 → 530
+    AM_END       = 12 * 60 + 5      # 12:05 → 725 (midpoint of 390-min school day)
+    PM_START     = AM_END
+    SCHOOL_END   = 15 * 60 + 20     # 15:20 → 920
+    FULL_DAY_MIN = SCHOOL_END - SCHOOL_START  # 390
+    HALF_DAY_MIN = AM_END - SCHOOL_START      # 195
+
+    def _mins_from_hmm(v) -> int:
+        """Parse HHMM / H:MM / HH:MM into minutes-since-midnight. Returns None if invalid/empty."""
+        if v is None:
+            return None
+        s = str(v).strip()
+        if not s:
+            return None
+        # handle float-ish "933.0"
+        if "." in s:
+            s = s.split(".", 1)[0]
+        # strip colons / spaces
+        s = s.replace(":", "").replace(" ", "")
+        if not s.isdigit():
+            return None
+        n = int(s)
+        if n <= 0:
+            return None
+        # last 2 digits = minutes, rest = hours
+        h, m = divmod(n, 100)
+        if h > 23 or m > 59:
+            return None
+        return h * 60 + m
+
+    def _truthy(v) -> bool:
+        """Coerce AM_ATTENDED / PM_ATTENDED values. Accepts 1/0, Y/N, True/False, YES/NO, blank."""
+        if v is None:
+            return False
+        s = str(v).strip().upper()
+        if s in ("", "0", "N", "NO", "FALSE", "F"):
+            return False
+        return True
+
+    def _compute_present_pct(am_att, am_late, am_early, pm_att, pm_late, pm_early) -> float:
+        """Return fraction (0.0–1.0) of the 8:50–15:20 school day the student was present."""
+        # AM window
+        if not _truthy(am_att):
+            am_present = 0
+        else:
+            am_present = HALF_DAY_MIN
+            late = _mins_from_hmm(am_late)
+            if late is not None:
+                clamped = max(SCHOOL_START, min(AM_END, late))
+                am_present -= (clamped - SCHOOL_START)
+            early = _mins_from_hmm(am_early)
+            if early is not None:
+                clamped = max(SCHOOL_START, min(AM_END, early))
+                am_present -= (AM_END - clamped)
+            am_present = max(0, am_present)
+
+        # PM window
+        if not _truthy(pm_att):
+            pm_present = 0
+        else:
+            pm_present = HALF_DAY_MIN
+            late = _mins_from_hmm(pm_late)
+            if late is not None:
+                clamped = max(PM_START, min(SCHOOL_END, late))
+                pm_present -= (clamped - PM_START)
+            early = _mins_from_hmm(pm_early)
+            if early is not None:
+                clamped = max(PM_START, min(SCHOOL_END, early))
+                pm_present -= (SCHOOL_END - clamped)
+            pm_present = max(0, pm_present)
+
+        return round((am_present + pm_present) / FULL_DAY_MIN, 4)
 
     def _find_col(headers, names, fallback=None):
         for n in names:
@@ -91,13 +173,84 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
         headers = []
         for i, row in enumerate(all_rows[:20]):
             cells = [str(v or '').strip().upper() for v in row]
-            if 'ID' in cells or any(c in ('DATE', 'ABSENCE DATE') for c in cells):
+            if ('STKEY' in cells or 'ID' in cells
+                    or any(c in ('DATE', 'ABSENCE DATE', 'ABSENCE_DATE') for c in cells)):
                 header_idx = i
                 headers = cells
                 break
         if not headers:
             headers = [str(v or '').strip().upper() for v in all_rows[0]]
 
+        # Detect new time-based schema by looking for AM_ATTENDED / PM_ATTENDED
+        is_new_schema = any(h in ('AM_ATTENDED', 'PM_ATTENDED') for h in headers)
+
+        if is_new_schema:
+            id_c         = _find_col(headers, ['STKEY', 'ID', 'STUDENT ID'], fallback=0)
+            dt_c         = _find_col(headers, ['ABSENCE_DATE', 'ABSENCE DATE', 'DATE'], fallback=None)
+            pref_c       = _find_col(headers, ['PREF_NAME', 'PREFERRED NAME'], fallback=None)
+            comment_c    = _find_col(headers, ['ABSENCE_COMMENT', 'ABSENCE COMMENT', 'COMMENT'], fallback=None)
+            am_att_c     = _find_col(headers, ['AM_ATTENDED'], fallback=None)
+            am_late_c    = _find_col(headers, ['AM_LATE_ARRIVAL', 'AM_LATE'], fallback=None)
+            am_early_c   = _find_col(headers, ['AM_EARLY_LEFT', 'AM_EARLY'], fallback=None)
+            pm_att_c     = _find_col(headers, ['PM_ATTENDED'], fallback=None)
+            pm_late_c    = _find_col(headers, ['PM_LATE_ARRIVAL', 'PM_LATE'], fallback=None)
+            pm_early_c   = _find_col(headers, ['PM_EARLY_LEFT', 'PM_EARLY'], fallback=None)
+
+            parsed = []
+            pref_by_id: dict = {}
+            for row in all_rows[header_idx + 1:]:
+                if id_c is None or dt_c is None:
+                    continue
+                ext_id = str(row[id_c] or '').strip().upper() if id_c < len(row) else ''
+                dv     = row[dt_c] if dt_c < len(row) else ''
+                if not ext_id or not dv:
+                    continue
+                date_str = _parse_date(dv)
+                if not date_str:
+                    continue
+
+                am_att   = row[am_att_c]   if am_att_c   is not None and am_att_c   < len(row) else None
+                am_late  = row[am_late_c]  if am_late_c  is not None and am_late_c  < len(row) else None
+                am_early = row[am_early_c] if am_early_c is not None and am_early_c < len(row) else None
+                pm_att   = row[pm_att_c]   if pm_att_c   is not None and pm_att_c   < len(row) else None
+                pm_late  = row[pm_late_c]  if pm_late_c  is not None and pm_late_c  < len(row) else None
+                pm_early = row[pm_early_c] if pm_early_c is not None and pm_early_c < len(row) else None
+                comment  = (str(row[comment_c]).strip() if comment_c is not None and comment_c < len(row) and row[comment_c] is not None else '')
+
+                present_pct = _compute_present_pct(am_att, am_late, am_early, pm_att, pm_late, pm_early)
+
+                # Derive status strings for legacy compatibility / grouping
+                def _session_status(att, late, early):
+                    if not _truthy(att):
+                        return "Absent"
+                    if _mins_from_hmm(late) is not None or _mins_from_hmm(early) is not None:
+                        return "Partial"
+                    return "Present"
+
+                am_status = _session_status(am_att, am_late, am_early)
+                pm_status = _session_status(pm_att, pm_late, pm_early)
+
+                pref = None
+                if pref_c is not None and pref_c < len(row) and row[pref_c]:
+                    pref = str(row[pref_c]).strip() or None
+                if pref:
+                    pref_by_id[ext_id] = pref
+
+                parsed.append({
+                    'external_id': ext_id, 'date': date_str,
+                    'am_status': am_status, 'pm_status': pm_status,
+                    'am_attended': _truthy(am_att), 'pm_attended': _truthy(pm_att),
+                    'am_late_arrival': str(am_late).strip() if am_late not in (None, '') else '',
+                    'am_early_left':   str(am_early).strip() if am_early not in (None, '') else '',
+                    'pm_late_arrival': str(pm_late).strip() if pm_late not in (None, '') else '',
+                    'pm_early_left':   str(pm_early).strip() if pm_early not in (None, '') else '',
+                    'present_pct': present_pct,
+                    'absence_comment': comment or '',
+                    '_pref_name': pref,
+                })
+            return parsed
+
+        # ── Legacy schema (AM / PM status strings) ─────────────────────────────
         id_c   = _find_col(headers, ['ID', 'SUSSIID', 'SUSSI ID', 'STUDENT ID', 'STUDENTID',
                                      'STUDENT CODE', 'COMPASS', 'ROLL'], fallback=0)
         dt_c   = _find_col(headers, ['DATE', 'ABSENCE DATE', 'ABS DATE', 'ABSDATE'], fallback=7)
@@ -183,8 +336,16 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
         if student_id:
             dates = [r['date'] for r in recs]
             await db.attendance_records.delete_many({"student_id": student_id, "date": {"$in": dates}})
-            docs = [{"student_id": student_id, "external_id": ext_id, "date": r['date'],
-                     "am_status": r['am_status'], "pm_status": r['pm_status']} for r in recs]
+            docs = []
+            for r in recs:
+                doc = {"student_id": student_id, "external_id": ext_id, "date": r['date'],
+                       "am_status": r['am_status'], "pm_status": r['pm_status']}
+                # Persist new time-based fields when present
+                for k in ('am_attended', 'pm_attended', 'am_late_arrival', 'am_early_left',
+                          'pm_late_arrival', 'pm_early_left', 'present_pct', 'absence_comment'):
+                    if k in r:
+                        doc[k] = r[k]
+                docs.append(doc)
             all_docs.extend(docs)
             stored_count += len(docs)
             if ext_id in pref_name_by_ext:
@@ -329,13 +490,15 @@ async def get_student_attendance_detail(
     from_date: str = None,
     to_date: str = None,
     user=Depends(get_current_user), db=Depends(get_tenant_db)):
-    settings_doc, records = await asyncio.gather(
+    settings_doc, records, student_doc = await asyncio.gather(
         db.school_settings.find_one({}, {"_id": 0}),
         db.attendance_records.find({"student_id": student_id}, {"_id": 0}).sort("date", 1).to_list(3000),
+        db.students.find_one({"student_id": student_id}, {"_id": 0, "entry_date": 1}),
     )
     excluded_types = set((settings_doc or {}).get("excluded_absence_types") or [])
     current_year = year or (settings_doc or {}).get("current_year")
     today_str = datetime.now(timezone.utc).date().isoformat()
+    entry_date = (student_doc or {}).get("entry_date")
 
     year_filter = {"year": current_year} if current_year else {}
     if from_date and to_date:
@@ -364,7 +527,7 @@ async def get_student_attendance_detail(
 
     exc_by_date = {r["date"]: r for r in records}
 
-    stats = compute_att_stats(school_days_list, exc_by_date, excluded_types)
+    stats = compute_att_stats(school_days_list, exc_by_date, excluded_types, entry_date=entry_date)
     total_days = stats["total_days"]
     absent_days = stats["absent_days"]
     att_pct = stats["pct"]
@@ -373,6 +536,8 @@ async def get_student_attendance_detail(
     school_days_set = set(school_days_list)
     for day, rec in exc_by_date.items():
         if day not in school_days_set:
+            continue
+        if entry_date and day < entry_date:
             continue
         am = (rec.get("am_status") or "").strip()
         pm = (rec.get("pm_status") or "").strip()
@@ -389,7 +554,8 @@ async def get_student_attendance_detail(
         elif pm_cls == "absent":
             absence_types[pm] = absence_types.get(pm, 0) + 0.5
 
-    monthly_trend = _build_monthly_trend(school_days_list, exc_by_date, excluded_types)
+    trend_days = [d for d in school_days_list if not entry_date or d >= entry_date]
+    monthly_trend = _build_monthly_trend(trend_days, exc_by_date, excluded_types)
 
     return {
         "student_id": student_id, "attendance_pct": round(att_pct, 1),

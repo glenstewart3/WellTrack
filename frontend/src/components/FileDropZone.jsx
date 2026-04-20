@@ -145,9 +145,11 @@ function formatSize(bytes) {
 }
 
 const SIGNATURES = {
-  students:         ['import identifier', 'first name', 'surname', 'year level', 'form group'],
+  students:         ['import identifier', 'first name', 'surname', 'year level', 'form group',
+                     'stkey', 'pref_name', 'birthdate', 'home_group', 'school_year'],
   student_details:  ['student_key', 'student key', 'eal', 'aboriginal'],
-  attendance:       ['absence date', 'absence', 'reason', 'date'],
+  attendance:       ['absence date', 'absence_date', 'absence', 'reason', 'date',
+                     'stkey', 'am_attended', 'pm_attended', 'am_late_arrival', 'pm_late_arrival'],
   users:            ['email', 'name', 'role'],
 };
 

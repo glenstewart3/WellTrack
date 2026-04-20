@@ -1822,24 +1822,22 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
       {/* Attendance Upload */}
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Upload Attendance</h3>
-        <p className="text-xs text-slate-400 mb-1">Upload an exception-based attendance file. Only students with absences or exceptions need to be in the file — unlisted students are automatically marked as present.</p>
-        <p className="text-xs text-slate-400 mb-3">Supports CSV or XLSX with columns: <code className="bg-slate-100 px-1 rounded">SussiId/ID, Date, AM, PM</code>. XLSX files are automatically converted. "Present" status = half-day.</p>
+        <p className="text-xs text-slate-400 mb-1">Upload an exception-based attendance file. Only days where a student was absent or partially absent need appear — unlisted student-days are treated as fully present.</p>
+        <p className="text-xs text-slate-400 mb-3">Supports CSV or XLSX. The new time-based schema uses columns <code className="bg-slate-100 px-1 rounded">STKEY, FIRST_NAME, PREF_NAME, SURNAME, ABSENCE_DATE, ABSENCE_COMMENT, AM_ATTENDED, AM_LATE_ARRIVAL, AM_EARLY_LEFT, PM_ATTENDED, PM_LATE_ARRIVAL, PM_EARLY_LEFT</code>. Times are expressed as HHMM (e.g. <code className="bg-slate-100 px-1 rounded">933</code> = 9:33 AM). The legacy <code className="bg-slate-100 px-1 rounded">ID, Date, AM, PM</code> format is still auto-detected.</p>
         <details className="mb-4 group">
           <summary className="cursor-pointer text-xs font-medium text-indigo-600 hover:text-indigo-700 select-none list-none flex items-center gap-1.5">
             <span className="transition-transform group-open:rotate-90 inline-block">▶</span>
-            How to export from eCases
+            How attendance % is calculated
           </summary>
           <div className="mt-2 p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-xs text-slate-600 space-y-1.5">
-            <ol className="list-decimal list-inside space-y-1.5">
-              <li>In eCases, go to <strong>Reports</strong> → <strong>Student Reports</strong> → <strong>Attendance</strong> → <strong>Student Absence Details Report</strong></li>
-              <li>Select your desired date range and <strong>Home Groups</strong></li>
-              <li>Click <strong>Preview</strong></li>
-              <li>Choose <strong>Export as XLSX</strong> and click <strong>Export</strong></li>
-              <li>Upload the <strong>.xlsx file directly</strong> — no need to convert to CSV</li>
-            </ol>
-            <p className="text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">
-              <strong>Note:</strong> The CSV export option in eCases is currently bugged — use the XLSX export instead and upload it directly here.
-            </p>
+            <p>The school day is <strong>8:50 AM – 3:20 PM</strong> (390 minutes total). Each record is converted to a <strong>present_pct</strong> between 0.0 and 1.0:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>If <code>AM_ATTENDED</code> is false/0, the student missed the full morning (195 min).</li>
+              <li><code>AM_LATE_ARRIVAL = 933</code> means they arrived at 9:33 AM → 43 min lost.</li>
+              <li><code>AM_EARLY_LEFT = 1030</code> means they left at 10:30 AM → 95 min lost.</li>
+              <li>Same logic applies to the PM session (12:05 PM – 3:20 PM).</li>
+              <li>Attendance % uses each student's <strong>ENTRY date</strong> so late enrolees aren't penalised for days before their start.</li>
+            </ul>
           </div>
         </details>
         <FileDropZone
