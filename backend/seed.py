@@ -100,12 +100,38 @@ async def seed_database(db, student_count: int = 32):
 
     await db.students.insert_many(students)
 
-    await db.screening_sessions.insert_many([
-        {"screening_id": f"scr_term1_{seed_year}", "screening_period": "Term 1 - P1", "year": seed_year,
-         "date": f"{seed_year}-02-15", "teacher_id": "demo", "class_name": "all", "status": "completed"},
-        {"screening_id": f"scr_term2_{seed_year}", "screening_period": "Term 2 - P1", "year": seed_year,
-         "date": f"{seed_year}-05-10", "teacher_id": "demo", "class_name": "all", "status": "completed"},
-    ])
+    # ── Build 8 screening events spaced over the past year ──────────────────
+    # We go backwards from ~2 weeks ago at ~7-week intervals so the Tier Movement
+    # chart shows a full year of data. The 2 most-recent events are the "current"
+    # snapshot used by alert/intervention logic (preserved as s1/s2).
+    today = date_type.today()
+    most_recent = today - timedelta(days=14)
+    # 8 events, evenly spaced ~45 days apart; oldest → newest
+    event_gaps_days = [45 * i for i in range(8)]
+    event_dates = sorted([most_recent - timedelta(days=g) for g in event_gaps_days])
+
+    # Label each with a Term/Period marker based on Australian term calendar
+    def _term_period_label(d):
+        # Terms: 1=Jan-early-Apr, 2=late-Apr-Jul, 3=Jul-Sep, 4=Oct-Dec
+        m = d.month
+        term = 1 if m <= 4 else (2 if m <= 7 else (3 if m <= 9 else 4))
+        # Period 1 = first half of term, Period 2 = second half
+        period = 1 if d.day <= 15 else 2
+        return term, period, f"Term {term} - P{period}"
+
+    screening_sessions = []
+    for idx, ev_date in enumerate(event_dates):
+        term, period, label = _term_period_label(ev_date)
+        screening_sessions.append({
+            "screening_id": f"scr_{ev_date.isoformat()}",
+            "screening_period": label,
+            "year": ev_date.year,
+            "date": ev_date.isoformat(),
+            "teacher_id": "demo",
+            "class_name": "all",
+            "status": "completed",
+        })
+    await db.screening_sessions.insert_many(screening_sessions)
 
     def build_school_days(start_date, num_days):
         days = []
@@ -168,22 +194,41 @@ async def seed_database(db, student_count: int = 32):
                     "Monitoring", "Goals reviewed and updated", None]
 
     all_s1, all_s2, all_p1, all_p2 = [], [], [], []
+    all_prior_saebrs, all_prior_plus = [], []  # 6 historical screenings per student
     all_att_recs, all_int, all_notes, all_alerts, all_appts = [], [], [], [], []
     school_days_set = set(all_school_days)
+
+    # Trajectory buckets: most students stable, some improve/decline over the year
+    #   stable   — same tier across the year (gentle item-level drift only)
+    #   improver — starts 1 tier worse than base, gradually moves to base by end
+    #   decliner — starts at base, gradually drifts 1 tier worse
+    def _traj_for(base):
+        roll = rng.random()
+        if roll < 0.15:
+            return "improver"
+        if roll < 0.28:
+            return "decliner"
+        return "stable"
+
+    tier_order = ["low", "some", "high"]
+
+    def _risk_at(base, traj, idx_0_to_7):
+        """Given a base risk + trajectory, return the risk label for event idx (0 = oldest)."""
+        if traj == "stable":
+            return base
+        base_idx = tier_order.index(base)
+        if traj == "improver":
+            # start one worse, end at base (event idx 0 worst, idx 7 best)
+            offset = 1 if idx_0_to_7 < 4 else 0
+            return tier_order[min(2, base_idx + offset)]
+        # decliner: start at base, drift one worse by the last screening
+        offset = 0 if idx_0_to_7 < 4 else 1
+        return tier_order[min(2, base_idx + offset)]
 
     for idx, student in enumerate(students):
         sid = student["student_id"]
         base_risk = risk_assignments[idx]
-
-        # Allow some trajectory variation between terms
-        if rng.random() < 0.15:
-            risk_t1 = rng.choice(["low", "some", "high"])
-            risk_t2 = base_risk
-        elif rng.random() < 0.10:
-            risk_t1 = base_risk
-            risk_t2 = rng.choice(["low", "some"])
-        else:
-            risk_t1 = risk_t2 = base_risk
+        traj = _traj_for(base_risk)
 
         att_frac = rng.choice(att_map[base_risk]) / 100.0
         pref = student.get('preferred_name')
@@ -194,9 +239,6 @@ async def seed_database(db, student_count: int = 32):
             if risk == "low":   return low_s, low_a, low_e, sr_low
             if risk == "some":  return some_s, some_a, some_e, sr_some
             return high_s, high_a, high_e, sr_high
-
-        s_t1, a_t1, e_t1, sr_t1 = prof(risk_t1)
-        s_t2, a_t2, e_t2, sr_t2 = prof(risk_t2)
 
         def make_saebrs(s_items, a_items, e_items, screening_id, screening_period, ts):
             s = sum(s_items); a = sum(a_items); e = sum(e_items); t = s + a + e
@@ -224,12 +266,26 @@ async def seed_database(db, student_count: int = 32):
                     "wellbeing_total": total, "wellbeing_tier": compute_wellbeing_tier(total),
                     "created_at": ts}
 
-        s1 = make_saebrs(vary(s_t1), vary(a_t1), vary(e_t1), f"scr_term1_{seed_year}", "Term 1 - P1", f"{seed_year}-02-15T09:00:00")
-        s2 = make_saebrs(vary(s_t2, 2), vary(a_t2, 2), vary(e_t2, 2), f"scr_term2_{seed_year}", "Term 2 - P1", f"{seed_year}-05-10T09:00:00")
-        all_s1.append(s1); all_s2.append(s2)
+        # Generate a SAEBRS + self-report for every screening session
+        student_events = []
+        for ev_idx, sess in enumerate(screening_sessions):
+            risk = _risk_at(base_risk, traj, ev_idx)
+            s_items_p, a_items_p, e_items_p, sr_p = prof(risk)
+            ts_iso = f"{sess['date']}T09:00:00"
+            ts_plus = f"{sess['date']}T10:00:00"
+            sae = make_saebrs(vary(s_items_p), vary(a_items_p), vary(e_items_p),
+                              sess["screening_id"], sess["screening_period"], ts_iso)
+            plus = make_plus(sae, vary(sr_p), sess["screening_id"], sess["screening_period"], att_frac, ts_plus)
+            student_events.append((sae, plus))
 
-        p1 = make_plus(s1, vary(sr_t1), f"scr_term1_{seed_year}", "Term 1 - P1", att_frac, f"{seed_year}-02-15T10:00:00")
-        p2 = make_plus(s2, vary(sr_t2, 2), f"scr_term2_{seed_year}", "Term 2 - P1", att_frac, f"{seed_year}-05-10T10:00:00")
+        # Most-recent two events become "s1 (prior term)" and "s2 (current)" for
+        # downstream alert / intervention / case-note logic. Earlier 6 are history.
+        for sae, plus in student_events[:-2]:
+            all_prior_saebrs.append(sae)
+            all_prior_plus.append(plus)
+        s1, p1 = student_events[-2]
+        s2, p2 = student_events[-1]
+        all_s1.append(s1); all_s2.append(s2)
         all_p1.append(p1); all_p2.append(p2)
 
         total_days = len(all_school_days)
@@ -427,8 +483,8 @@ async def seed_database(db, student_count: int = 32):
             await db.school_days.insert_many([{"date": d, "year": seed_year} for d in sorted(term_days)])
 
     for col_data, col_name in [
-        (all_s1 + all_s2, "saebrs_results"),
-        (all_p1 + all_p2, "self_report_results"),
+        (all_prior_saebrs + all_s1 + all_s2, "saebrs_results"),
+        (all_prior_plus   + all_p1 + all_p2, "self_report_results"),
         (all_att_recs,    "attendance_records"),
         (all_int,         "interventions"),
         (all_notes,       "case_notes"),
@@ -441,6 +497,8 @@ async def seed_database(db, student_count: int = 32):
     return {
         "message": "Demo data seeded",
         "students": len(students),
+        "screening_events": len(screening_sessions),
+        "saebrs_results": len(all_prior_saebrs) + len(all_s1) + len(all_s2),
         "school_days": len(school_days_set),
         "attendance_records": len(all_att_recs),
         "interventions": len(all_int),
