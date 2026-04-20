@@ -7,10 +7,11 @@ import {
   UserCog, Plus, Trash2, X, Shield, Edit2, Loader, Mail, KeyRound,
   Eye, EyeOff, CheckCircle, Lock, LayoutDashboard, ClipboardCheck,
   Users, Radar, BarChart3, Target, CalendarDays, Users2, Bell, Settings,
-  RotateCcw, Zap, Stethoscope, Settings2, FileText,
+  RotateCcw, Zap, Stethoscope, Settings2, FileText, Upload, Download, AlertTriangle,
 } from 'lucide-react';
 import { DEFAULT_FEATURE_PERMISSIONS } from '../hooks/usePermissions';
 import useDocumentTitle from '../hooks/useDocumentTitle';
+import FileDropZone from '../components/FileDropZone';
 
 const ROLE_OPTIONS = [
   { value: 'teacher',      label: 'Teacher',          color: 'bg-blue-100 text-blue-700' },
@@ -123,6 +124,8 @@ function UserManagementTab() {
   const [profForm, setProfForm] = useState({});
   const [profInterventionTypes, setProfInterventionTypes] = useState([]);
   const [profSaving, setProfSaving] = useState(false);
+  // Bulk user upload
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
 
   useEffect(() => { loadUsers(); }, []);
 
@@ -240,10 +243,16 @@ function UserManagementTab() {
           <h2 className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Users</h2>
           <p className="text-sm text-slate-500 mt-0.5">Only registered users can sign in to WellTrack.</p>
         </div>
-        <button onClick={() => setShowAdd(true)} data-testid="add-user-btn"
-          className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors" style={{ backgroundColor: 'var(--wt-accent)' }}>
-          <Plus size={15} /> Add User
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={() => setShowBulkUpload(true)} data-testid="bulk-upload-users-btn"
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors">
+            <Upload size={15} /> Bulk Upload
+          </button>
+          <button onClick={() => setShowAdd(true)} data-testid="add-user-btn"
+            className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors" style={{ backgroundColor: 'var(--wt-accent)' }}>
+            <Plus size={15} /> Add User
+          </button>
+        </div>
       </div>
 
       {msg.text && (
@@ -634,6 +643,210 @@ function UserManagementTab() {
           </div>
         </div>
       )}
+
+      {showBulkUpload && (
+        <BulkUploadUsersModal
+          onClose={() => setShowBulkUpload(false)}
+          onDone={(result) => {
+            setShowBulkUpload(false);
+            loadUsers();
+            showMsg(
+              `Bulk upload: ${result.imported} added, ${result.skipped} skipped, ${result.errors?.length || 0} errors`,
+              result.errors?.length ? 'error' : 'success'
+            );
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── BULK UPLOAD USERS MODAL ─────────────────────────────────────────────────
+function BulkUploadUsersModal({ onClose, onDone }) {
+  const [file, setFile] = useState(null);
+  const [validation, setValidation] = useState(null);
+  const [rows, setRows] = useState(null); // parsed + per-row validation
+  const [parsing, setParsing] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [parseError, setParseError] = useState('');
+
+  const VALID_ROLES = ['teacher', 'wellbeing', 'leadership', 'admin', 'screener', 'professional'];
+  const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+  const onFileChange = async (f, v) => {
+    setFile(f);
+    setValidation(v);
+    setRows(null);
+    setParseError('');
+    if (!f || !v) return;
+    setParsing(true);
+    try {
+      const text = await f.text();
+      const lines = text.split(/\r?\n/).filter(l => l.trim() && !l.trim().startsWith('#'));
+      if (lines.length < 2) throw new Error('File is empty or has no data rows.');
+      const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+      const idxEmail = headers.indexOf('email');
+      const idxName  = headers.indexOf('name');
+      const idxRole  = headers.indexOf('role');
+      if (idxEmail === -1 || idxName === -1 || idxRole === -1) {
+        throw new Error('CSV must have columns: email, name, role.');
+      }
+      const parsed = lines.slice(1).map((line, i) => {
+        const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+        const email = (vals[idxEmail] || '').toLowerCase().trim();
+        const name  = (vals[idxName] || '').trim();
+        const role  = (vals[idxRole] || 'teacher').toLowerCase().trim();
+        const issues = [];
+        if (!email) issues.push('Missing email');
+        else if (!EMAIL_RE.test(email)) issues.push('Invalid email');
+        if (!VALID_ROLES.includes(role)) issues.push(`Invalid role "${role}"`);
+        return { rowNum: i + 2, email, name, role, issues, status: issues.length ? 'invalid' : 'ready' };
+      });
+      setRows(parsed);
+    } catch (e) {
+      setParseError(e.message || 'Could not parse file.');
+    } finally {
+      setParsing(false);
+    }
+  };
+
+  const downloadTemplate = async () => {
+    try {
+      const res = await api.get('/users/bulk-template', { responseType: 'blob' });
+      const blob = new Blob([res.data], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'welltrack-users-template.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) { console.error(e); }
+  };
+
+  const runImport = async () => {
+    if (!rows) return;
+    const valid = rows.filter(r => r.status === 'ready');
+    if (!valid.length) return;
+    setUploading(true);
+    try {
+      const res = await api.post('/users/bulk', { users: valid.map(({ email, name, role }) => ({ email, name, role })) });
+      onDone?.(res.data);
+    } catch (e) {
+      setParseError(e.response?.data?.detail || 'Upload failed.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const readyCount = rows?.filter(r => r.status === 'ready').length || 0;
+  const invalidCount = rows?.filter(r => r.status === 'invalid').length || 0;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="p-6 border-b border-slate-200 flex items-center justify-between shrink-0">
+          <div>
+            <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Bulk Upload Users</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Upload a CSV to create multiple users at once. Duplicates (existing emails) are skipped.</p>
+          </div>
+          <button onClick={onClose} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-slate-100 text-slate-400" aria-label="Close">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-xs text-slate-600">
+              Columns: <code className="bg-slate-100 px-1.5 py-0.5 rounded">email, name, role</code>. Valid roles: teacher, wellbeing, leadership, admin, screener, professional.
+            </p>
+            <button
+              onClick={downloadTemplate}
+              data-testid="download-users-template"
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-50"
+            >
+              <Download size={13} /> Download Template
+            </button>
+          </div>
+
+          <FileDropZone
+            accept=".csv"
+            expectedKind="users"
+            label="Drop your users CSV here or click to browse"
+            file={file}
+            onChange={onFileChange}
+            testIdPrefix="bulk-users"
+          />
+
+          {parsing && <p className="text-xs text-slate-500 flex items-center gap-2"><Loader size={12} className="animate-spin" /> Parsing…</p>}
+          {parseError && (
+            <div className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs bg-rose-50 text-rose-700 border border-rose-200">
+              <AlertTriangle size={13} className="mt-0.5 shrink-0" />
+              <p>{parseError}</p>
+            </div>
+          )}
+
+          {rows && (
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs">
+                <span className="text-slate-600">
+                  Review <span className="font-semibold text-slate-900">{rows.length}</span> rows:
+                  <span className="ml-2 text-emerald-700">{readyCount} ready</span>
+                  {invalidCount > 0 && <span className="ml-2 text-rose-700">{invalidCount} invalid</span>}
+                </span>
+              </div>
+              <div className="max-h-72 overflow-y-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-white border-b border-slate-200 sticky top-0">
+                    <tr>
+                      <th className="text-left py-2 px-3 font-semibold text-slate-500 uppercase tracking-wider">Row</th>
+                      <th className="text-left py-2 px-3 font-semibold text-slate-500 uppercase tracking-wider">Email</th>
+                      <th className="text-left py-2 px-3 font-semibold text-slate-500 uppercase tracking-wider">Name</th>
+                      <th className="text-left py-2 px-3 font-semibold text-slate-500 uppercase tracking-wider">Role</th>
+                      <th className="text-left py-2 px-3 font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r, i) => (
+                      <tr key={i} className={`border-b border-slate-100 ${r.status === 'invalid' ? 'bg-rose-50/40' : ''}`}>
+                        <td className="py-2 px-3 text-slate-400 font-mono">{r.rowNum}</td>
+                        <td className="py-2 px-3 text-slate-800">{r.email || <span className="text-slate-400">—</span>}</td>
+                        <td className="py-2 px-3 text-slate-800">{r.name || <span className="text-slate-400">—</span>}</td>
+                        <td className="py-2 px-3 text-slate-600">{r.role || <span className="text-slate-400">—</span>}</td>
+                        <td className="py-2 px-3">
+                          {r.status === 'ready'
+                            ? <span className="inline-flex items-center gap-1 text-emerald-700"><CheckCircle size={11} /> Ready</span>
+                            : <span className="inline-flex items-center gap-1 text-rose-700" title={r.issues.join('; ')}><AlertTriangle size={11} /> {r.issues[0]}</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="p-5 border-t border-slate-200 flex items-center justify-end gap-2 shrink-0">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={runImport}
+            disabled={uploading || !rows || readyCount === 0 || (validation && validation.ok === false)}
+            data-testid="run-bulk-upload"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ backgroundColor: 'var(--wt-accent)' }}
+          >
+            {uploading ? <Loader size={14} className="animate-spin" /> : <Upload size={14} />}
+            {uploading ? 'Importing…' : `Import ${readyCount} user${readyCount === 1 ? '' : 's'}`}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

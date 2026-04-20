@@ -514,6 +514,82 @@ async def create_user(data: dict, user=Depends(get_current_user), db=Depends(get
     return new_user
 
 
+@router.post("/users/bulk")
+async def bulk_create_users(data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
+    """Bulk-create users from a parsed CSV. Rows with duplicate emails are skipped (not errored)."""
+    from fastapi import HTTPException
+    import re as _re
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    rows = data.get("users", [])
+    if not rows:
+        raise HTTPException(status_code=400, detail="No users provided")
+
+    _valid_roles = {"teacher", "wellbeing", "leadership", "admin", "screener", "professional"}
+    _email_re = _re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+    imported, skipped, errors = [], [], []
+    # pre-load existing emails
+    existing_emails = set()
+    async for u in db.users.find({}, {"email": 1, "_id": 0}):
+        if u.get("email"):
+            existing_emails.add(u["email"].lower())
+
+    seen_in_batch = set()
+    for i, row in enumerate(rows):
+        row_num = i + 2  # +1 for header, +1 for 1-indexed
+        email = str(row.get("email") or row.get("Email") or "").lower().strip()
+        name = str(row.get("name") or row.get("Name") or "").strip()
+        role = str(row.get("role") or row.get("Role") or "teacher").lower().strip()
+
+        if not email:
+            errors.append({"row": row_num, "email": "", "error": "Email is required"})
+            continue
+        if not _email_re.match(email):
+            errors.append({"row": row_num, "email": email, "error": "Invalid email format"})
+            continue
+        if role not in _valid_roles:
+            errors.append({"row": row_num, "email": email, "error": f"Invalid role '{role}'"})
+            continue
+        if email in existing_emails or email in seen_in_batch:
+            skipped.append({"row": row_num, "email": email, "reason": "already exists"})
+            continue
+
+        user_id = f"user_{uuid.uuid4().hex[:12]}"
+        new_user = {"user_id": user_id, "email": email, "name": name,
+                    "picture": "", "role": role,
+                    "created_at": datetime.now(timezone.utc).isoformat()}
+        await db.users.insert_one({**new_user})
+        seen_in_batch.add(email)
+        imported.append({"email": email, "name": name, "role": role})
+
+    await log_audit(db, user, "bulk_import", "user", "", "Bulk user import",
+                    bulk_count=len(imported), metadata={"skipped": len(skipped), "errors": len(errors)})
+
+    return {"imported": len(imported), "skipped": len(skipped), "errors": errors, "skipped_list": skipped[:50]}
+
+
+@router.get("/users/bulk-template")
+async def users_bulk_template(user=Depends(get_current_user)):
+    """Download a CSV template for bulk user upload."""
+    from fastapi import HTTPException
+    from fastapi.responses import Response
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    csv_text = (
+        "email,name,role\n"
+        "jane.smith@school.edu.au,Jane Smith,teacher\n"
+        "john.doe@school.edu.au,John Doe,wellbeing\n"
+        "principal@school.edu.au,Alex Principal,admin\n"
+        "# Valid roles: teacher | wellbeing | leadership | admin | screener | professional\n"
+    )
+    return Response(
+        content=csv_text,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=welltrack-users-template.csv"},
+    )
+
+
 @router.put("/users/{user_id}/role")
 async def update_user_role(user_id: str, data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
