@@ -8,10 +8,12 @@ import {
   Eye, EyeOff, CheckCircle, Lock, LayoutDashboard, ClipboardCheck,
   Users, Radar, BarChart3, Target, CalendarDays, Users2, Bell, Settings,
   RotateCcw, Zap, Stethoscope, Settings2, FileText, Upload, Download, AlertTriangle,
+  Database,
 } from 'lucide-react';
 import { DEFAULT_FEATURE_PERMISSIONS } from '../hooks/usePermissions';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import FileDropZone from '../components/FileDropZone';
+import DataManagement from '../components/DataManagement';
 
 const ROLE_OPTIONS = [
   { value: 'teacher',      label: 'Teacher',          color: 'bg-blue-100 text-blue-700' },
@@ -78,18 +80,19 @@ const TABS = [
   { key: 'User Management', icon: UserCog },
   { key: 'Classes', icon: Users2 },
   { key: 'Role Permissions', icon: Shield },
+  { key: 'Data', icon: Database },
   { key: 'Audit Log', icon: ClipboardCheck },
 ];
 
 function TabNav({ active, onChange }) {
   return (
-    <div className="flex gap-1 mb-8 p-1.5 bg-slate-100 rounded-2xl w-fit">
+    <div className="flex gap-1 mb-6 md:mb-8 p-1 md:p-1.5 bg-slate-100 rounded-2xl overflow-x-auto no-scrollbar max-w-full">
       {TABS.map(({ key, icon: Icon }) => (
         <button
           key={key}
           onClick={() => onChange(key)}
           data-testid={`admin-tab-${key.toLowerCase().replace(/\s+/g, '-')}`}
-          className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-all whitespace-nowrap ${
+          className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-xl transition-all whitespace-nowrap shrink-0 ${
             active === key
               ? 'bg-white text-slate-900 shadow-sm'
               : 'text-slate-500 hover:text-slate-700 hover:bg-white/60'
@@ -908,7 +911,7 @@ function RolePermissionsTab() {
   if (!permissions || !featurePerms) return <div className="py-12 text-center text-slate-400 text-sm">Loading…</div>;
 
   // Shared column grid style
-  const gridCols = { gridTemplateColumns: '1fr repeat(5, 90px) 80px' };
+  const gridCols = { gridTemplateColumns: '1fr repeat(5, 90px) 80px', minWidth: '700px' };
 
   // Reusable permission row
   const PermRow = ({ label, roleKey, hasPermFn, onToggle, isLast }) => (
@@ -966,7 +969,7 @@ function RolePermissionsTab() {
           <h3 className="text-sm font-semibold text-slate-700">Page Access</h3>
           <span className="text-xs text-slate-400">— which pages each role can navigate to</span>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto">
           <div className="grid border-b border-slate-200 bg-slate-50" style={gridCols}>
             <div className="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Page</div>
             {CONFIGURABLE_ROLES.map(r => (
@@ -1023,7 +1026,7 @@ function RolePermissionsTab() {
           {ACTION_GROUPS.map(group => {
             const actions = FEATURE_ACTIONS.filter(a => a.group === group);
             return (
-              <div key={group} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+              <div key={group} className="bg-white border border-slate-200 rounded-xl overflow-x-auto">
                 {/* Group header */}
                 <div className="grid border-b border-slate-100 bg-slate-50/70" style={gridCols}>
                   <div className="px-5 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">{group}</div>
@@ -1191,10 +1194,10 @@ function AuditLogTab() {
         </div>
       ) : (
         <>
-          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto">
             {/* Header */}
             <div className="grid border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-400 uppercase tracking-wider"
-              style={{ gridTemplateColumns: '150px 110px 110px 1fr 130px' }}>
+              style={{ gridTemplateColumns: '150px 110px 110px 1fr 130px', minWidth: '700px' }}>
               {['Timestamp', 'Type', 'Action', 'Details', 'User'].map(h => (
                 <div key={h} className="px-4 py-3">{h}</div>
               ))}
@@ -1206,7 +1209,7 @@ function AuditLogTab() {
               return (
                 <div key={entry.audit_id || idx}
                   className={`grid items-start border-b border-slate-50 last:border-b-0 hover:bg-slate-50/60 transition-colors`}
-                  style={{ gridTemplateColumns: '150px 110px 110px 1fr 130px' }}
+                  style={{ gridTemplateColumns: '150px 110px 110px 1fr 130px', minWidth: '700px' }}
                   data-testid={`audit-entry-${idx}`}>
                   <div className="px-4 py-3">
                     <p className="text-xs font-mono text-slate-600">{entry.timestamp?.split('T')[0]}</p>
@@ -1351,7 +1354,8 @@ function ClassesTab() {
         </div>
       ) : (
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-          <div className="grid border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-400 uppercase tracking-wider"
+          {/* Desktop grid header */}
+          <div className="hidden md:grid border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-400 uppercase tracking-wider"
                style={{ gridTemplateColumns: '180px 110px 1fr 100px' }}>
             <div className="px-4 py-3">Class</div>
             <div className="px-4 py-3">Students</div>
@@ -1362,20 +1366,51 @@ function ClassesTab() {
             const isBusy = !!saving[c.class_name];
             return (
               <div key={c.class_name}
-                   className="grid items-center border-b border-slate-50 last:border-b-0 hover:bg-slate-50/60 transition-colors"
-                   style={{ gridTemplateColumns: '180px 110px 1fr 100px' }}
                    data-testid={`class-row-${c.class_name}`}>
-                <div className="px-4 py-3">
-                  <p className="text-sm font-semibold text-slate-800">{c.class_name}</p>
+                {/* Desktop row */}
+                <div className="hidden md:grid items-center border-b border-slate-50 last:border-b-0 hover:bg-slate-50/60 transition-colors"
+                     style={{ gridTemplateColumns: '180px 110px 1fr 100px' }}>
+                  <div className="px-4 py-3">
+                    <p className="text-sm font-semibold text-slate-800">{c.class_name}</p>
+                  </div>
+                  <div className="px-4 py-3 text-sm text-slate-600">{c.student_count}</div>
+                  <div className="px-4 py-3">
+                    <select
+                      value={c.teacher_user_id || ''}
+                      onChange={(e) => assign(c.class_name, e.target.value)}
+                      disabled={isBusy}
+                      data-testid={`class-teacher-select-${c.class_name}`}
+                      className="w-full max-w-xs px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:outline-none disabled:opacity-50"
+                    >
+                      <option value="">— Unassigned —</option>
+                      {teacherOptions.map(u => (
+                        <option key={u.user_id} value={u.user_id}>
+                          {u.name || u.email} · {u.role}
+                        </option>
+                      ))}
+                    </select>
+                    {c.teacher_name && c.teacher_user_id && !teacherOptions.find(u => u.user_id === c.teacher_user_id) && (
+                      <p className="text-[11px] text-amber-600 mt-1">
+                        Currently assigned to <strong>{c.teacher_name}</strong> (user no longer in the list)
+                      </p>
+                    )}
+                  </div>
+                  <div className="px-4 py-3 text-right">
+                    {isBusy && <Loader size={14} className="inline animate-spin text-indigo-500" />}
+                  </div>
                 </div>
-                <div className="px-4 py-3 text-sm text-slate-600">{c.student_count}</div>
-                <div className="px-4 py-3">
+                {/* Mobile card */}
+                <div className="md:hidden p-4 border-b border-slate-50 last:border-b-0">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-semibold text-slate-800">{c.class_name}</p>
+                    <span className="text-xs text-slate-500">{c.student_count} students</span>
+                  </div>
                   <select
                     value={c.teacher_user_id || ''}
                     onChange={(e) => assign(c.class_name, e.target.value)}
                     disabled={isBusy}
-                    data-testid={`class-teacher-select-${c.class_name}`}
-                    className="w-full max-w-xs px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:outline-none disabled:opacity-50"
+                    data-testid={`class-teacher-select-mobile-${c.class_name}`}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:outline-none disabled:opacity-50"
                   >
                     <option value="">— Unassigned —</option>
                     {teacherOptions.map(u => (
@@ -1384,14 +1419,11 @@ function ClassesTab() {
                       </option>
                     ))}
                   </select>
-                  {c.teacher_name && c.teacher_user_id && !teacherOptions.find(u => u.user_id === c.teacher_user_id) && (
-                    <p className="text-[11px] text-amber-600 mt-1">
-                      Currently assigned to <strong>{c.teacher_name}</strong> (user no longer in the list)
-                    </p>
+                  {isBusy && (
+                    <div className="mt-2 flex items-center gap-1.5 text-xs text-indigo-500">
+                      <Loader size={12} className="animate-spin" /> Saving…
+                    </div>
                   )}
-                </div>
-                <div className="px-4 py-3 text-right">
-                  {isBusy && <Loader size={14} className="inline animate-spin text-indigo-500" />}
                 </div>
               </div>
             );
@@ -1416,12 +1448,12 @@ export default function AdministrationPage() {
   if (user?.role !== 'admin') return null;
 
   return (
-    <div className="p-6 lg:p-8 fade-in">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3" style={{ fontFamily: 'Manrope,sans-serif' }}>
-          <Shield size={26} className="text-slate-600" /> Administration
+    <div className="p-4 sm:p-6 lg:p-8 fade-in">
+      <div className="mb-5 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 flex items-center gap-3" style={{ fontFamily: 'Manrope,sans-serif' }}>
+          <Shield size={24} className="text-slate-600 shrink-0" /> Administration
         </h1>
-        <p className="text-slate-500 mt-1">Manage users and configure role-based access control</p>
+        <p className="text-sm sm:text-base text-slate-500 mt-1">Manage users and configure role-based access control</p>
       </div>
 
       <TabNav active={activeTab} onChange={setActiveTab} />
@@ -1429,6 +1461,7 @@ export default function AdministrationPage() {
       {activeTab === 'User Management' && <UserManagementTab />}
       {activeTab === 'Classes' && <ClassesTab />}
       {activeTab === 'Role Permissions' && <RolePermissionsTab />}
+      {activeTab === 'Data' && <DataManagement />}
       {activeTab === 'Audit Log' && <AuditLogTab />}
     </div>
   );

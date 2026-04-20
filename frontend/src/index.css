@@ -391,6 +391,10 @@ h1.text-3xl, h1.text-2xl {
   letter-spacing: -0.01em;
 }
 
+/* Hide scrollbar but keep scrollability — used on mobile tab bars */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* Recharts dark mode */
 [data-theme="dark"] .recharts-cartesian-axis-tick-value { fill: #64748b !important; }
 [data-theme="dark"] .recharts-polar-angle-axis-tick-value,

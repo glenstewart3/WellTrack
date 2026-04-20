@@ -110,9 +110,6 @@ export default function DashboardLayout() {
               {settings.platform_name || 'WellTrack'}
             </p>
           </div>
-          <p className="text-xs mt-1.5 truncate" style={{ color: 'var(--wt-muted-fg)' }}>
-            {settings.school_name || 'MTSS Wellbeing Platform'}
-          </p>
         </div>
       </div>
 
@@ -209,6 +206,14 @@ export default function DashboardLayout() {
           >
             <Menu size={20} />
           </button>
+          {/* School name (experiment: moved from sidebar to top bar) */}
+          {settings.school_name && (
+            <div className="hidden sm:flex items-center gap-2 min-w-0" data-testid="topbar-school-name">
+              <span className="truncate font-semibold text-sm" style={{ fontFamily: 'Manrope,sans-serif', color: 'var(--wt-foreground)' }}>
+                {settings.school_name}
+              </span>
+            </div>
+          )}
           <div className="flex-1" />
           {/* Alert indicator */}
           <NavLink to="/alerts" className="relative p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors" data-testid="alert-bell">
