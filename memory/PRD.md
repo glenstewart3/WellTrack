@@ -56,6 +56,15 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - [x] H1s globally weight-800 (Manrope extrabold)
 - [x] No functional changes — all hooks, APIs, modals, filters, data-testids preserved
 
+### Time-Based Attendance + Class/Teacher Assignment (COMPLETED - 2026-04-20)
+- [x] **New attendance CSV schema**: `/api/attendance/upload` parses `[STKEY, FIRST_NAME, PREF_NAME, SURNAME, ABSENCE_DATE, ABSENCE_COMMENT, AM_ATTENDED, AM_LATE_ARRIVAL, AM_EARLY_LEFT, PM_ATTENDED, PM_LATE_ARRIVAL, PM_EARLY_LEFT]`. Legacy schema (ID/DATE/AM/PM) still auto-detected.
+- [x] **Minute-level attendance math**: School day 8:50–15:20 (390 min), AM/PM split at 12:05. `AM_LATE_ARRIVAL=933` (9:33 AM) → 43 min lost. Records store `present_pct` 0.0–1.0.
+- [x] **Entry-date aware %**: `compute_att_stats` and `get_bulk_attendance_stats` accept `entry_date`; days before a student's enrolment aren't counted in the denominator. Applied app-wide (student summary, attendance summary, analytics).
+- [x] **New /api/classes endpoint** (`routes/classes.py`): lists classes with student_count + teacher assignment. `PUT /api/classes/{class_name:path}/teacher` assigns one teacher per class; denormalises `teacher` name onto student docs. Passing null clears the assignment.
+- [x] **Administration → Classes tab**: admin UI for mapping each HOME_GROUP to a teacher user account. 4 demo classes render with dropdown selectors.
+- [x] **Settings → Imports**: Attendance upload card now documents the new CSV schema and explains HHMM time format + present_pct calculation.
+- [x] 22/22 tests passed (12 unit tests for present_pct math + entry_date; 10 integration tests for upload + classes endpoints) — iteration_45.json.
+
 ### Pre-existing Features (from single-tenant)
 - Student management, SAEBRS screening, MTSS tier calculation
 - Attendance, Interventions, Appointments, Analytics, Reports
@@ -91,3 +100,4 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - iteration_42: Phase 4 (28/28)
 - iteration_43: Phase 5 + Onboarding + Impersonation (21/21)
 - iteration_44: Landing Page + SA Subdomain (12/12)
+- iteration_45: Time-based Attendance + Class/Teacher assignment (22/22)
