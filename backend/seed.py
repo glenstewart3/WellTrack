@@ -133,18 +133,29 @@ async def seed_database(db, student_count: int = 32):
         })
     await db.screening_sessions.insert_many(screening_sessions)
 
-    def build_school_days(start_date, num_days):
-        days = []
-        d = start_date
-        while len(days) < num_days:
-            if d.weekday() < 5:
-                days.append(d.isoformat())
-            d += timedelta(days=1)
-        return days
+    # ── Build ~220 school days spanning the past 365 days ───────────────────
+    # Australian school calendar: 4 terms × ~10 weeks = ~200 school days,
+    # separated by 4 holiday windows (~2 weeks each).
+    #   Term 1:  late Jan  → early April
+    #   Term 2:  late April → early July
+    #   Term 3:  mid July   → late September
+    #   Term 4:  early October → mid December
+    def _in_school_holiday(d):
+        md = (d.month, d.day)
+        return (
+            md >= (12, 18) or md <= (1, 27) or       # Summer (Dec-Jan)
+            (4, 3) <= md <= (4, 22) or               # Easter / T1-T2 break
+            (7, 4) <= md <= (7, 19) or               # T2-T3 break (winter)
+            (9, 26) <= md <= (10, 9)                 # T3-T4 break (spring)
+        )
 
-    term1_days = build_school_days(date_type(seed_year, 2, 3), 30)
-    term2_days = build_school_days(date_type(seed_year, 4, 28), 25)
-    all_school_days = term1_days + term2_days
+    year_ago = most_recent - timedelta(days=365)
+    all_school_days = []
+    d = year_ago
+    while d <= most_recent:
+        if d.weekday() < 5 and not _in_school_holiday(d):
+            all_school_days.append(d.isoformat())
+        d += timedelta(days=1)
 
     low_s = [3, 3, 3, 2, 3, 3]; low_a = [3, 3, 2, 3, 2, 3]; low_e = [3, 3, 3, 3, 2, 3, 3]
     some_s = [2, 2, 2, 2, 1, 2]; some_a = [2, 2, 1, 2, 1, 2]; some_e = [2, 2, 2, 1, 2, 2, 2]
@@ -289,12 +300,26 @@ async def seed_database(db, student_count: int = 32):
         all_p1.append(p1); all_p2.append(p2)
 
         total_days = len(all_school_days)
-        absent_days_count = int(total_days * (1 - att_frac))
-        absent_indices = set(rng.sample(range(total_days), min(absent_days_count, total_days)))
+        target_absent_count = int(total_days * (1 - att_frac))
+
+        # Seasonal weighting: Australian winter (Jun-Aug) = flu season, roughly
+        # 1.6× the base absence probability. Summer school days get ~0.9×.
+        def _season_weight(iso_date):
+            month = int(iso_date[5:7])
+            if month in (6, 7, 8):   return 1.6
+            if month in (2, 3):      return 0.9
+            return 1.0
+
+        weights = [_season_weight(d) for d in all_school_days]
+        absent_indices = set(rng.choices(
+            population=range(total_days),
+            weights=weights,
+            k=min(target_absent_count, total_days),
+        ))
 
         neutral_indices = set()
         if base_risk == "low" and total_days > 5:
-            neutral_indices = set(rng.sample(range(total_days), rng.randint(1, 3)))
+            neutral_indices = set(rng.sample(range(total_days), rng.randint(2, 6)))
 
         for day_num, rec_date in enumerate(all_school_days):
             if day_num in neutral_indices:
