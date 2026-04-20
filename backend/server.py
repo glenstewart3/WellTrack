@@ -101,6 +101,17 @@ async def serve_student_photo(slug: str, filename: str):
         raise _H(status_code=404, detail="Photo not found")
     return _FileResponse(photo_path)
 
+
+@app.get("/api/staff-photos/{slug}/{filename}")
+async def serve_staff_photo(slug: str, filename: str):
+    """Serve a staff profile photo from the tenant-scoped uploads directory."""
+    _uploads = Path(os.environ.get("UPLOADS_DIR", str(Path(__file__).resolve().parent / "uploads")))
+    photo_path = _uploads / slug / "staff_photos" / filename
+    if not photo_path.exists() or not photo_path.is_file():
+        from fastapi import HTTPException as _H
+        raise _H(status_code=404, detail="Photo not found")
+    return _FileResponse(photo_path)
+
 # Legacy: also serve from old flat path for backward compat
 _default_photos = Path(__file__).resolve().parent / "uploads" / "student_photos"
 _photos_dir = Path(os.environ.get("PHOTOS_DIR", str(_default_photos)))

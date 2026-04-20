@@ -1619,10 +1619,6 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
   const [photoValid, setPhotoValid] = useState(null);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [photoResult, setPhotoResult] = useState(null);
-  const [detailsFile, setDetailsFile] = useState(null);
-  const [detailsValid, setDetailsValid] = useState(null);
-  const [importingDetails, setImportingDetails] = useState(false);
-  const [detailsResult, setDetailsResult] = useState(null);
 
   const parseAndImport = async () => {
     if (!importFile) return;
@@ -1674,25 +1670,6 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
     } finally { setUploading(false); }
   };
 
-  const uploadStudentDetails = async () => {
-    if (!detailsFile) return;
-    setImportingDetails(true);
-    try {
-      const fd = new FormData();
-      fd.append('file', detailsFile);
-      const res = await api.post('/students/import-student-details', fd);
-      setDetailsResult(res.data);
-      setDetailsFile(null);
-      setMsgType('success');
-      setMsg(`Student details imported: ${res.data.updated} updated · ${res.data.unmatched} unmatched`);
-      setTimeout(() => setMsg(''), 6000);
-    } catch (e) {
-      setMsgType('error');
-      setMsg(e.response?.data?.detail || 'Import failed');
-      setTimeout(() => setMsg(''), 5000);
-    } finally { setImportingDetails(false); }
-  };
-
   const uploadPhotos = async () => {    if (!photoZip) return;
     setUploadingPhotos(true);
     setPhotoResult(null);
@@ -1726,8 +1703,8 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
       {/* Student Import */}
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Import Students</h3>
-        <p className="text-xs text-slate-400 mb-1">Upload a CSV exported from your school system. Supports columns: <code className="bg-slate-100 px-1 rounded">Import Identifier, First Name, Preferred Name, Surname, Form Group, Year Level, User Status, Base Role</code></p>
-        <p className="text-xs text-slate-400 mb-3">Students are matched by <strong>Import Identifier</strong> (column A) and updated if they already exist.</p>
+        <p className="text-xs text-slate-400 mb-1">Upload a CSV exported from your school system. Supports columns: <code className="bg-slate-100 px-1 rounded">STKEY, FIRST_NAME, PREF_NAME, SURNAME, FAMILY, GENDER, BIRTHDATE, ENTRY, HOME_GROUP, SCHOOL_YEAR, KOORIE</code>.</p>
+        <p className="text-xs text-slate-400 mb-3">Students are matched by <strong>STKEY</strong> and updated if they already exist. The <strong>ENTRY</strong> date is used so late-enrolled students aren't penalised in attendance reporting.</p>
         <details className="mb-4 group">
           <summary className="cursor-pointer text-xs font-medium text-indigo-600 hover:text-indigo-700 select-none list-none flex items-center gap-1.5">
             <span className="transition-transform group-open:rotate-90 inline-block">▶</span>
@@ -1764,56 +1741,6 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
             <p><strong>New:</strong> {importResult.imported} &nbsp; <strong>Updated:</strong> {importResult.updated || 0} &nbsp; <strong>Errors:</strong> {importResult.errors?.length || 0}</p>
             {importResult.errors?.length > 0 && (
               <ul className="text-rose-600 space-y-0.5">{importResult.errors.slice(0, 5).map((e, i) => <li key={i}>Row {e.row}: {e.error}</li>)}</ul>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Student Details Import */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6">
-        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Import Student Details</h3>
-        <p className="text-xs text-slate-400 mb-1">Upload the Student Table Full Data export to enrich profiles with teacher, gender, EAL status, Aboriginal status, and NCCD disability. Students are matched by <strong>STUDENT_KEY</strong>.</p>
-        <p className="text-xs text-slate-400 mb-3">Accepts CSV. EAL and Aboriginal status will appear as tags on student profiles and the student list.</p>
-        <details className="mb-4 group">
-          <summary className="cursor-pointer text-xs font-medium text-indigo-600 hover:text-indigo-700 select-none list-none flex items-center gap-1.5">
-            <span className="transition-transform group-open:rotate-90 inline-block">▶</span>
-            How to export from Panorama
-          </summary>
-          <div className="mt-2 p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-xs text-slate-600 space-y-1.5">
-            <ol className="list-decimal list-inside space-y-1.5">
-              <li>In Panorama, go to <strong>Your Students</strong> → <strong>Student View</strong></li>
-              <li>Click <strong>Download</strong> → <strong>Data</strong> → <strong>Full Data</strong></li>
-              <li>Select <strong>Download all rows as a text file</strong></li>
-              <li>Upload the downloaded file here</li>
-            </ol>
-          </div>
-        </details>
-        <FileDropZone
-          accept=".csv"
-          expectedKind="student_details"
-          label="Drop your student details CSV here or click to browse"
-          file={detailsFile}
-          onChange={(f, v) => { setDetailsFile(f); setDetailsValid(v); }}
-          testIdPrefix="import-details"
-        />
-        {detailsFile && (
-          <div className="mt-3 flex justify-end">
-            <button onClick={uploadStudentDetails} disabled={importingDetails || detailsValid?.ok === false} data-testid="upload-details-btn"
-              className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity" style={{ backgroundColor: 'var(--wt-accent)' }}>
-              {importingDetails ? <Loader size={14} className="animate-spin" /> : <Upload size={14} />}
-              {importingDetails ? 'Importing…' : 'Import'}
-            </button>
-          </div>
-        )}
-        {detailsResult && (
-          <div className="mt-3 p-3 bg-slate-50 rounded-xl text-xs text-slate-600 space-y-1" data-testid="details-import-result">
-            <p><strong>Students updated:</strong> {detailsResult.updated}</p>
-            {detailsResult.unmatched > 0 && (
-              <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-1">
-                <p className="text-amber-800 font-semibold">⚠ {detailsResult.unmatched} STUDENT_KEY{detailsResult.unmatched !== 1 ? 's' : ''} had no match in the student database:</p>
-                <p className="text-amber-700 font-mono break-all">{detailsResult.unmatched_keys?.join(', ')}</p>
-                <p className="text-amber-600">Ensure students are imported first via <strong>Import Students</strong> above.</p>
-              </div>
             )}
           </div>
         )}
@@ -1881,13 +1808,13 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
             <Image size={15} className="text-indigo-600" />
           </div>
           <div>
-            <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Upload Student Photos</h3>
+            <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Upload Photos</h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Upload a ZIP file containing student photos. Photos are matched by filename using the format{' '}
+              Upload a ZIP file containing student and staff photos. Photos are matched by filename using the format{' '}
               <code className="bg-slate-100 px-1 rounded">LastName, FirstName.jpg</code>.
             </p>
             <p className="text-xs text-slate-400 mt-0.5">
-              Photos can be organised into class/year folders inside the ZIP — folder names are ignored. Any <strong>Staff</strong> folder is automatically skipped.
+              Organise photos into class/year folders for students. Any file inside a <strong>Staff</strong> folder will be matched to an existing user account by name and saved as that user's profile picture.
             </p>
           </div>
         </div>
@@ -1918,17 +1845,27 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
         {photoResult && (
           <div className="mt-3 p-3 bg-slate-50 rounded-xl text-xs text-slate-600 space-y-2" data-testid="photo-upload-result">
             <div className="flex items-center gap-4 flex-wrap">
-              <span className="text-emerald-700 font-semibold">{photoResult.matched} matched</span>
-              {photoResult.unmatched > 0 && <span className="text-amber-700 font-semibold">{photoResult.unmatched} unmatched</span>}
-              {photoResult.skipped_staff > 0 && <span className="text-slate-500">{photoResult.skipped_staff} staff skipped</span>}
+              <span className="text-emerald-700 font-semibold">{photoResult.matched} student{photoResult.matched !== 1 ? 's' : ''} matched</span>
+              {photoResult.unmatched > 0 && <span className="text-amber-700 font-semibold">{photoResult.unmatched} student{photoResult.unmatched !== 1 ? 's' : ''} unmatched</span>}
+              {photoResult.matched_staff > 0 && <span className="text-indigo-700 font-semibold">{photoResult.matched_staff} staff matched</span>}
+              {photoResult.unmatched_staff > 0 && <span className="text-amber-700 font-semibold">{photoResult.unmatched_staff} staff unmatched</span>}
             </div>
             {photoResult.unmatched_names?.length > 0 && (
               <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg space-y-1">
-                <p className="text-amber-800 font-semibold">Unmatched filenames (no student found):</p>
+                <p className="text-amber-800 font-semibold">Unmatched student filenames:</p>
                 <ul className="text-amber-700 space-y-0.5 max-h-36 overflow-y-auto">
                   {photoResult.unmatched_names.map((n, i) => <li key={i} className="font-mono">{n}</li>)}
                 </ul>
                 <p className="text-amber-600">Check that student names in the DB match the filename exactly (case-insensitive).</p>
+              </div>
+            )}
+            {photoResult.unmatched_staff_names?.length > 0 && (
+              <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg space-y-1">
+                <p className="text-amber-800 font-semibold">Unmatched staff filenames:</p>
+                <ul className="text-amber-700 space-y-0.5 max-h-36 overflow-y-auto">
+                  {photoResult.unmatched_staff_names.map((n, i) => <li key={i} className="font-mono">{n}</li>)}
+                </ul>
+                <p className="text-amber-600">Staff are matched to user accounts by name. Add them in <strong>Administration → User Management</strong> first.</p>
               </div>
             )}
           </div>

@@ -347,9 +347,12 @@ async def upload_student_photos(request: Request, file: UploadFile = File(...), 
 
     photos_dir = _get_photos_dir(request)
     slug = getattr(request.state, "tenant_slug", None) or "default"
+    staff_photos_dir = _UPLOADS_BASE / slug / "staff_photos"
+    staff_photos_dir.mkdir(parents=True, exist_ok=True)
     content = await file.read()
 
-    matched, unmatched, skipped_staff = [], [], []
+    matched, unmatched = [], []
+    matched_staff, unmatched_staff = [], []
 
     # ── Name normalisation + index-once strategy ─────────────────────────────
     # Covers: curly apostrophes, straight apostrophes, hyphens, spaces, accents,
@@ -401,6 +404,30 @@ async def upload_student_photos(request: Request, file: UploadFile = File(...), 
             "ln_tokens": _tokens(ln),
         })
 
+    # Index staff users — split "name" into first + last tokens
+    staff_raw = await db.users.find(
+        {},
+        {"_id": 0, "user_id": 1, "name": 1, "email": 1},
+    ).to_list(2000)
+
+    staff_index = []
+    for u in staff_raw:
+        full = (u.get("name") or "").strip()
+        if not full:
+            continue
+        toks = _tokens(full)
+        if not toks:
+            continue
+        # Assume "First [Middle] Last" — last token = surname, rest = first/given
+        staff_index.append({
+            "user_id": u["user_id"],
+            "email": u.get("email", ""),
+            "name": full,
+            "ln_norm": _norm(toks[-1]),
+            "fn_norm": _norm(toks[0]),
+            "all_tokens": toks,
+        })
+
     def _match_student(last_name: str, first_name: str):
         ln_n = _norm(last_name)
         fn_n = _norm(first_name)
@@ -427,15 +454,29 @@ async def upload_student_photos(request: Request, file: UploadFile = File(...), 
                 return rec
         return None
 
+    def _match_staff(last_name: str, first_name: str):
+        """Match a staff photo (LastName, FirstName) to a user account by name tokens."""
+        ln_n = _norm(last_name)
+        fn_n = _norm(first_name)
+        if not ln_n or not fn_n:
+            return None
+        # 1. Exact: last-token matches staff surname AND first-token matches staff given name
+        for rec in staff_index:
+            if rec["ln_norm"] == ln_n and rec["fn_norm"] == fn_n:
+                return rec
+        # 2. Both appear as tokens anywhere in the staff name
+        for rec in staff_index:
+            if ln_n in rec["all_tokens"] and fn_n in rec["all_tokens"]:
+                return rec
+        return None
+
     with zipfile.ZipFile(io.BytesIO(content)) as zf:
         for info in zf.infolist():
             if info.is_dir():
                 continue
 
             path_parts = Path(info.filename).parts
-            if any(p.lower().startswith("staff") for p in path_parts):
-                skipped_staff.append(info.filename)
-                continue
+            is_staff_photo = any(p.lower().startswith("staff") for p in path_parts)
 
             stem_raw = Path(info.filename).stem
             ext = Path(info.filename).suffix.lower()
@@ -445,7 +486,7 @@ async def upload_student_photos(request: Request, file: UploadFile = File(...), 
             stem = stem_raw.strip()
 
             if "," not in stem:
-                unmatched.append(stem_raw)
+                (unmatched_staff if is_staff_photo else unmatched).append(stem_raw)
                 continue
 
             last_raw, first_raw = stem.split(",", 1)
@@ -453,9 +494,32 @@ async def upload_student_photos(request: Request, file: UploadFile = File(...), 
             first_name = first_raw.strip()
 
             if not last_name or not first_name:
-                unmatched.append(stem_raw)
+                (unmatched_staff if is_staff_photo else unmatched).append(stem_raw)
                 continue
 
+            # ── Staff photo: match to user account ──────────────────────────────
+            if is_staff_photo:
+                staff_rec = _match_staff(last_name, first_name)
+                if not staff_rec:
+                    unmatched_staff.append(f"{last_name}, {first_name}")
+                    continue
+                user_id = staff_rec["user_id"]
+                photo_filename = f"{user_id}.jpg"
+                photo_path = staff_photos_dir / photo_filename
+                with zf.open(info) as img_bytes:
+                    img = Image.open(img_bytes)
+                    img = img.convert("RGB")
+                    img.thumbnail((400, 400), Image.LANCZOS)
+                    img.save(str(photo_path), "JPEG", quality=82, optimize=True)
+                photo_url = f"/api/staff-photos/{slug}/{photo_filename}"
+                await db.users.update_one(
+                    {"user_id": user_id},
+                    {"$set": {"picture": photo_url}},
+                )
+                matched_staff.append(f"{last_name}, {first_name}")
+                continue
+
+            # ── Student photo ───────────────────────────────────────────────────
             rec = _match_student(last_name, first_name)
 
             if not rec:
@@ -483,8 +547,10 @@ async def upload_student_photos(request: Request, file: UploadFile = File(...), 
     return {
         "matched": len(matched),
         "unmatched": len(unmatched),
-        "skipped_staff": len(skipped_staff),
+        "matched_staff": len(matched_staff),
+        "unmatched_staff": len(unmatched_staff),
         "unmatched_names": unmatched[:100],
+        "unmatched_staff_names": unmatched_staff[:50],
     }
 
 
