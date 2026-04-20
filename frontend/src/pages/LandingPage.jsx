@@ -87,8 +87,8 @@ export default function LandingPage() {
             className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 mb-6"
             style={{ fontFamily: 'Manrope, sans-serif' }}
           >
-            Screen. Spot.<br />
-            <span className="italic text-slate-500">support.</span>
+            Every student seen.<br />
+            <span className="italic text-slate-500">no one missed.</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-slate-500 sm:text-lg">
             WellTrack helps schools screen, track and respond to student wellbeing across MTSS tiers &mdash; without the spreadsheet chaos.
