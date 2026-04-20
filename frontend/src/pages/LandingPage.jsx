@@ -85,7 +85,7 @@ export default function LandingPage() {
           </span>
           <h1
             className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 mb-6"
-            style={{ fontFamily: 'Manrope, sans-serif' }}
+            style={{ fontFamily: '"Inter", system-ui, sans-serif' }}
           >
             Every student seen.<br />
             <span className="italic text-slate-500">no one missed.</span>
