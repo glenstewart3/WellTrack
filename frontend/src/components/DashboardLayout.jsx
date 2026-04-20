@@ -98,14 +98,21 @@ export default function DashboardLayout() {
             <img src={logo} alt="School logo" className="w-full h-14 object-contain mx-auto mb-4" />
           ) : null;
         })()}
-        <div className="flex items-center gap-3">
-          <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${theme === 'dark' ? 'bg-slate-100' : 'bg-slate-900'}`}>
-            <Shield size={16} className={theme === 'dark' ? 'text-slate-900' : 'text-white'} />
+        <div>
+          <div className="flex items-center gap-3">
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+              style={{ backgroundColor: theme === 'dark' ? '#f1f5f9' : '#0f172a' }}
+            >
+              <Shield size={16} style={{ color: theme === 'dark' ? '#0f172a' : '#ffffff' }} />
+            </div>
+            <p className="font-bold" style={{ fontFamily: 'Manrope,sans-serif', fontSize: '1.1rem', color: 'var(--wt-foreground)' }}>
+              {settings.platform_name || 'WellTrack'}
+            </p>
           </div>
-          <div>
-            <p className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{settings.platform_name || 'WellTrack'}</p>
-            <p className="text-xs text-slate-400">{settings.school_name || 'MTSS Wellbeing Platform'}</p>
-          </div>
+          <p className="text-xs mt-1.5 truncate" style={{ color: 'var(--wt-muted-fg)' }}>
+            {settings.school_name || 'MTSS Wellbeing Platform'}
+          </p>
         </div>
       </div>
 

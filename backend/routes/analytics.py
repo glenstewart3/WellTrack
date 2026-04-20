@@ -108,6 +108,16 @@ async def tier_movement(limit: int = 8, user=Depends(get_current_user), db=Depen
     # Cutoff = end of that day UTC
     event_cutoffs = [datetime.combine(d, datetime.max.time(), tzinfo=timezone.utc) for d in event_dates]
 
+    # Map each event date → screening_period label (e.g. "Term 2 - P1") if a
+    # screening_session exists for that date. Falls back to the formatted date.
+    session_rows = await db.screening_sessions.find({}, {"_id": 0, "date": 1, "screening_period": 1}).to_list(500)
+    session_period_by_date = {}
+    for sess in session_rows:
+        d_str = str(sess.get("date") or "")[:10]
+        sp = sess.get("screening_period")
+        if d_str and sp and d_str not in session_period_by_date:
+            session_period_by_date[d_str] = sp
+
     def _tier_as_of(hist_s, hist_p, att_pct, cutoff):
         s_doc = None
         for d in hist_s:
@@ -142,7 +152,7 @@ async def tier_movement(limit: int = 8, user=Depends(get_current_user), db=Depen
             else:
                 bucket[f"tier{t}"] += 1
         events.append({
-            "label": ev_date.strftime("%d %b"),  # "19 Apr"
+            "label": session_period_by_date.get(ev_date.isoformat()) or ev_date.strftime("%d %b"),
             "date": ev_date.isoformat(),
             **bucket,
             "total": len(students),

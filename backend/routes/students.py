@@ -49,43 +49,89 @@ async def create_student(student: Student, user=Depends(get_current_user), db=De
 
 @router.post("/students/import")
 async def import_students(data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
+    """Import students from a CSV/XLSX export.
+
+    Supports two formats:
+      • NEW (2026+): STKEY, FIRST_NAME, PREF_NAME, SURNAME, FAMILY, GENDER, BIRTHDATE,
+        ENTRY, HOME_GROUP, SCHOOL_YEAR, KOORIE
+      • LEGACY:     Import Identifier, First Name, Preferred Name, Surname, Year
+        Level, Form Group, Base Role, User Status, ...
+    """
     rows = data.get("students", [])
     if not rows:
         raise HTTPException(status_code=400, detail="No student data provided")
 
+    def _get(row, *keys):
+        for k in keys:
+            v = row.get(k)
+            if v is not None and str(v).strip() != "":
+                return str(v).strip()
+        return ""
+
+    def _date_iso(v):
+        if not v:
+            return ""
+        s = str(v).strip()
+        # Excel often exports "2024-01-28 00:00:00"
+        if " " in s:
+            s = s.split(" ", 1)[0]
+        return s[:10]
+
+    _koorie_map = {
+        "N": "No", "K": "Koorie", "B": "Both (ATSI)",
+        "T": "Torres Strait Islander", "A": "Aboriginal",
+    }
+
     imported, updated, errors = [], [], []
     for i, row in enumerate(rows):
-        base_role = str(row.get("Base Role") or row.get("base_role") or "Student").strip()
-        user_status = str(row.get("User Status") or row.get("user_status") or "Active").strip()
+        # Legacy-only filters
+        base_role = _get(row, "Base Role", "base_role") or "Student"
+        user_status = _get(row, "User Status", "user_status") or "Active"
         if base_role.lower() not in ("student", "") or user_status.lower() == "inactive":
             continue
 
-        sussi_id = str(row.get("Import Identifier") or row.get("SussiId") or row.get("sussi_id") or "").strip()
-        first_name = str(row.get("First Name") or row.get("first_name") or "").strip()
-        preferred_name = str(row.get("Preferred Name") or row.get("preferred_name") or "").strip()
-        last_name = str(row.get("Surname") or row.get("last_name") or "").strip()
-        class_name = str(row.get("Form Group") or row.get("class_name") or "").strip()
-        year_level = str(row.get("Year Level") or row.get("year_level") or "").strip()
-        teacher = str(row.get("teacher") or "").strip()
-        gender = str(row.get("gender") or "").strip()
-        dob = str(row.get("date_of_birth") or "").strip()
+        stkey = _get(row, "STKEY", "Import Identifier", "SussiId", "sussi_id")
+        first_name     = _get(row, "FIRST_NAME", "First Name", "first_name")
+        preferred_name = _get(row, "PREF_NAME",  "Preferred Name", "preferred_name")
+        last_name      = _get(row, "SURNAME",    "Surname", "last_name")
+        family         = _get(row, "FAMILY",     "family")
+        gender         = _get(row, "GENDER",     "gender")
+        dob            = _date_iso(_get(row, "BIRTHDATE", "date_of_birth", "dob"))
+        entry_date     = _date_iso(_get(row, "ENTRY", "enrolment_date", "entry_date"))
+        class_name     = _get(row, "HOME_GROUP", "Form Group", "class_name")
+        year_level     = _get(row, "SCHOOL_YEAR","Year Level", "year_level")
+        koorie_raw     = _get(row, "KOORIE",     "koorie").upper()
+        koorie         = _koorie_map.get(koorie_raw, koorie_raw) if koorie_raw else ""
+        # Normalise SCHOOL_YEAR (0 → "Foundation", "12" stays "12")
+        if year_level == "0":
+            year_level = "Foundation"
 
-        if not sussi_id and not first_name and not last_name:
+        if not stkey and not first_name and not last_name:
             errors.append({"row": i + 1, "error": "Missing student identifier"})
             continue
 
         student_doc = {
-            "first_name": first_name or sussi_id, "preferred_name": preferred_name or None,
-            "last_name": last_name, "year_level": year_level, "class_name": class_name,
-            "teacher": teacher, "gender": gender, "date_of_birth": dob,
-            "enrolment_status": "active", "sussi_id": sussi_id, "external_id": sussi_id,
+            "first_name": first_name or stkey,
+            "preferred_name": preferred_name or None,
+            "last_name": last_name,
+            "year_level": year_level,
+            "class_name": class_name,
+            "gender": gender,
+            "date_of_birth": dob,
+            "family": family or None,
+            "entry_date": entry_date or None,
+            "koorie": koorie or None,
+            "enrolment_status": "active",
+            "sussi_id": stkey, "external_id": stkey,
         }
+        # Drop empty optional keys so partial updates don't overwrite existing data
+        student_doc = {k: v for k, v in student_doc.items() if v != "" and v is not None}
 
-        if sussi_id:
-            existing = await db.students.find_one({"sussi_id": sussi_id})
+        if stkey:
+            existing = await db.students.find_one({"sussi_id": stkey})
             if existing:
-                await db.students.update_one({"sussi_id": sussi_id}, {"$set": student_doc})
-                updated.append(sussi_id)
+                await db.students.update_one({"sussi_id": stkey}, {"$set": student_doc})
+                updated.append(stkey)
             else:
                 student_doc["student_id"] = f"stu_{uuid.uuid4().hex[:8]}"
                 await db.students.insert_one({**student_doc})
