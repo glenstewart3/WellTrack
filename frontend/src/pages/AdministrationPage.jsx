@@ -1434,6 +1434,105 @@ function ClassesTab() {
   );
 }
 
+// ── OVERVIEW CARDS ───────────────────────────────────────────────────────────
+function OverviewCards({ onJump }) {
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const [users, classes, backups, audit] = await Promise.all([
+          api.get('/users').then(r => r.data).catch(() => []),
+          api.get('/classes').then(r => r.data).catch(() => []),
+          api.get('/backups').then(r => r.data.backups || []).catch(() => []),
+          api.get(`/audit?date_from=${today}&date_to=${today}&per_page=1`).then(r => r.data).catch(() => ({ total: 0 })),
+        ]);
+        if (cancelled) return;
+
+        const activeUsers = users.filter(u => u.is_active !== false).length;
+        const latestBackup = backups[0];
+        let backupLabel = 'No backups yet';
+        let backupTone = 'amber';
+        if (latestBackup) {
+          const ts = new Date(latestBackup.created_at).getTime();
+          const hrsAgo = (Date.now() - ts) / 36e5;
+          if (hrsAgo < 1)       backupLabel = 'Just now';
+          else if (hrsAgo < 24) backupLabel = `${Math.floor(hrsAgo)}h ago`;
+          else if (hrsAgo < 48) backupLabel = 'Yesterday';
+          else                  backupLabel = `${Math.floor(hrsAgo / 24)}d ago`;
+          backupTone = hrsAgo < 36 ? 'emerald' : 'amber';
+        }
+        const assignedClasses = classes.filter(c => c.teacher_user_id).length;
+
+        setStats({
+          users:      { total: activeUsers, sub: `${users.length - activeUsers} inactive` },
+          classes:    { total: classes.length, sub: `${assignedClasses}/${classes.length} with teacher` },
+          backup:     { label: backupLabel, sub: latestBackup ? `${latestBackup.size_kb} KB` : 'Run your first backup', tone: backupTone },
+          audit:      { total: audit.total, sub: 'changes today' },
+        });
+      } catch (e) { console.error('overview fetch failed', e); }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const toneMap = {
+    slate:   { bg: 'bg-slate-50',   icon: 'text-slate-600',   ring: 'ring-slate-200' },
+    emerald: { bg: 'bg-emerald-50', icon: 'text-emerald-600', ring: 'ring-emerald-200' },
+    amber:   { bg: 'bg-amber-50',   icon: 'text-amber-600',   ring: 'ring-amber-200' },
+    indigo:  { bg: 'bg-indigo-50',  icon: 'text-indigo-600',  ring: 'ring-indigo-200' },
+  };
+
+  const Card = ({ label, value, sub, icon: Icon, tone = 'slate', onClick, testId }) => {
+    const t = toneMap[tone] || toneMap.slate;
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        data-testid={testId}
+        className="group bg-white border border-slate-200 hover:border-slate-300 hover:shadow-sm rounded-xl p-4 text-left transition-all flex flex-col justify-between min-h-[100px]"
+      >
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</span>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${t.bg} ring-1 ${t.ring}`}>
+            <Icon size={14} className={t.icon} />
+          </div>
+        </div>
+        <div>
+          <p className="text-2xl font-extrabold text-slate-900 tabular-nums" style={{ fontFamily: 'Manrope,sans-serif' }}>{value}</p>
+          <p className="text-xs text-slate-400 mt-0.5 truncate">{sub}</p>
+        </div>
+      </button>
+    );
+  };
+
+  if (!stats) {
+    return (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5 sm:mb-6">
+        {[1, 2, 3, 4].map(i => <div key={i} className="h-[100px] bg-white border border-slate-100 rounded-xl animate-pulse" />)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5 sm:mb-6" data-testid="admin-overview">
+      <Card label="Active users" value={stats.users.total} sub={stats.users.sub}
+            icon={UserCog} tone="indigo"
+            onClick={() => onJump('User Management')} testId="overview-users-card" />
+      <Card label="Classes" value={stats.classes.total} sub={stats.classes.sub}
+            icon={Users2} tone="slate"
+            onClick={() => onJump('Classes')} testId="overview-classes-card" />
+      <Card label="Last backup" value={stats.backup.label} sub={stats.backup.sub}
+            icon={Database} tone={stats.backup.tone}
+            onClick={() => onJump('Data')} testId="overview-backup-card" />
+      <Card label="Audit activity" value={stats.audit.total} sub={stats.audit.sub}
+            icon={ClipboardCheck} tone="emerald"
+            onClick={() => onJump('Audit Log')} testId="overview-audit-card" />
+    </div>
+  );
+}
+
 // ── MAIN ADMINISTRATION PAGE ──────────────────────────────────────────────────
 export default function AdministrationPage() {
   useDocumentTitle('Administration');
@@ -1457,6 +1556,8 @@ export default function AdministrationPage() {
       </div>
 
       <TabNav active={activeTab} onChange={setActiveTab} />
+
+      <OverviewCards onJump={setActiveTab} />
 
       {activeTab === 'User Management' && <UserManagementTab />}
       {activeTab === 'Classes' && <ClassesTab />}
