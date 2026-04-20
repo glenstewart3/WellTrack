@@ -74,7 +74,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: '#f8fafc' }}>
+    <div className="min-h-screen flex" style={{ backgroundColor: 'oklch(98.5% .005 95)' }}>
       {/* Left panel */}
       <div className="flex-1 flex flex-col justify-center px-8 py-12 lg:px-16">
         <div className="max-w-md w-full mx-auto">
@@ -92,8 +92,8 @@ export default function LoginPage() {
               />
             )}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0" style={{ backgroundColor: accent }}>
-                <Shield size={20} className="text-emerald-400" />
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm shrink-0 bg-slate-900">
+                <Shield size={18} className="text-white" />
               </div>
               <div>
                 <p className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{settings.platform_name || 'WellTrack'}</p>
@@ -216,34 +216,52 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right panel */}
-      <div className="hidden lg:flex flex-1 bg-slate-900 flex-col justify-between p-12">
-        <div />
-        <div>
+      {/* Right panel — warm cream with ambient color blurs */}
+      <div className="hidden lg:flex flex-1 relative flex-col justify-between p-12 overflow-hidden" style={{ backgroundColor: 'oklch(98.5% .005 95)' }}>
+        {/* Ambient color blurs */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+          <div className="wt-blur-drift-a absolute -top-24 right-[10%] h-[420px] w-[420px] rounded-full opacity-45 blur-3xl" style={{ background: 'rgba(34, 197, 94, 0.38)' }} />
+          <div className="wt-blur-drift-b absolute top-1/3 right-[-8%] h-[360px] w-[360px] rounded-full opacity-35 blur-3xl" style={{ background: 'rgba(245, 158, 11, 0.34)' }} />
+          <div className="wt-blur-drift-d absolute bottom-[-8%] left-[-4%] h-[340px] w-[340px] rounded-full opacity-30 blur-3xl" style={{ background: 'rgba(239, 68, 68, 0.28)' }} />
+          <div className="wt-blur-drift-e absolute bottom-[-10%] right-[24%] h-[300px] w-[300px] rounded-full opacity-30 blur-3xl" style={{ background: 'rgba(16, 185, 129, 0.24)' }} />
+        </div>
+
+        <div className="relative z-10" />
+        <div className="relative z-10">
           <div className="grid grid-cols-3 gap-3 mb-8">
             {[
-              { label: 'Tier 1', count: '100%', color: 'bg-emerald-500', desc: 'Universal' },
-              { label: 'Tier 2', count: '20%',  color: 'bg-amber-400',  desc: 'Targeted' },
-              { label: 'Tier 3', count: '5%',   color: 'bg-rose-500',   desc: 'Intensive' },
+              { label: 'Tier 1', count: '100%', dot: 'var(--wt-tier1)', soft: 'var(--wt-tier1-soft)', border: 'var(--wt-tier1-border)', desc: 'Universal' },
+              { label: 'Tier 2', count: '20%',  dot: 'var(--wt-tier2)', soft: 'var(--wt-tier2-soft)', border: 'var(--wt-tier2-border)', desc: 'Targeted' },
+              { label: 'Tier 3', count: '5%',   dot: 'var(--wt-tier3)', soft: 'var(--wt-tier3-soft)', border: 'var(--wt-tier3-border)', desc: 'Intensive' },
             ].map(item => (
-              <div key={item.label} className="bg-white/10 rounded-xl p-4">
-                <div className={`w-3 h-3 rounded-full ${item.color} mb-2`} />
-                <p className="text-2xl font-bold text-white" style={{fontFamily:'Manrope,sans-serif'}}>{item.count}</p>
-                <p className="text-xs text-white/60 mt-1">{item.label}</p>
-                <p className="text-xs text-white/40">{item.desc}</p>
+              <div
+                key={item.label}
+                className="rounded-xl p-4 border backdrop-blur-sm"
+                style={{ backgroundColor: 'rgba(255,255,255,0.6)', borderColor: 'var(--wt-border)' }}
+              >
+                <div className="w-3 h-3 rounded-full mb-2" style={{ backgroundColor: item.dot }} />
+                <p className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{item.count}</p>
+                <p className="text-xs text-slate-600 mt-1 font-medium">{item.label}</p>
+                <p className="text-xs text-slate-400">{item.desc}</p>
               </div>
             ))}
           </div>
-          <h1 className="text-4xl font-bold text-white mb-3" style={{fontFamily:'Manrope,sans-serif'}}>
+          <h1 className="text-4xl font-extrabold text-slate-900 mb-3" style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800 }}>
             Every student matters.
           </h1>
-          <p className="text-white/60 text-sm leading-relaxed max-w-sm">
+          <p className="text-slate-600 text-sm leading-relaxed max-w-sm">
             WellTrack helps your school identify students who need support before they fall through the cracks — using evidence-based SAEBRS screening and wellbeing analytics.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="relative z-10 flex flex-wrap gap-2">
           {['Universal Screening', 'Early Intervention', 'Progress Monitoring', 'Data-Driven'].map(tag => (
-            <span key={tag} className="text-xs text-white/50 bg-white/10 px-3 py-1 rounded-full">{tag}</span>
+            <span
+              key={tag}
+              className="text-xs font-medium px-3 py-1 rounded-full border backdrop-blur-sm"
+              style={{ backgroundColor: 'rgba(255,255,255,0.6)', borderColor: 'var(--wt-border)', color: 'var(--wt-muted-fg)' }}
+            >
+              {tag}
+            </span>
           ))}
         </div>
       </div>

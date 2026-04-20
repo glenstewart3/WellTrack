@@ -99,8 +99,8 @@ export default function DashboardLayout() {
           ) : null;
         })()}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-slate-900">
-            <Shield size={17} className="text-emerald-400" />
+          <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${theme === 'dark' ? 'bg-slate-100' : 'bg-slate-900'}`}>
+            <Shield size={16} className={theme === 'dark' ? 'text-slate-900' : 'text-white'} />
           </div>
           <div>
             <p className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{settings.platform_name || 'WellTrack'}</p>

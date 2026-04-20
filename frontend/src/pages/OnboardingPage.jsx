@@ -131,12 +131,12 @@ export default function OnboardingPage({ onComplete }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center py-12 px-4" style={{ backgroundColor: '#f8fafc' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center py-12 px-4" style={{ backgroundColor: 'oklch(98.5% .005 95)' }}>
       <div className="w-full max-w-xl">
         {/* Brand */}
         <div className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
-            <Shield size={16} className="text-white" />
+          <div className="w-8 h-8 bg-slate-900 rounded-full flex items-center justify-center">
+            <Shield size={15} className="text-white" />
           </div>
           <span className="font-bold text-slate-900 text-lg" style={{ fontFamily: 'Manrope,sans-serif' }}>WellTrack</span>
         </div>
