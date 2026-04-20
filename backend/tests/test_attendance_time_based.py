@@ -36,7 +36,8 @@ def _truthy(v):
     if v is None:
         return False
     s = str(v).strip().upper()
-    return s not in ("", "0", "N", "NO", "FALSE", "F")
+    # "A" is the absent marker used in school system exports
+    return s not in ("", "0", "A", "N", "NO", "FALSE", "F")
 
 
 def compute_present_pct(am_att, am_late, am_early, pm_att, pm_late, pm_early):
@@ -113,6 +114,20 @@ def test_combined_partial():
 def test_invalid_time_ignored():
     # Garbage HHMM returns None, treated as full attendance
     assert compute_present_pct(1, "abc", None, 1, None, None) == 1.0
+
+
+def test_a_means_absent():
+    # "A" in AM_ATTENDED / PM_ATTENDED means absent in school exports
+    assert compute_present_pct("A", None, None, "A", None, None) == 0.0
+    assert compute_present_pct("A", None, None, "Y", None, None) == 0.5
+    assert compute_present_pct("Y", None, None, "A", None, None) == 0.5
+
+
+def test_am_present_early_left_1033():
+    # User's example: AM_ATTENDED=Y, AM_EARLY_LEFT=1033, PM_ATTENDED=A
+    # Present from 8:50 to 10:33 = 103 min. PM: 0 min. Total: 103/390 ≈ 0.2641
+    pct = compute_present_pct("Y", None, 1033, "A", None, None)
+    assert abs(pct - (103 / 390)) < 0.0001, f"got {pct}, expected {103/390}"
 
 
 # ── compute_att_stats w/ present_pct and entry_date ──────────────────────────

@@ -105,11 +105,13 @@ async def upload_attendance(file: UploadFile = File(...), user=Depends(get_curre
         return h * 60 + m
 
     def _truthy(v) -> bool:
-        """Coerce AM_ATTENDED / PM_ATTENDED values. Accepts 1/0, Y/N, True/False, YES/NO, blank."""
+        """Coerce AM_ATTENDED / PM_ATTENDED values. Accepts Y/1/True = attended,
+        A/N/0/False/blank = absent. 'A' explicitly means Absent in the school
+        export format."""
         if v is None:
             return False
         s = str(v).strip().upper()
-        if s in ("", "0", "N", "NO", "FALSE", "F"):
+        if s in ("", "0", "A", "N", "NO", "FALSE", "F"):
             return False
         return True
 
