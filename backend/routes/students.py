@@ -305,6 +305,82 @@ async def upload_student_photos(request: Request, file: UploadFile = File(...), 
 
     matched, unmatched, skipped_staff = [], [], []
 
+    # ── Name normalisation + index-once strategy ─────────────────────────────
+    # Covers: curly apostrophes, straight apostrophes, hyphens, spaces, accents,
+    # case variance, compound last names (ERSCH- MAHY), and multi-token first
+    # names (Nur Fathiya Adira).
+    import unicodedata
+
+    def _norm(s: str) -> str:
+        if not s:
+            return ""
+        # Decompose accents, drop marks
+        s = unicodedata.normalize("NFKD", str(s))
+        s = "".join(c for c in s if not unicodedata.combining(c))
+        # Replace curly apostrophes with straight, then drop all non-alphanumeric
+        return "".join(c.lower() for c in s if c.isalnum())
+
+    def _tokens(s: str):
+        """Return lowercase alphanumeric tokens, splitting on any non-alnum."""
+        if not s:
+            return []
+        s = unicodedata.normalize("NFKD", str(s))
+        s = "".join(c for c in s if not unicodedata.combining(c))
+        buf, out = [], []
+        for c in s:
+            if c.isalnum():
+                buf.append(c.lower())
+            elif buf:
+                out.append("".join(buf))
+                buf = []
+        if buf:
+            out.append("".join(buf))
+        return out
+
+    # Index active students once
+    students_raw = await db.students.find(
+        {"enrolment_status": "active"},
+        {"_id": 0, "student_id": 1, "first_name": 1, "last_name": 1, "preferred_name": 1},
+    ).to_list(5000)
+
+    index = []
+    for s in students_raw:
+        fn, ln, pn = s.get("first_name", ""), s.get("last_name", ""), s.get("preferred_name", "")
+        index.append({
+            "student_id": s["student_id"],
+            "fn_norm": _norm(fn),
+            "ln_norm": _norm(ln),
+            "pn_norm": _norm(pn),
+            "fn_tokens": _tokens(fn),
+            "ln_tokens": _tokens(ln),
+        })
+
+    def _match_student(last_name: str, first_name: str):
+        ln_n = _norm(last_name)
+        fn_n = _norm(first_name)
+        if not ln_n or not fn_n:
+            return None
+
+        # 1. Exact normalised match on last + (first OR preferred)
+        for rec in index:
+            if rec["ln_norm"] == ln_n and (rec["fn_norm"] == fn_n or rec["pn_norm"] == fn_n):
+                return rec
+        # 2. Last-name token match (handles compound: "ERSCH- MAHY" contains "mahy")
+        #    + exact or preferred first name
+        for rec in index:
+            if ln_n in rec["ln_tokens"] and (rec["fn_norm"] == fn_n or rec["pn_norm"] == fn_n):
+                return rec
+        # 3. Exact last-name + first-name token match
+        #    (handles "Nur Fathiya Adira" when file has "Adira")
+        for rec in index:
+            if rec["ln_norm"] == ln_n and fn_n in rec["fn_tokens"]:
+                return rec
+        # 4. Both sides token-level (most permissive)
+        for rec in index:
+            if ln_n in rec["ln_tokens"] and fn_n in rec["fn_tokens"]:
+                return rec
+        return None
+
     with zipfile.ZipFile(io.BytesIO(content)) as zf:
         for info in zf.infolist():
             if info.is_dir():
@@ -334,30 +410,13 @@ async def upload_student_photos(request: Request, file: UploadFile = File(...), 
                 unmatched.append(stem_raw)
                 continue
 
-            student = await db.students.find_one(
-                {
-                    "last_name": re.compile(f"^{re.escape(last_name)}$", re.IGNORECASE),
-                    "first_name": re.compile(f"^{re.escape(first_name)}$", re.IGNORECASE),
-                    "enrolment_status": "active",
-                },
-                {"_id": 0, "student_id": 1},
-            )
+            rec = _match_student(last_name, first_name)
 
-            if not student:
-                student = await db.students.find_one(
-                    {
-                        "last_name": re.compile(f"^{re.escape(last_name)}$", re.IGNORECASE),
-                        "preferred_name": re.compile(f"^{re.escape(first_name)}$", re.IGNORECASE),
-                        "enrolment_status": "active",
-                    },
-                    {"_id": 0, "student_id": 1},
-                )
-
-            if not student:
+            if not rec:
                 unmatched.append(f"{last_name}, {first_name}")
                 continue
 
-            student_id = student["student_id"]
+            student_id = rec["student_id"]
             save_ext = ".jpg" if ext in (".jpg", ".jpeg") else ".png"
             photo_filename = f"{student_id}{save_ext}"
             photo_path = photos_dir / photo_filename
