@@ -65,8 +65,8 @@ code {
 
 /* ── WellTrack Theme Variables ─────────────────────────────────────────────── */
 :root {
-  --wt-page-bg: #f8fafc;        /* slate-50 neutral canvas */
-  --wt-header-bg: #f8fafc;
+  --wt-page-bg: oklch(98.5% .005 95);
+  --wt-header-bg: oklch(98.5% .005 95);
   --wt-header-border: #e2e8f0;  /* slate-200 */
 
   /* Neutral surface + bright tier palette (matches Analytics charts) */
