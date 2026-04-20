@@ -96,7 +96,7 @@ export default function LoginPage() {
                 <Shield size={18} className="text-white" />
               </div>
               <div>
-                <p className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{settings.platform_name || 'WellTrack'}</p>
+                <p className="text-lg font-extrabold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{settings.platform_name || 'WellTrack'}</p>
                 <p className="text-xs text-slate-400 font-medium">{settings.school_name || 'MTSS Student Wellbeing Platform'}</p>
               </div>
             </div>

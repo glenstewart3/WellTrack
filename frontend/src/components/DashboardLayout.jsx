@@ -106,7 +106,7 @@ export default function DashboardLayout() {
             >
               <Shield size={16} style={{ color: theme === 'dark' ? '#0f172a' : '#ffffff' }} />
             </div>
-            <p className="font-bold" style={{ fontFamily: 'Manrope,sans-serif', fontSize: '1.1rem', color: 'var(--wt-foreground)' }}>
+            <p className="font-extrabold" style={{ fontFamily: 'Manrope,sans-serif', fontSize: '1.1rem', color: 'var(--wt-foreground)' }}>
               {settings.platform_name || 'WellTrack'}
             </p>
           </div>
