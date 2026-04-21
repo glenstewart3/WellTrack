@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Shield, ArrowRight, Search, CheckCircle, Users, BarChart3,
-  Target, ClipboardCheck, Loader2, XCircle, ShieldCheck, ChartLine, Heart
+  Target, ClipboardCheck, Loader2, XCircle, ShieldCheck, ChartLine, Heart,
+  Sun, Moon,
 } from 'lucide-react';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 
@@ -10,17 +11,29 @@ const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || 'welltrack.com.au';
 const isRootDomain = window.location.hostname === BASE_DOMAIN || window.location.hostname === `www.${BASE_DOMAIN}`;
 const API_BASE = isRootDomain ? '' : API;
 
+const LANDING_THEME_KEY = 'welltrack_landing_theme';
+
 export default function LandingPage() {
   useDocumentTitle('Welcome');
   const [showFinder, setShowFinder] = useState(false);
   const [slug, setSlug] = useState('');
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState(null);
+  const [dark, setDark] = useState(() => {
+    try { return localStorage.getItem(LANDING_THEME_KEY) === 'dark'; } catch { return false; }
+  });
   const inputRef = useRef(null);
 
   useEffect(() => {
     if (showFinder) setTimeout(() => inputRef.current?.focus(), 100);
   }, [showFinder]);
+
+  useEffect(() => {
+    try { localStorage.setItem(LANDING_THEME_KEY, dark ? 'dark' : 'light'); } catch {}
+    // Update the browser's theme-color meta so iOS status bar matches on webclip
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', dark ? '#0b1220' : '#fbfaf6');
+  }, [dark]);
 
   const handleLookup = async () => {
     if (!slug.trim()) return;
@@ -48,27 +61,53 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden" style={{ backgroundColor: '#fbfaf6' }}>
-      {/* Blurred color spots */}
+    <div
+      data-landing-theme={dark ? 'dark' : 'light'}
+      className="landing-page relative min-h-screen overflow-hidden"
+      style={{ backgroundColor: dark ? '#0b1220' : '#fbfaf6', color: dark ? '#f1f5f9' : '#0f172a' }}
+    >
+      {/* Blurred color spots — brighter opacity in dark mode for visibility */}
       <div className="pointer-events-none absolute inset-0 -z-0">
-        <div className="absolute -top-20 left-1/2 h-[420px] w-[700px] -translate-x-1/2 rounded-full opacity-60 blur-3xl" style={{ background: 'rgba(16, 185, 129, 0.18)' }} />
-        <div className="absolute right-[-6%] top-1/4 h-[360px] w-[360px] rounded-full opacity-40 blur-3xl" style={{ background: 'rgba(245, 158, 11, 0.20)' }} />
-        <div className="absolute bottom-[-3%] left-[-3%] h-[300px] w-[300px] rounded-full opacity-35 blur-3xl" style={{ background: 'rgba(244, 63, 94, 0.16)' }} />
+        <div className="absolute -top-20 left-1/2 h-[420px] w-[700px] -translate-x-1/2 rounded-full blur-3xl"
+             style={{ background: dark ? 'rgba(16, 185, 129, 0.28)' : 'rgba(16, 185, 129, 0.18)',
+                      opacity: dark ? 0.9 : 0.6 }} />
+        <div className="absolute right-[-6%] top-1/4 h-[360px] w-[360px] rounded-full blur-3xl"
+             style={{ background: dark ? 'rgba(245, 158, 11, 0.30)' : 'rgba(245, 158, 11, 0.20)',
+                      opacity: dark ? 0.75 : 0.4 }} />
+        <div className="absolute bottom-[-3%] left-[-3%] h-[300px] w-[300px] rounded-full blur-3xl"
+             style={{ background: dark ? 'rgba(244, 63, 94, 0.26)' : 'rgba(244, 63, 94, 0.16)',
+                      opacity: dark ? 0.7 : 0.35 }} />
+        <div className="absolute top-[55%] left-[60%] h-[380px] w-[380px] rounded-full blur-3xl"
+             style={{ background: dark ? 'rgba(99, 102, 241, 0.22)' : 'rgba(99, 102, 241, 0.00)',
+                      opacity: dark ? 0.65 : 0 }} />
       </div>
 
       {/* Nav */}
       <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-slate-900 rounded-full flex items-center justify-center">
-            <Shield size={16} className="text-white" />
+          <div className={`w-9 h-9 rounded-full flex items-center justify-center ${dark ? 'bg-slate-100' : 'bg-slate-900'}`}>
+            <Shield size={16} className={dark ? 'text-slate-900' : 'text-white'} />
           </div>
-          <span className="font-extrabold text-lg tracking-tight text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>WellTrack</span>
+          <span className="font-extrabold text-lg tracking-tight" style={{ fontFamily: 'Manrope, sans-serif', color: dark ? '#f1f5f9' : '#0f172a' }}>WellTrack</span>
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setDark(d => !d)}
+            aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+            data-testid="landing-theme-toggle"
+            className={`inline-flex items-center justify-center w-9 h-9 rounded-full transition-colors ${
+              dark ? 'bg-white/10 hover:bg-white/15 text-amber-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+            }`}
+          >
+            {dark ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+          <button
             onClick={() => setShowFinder(true)}
             data-testid="nav-login-btn"
-            className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 transition-colors"
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+              dark ? 'bg-white text-slate-900 hover:bg-slate-100' : 'bg-slate-900 text-white hover:bg-slate-800'
+            }`}
           >
             School Login
             <ArrowRight size={14} />

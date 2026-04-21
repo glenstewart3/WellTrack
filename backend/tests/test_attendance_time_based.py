@@ -123,6 +123,17 @@ def test_a_means_absent():
     assert compute_present_pct("Y", None, None, "A", None, None) == 0.5
 
 
+def test_p_means_present_and_l_means_late():
+    # "P" = Present, "L" = Late (still counts as present, actual late time in AM_LATE_ARRIVAL)
+    assert compute_present_pct("P", None, None, "P", None, None) == 1.0
+    # L marker + no time → treated as fully present (shouldn't happen in clean data but must not crash)
+    assert compute_present_pct("L", None, None, "P", None, None) == 1.0
+    # Realistic: L in AM with late-arrival time 920 → arrived 9:20
+    # Lost 30 min → 360/390
+    pct = compute_present_pct("L", 920, None, "P", None, None)
+    assert abs(pct - (360 / 390)) < 0.0001, f"got {pct}"
+
+
 def test_am_present_early_left_1033():
     # User's example: AM_ATTENDED=Y, AM_EARLY_LEFT=1033, PM_ATTENDED=A
     # Present from 8:50 to 10:33 = 103 min. PM: 0 min. Total: 103/390 ≈ 0.2641

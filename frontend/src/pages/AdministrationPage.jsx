@@ -84,24 +84,36 @@ const TABS = [
   { key: 'Audit Log', icon: ClipboardCheck },
 ];
 
-function TabNav({ active, onChange }) {
+function TabNav({ active, onChange, attention = {} }) {
   return (
     <div className="flex gap-1 mb-6 md:mb-8 p-1 md:p-1.5 bg-slate-100 rounded-2xl overflow-x-auto no-scrollbar max-w-full">
-      {TABS.map(({ key, icon: Icon }) => (
-        <button
-          key={key}
-          onClick={() => onChange(key)}
-          data-testid={`admin-tab-${key.toLowerCase().replace(/\s+/g, '-')}`}
-          className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-xl transition-all whitespace-nowrap shrink-0 ${
-            active === key
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700 hover:bg-white/60'
-          }`}
-        >
-          <Icon size={13} />
-          {key}
-        </button>
-      ))}
+      {TABS.map(({ key, icon: Icon }) => {
+        const count = attention[key];
+        return (
+          <button
+            key={key}
+            onClick={() => onChange(key)}
+            data-testid={`admin-tab-${key.toLowerCase().replace(/\s+/g, '-')}`}
+            className={`relative flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-xl transition-all whitespace-nowrap shrink-0 ${
+              active === key
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700 hover:bg-white/60'
+            }`}
+          >
+            <Icon size={13} />
+            {key}
+            {count > 0 && active !== key && (
+              <span
+                data-testid={`admin-tab-attention-${key.toLowerCase().replace(/\s+/g, '-')}`}
+                className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-amber-400/90 text-amber-950 text-[10px] font-bold tab-attention-pulse"
+                title={`${count} need attention`}
+              >
+                {count}
+              </span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -1435,7 +1447,7 @@ function ClassesTab() {
 }
 
 // ── OVERVIEW CARDS ───────────────────────────────────────────────────────────
-function OverviewCards({ onJump }) {
+function OverviewCards({ onJump, onStats }) {
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
@@ -1465,17 +1477,21 @@ function OverviewCards({ onJump }) {
           backupTone = hrsAgo < 36 ? 'emerald' : 'amber';
         }
         const assignedClasses = classes.filter(c => c.teacher_user_id).length;
+        const unassignedClasses = classes.length - assignedClasses;
 
-        setStats({
+        const newStats = {
           users:      { total: activeUsers, sub: `${users.length - activeUsers} inactive` },
           classes:    { total: classes.length, sub: `${assignedClasses}/${classes.length} with teacher` },
           backup:     { label: backupLabel, sub: latestBackup ? `${latestBackup.size_kb} KB` : 'Run your first backup', tone: backupTone },
           audit:      { total: audit.total, sub: 'changes today' },
-        });
+        };
+        setStats(newStats);
+        // Lift attention counts to parent for tab nudges
+        if (onStats) onStats({ classes_unassigned: unassignedClasses });
       } catch (e) { console.error('overview fetch failed', e); }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [onStats]);
 
   const toneMap = {
     slate:   { bg: 'bg-slate-50',   icon: 'text-slate-600',   ring: 'ring-slate-200' },
@@ -1539,12 +1555,15 @@ export default function AdministrationPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('User Management');
+  const [attention, setAttention] = useState({});
 
   useEffect(() => {
     if (user && user.role !== 'admin') navigate('/dashboard');
   }, [user, navigate]);
 
   if (user?.role !== 'admin') return null;
+
+  const tabAttention = { Classes: attention.classes_unassigned || 0 };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 fade-in">
@@ -1555,9 +1574,9 @@ export default function AdministrationPage() {
         <p className="text-sm sm:text-base text-slate-500 mt-1">Manage users and configure role-based access control</p>
       </div>
 
-      <TabNav active={activeTab} onChange={setActiveTab} />
+      <TabNav active={activeTab} onChange={setActiveTab} attention={tabAttention} />
 
-      <OverviewCards onJump={setActiveTab} />
+      <OverviewCards onJump={setActiveTab} onStats={setAttention} />
 
       {activeTab === 'User Management' && <UserManagementTab />}
       {activeTab === 'Classes' && <ClassesTab />}

@@ -190,33 +190,6 @@ function BrandingTab({ settings: s, onSave, saving, msg, msgType }) {
         </div>
       </div>
 
-      {/* Accent colour */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6">
-        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Accent Colour</h3>
-        <p className="text-xs text-slate-400 mb-4">Used for the sidebar, active navigation, and primary buttons across the app.</p>
-        <div className="flex flex-wrap items-center gap-3 mb-4">
-          {PRESET_COLOURS.map(c => (
-            <button key={c} onClick={() => handleColorChange(c)}
-              title={c}
-              style={{ backgroundColor: c }}
-              className={`w-8 h-8 rounded-lg border-2 transition-all ${accentColor === c ? 'border-slate-900 scale-110' : 'border-transparent hover:scale-105'}`}
-            />
-          ))}
-          <label className="flex items-center gap-2 cursor-pointer px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 text-xs text-slate-600">
-            <Palette size={13} /> Custom
-            <input type="color" value={accentColor} onChange={e => handleColorChange(e.target.value)}
-              data-testid="accent-color-picker"
-              className="w-0 h-0 opacity-0 absolute" />
-          </label>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl shadow-sm" style={{ backgroundColor: accentColor }} />
-          <input type="text" value={accentColor} onChange={e => handleColorChange(e.target.value)}
-            className="w-28 px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none" />
-          <span className="text-xs text-slate-400">Preview colour applied instantly</span>
-        </div>
-      </div>
-
       <button onClick={handleSave} disabled={saving} data-testid="save-branding-btn"
         className="w-full py-3.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 disabled:opacity-60 transition-colors flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
         {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
@@ -1389,7 +1362,8 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
           <div className="mt-2 p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-xs text-slate-600 space-y-1.5">
             <p>The school day is <strong>8:50 AM – 3:20 PM</strong> (390 minutes total). Each record is converted to a <strong>present_pct</strong> between 0.0 and 1.0:</p>
             <ul className="list-disc list-inside space-y-1">
-              <li>If <code>AM_ATTENDED</code> is false/0, the student missed the full morning (195 min).</li>
+              <li><code>AM_ATTENDED</code>: <strong>P</strong> = Present, <strong>L</strong> = Late (arrival time in <code>AM_LATE_ARRIVAL</code>), <strong>A</strong> = Absent. Same for PM.</li>
+              <li>If <code>AM_ATTENDED</code> is <code>A</code>, the student missed the full morning (195 min).</li>
               <li><code>AM_LATE_ARRIVAL = 933</code> means they arrived at 9:33 AM → 43 min lost.</li>
               <li><code>AM_EARLY_LEFT = 1030</code> means they left at 10:30 AM → 95 min lost.</li>
               <li>Same logic applies to the PM session (12:05 PM – 3:20 PM).</li>
@@ -1702,7 +1676,7 @@ function IntegrationsTab({ settings: s, onSave, saving, msg, msgType, featureFla
 export default function SettingsPage() {
   useDocumentTitle('Settings');
   const { settings, loadFullSettings } = useSettings();
-  const [activeTab, setActiveTab] = useState('Branding');
+  const [activeTab, setActiveTab] = useState('General');
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [msgType, setMsgType] = useState('success');

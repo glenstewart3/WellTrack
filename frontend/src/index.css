@@ -67,13 +67,16 @@ code {
 :root {
   --wt-page-bg: oklch(98.5% .005 95);
   --wt-header-bg: oklch(98.5% .005 95);
-  --wt-header-border: #e2e8f0;  /* slate-200 */
+  --wt-header-border: oklch(92% .008 85);  /* warm neutral border */
 
   /* Neutral surface + bright tier palette (matches Analytics charts) */
   --wt-surface: #ffffff;
-  --wt-surface-muted: #f1f5f9;  /* slate-100 */
+  --wt-surface-muted: oklch(96.5% .006 90);   /* warm slate-100 substitute */
+  --wt-surface-softer: oklch(97.5% .005 92);  /* slightly warmer for list sub-sections */
   --wt-card: #ffffff;
-  --wt-border: #e2e8f0;         /* slate-200 */
+  --wt-border: oklch(91.5% .008 85);          /* warm, softer border */
+  --wt-border-soft: oklch(94.5% .006 88);     /* even gentler for internal dividers */
+  --wt-tab-bg: oklch(95% .006 90);            /* warm tab rail background */
   --wt-foreground: #0f172a;     /* slate-900 */
   --wt-muted-fg: #64748b;       /* slate-500 */
 
@@ -377,12 +380,31 @@ code {
   border-color: var(--wt-border) !important;
 }
 :root:not([data-theme="dark"]) .divide-slate-200 > * + *,
-:root:not([data-theme="dark"]) .divide-slate-100 > * + * {
-  border-color: var(--wt-border) !important;
+:root:not([data-theme="dark"]) .divide-slate-100 > * + *,
+:root:not([data-theme="dark"]) .divide-slate-50  > * + * {
+  border-color: var(--wt-border-soft) !important;
 }
 /* Subtle warm surface for bg-slate-50 zones (table heads, sub-panels) */
 :root:not([data-theme="dark"]) .bg-slate-50 {
   background-color: var(--wt-surface-muted) !important;
+}
+/* Tab rail backgrounds — soften from cold grey to warm neutral */
+:root:not([data-theme="dark"]) .bg-slate-100 {
+  background-color: var(--wt-tab-bg) !important;
+}
+/* List section headers (uppercase tracking-wider) — warm grey-brown, not cool slate */
+:root:not([data-theme="dark"]) .uppercase.tracking-wider {
+  color: oklch(50% .012 70) !important;  /* warm stone-500 */
+}
+/* Row hover in tables — gentler, warmer */
+:root:not([data-theme="dark"]) .hover\:bg-slate-50\/60:hover,
+:root:not([data-theme="dark"]) .hover\:bg-slate-50\/50:hover,
+:root:not([data-theme="dark"]) .hover\:bg-slate-50:hover {
+  background-color: oklch(97% .007 88) !important;
+}
+/* Thin inner dividers between list rows (border-b border-slate-50 specifically) */
+:root:not([data-theme="dark"]) .border-slate-50 {
+  border-color: var(--wt-border-soft) !important;
 }
 /* Main-page headings pick up the Lovable heavier weight */
 h1.text-3xl, h1.text-2xl {
@@ -394,6 +416,71 @@ h1.text-3xl, h1.text-2xl {
 /* Hide scrollbar but keep scrollability — used on mobile tab bars */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Gentle breathing pulse for tab attention badges */
+@keyframes tab-attention-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.5); }
+  50%      { box-shadow: 0 0 0 6px rgba(251, 191, 36, 0); }
+}
+.tab-attention-pulse {
+  animation: tab-attention-pulse 2.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-attention-pulse { animation: none; }
+}
+
+/* ── Landing page — dark mode overrides ────────────────────────────────── */
+.landing-page[data-landing-theme="dark"] {
+  /* Swap slate text tokens to brighter equivalents */
+  --lp-text: #f1f5f9;
+  --lp-muted: #94a3b8;
+  --lp-border: rgba(148, 163, 184, 0.16);
+  --lp-card: rgba(255, 255, 255, 0.04);
+  --lp-card-strong: rgba(255, 255, 255, 0.06);
+}
+.landing-page[data-landing-theme="dark"] .text-slate-900 { color: var(--lp-text) !important; }
+.landing-page[data-landing-theme="dark"] .text-slate-600,
+.landing-page[data-landing-theme="dark"] .text-slate-500 { color: var(--lp-muted) !important; }
+.landing-page[data-landing-theme="dark"] .text-slate-400,
+.landing-page[data-landing-theme="dark"] .text-slate-300 { color: #64748b !important; }
+.landing-page[data-landing-theme="dark"] .border-slate-200,
+.landing-page[data-landing-theme="dark"] .border-slate-100 { border-color: var(--lp-border) !important; }
+.landing-page[data-landing-theme="dark"] .bg-white { background-color: var(--lp-card) !important; backdrop-filter: blur(10px); }
+.landing-page[data-landing-theme="dark"] .bg-slate-50,
+.landing-page[data-landing-theme="dark"] .bg-slate-50\/60 { background-color: rgba(148,163,184,0.04) !important; }
+.landing-page[data-landing-theme="dark"] .bg-slate-100 { background-color: rgba(148,163,184,0.08) !important; }
+.landing-page[data-landing-theme="dark"] .hover\:bg-slate-100:hover,
+.landing-page[data-landing-theme="dark"] .hover\:bg-slate-700:hover { background-color: rgba(148,163,184,0.12) !important; }
+/* Make feature section grid-gap uniform in dark */
+.landing-page[data-landing-theme="dark"] .bg-slate-200 { background-color: rgba(148,163,184,0.14) !important; }
+/* Emerald / amber / rose badges stay but their backgrounds need brightening */
+.landing-page[data-landing-theme="dark"] .bg-emerald-50 { background-color: rgba(16,185,129,0.14) !important; }
+.landing-page[data-landing-theme="dark"] .text-emerald-700 { color: #6ee7b7 !important; }
+.landing-page[data-landing-theme="dark"] .bg-red-50 { background-color: rgba(244,63,94,0.14) !important; }
+.landing-page[data-landing-theme="dark"] .border-emerald-200 { border-color: rgba(16,185,129,0.3) !important; }
+.landing-page[data-landing-theme="dark"] .border-red-200 { border-color: rgba(244,63,94,0.3) !important; }
+/* School finder modal: stay dark-surfaced */
+.landing-page[data-landing-theme="dark"] [data-testid="school-finder-modal"] {
+  background-color: rgba(15, 23, 42, 0.95) !important;
+  border-color: rgba(148, 163, 184, 0.2) !important;
+}
+.landing-page[data-landing-theme="dark"] [data-testid="school-finder-modal"] input {
+  background-color: rgba(148,163,184,0.08) !important;
+  color: var(--lp-text) !important;
+}
+/* Primary CTA buttons keep white-on-slate invert in dark for contrast,
+   but only <button> elements — the big CTA <section> card stays dark. */
+.landing-page[data-landing-theme="dark"] button.bg-slate-900,
+.landing-page[data-landing-theme="dark"] .bg-slate-900.rounded-full {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+.landing-page[data-landing-theme="dark"] button.bg-slate-900 *,
+.landing-page[data-landing-theme="dark"] .bg-slate-900.rounded-full * {
+  color: #0f172a !important;
+}
+.landing-page[data-landing-theme="dark"] button.hover\:bg-slate-800:hover,
+.landing-page[data-landing-theme="dark"] button.hover\:bg-slate-100:hover { background-color: #e2e8f0 !important; }
 
 /* Recharts dark mode */
 [data-theme="dark"] .recharts-cartesian-axis-tick-value { fill: #64748b !important; }
