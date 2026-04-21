@@ -360,17 +360,17 @@ async def upload_student_photos(request: Request, file: UploadFile = File(...), 
 
     # ── Name normalisation + index-once strategy ─────────────────────────────
     # Covers: curly apostrophes, straight apostrophes, hyphens, spaces, accents,
-    # case variance, compound last names (ERSCH- MAHY), and multi-token first
-    # names (Nur Fathiya Adira).
+    # case variance, compound last names (ERSCH- MAHY), multi-token first names
+    # (Nur Fathiya Adira), nicknames (Michael → Mike), and filename formats
+    # both "Last, First.jpg" and "First Last.jpg" / "Last_First.jpg".
     import unicodedata
+    from difflib import SequenceMatcher
 
     def _norm(s: str) -> str:
         if not s:
             return ""
-        # Decompose accents, drop marks
         s = unicodedata.normalize("NFKD", str(s))
         s = "".join(c for c in s if not unicodedata.combining(c))
-        # Replace curly apostrophes with straight, then drop all non-alphanumeric
         return "".join(c.lower() for c in s if c.isalnum())
 
     def _tokens(s: str):
@@ -389,6 +389,32 @@ async def upload_student_photos(request: Request, file: UploadFile = File(...), 
         if buf:
             out.append("".join(buf))
         return out
+
+    def _first_name_similarity(a: str, b: str) -> float:
+        """Return a similarity score in [0,1] between two normalised first names.
+        Handles nicknames via prefix detection and character-level similarity."""
+        if not a or not b:
+            return 0.0
+        if a == b:
+            return 1.0
+        # Nickname heuristic: one is a >=3-char prefix of the other
+        shorter, longer = (a, b) if len(a) <= len(b) else (b, a)
+        if len(shorter) >= 3 and longer.startswith(shorter):
+            return 0.9
+        # Shared prefix heuristic (Mike/Michael share "mi"; Kate/Katherine share "kat")
+        # Give a boost when ≥3 initial chars match
+        common_prefix = 0
+        for i in range(min(len(shorter), len(longer))):
+            if shorter[i] == longer[i]:
+                common_prefix += 1
+            else:
+                break
+        base = SequenceMatcher(None, a, b).ratio()
+        if common_prefix >= 3:
+            return max(base, 0.75)
+        if common_prefix >= 2 and len(shorter) >= 3:
+            return max(base, 0.6)
+        return base
 
     # Index active students once
     students_raw = await db.students.find(
@@ -432,7 +458,8 @@ async def upload_student_photos(request: Request, file: UploadFile = File(...), 
             "all_tokens": toks,
         })
 
-    def _match_student(last_name: str, first_name: str):
+    def _match_student_pair(last_name: str, first_name: str):
+        """Try to match one (last, first) ordering. Returns rec or None."""
         ln_n = _norm(last_name)
         fn_n = _norm(first_name)
         if not ln_n or not fn_n:
@@ -442,24 +469,49 @@ async def upload_student_photos(request: Request, file: UploadFile = File(...), 
         for rec in index:
             if rec["ln_norm"] == ln_n and (rec["fn_norm"] == fn_n or rec["pn_norm"] == fn_n):
                 return rec
-        # 2. Last-name token match (handles compound: "ERSCH- MAHY" contains "mahy")
-        #    + exact or preferred first name
+        # 2. Last-name token match + exact or preferred first name
         for rec in index:
             if ln_n in rec["ln_tokens"] and (rec["fn_norm"] == fn_n or rec["pn_norm"] == fn_n):
                 return rec
-        # 3. Exact last-name + first-name token match
-        #    (handles "Nur Fathiya Adira" when file has "Adira")
+        # 3. Exact last + first-name token match (multi-token first names)
         for rec in index:
             if rec["ln_norm"] == ln_n and fn_n in rec["fn_tokens"]:
                 return rec
-        # 4. Both sides token-level (most permissive)
+        # 4. Both sides token-level
         for rec in index:
             if ln_n in rec["ln_tokens"] and fn_n in rec["fn_tokens"]:
                 return rec
+        # 5. Last-name match + fuzzy/nickname first-name (pick best above threshold)
+        candidates = []
+        for rec in index:
+            if rec["ln_norm"] == ln_n or ln_n in rec["ln_tokens"]:
+                scores = [_first_name_similarity(fn_n, rec["fn_norm"])]
+                if rec["pn_norm"]:
+                    scores.append(_first_name_similarity(fn_n, rec["pn_norm"]))
+                for t in rec["fn_tokens"]:
+                    scores.append(_first_name_similarity(fn_n, t))
+                best = max(scores) if scores else 0.0
+                candidates.append((best, rec))
+        if candidates:
+            candidates.sort(key=lambda x: x[0], reverse=True)
+            top_score, top_rec = candidates[0]
+            # 5a. Strong similarity → use it
+            if top_score >= 0.6:
+                return top_rec
+            # 5b. Unique last-name match → match regardless of first name
+            # (covers nickname-only-in-photo and typos)
+            if len(candidates) == 1:
+                return top_rec
         return None
 
-    def _match_staff(last_name: str, first_name: str):
-        """Match a staff photo (LastName, FirstName) to a user account by name tokens."""
+    def _match_student(last_name: str, first_name: str):
+        # Try given order first, then swap (handles "First Last" filename convention)
+        rec = _match_student_pair(last_name, first_name)
+        if rec:
+            return rec
+        return _match_student_pair(first_name, last_name)
+
+    def _match_staff_pair(last_name: str, first_name: str):
         ln_n = _norm(last_name)
         fn_n = _norm(first_name)
         if not ln_n or not fn_n:
@@ -472,7 +524,56 @@ async def upload_student_photos(request: Request, file: UploadFile = File(...), 
         for rec in staff_index:
             if ln_n in rec["all_tokens"] and fn_n in rec["all_tokens"]:
                 return rec
+        # 3. Strict last-name match + best-scoring fuzzy first name (nicknames)
+        candidates = []
+        for rec in staff_index:
+            if rec["ln_norm"] == ln_n or ln_n in rec["all_tokens"]:
+                scores = [_first_name_similarity(fn_n, rec["fn_norm"])]
+                for t in rec["all_tokens"][:-1]:
+                    scores.append(_first_name_similarity(fn_n, t))
+                best = max(scores) if scores else 0.0
+                candidates.append((best, rec))
+        if candidates:
+            candidates.sort(key=lambda x: x[0], reverse=True)
+            top_score, top_rec = candidates[0]
+            # 3a. Any reasonable similarity → use it (catches nicknames)
+            if top_score >= 0.5:
+                return top_rec
+            # 3b. Only one staff member with that surname → match them anyway
+            if len(candidates) == 1:
+                return top_rec
         return None
+
+    def _match_staff(last_name: str, first_name: str):
+        # Try given order, then swap for "First Last" filename convention
+        rec = _match_staff_pair(last_name, first_name)
+        if rec:
+            return rec
+        return _match_staff_pair(first_name, last_name)
+
+    def _parse_stem(stem: str):
+        """Parse a photo filename stem into (last, first) candidates.
+        Returns (last_guess, first_guess) — caller then calls the matcher which
+        also tries the swapped order. Supports 'Last, First', 'Last_First',
+        'Last-First' (when explicit), and falls back to the last-space-separated
+        token being treated as the surname ('First Middle Last' convention)."""
+        stem = (stem or "").strip()
+        if not stem:
+            return None, None
+        # Prefer comma if present
+        if "," in stem:
+            last_raw, first_raw = stem.split(",", 1)
+            return last_raw.strip(), first_raw.strip()
+        # Underscore as separator (common school export: "Smith_Jane.jpg")
+        if "_" in stem and " " not in stem:
+            parts = stem.split("_", 1)
+            if len(parts) == 2:
+                return parts[0].strip(), parts[1].strip()
+        # Fallback: space-separated, last word = surname ("Jane Smith.jpg")
+        toks = stem.split()
+        if len(toks) >= 2:
+            return toks[-1].strip(), " ".join(toks[:-1]).strip()
+        return None, None
 
     with zipfile.ZipFile(io.BytesIO(content)) as zf:
         for info in zf.infolist():
@@ -488,14 +589,7 @@ async def upload_student_photos(request: Request, file: UploadFile = File(...), 
                 continue
 
             stem = stem_raw.strip()
-
-            if "," not in stem:
-                (unmatched_staff if is_staff_photo else unmatched).append(stem_raw)
-                continue
-
-            last_raw, first_raw = stem.split(",", 1)
-            last_name = last_raw.strip()
-            first_name = first_raw.strip()
+            last_name, first_name = _parse_stem(stem)
 
             if not last_name or not first_name:
                 (unmatched_staff if is_staff_photo else unmatched).append(stem_raw)

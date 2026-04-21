@@ -78,6 +78,13 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - [x] **Frontend (`SAAuditPage.jsx`)**: Added "All schools" ↔ per-school dropdown (`data-testid="sa-audit-tenant-filter"`), a top-panel area-chart trend (`data-testid="sa-audit-trend"`) showing "Last 30 days · N tenant-configuration changes", and a little school-badge pill on every entry row so SAs can see at a glance which tenant each change came from.
 - [x] Filter resets pagination to page 0; trend reloads on filter change.
 
+### Photo Upload — Nickname & Filename-Format Tolerance (COMPLETED - 2026-04-21)
+- [x] **Flexible filename parsing**: `_parse_stem` now accepts `Last, First.jpg` (comma), `Last_First.jpg` (underscore), `First Last.jpg` or `First Middle Last.jpg` (space). If primary ordering fails to match, the matcher swaps and retries.
+- [x] **Fuzzy first-name similarity** via `difflib.SequenceMatcher` + shared-prefix heuristic. Catches nicknames: Mike↔Michael, Sam↔Samuel, Kate↔Katherine, Chris↔Christopher, Rob↔Robert, Luci↔Lucy (typo) etc.
+- [x] **Unique last-name fallback**: if only one person in the school has the given surname, the photo is matched to them regardless of first-name similarity. Handles extreme nicknames, typos, or SUSSI-vs-school-directory name drift (the Lucy Simpkin case).
+- [x] **Staff matching**: strict last-name match → pick highest-scoring first-name candidate (≥0.5), with unique-surname fallback. Exactly the "interpret by last name then how similar the first name is" algorithm the user requested.
+- [x] 9/9 unit tests passing (`tests/test_photo_match.py`). Verified e2e via curl: Emma (comma), Liam (space), Olivia (underscore), Ollie (preferred name), Avi (fuzzy), and Lucy Simpkin (typo→unique fallback) all matched correctly.
+
 ### Pre-existing Features (from single-tenant)
 - Student management, SAEBRS screening, MTSS tier calculation
 - Attendance, Interventions, Appointments, Analytics, Reports
