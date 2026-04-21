@@ -176,19 +176,34 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section className="relative z-10 border-t border-slate-200 bg-slate-50/60">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-px bg-slate-200 sm:grid-cols-3">
+      <section className="relative z-10">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-6 py-16 sm:grid-cols-3 lg:px-10">
           {[
             { icon: ShieldCheck, title: 'Evidence-based screening', desc: 'SAEBRS and self-report screening with automated risk classification across social, academic, and emotional domains.' },
             { icon: ChartLine, title: 'See change over time', desc: 'Trend lines per student, class, and year level — with clear tier movement and trajectory analysis.' },
             { icon: Heart, title: 'Built for staff', desc: 'Quick capture on tablet, calm interface, no jargon. Designed with teachers and wellbeing coordinators.' },
           ].map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="bg-white p-8">
-              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+            <div
+              key={title}
+              className="rounded-2xl p-7 transition-colors"
+              style={{
+                background: dark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.55)',
+                border: `1px solid ${dark ? 'rgba(148,163,184,0.16)' : 'rgba(180,170,150,0.28)'}`,
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+              }}
+            >
+              <div
+                className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl"
+                style={{
+                  background: dark ? 'rgba(52,211,153,0.14)' : 'rgba(16,185,129,0.10)',
+                  color: dark ? '#6ee7b7' : '#047857',
+                }}
+              >
                 <Icon size={20} />
               </div>
-              <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>{title}</h3>
-              <p className="mt-1.5 text-sm text-slate-500 leading-relaxed">{desc}</p>
+              <h3 className="font-semibold" style={{ fontFamily: 'Manrope, sans-serif', color: dark ? '#f1f5f9' : '#0f172a' }}>{title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed" style={{ color: dark ? '#94a3b8' : '#64748b' }}>{desc}</p>
             </div>
           ))}
         </div>
