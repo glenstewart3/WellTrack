@@ -340,6 +340,69 @@ async def remove_student_photo(request: Request, student_id: str, user=Depends(g
     return {"message": "Photo removed"}
 
 
+@router.post("/students/refresh-photos")
+async def refresh_student_photos(request: Request, user=Depends(get_current_user), db=Depends(get_tenant_db)):
+    """Reconcile student photo_urls with files actually on disk.
+
+    - Clears photo_url on any student whose referenced file is missing (prevents
+      broken-image icons in the UI when the uploads directory has been reset).
+    - Re-links any on-disk `stu_xxx.jpg` file back to its student record if the
+      student exists but has no photo_url set.
+
+    Returns counts for audit clarity.
+    """
+    if user.get("role") not in ["admin", "leadership"]:
+        raise HTTPException(403, "Admin or leadership access required")
+
+    slug = getattr(request.state, "tenant_slug", None) or "default"
+    photos_dir = _UPLOADS_BASE / slug / "student_photos"
+    photos_dir.mkdir(parents=True, exist_ok=True)
+
+    # What's on disk?
+    on_disk = {f.stem: f.name for f in photos_dir.iterdir() if f.is_file()}
+
+    cleared = 0
+    relinked = 0
+
+    # 1. Clear stale photo_urls (file missing)
+    async for s in db.students.find(
+        {"photo_url": {"$exists": True, "$ne": None, "$ne": ""}},
+        {"_id": 0, "student_id": 1, "photo_url": 1},
+    ):
+        url = s.get("photo_url") or ""
+        fname = url.rsplit("/", 1)[-1]
+        stem = fname.rsplit(".", 1)[0]
+        if stem not in on_disk:
+            await db.students.update_one(
+                {"student_id": s["student_id"]},
+                {"$unset": {"photo_url": ""}},
+            )
+            cleared += 1
+
+    # 2. Re-link orphan files whose stem matches a student without a photo_url
+    for stu_id, fname in on_disk.items():
+        stu = await db.students.find_one(
+            {"student_id": stu_id},
+            {"_id": 0, "photo_url": 1},
+        )
+        if stu and not stu.get("photo_url"):
+            photo_url = f"/api/student-photos/{slug}/{fname}"
+            await db.students.update_one(
+                {"student_id": stu_id},
+                {"$set": {"photo_url": photo_url}},
+            )
+            relinked += 1
+
+    await log_audit(db, user, "updated", "photo", "", "Photo URLs refreshed",
+                    metadata={"cleared": cleared, "relinked": relinked,
+                              "files_on_disk": len(on_disk)})
+    return {
+        "cleared_stale": cleared,
+        "relinked_orphans": relinked,
+        "files_on_disk": len(on_disk),
+    }
+
+
 @router.post("/students/upload-photos")
 async def upload_student_photos(request: Request, file: UploadFile = File(...), user=Depends(get_current_user), db=Depends(get_tenant_db)):
     if user.get("role") not in ["admin", "leadership"]:
@@ -625,8 +688,7 @@ async def upload_student_photos(request: Request, file: UploadFile = File(...), 
                 continue
 
             student_id = rec["student_id"]
-            save_ext = ".jpg" if ext in (".jpg", ".jpeg") else ".png"
-            photo_filename = f"{student_id}{save_ext}"
+            photo_filename = f"{student_id}.jpg"
             photo_path = photos_dir / photo_filename
 
             with zf.open(info) as img_bytes:

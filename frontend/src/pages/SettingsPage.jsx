@@ -1295,6 +1295,22 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
     } finally { setUploadingPhotos(false); }
   };
 
+  const [refreshingPhotos, setRefreshingPhotos] = useState(false);
+  const refreshPhotos = async () => {
+    setRefreshingPhotos(true);
+    try {
+      const res = await api.post('/students/refresh-photos');
+      const { cleared_stale, relinked_orphans, files_on_disk } = res.data;
+      setMsgType('success');
+      setMsg(`Photo refresh: ${cleared_stale} stale link(s) cleared · ${relinked_orphans} file(s) re-linked · ${files_on_disk} on disk`);
+      setTimeout(() => setMsg(''), 8000);
+    } catch (e) {
+      setMsgType('error');
+      setMsg(e.response?.data?.detail || 'Photo refresh failed');
+      setTimeout(() => setMsg(''), 5000);
+    } finally { setRefreshingPhotos(false); }
+  };
+
   return (
     <div className="space-y-5">
       {msg && (
@@ -1432,12 +1448,28 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
           testIdPrefix="import-photos"
         />
         {photoZip && (
-          <div className="mt-3 flex justify-end">
+          <div className="mt-3 flex justify-end gap-2">
+            <button onClick={refreshPhotos} disabled={refreshingPhotos} data-testid="refresh-photos-btn"
+              className="flex items-center gap-2 px-3 py-2 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-semibold disabled:opacity-50 transition-colors"
+              title="Clear stale photo links (for photos that no longer exist on disk) and re-link any orphan files back to their students.">
+              {refreshingPhotos ? <Loader size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+              {refreshingPhotos ? 'Refreshing…' : 'Refresh photo links'}
+            </button>
             <button onClick={uploadPhotos} disabled={uploadingPhotos || photoValid?.ok === false} data-testid="upload-photos-btn"
               className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
               style={{ backgroundColor: 'var(--wt-accent)' }}>
               {uploadingPhotos ? <Loader size={14} className="animate-spin" /> : <Upload size={14} />}
               {uploadingPhotos ? 'Uploading…' : 'Upload Photos'}
+            </button>
+          </div>
+        )}
+        {!photoZip && (
+          <div className="mt-3 flex justify-end">
+            <button onClick={refreshPhotos} disabled={refreshingPhotos} data-testid="refresh-photos-btn-standalone"
+              className="flex items-center gap-2 px-3 py-2 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-semibold disabled:opacity-50 transition-colors"
+              title="Clear stale photo links and re-link any orphan files back to their students.">
+              {refreshingPhotos ? <Loader size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+              {refreshingPhotos ? 'Refreshing…' : 'Refresh photo links'}
             </button>
           </div>
         )}

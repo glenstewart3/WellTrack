@@ -91,6 +91,7 @@ async def school_lookup(slug: str = ""):
 # Serve student photos dynamically per tenant slug
 from fastapi.responses import FileResponse as _FileResponse
 
+
 @app.get("/api/student-photos/{slug}/{filename}")
 async def serve_student_photo(slug: str, filename: str):
     """Serve a student photo from the tenant-scoped uploads directory."""
