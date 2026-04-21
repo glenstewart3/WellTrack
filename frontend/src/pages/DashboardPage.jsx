@@ -135,12 +135,28 @@ export default function DashboardPage() {
   ].filter(d => d.value > 0);
 
   // Format movement for chart (one point per screening event)
-  const movementData = (movement?.events || []).map(e => ({
-    label: e.label,
-    tier1: e.tier1,
-    tier2: e.tier2,
-    tier3: e.tier3,
-  }));
+  // Data is already oldest-first from the backend. We keep that order and
+  // decorate each point with a year-aware label for the X-axis + full date
+  // fields for the tooltip popup.
+  const rawEvents = movement?.events || [];
+  const yearsInChart = new Set(rawEvents.map(e => (e.date || '').slice(0, 4)));
+  const multipleYears = yearsInChart.size > 1;
+  const movementData = rawEvents.map(e => {
+    const yy = (e.date || '').slice(2, 4);
+    return {
+      label: e.label,
+      // Append "'25" / "'26" suffix on X-axis only when the chart spans multiple years
+      xLabel: multipleYears && yy ? `${e.label} '${yy}` : e.label,
+      date: e.date,
+      dateLabel: e.date
+        ? new Date(e.date + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+        : '',
+      year: (e.date || '').slice(0, 4),
+      tier1: e.tier1,
+      tier2: e.tier2,
+      tier3: e.tier3,
+    };
+  });
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -343,10 +359,57 @@ export default function DashboardPage() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--wt-border)" />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--wt-muted-fg)' }} />
+                <XAxis dataKey="xLabel" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--wt-muted-fg)' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--wt-muted-fg)' }} width={32} />
                 <Tooltip
                   contentStyle={{ borderRadius: '0.5rem', border: '1px solid var(--wt-border)', fontSize: '12px', backgroundColor: 'var(--wt-card)' }}
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
+                    const p = payload[0].payload;
+                    return (
+                      <div
+                        style={{
+                          borderRadius: '0.5rem',
+                          border: '1px solid var(--wt-border)',
+                          backgroundColor: 'var(--wt-card)',
+                          padding: '10px 12px',
+                          fontSize: '12px',
+                          minWidth: '170px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,.08)',
+                        }}
+                      >
+                        <div style={{ fontWeight: 700, color: 'var(--wt-foreground)', marginBottom: 2 }}>
+                          {p.label}
+                        </div>
+                        <div style={{ color: 'var(--wt-muted-fg)', marginBottom: 8, fontSize: '11px' }}>
+                          {p.dateLabel}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--wt-foreground)' }}>
+                              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--wt-tier1)' }} />
+                              Tier 1
+                            </span>
+                            <span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--wt-foreground)' }}>{p.tier1}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--wt-foreground)' }}>
+                              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--wt-tier2)' }} />
+                              Tier 2
+                            </span>
+                            <span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--wt-foreground)' }}>{p.tier2}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--wt-foreground)' }}>
+                              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--wt-tier3)' }} />
+                              Tier 3
+                            </span>
+                            <span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--wt-foreground)' }}>{p.tier3}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }}
                 />
                 <Area type="monotone" dataKey="tier1" stroke="var(--wt-tier1)" strokeWidth={2} fill="url(#fill-tier1)" />
                 <Area type="monotone" dataKey="tier2" stroke="var(--wt-tier2)" strokeWidth={2} fill="url(#fill-tier2)" />

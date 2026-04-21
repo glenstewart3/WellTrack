@@ -88,16 +88,6 @@ export default function DashboardLayout() {
     <div className="flex flex-col h-full">
       {/* Logo / Brand */}
       <div className="px-6 py-5 border-b border-slate-100">
-        {(() => {
-          const isEffectivelyDark = theme === 'dark' ||
-            (theme === 'system' && window.matchMedia?.('(prefers-color-scheme: dark)').matches);
-          const logo = isEffectivelyDark
-            ? (settings.logo_dark_base64 || settings.logo_base64)
-            : settings.logo_base64;
-          return logo ? (
-            <img src={logo} alt="School logo" className="w-full h-14 object-contain mx-auto mb-4" />
-          ) : null;
-        })()}
         <div>
           <div className="flex items-center gap-3">
             <div
@@ -198,7 +188,7 @@ export default function DashboardLayout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
-        <header className="border-b px-4 lg:px-6 py-3 flex items-center gap-4 shrink-0" style={{ backgroundColor: 'var(--wt-header-bg)', borderColor: 'var(--wt-header-border)' }}>
+        <header className="relative border-b px-4 lg:px-6 py-3 flex items-center gap-4 shrink-0" style={{ backgroundColor: 'var(--wt-header-bg)', borderColor: 'var(--wt-header-border)' }}>
           <button
             onClick={() => setMobileOpen(true)}
             className="lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-600"
@@ -206,8 +196,28 @@ export default function DashboardLayout() {
           >
             <Menu size={20} />
           </button>
+          {/* Mobile-only centered WellTrack logo (hidden when sidebar drawer is open) */}
+          {!mobileOpen && (
+            <div
+              className="lg:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none"
+              data-testid="mobile-header-logo"
+            >
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                style={{ backgroundColor: theme === 'dark' ? '#f1f5f9' : '#0f172a' }}
+              >
+                <Shield size={13} style={{ color: theme === 'dark' ? '#0f172a' : '#ffffff' }} />
+              </div>
+              <span
+                className="font-extrabold text-[15px]"
+                style={{ fontFamily: 'Manrope, sans-serif', color: 'var(--wt-foreground)' }}
+              >
+                {settings.platform_name || 'WellTrack'}
+              </span>
+            </div>
+          )}
           <div className="flex-1" />
-          {/* School name (right side of top bar) */}
+          {/* School name (right side of top bar) — desktop + tablet only */}
           {settings.school_name && (
             <div className="hidden sm:flex items-center gap-2 min-w-0 mr-2" data-testid="topbar-school-name">
               <span className="truncate font-semibold text-sm" style={{ fontFamily: 'Manrope,sans-serif', color: 'var(--wt-foreground)' }}>
