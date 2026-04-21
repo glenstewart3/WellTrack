@@ -9,10 +9,21 @@ from database import PRESENT_STATUSES, FULL_PRESENT_STATUSES, SETTINGS_DEFAULTS
 
 # ── Scoring helpers ──────────────────────────────────────────────────────────
 
-def compute_saebrs_risk(total: int, social: int, academic: int, emotional: int, thresholds: dict = None):
+def compute_saebrs_risk(total: int, social: int, academic: int, emotional: int, thresholds: dict = None,
+                        kind: str = "saebrs"):
+    """Classify a SAEBRS-style total into Low/Some/High risk.
+
+    `kind`: "saebrs" uses the teacher-completed thresholds; "self_report" uses
+    the student mySAEBRS thresholds. Both fall back to the SAEBRS cut-offs if
+    self-report thresholds are not configured.
+    """
     t = thresholds or {}
-    t_some = t.get("saebrs_some_risk", 37)
-    t_high = t.get("saebrs_high_risk", 24)
+    if kind == "self_report":
+        t_some = t.get("self_report_some_risk", t.get("saebrs_some_risk", 37))
+        t_high = t.get("self_report_high_risk", t.get("saebrs_high_risk", 24))
+    else:
+        t_some = t.get("saebrs_some_risk", 37)
+        t_high = t.get("saebrs_high_risk", 24)
     total_risk = "Low Risk" if total >= t_some else ("Some Risk" if total >= t_high else "High Risk")
     social_risk = "Low Risk" if social >= 13 else ("Some Risk" if social >= 8 else "High Risk")
     academic_risk = "Low Risk" if academic >= 10 else ("Some Risk" if academic >= 6 else "High Risk")
@@ -20,10 +31,26 @@ def compute_saebrs_risk(total: int, social: int, academic: int, emotional: int, 
     return total_risk, social_risk, academic_risk, emotional_risk
 
 
-def compute_wellbeing_tier(total: int) -> int:
+def compute_wellbeing_tier(total: int, total_max: int = 57, thresholds: dict = None) -> int:
+    """Classify a wellbeing / self-report total into tier 1/2/3.
+
+    When `thresholds` is provided and contains `self_report_some_risk` /
+    `self_report_high_risk`, those admin-configurable values are used instead
+    of the legacy fixed cutoffs (50 / 35).
+    """
+    t = thresholds or {}
+    some = t.get("self_report_some_risk")
+    high = t.get("self_report_high_risk")
+    if some is not None and high is not None:
+        if total >= some:
+            return 1
+        if total >= high:
+            return 2
+        return 3
+    # Legacy defaults (pre-configurable thresholds): 50 / 35 out of 57
     if total >= 50:
         return 1
-    elif total >= 35:
+    if total >= 35:
         return 2
     return 3
 

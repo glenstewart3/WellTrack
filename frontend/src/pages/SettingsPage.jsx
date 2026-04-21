@@ -28,7 +28,7 @@ const FIELD_TYPES = ['text', 'select', 'boolean', 'number'];
 const TAB_CONFIG = [
   { key: 'General',             icon: Settings },
   { key: 'Branding',            icon: Palette },
-  { key: 'MTSS & Screening',    icon: Sliders },
+  { key: 'MTSS Thresholds',     icon: Sliders },
   { key: 'Interventions',       icon: Target },
   { key: 'Student Data',        icon: User },
   { key: 'Screening',           icon: ClipboardCheck },
@@ -202,7 +202,11 @@ function BrandingTab({ settings: s, onSave, saving, msg, msgType }) {
 
 // ── MTSS & SCREENING TAB ─────────────────────────────────────────────────────
 function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
-  const DEFAULT_THRESHOLDS = { saebrs_some_risk: 37, saebrs_high_risk: 24, attendance_some_risk: 95, attendance_high_risk: 90 };
+  const DEFAULT_THRESHOLDS = {
+    saebrs_some_risk: 37, saebrs_high_risk: 24,
+    self_report_some_risk: 37, self_report_high_risk: 24,
+    attendance_some_risk: 95, attendance_high_risk: 90,
+  };
   const [thresholds, setThresholds] = useState({ ...DEFAULT_THRESHOLDS, ...s.tier_thresholds });
   const resetThresholds = () => setThresholds({ ...DEFAULT_THRESHOLDS });
   const handleSave = () => onSave({ tier_thresholds: thresholds });
@@ -258,6 +262,41 @@ function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
             </div>
             <div className="flex justify-between text-xs text-slate-400 mt-1">
               <span>0 — High Risk</span><span>{thresholds.saebrs_high_risk} — Some Risk</span><span>{thresholds.saebrs_some_risk} — Low Risk — 57</span>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold text-slate-700 mb-1">Self-Report Total Score (0–57)</p>
+            <p className="text-xs text-slate-400 mb-3">Applied to the student-completed mySAEBRS. Set independently from the teacher-completed SAEBRS thresholds above.</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Amber (Some Risk) — below</label>
+                <div className="flex items-center gap-3">
+                  <input type="range" min={thresholds.self_report_high_risk + 1} max={57} value={thresholds.self_report_some_risk}
+                    onChange={e => setThresholds(p => ({ ...p, self_report_some_risk: +e.target.value }))}
+                    data-testid="self-report-some-risk-slider"
+                    className="flex-1 accent-amber-500" />
+                  <span className="w-8 text-sm font-bold text-amber-600">{thresholds.self_report_some_risk}</span>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Red (High Risk) — below</label>
+                <div className="flex items-center gap-3">
+                  <input type="range" min={1} max={thresholds.self_report_some_risk - 1} value={thresholds.self_report_high_risk}
+                    onChange={e => setThresholds(p => ({ ...p, self_report_high_risk: +e.target.value }))}
+                    data-testid="self-report-high-risk-slider"
+                    className="flex-1 accent-rose-500" />
+                  <span className="w-8 text-sm font-bold text-rose-600">{thresholds.self_report_high_risk}</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 h-2 rounded-full overflow-hidden flex">
+              <div style={{ width: `${(thresholds.self_report_high_risk / 57) * 100}%` }} className="bg-rose-400" />
+              <div style={{ width: `${((thresholds.self_report_some_risk - thresholds.self_report_high_risk) / 57) * 100}%` }} className="bg-amber-400" />
+              <div className="flex-1 bg-emerald-400" />
+            </div>
+            <div className="flex justify-between text-xs text-slate-400 mt-1">
+              <span>0 — High Risk</span><span>{thresholds.self_report_high_risk} — Some Risk</span><span>{thresholds.self_report_some_risk} — Low Risk — 57</span>
             </div>
           </div>
 
@@ -1482,29 +1521,116 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
 }
 
 // ── SCREENING TAB ─────────────────────────────────────────────────────────────
-const SCREENING_PERIODS = [
-  'Term 1 - P1', 'Term 1 - P2',
-  'Term 2 - P1', 'Term 2 - P2',
-  'Term 3 - P1', 'Term 3 - P2',
-  'Term 4 - P1', 'Term 4 - P2',
-];
+function buildScreeningPeriods(schoolType, frequencies) {
+  /**
+   * Build the list of screening period labels based on school_type +
+   * per-term/semester frequency map.
+   * schoolType: 'high_school' → uses semesters; anything else → uses terms.
+   * frequencies: { 'Term 1': 2, 'Term 2': 2, ... } or { 'Semester 1': 3, ... }
+   */
+  const isHigh = schoolType === 'high_school';
+  const groups = isHigh ? ['Semester 1', 'Semester 2']
+                         : ['Term 1', 'Term 2', 'Term 3', 'Term 4'];
+  const periods = [];
+  for (const g of groups) {
+    const count = Math.max(1, Math.min(10, parseInt(frequencies?.[g]) || 2));
+    for (let i = 1; i <= count; i++) periods.push(`${g} - P${i}`);
+  }
+  return periods;
+}
 
 function ScreeningSessionsTab({ settings: s, onSave, saving, msg, msgType, featureFlags }) {
   const ff = featureFlags || {};
+  const isHighSchool = s.school_type === 'high_school';
+  const GROUPS = isHighSchool ? ['Semester 1', 'Semester 2']
+                              : ['Term 1', 'Term 2', 'Term 3', 'Term 4'];
+
+  // Default frequency: 2 per term, 3 per semester (high schools usually run more screens)
+  const DEFAULT_FREQ = Object.fromEntries(GROUPS.map(g => [g, isHighSchool ? 3 : 2]));
+  const [frequencies, setFrequencies] = useState({
+    ...DEFAULT_FREQ,
+    ...(s.screening_frequency || {}),
+  });
+  const SCREENING_PERIODS = buildScreeningPeriods(s.school_type, frequencies);
+
   const [activePeriod, setActivePeriod] = useState(s.active_screening_period || '');
   const [modules, setModules] = useState({ saebrs_plus: true, ...s.modules_enabled });
 
-  const handleSave = () => onSave({ active_screening_period: activePeriod, modules_enabled: modules });
+  // If the current active period no longer exists (because the frequency was reduced), clear it
+  useEffect(() => {
+    if (activePeriod && !SCREENING_PERIODS.includes(activePeriod)) {
+      setActivePeriod('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frequencies]);
+
+  const bumpFreq = (group, delta) => {
+    setFrequencies(prev => {
+      const next = Math.max(1, Math.min(10, (prev[group] || 2) + delta));
+      return { ...prev, [group]: next };
+    });
+  };
+
+  const handleSave = () => onSave({
+    active_screening_period: activePeriod,
+    modules_enabled: modules,
+    screening_frequency: frequencies,
+  });
 
   return (
     <div className="space-y-6">
+      {/* ── Screening Frequency Config ──────────────────────────────────── */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Screening Frequency</h3>
+        <p className="text-xs text-slate-400 mb-5">
+          Set how many screening periods you run in each {isHighSchool ? 'semester' : 'term'}. Changing the count updates the available periods below (e.g. 3 per {isHighSchool ? 'semester' : 'term'} → P1, P2, P3).
+        </p>
+
+        <div className={`grid gap-3 ${isHighSchool ? 'sm:grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-4'}`}>
+          {GROUPS.map(group => (
+            <div key={group} className="border border-slate-200 rounded-xl p-4 bg-slate-50/60">
+              <p className="text-sm font-semibold text-slate-700 mb-3">{group}</p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => bumpFreq(group, -1)}
+                  disabled={(frequencies[group] || 2) <= 1}
+                  data-testid={`freq-minus-${group.replace(/\s+/g,'-').toLowerCase()}`}
+                  className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center font-bold"
+                >−</button>
+                <span className="flex-1 text-center text-2xl font-extrabold tabular-nums text-slate-900"
+                      style={{ fontFamily: 'Manrope,sans-serif' }}
+                      data-testid={`freq-count-${group.replace(/\s+/g,'-').toLowerCase()}`}>
+                  {frequencies[group] || 2}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => bumpFreq(group, 1)}
+                  disabled={(frequencies[group] || 2) >= 10}
+                  data-testid={`freq-plus-${group.replace(/\s+/g,'-').toLowerCase()}`}
+                  className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center font-bold"
+                >+</button>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-2 text-center">
+                {(frequencies[group] || 2) === 1 ? '1 screening' : `${frequencies[group] || 2} screenings`}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-xs text-slate-400 mt-4">
+          <strong>Total available periods:</strong> {SCREENING_PERIODS.length} across the {isHighSchool ? 'year' : 'year'}.
+        </p>
+      </div>
+
+      {/* ── Active Screening Period ─────────────────────────────────────── */}
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Active Screening Period</h3>
         <p className="text-xs text-slate-400 mb-5">
-          Select the current screening period. Only the selected period will appear in the Screening page — staff cannot accidentally screen for the wrong term.
+          Select the current screening period. Only the selected period will appear in the Screening page — staff cannot accidentally screen for the wrong {isHighSchool ? 'semester' : 'term'}.
         </p>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className={`grid ${isHighSchool ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'} gap-3 mb-6`}>
           {SCREENING_PERIODS.map(period => (
             <button
               key={period}
@@ -1715,7 +1841,7 @@ export default function SettingsPage() {
 
       {activeTab === 'General' && <GeneralTab {...tabProps} />}
       {activeTab === 'Branding' && <BrandingTab {...tabProps} />}
-      {activeTab === 'MTSS & Screening' && <MTSSTab {...tabProps} />}
+      {activeTab === 'MTSS Thresholds' && <MTSSTab {...tabProps} />}
       {activeTab === 'Interventions' && <InterventionsTab {...tabProps} />}
       {activeTab === 'Student Data' && <StudentDataTab {...tabProps} />}
       {activeTab === 'Screening' && <ScreeningSessionsTab {...tabProps} />}
