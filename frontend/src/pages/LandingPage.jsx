@@ -147,20 +147,31 @@ export default function LandingPage() {
 
         {/* Tier cards */}
         <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-4 sm:grid-cols-3">
-          {[
-            { tier: 'Tier 1', label: 'Universal', desc: 'Whole-school screening to see the picture early.', dotColor: '#10b981', bgColor: 'rgba(16,185,129,0.08)', borderColor: 'rgba(16,185,129,0.2)', fgColor: '#065f46' },
-            { tier: 'Tier 2', label: 'Targeted', desc: 'Small-group support with progress monitoring.', dotColor: '#f59e0b', bgColor: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.2)', fgColor: '#78350f' },
-            { tier: 'Tier 3', label: 'Intensive', desc: 'Individual plans, alerts, and case coordination.', dotColor: '#f43f5e', bgColor: 'rgba(244,63,94,0.08)', borderColor: 'rgba(244,63,94,0.2)', fgColor: '#881337' },
-          ].map(({ tier, label, desc, dotColor, bgColor, borderColor, fgColor }) => (
-            <div key={tier} className="group relative overflow-hidden rounded-2xl p-6" style={{ background: bgColor, border: `1px solid ${borderColor}` }}>
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full" style={{ background: dotColor }} />
-                <span className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: fgColor, fontFamily: 'JetBrains Mono, monospace' }}>{tier}</span>
+          {(() => {
+            // Base (light) palette
+            const lightTiers = [
+              { tier: 'Tier 1', label: 'Universal', desc: 'Whole-school screening to see the picture early.', dotColor: '#10b981', bgColor: 'rgba(16,185,129,0.08)',  borderColor: 'rgba(16,185,129,0.2)',  fgColor: '#065f46' },
+              { tier: 'Tier 2', label: 'Targeted',  desc: 'Small-group support with progress monitoring.',   dotColor: '#f59e0b', bgColor: 'rgba(245,158,11,0.08)',  borderColor: 'rgba(245,158,11,0.2)',  fgColor: '#78350f' },
+              { tier: 'Tier 3', label: 'Intensive', desc: 'Individual plans, alerts, and case coordination.', dotColor: '#f43f5e', bgColor: 'rgba(244,63,94,0.08)',   borderColor: 'rgba(244,63,94,0.2)',   fgColor: '#881337' },
+            ];
+            // Dark palette — same hues, luminance bumped ~10% for readability on navy bg
+            const darkTiers = [
+              { tier: 'Tier 1', label: 'Universal', desc: 'Whole-school screening to see the picture early.', dotColor: '#34d399', bgColor: 'rgba(52,211,153,0.14)',  borderColor: 'rgba(52,211,153,0.45)', fgColor: '#a7f3d0' },
+              { tier: 'Tier 2', label: 'Targeted',  desc: 'Small-group support with progress monitoring.',   dotColor: '#fbbf24', bgColor: 'rgba(251,191,36,0.14)',  borderColor: 'rgba(251,191,36,0.45)', fgColor: '#fde68a' },
+              { tier: 'Tier 3', label: 'Intensive', desc: 'Individual plans, alerts, and case coordination.', dotColor: '#fb7185', bgColor: 'rgba(251,113,133,0.14)', borderColor: 'rgba(251,113,133,0.45)', fgColor: '#fecdd3' },
+            ];
+            const tiers = dark ? darkTiers : lightTiers;
+            return tiers.map(({ tier, label, desc, dotColor, bgColor, borderColor, fgColor }) => (
+              <div key={tier} className="group relative overflow-hidden rounded-2xl p-6" style={{ background: bgColor, border: `1px solid ${borderColor}` }}>
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full" style={{ background: dotColor }} />
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: fgColor, fontFamily: 'JetBrains Mono, monospace' }}>{tier}</span>
+                </div>
+                <p className="mt-3 text-2xl font-semibold" style={{ color: fgColor, fontFamily: 'Manrope, sans-serif' }}>{label}</p>
+                <p className="mt-2 text-sm opacity-80" style={{ color: fgColor }}>{desc}</p>
               </div>
-              <p className="mt-3 text-2xl font-semibold" style={{ color: fgColor, fontFamily: 'Manrope, sans-serif' }}>{label}</p>
-              <p className="mt-2 text-sm opacity-80" style={{ color: fgColor }}>{desc}</p>
-            </div>
-          ))}
+            ));
+          })()}
         </div>
       </section>
 
