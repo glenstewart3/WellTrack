@@ -7,7 +7,7 @@ class. The assignment is stored in the tenant DB collection
 also denormalised onto each student doc (`teacher` field) so existing filters
 keep working.
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from datetime import datetime, timezone
 
 from deps import get_tenant_db
@@ -56,7 +56,7 @@ async def list_classes(user=Depends(get_current_user), db=Depends(get_tenant_db)
 
 
 @router.put("/classes/{class_name:path}/teacher")
-async def assign_teacher(class_name: str, data: dict,
+async def assign_teacher(class_name: str, data: dict, request: Request,
                          user=Depends(get_current_user), db=Depends(get_tenant_db)):
     """Assign (or clear) the teacher for a class.
 
@@ -82,7 +82,8 @@ async def assign_teacher(class_name: str, data: dict,
             {"$unset": {"teacher": ""}}
         )
         await log_audit(db, user, "updated", "class", class_name,
-                        f"Cleared teacher for {class_name}")
+                        f"Cleared teacher for {class_name}",
+                        mirror_to_sa=True, request=request)
         return {"class_name": class_name, "teacher_user_id": None, "teacher_name": None}
 
     teacher_doc = await db.users.find_one(
@@ -112,7 +113,8 @@ async def assign_teacher(class_name: str, data: dict,
     )
     await log_audit(db, user, "updated", "class", class_name,
                     f"{class_name} → {teacher_name}",
-                    changes={"teacher": {"new": teacher_name}})
+                    changes={"teacher": {"new": teacher_name}},
+                    mirror_to_sa=True, request=request)
 
     return {
         "class_name": class_name,

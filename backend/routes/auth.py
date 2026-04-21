@@ -491,7 +491,7 @@ async def get_users(user=Depends(get_current_user), db=Depends(get_tenant_db)):
 
 
 @router.post("/users")
-async def create_user(data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
+async def create_user(data: dict, request: Request, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -510,12 +510,14 @@ async def create_user(data: dict, user=Depends(get_current_user), db=Depends(get
                 "picture": "", "role": role,
                 "created_at": datetime.now(timezone.utc).isoformat()}
     await db.users.insert_one({**new_user})
-    await log_audit(db, user, "created", "user", user_id, f"{name} ({email})", metadata={"role": role})
+    await log_audit(db, user, "created", "user", user_id, f"{name} ({email})",
+                    metadata={"role": role},
+                    mirror_to_sa=True, request=request)
     return new_user
 
 
 @router.post("/users/bulk")
-async def bulk_create_users(data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
+async def bulk_create_users(data: dict, request: Request, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     """Bulk-create users from a parsed CSV. Rows with duplicate emails are skipped (not errored)."""
     from fastapi import HTTPException
     import re as _re
@@ -564,7 +566,8 @@ async def bulk_create_users(data: dict, user=Depends(get_current_user), db=Depen
         imported.append({"email": email, "name": name, "role": role})
 
     await log_audit(db, user, "bulk_import", "user", "", "Bulk user import",
-                    bulk_count=len(imported), metadata={"skipped": len(skipped), "errors": len(errors)})
+                    bulk_count=len(imported), metadata={"skipped": len(skipped), "errors": len(errors)},
+                    mirror_to_sa=True, request=request)
 
     return {"imported": len(imported), "skipped": len(skipped), "errors": errors, "skipped_list": skipped[:50]}
 
@@ -591,7 +594,7 @@ async def users_bulk_template(user=Depends(get_current_user)):
 
 
 @router.put("/users/{user_id}/role")
-async def update_user_role(user_id: str, data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
+async def update_user_role(user_id: str, data: dict, request: Request, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -602,12 +605,13 @@ async def update_user_role(user_id: str, data: dict, user=Depends(get_current_us
     target = await db.users.find_one({"user_id": user_id}, {"name": 1, "email": 1, "_id": 0})
     await log_audit(db, user, "updated", "user", user_id,
                     f"{target.get('name','?')} ({target.get('email','?')})" if target else user_id,
-                    changes={"role": {"new": role}})
+                    changes={"role": {"new": role}},
+                    mirror_to_sa=True, request=request)
     return {"message": "Role updated"}
 
 
 @router.delete("/users/{user_id}")
-async def delete_user(user_id: str, user=Depends(get_current_user), db=Depends(get_tenant_db)):
+async def delete_user(user_id: str, request: Request, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -617,12 +621,13 @@ async def delete_user(user_id: str, user=Depends(get_current_user), db=Depends(g
     await db.users.delete_one({"user_id": user_id})
     await db.user_sessions.delete_many({"user_id": user_id})
     await log_audit(db, user, "deleted", "user", user_id,
-                    f"{target.get('name','?')} ({target.get('email','?')})" if target else user_id)
+                    f"{target.get('name','?')} ({target.get('email','?')})" if target else user_id,
+                    mirror_to_sa=True, request=request)
     return {"message": "User deleted"}
 
 
 @router.put("/users/{user_id}/professional")
-async def update_user_professional(user_id: str, data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
+async def update_user_professional(user_id: str, data: dict, request: Request, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -637,5 +642,6 @@ async def update_user_professional(user_id: str, data: dict, user=Depends(get_cu
     updated = await db.users.find_one({"user_id": user_id}, {"_id": 0, "hashed_password": 0, "password_hash": 0})
     await log_audit(db, user, "updated", "user", user_id,
                     f"{updated.get('name','?')} — professional settings" if updated else user_id,
-                    changes={k: v for k, v in update.items()})
+                    changes={k: v for k, v in update.items()},
+                    mirror_to_sa=True, request=request)
     return updated

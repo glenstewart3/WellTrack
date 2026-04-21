@@ -247,6 +247,8 @@ async def set_student_external_id(student_id: str, data: dict, user=Depends(get_
         raise HTTPException(403, "Access denied")
     ext_id = data.get("external_id", "").strip().upper()
     await db.students.update_one({"student_id": student_id}, {"$set": {"external_id": ext_id}})
+    await log_audit(db, user, "updated", "student", student_id, f"External ID → {ext_id}",
+                    changes={"external_id": {"new": ext_id}})
     return {"message": "External ID updated", "external_id": ext_id}
 
 
@@ -316,6 +318,7 @@ async def upload_single_student_photo(request: Request, student_id: str, file: U
     img.save(str(photo_path), "JPEG", quality=82, optimize=True)
     photo_url = f"/api/student-photos/{slug}/{photo_filename}"
     await db.students.update_one({"student_id": student_id}, {"$set": {"photo_url": photo_url}})
+    await log_audit(db, user, "uploaded", "photo", student_id, f"Photo uploaded for student {student_id}")
     return {"photo_url": photo_url}
 
 
@@ -333,6 +336,7 @@ async def remove_student_photo(request: Request, student_id: str, user=Depends(g
         if photo_path.exists():
             photo_path.unlink()
     await db.students.update_one({"student_id": student_id}, {"$unset": {"photo_url": ""}})
+    await log_audit(db, user, "deleted", "photo", student_id, f"Photo removed for student {student_id}")
     return {"message": "Photo removed"}
 
 
@@ -544,6 +548,11 @@ async def upload_student_photos(request: Request, file: UploadFile = File(...), 
             )
             matched.append(f"{last_name}, {first_name}")
 
+    await log_audit(db, user, "bulk_import", "photo", "", f"Photo ZIP upload — {file.filename}",
+                    bulk_count=len(matched) + len(matched_staff),
+                    metadata={"matched_students": len(matched), "unmatched_students": len(unmatched),
+                              "matched_staff": len(matched_staff), "unmatched_staff": len(unmatched_staff)})
+
     return {
         "matched": len(matched),
         "unmatched": len(unmatched),
@@ -552,7 +561,6 @@ async def upload_student_photos(request: Request, file: UploadFile = File(...), 
         "unmatched_names": unmatched[:100],
         "unmatched_staff_names": unmatched_staff[:50],
     }
-
 
 @router.post("/students/import-student-details")
 async def import_student_details(file: UploadFile = File(...), user=Depends(get_current_user), db=Depends(get_tenant_db)):
@@ -641,6 +649,9 @@ async def import_student_details(file: UploadFile = File(...), user=Depends(get_
             updated += 1
         else:
             unmatched.append(student_key)
+
+    await log_audit(db, user, "bulk_import", "student", "", f"Student details import — {file.filename}",
+                    bulk_count=updated, metadata={"unmatched": len(unmatched)})
 
     return {
         "updated": updated,

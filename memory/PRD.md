@@ -65,6 +65,13 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - [x] **Settings → Imports**: Attendance upload card now documents the new CSV schema and explains HHMM time format + present_pct calculation.
 - [x] 22/22 tests passed (12 unit tests for present_pct math + entry_date; 10 integration tests for upload + classes endpoints) — iteration_45.json.
 
+### Audit Log Architecture — Tenant vs Super Admin (COMPLETED - 2026-04-21)
+- [x] **`utils/audit.py`** accepts optional `request` arg that auto-extracts `tenant_slug` + `school_name` from `request.state` when `mirror_to_sa=True`.
+- [x] **Mirrored to SA log** (settings/administration scope): `PUT /settings`, `PUT /settings/terms`, `DELETE /settings/terms`, `DELETE /settings/data*` (3 wipe endpoints), `POST /settings/seed`, `POST /settings/restore`, `POST /users`, `POST /users/bulk`, `PUT /users/{id}/role`, `DELETE /users/{id}`, `PUT /users/{id}/professional`, `PUT /classes/{name}/teacher`, `PUT /attendance/types`.
+- [x] **Local tenant log only** (school data): student CRUD, student bulk archive/reactivate/import, student photo upload/delete (single + ZIP), attendance CSV upload, interventions/case-notes, appointments.
+- [x] **Bulk actions emit exactly 1 audit entry** with `bulk_count`: attendance upload, bulk user import, student bulk import, photo ZIP upload, student-details CSV import, bulk archive/reactivate.
+- [x] Verified end-to-end via curl: settings update → both logs; student edit → tenant log only; bulk user import + delete × 3 → all mirrored with `tenant_slug="demo"`, `school_name="Demo School"`.
+
 ### Pre-existing Features (from single-tenant)
 - Student management, SAEBRS screening, MTSS tier calculation
 - Attendance, Interventions, Appointments, Analytics, Reports

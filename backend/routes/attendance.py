@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Request
 from collections import defaultdict
 from datetime import datetime, timezone
 import asyncio
@@ -577,8 +577,11 @@ async def get_absence_types(user=Depends(get_current_user), db=Depends(get_tenan
 
 
 @router.put("/attendance/types")
-async def update_absence_types(data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
+async def update_absence_types(data: dict, request: Request, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     if user.get("role") != "admin":
         raise HTTPException(403, "Admin access required")
     await db.school_settings.update_one({}, {"$set": {"absence_types": data.get("types", [])}}, upsert=True)
+    await log_audit(db, user, "updated", "setting", "absence_types", "Absence types updated",
+                    metadata={"count": len(data.get("types", []))},
+                    mirror_to_sa=True, request=request)
     return {"types": data.get("types", [])}

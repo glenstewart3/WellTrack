@@ -52,7 +52,7 @@ async def get_settings(user=Depends(get_current_user), db=Depends(get_tenant_db)
 
 
 @router.put("/settings")
-async def update_settings(data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
+async def update_settings(data: dict, request: Request, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -61,7 +61,8 @@ async def update_settings(data: dict, user=Depends(get_current_user), db=Depends
     await db.school_settings.update_one({}, {"$set": data}, upsert=True)
     result = await db.school_settings.find_one({}, {"_id": 0})
     await log_audit(db, user, "updated", "setting", "school_settings", "School Settings",
-                    metadata={"keys_changed": list(data.keys())})
+                    metadata={"keys_changed": list(data.keys())},
+                    mirror_to_sa=True, request=request)
     return {**SETTINGS_DEFAULTS, **(result or {})}
 
 
@@ -95,48 +96,55 @@ async def test_ollama_connection(user=Depends(get_current_user), db=Depends(get_
 
 
 @router.delete("/settings/data")
-async def wipe_data(user=Depends(get_current_user), db=Depends(get_tenant_db)):
+async def wipe_data(request: Request, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     for col in ["students", "attendance", "attendance_records", "school_days", "screening_sessions",
                 "saebrs_results", "self_report_results", "interventions", "case_notes", "alerts"]:
         await db[col].delete_many({})
-    await log_audit(db, user, "data_wipe", "setting", "all", "Full data wipe")
+    await log_audit(db, user, "data_wipe", "setting", "all", "Full data wipe",
+                    mirror_to_sa=True, request=request)
     return {"message": "All data wiped"}
 
 
 @router.delete("/settings/data/students")
-async def delete_student_data(user=Depends(get_current_user), db=Depends(get_tenant_db)):
+async def delete_student_data(request: Request, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     for col in ["students", "screening_sessions", "saebrs_results", "self_report_results",
                 "interventions", "case_notes", "alerts"]:
         await db[col].delete_many({})
-    await log_audit(db, user, "data_wipe", "student", "all", "Student data wipe")
+    await log_audit(db, user, "data_wipe", "student", "all", "Student data wipe",
+                    mirror_to_sa=True, request=request)
     return {"message": "Student data deleted"}
 
 
 @router.delete("/settings/data/attendance")
-async def delete_attendance_data(user=Depends(get_current_user), db=Depends(get_tenant_db)):
+async def delete_attendance_data(request: Request, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     for col in ["attendance_records", "attendance"]:
         await db[col].delete_many({})
-    await log_audit(db, user, "data_wipe", "attendance", "all", "Attendance data wipe")
+    await log_audit(db, user, "data_wipe", "attendance", "all", "Attendance data wipe",
+                    mirror_to_sa=True, request=request)
     return {"message": "Attendance data deleted"}
 
 
 @router.post("/settings/seed")
-async def seed_data_endpoint(data: dict = None, user=Depends(get_current_user), db=Depends(get_tenant_db)):
+async def seed_data_endpoint(request: Request, data: dict = None, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     from fastapi import HTTPException
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     from seed import seed_database
     student_count = int((data or {}).get("student_count", 32))
-    return await seed_database(db, student_count=student_count)
+    result = await seed_database(db, student_count=student_count)
+    await log_audit(db, user, "created", "setting", "seed_data", "Demo data seeded",
+                    metadata={"student_count": student_count},
+                    mirror_to_sa=True, request=request)
+    return result
 
 
 @router.get("/settings/export-all")
@@ -182,6 +190,9 @@ async def restore_all_data(request: Request, user=Depends(get_current_user), db=
             if body[source_key]:
                 await db[col].insert_many([{**doc} for doc in body[source_key]])
             restored[col] = len(body[source_key])
+    await log_audit(db, user, "uploaded", "setting", "backup_restore", "Backup restored",
+                    metadata={"collections": restored},
+                    mirror_to_sa=True, request=request)
     return {"message": "Data restored successfully", "restored": restored}
 
 
@@ -247,7 +258,7 @@ async def get_terms(year: Optional[int] = None, user=Depends(get_current_user), 
 
 
 @router.put("/settings/terms")
-async def save_terms(data: dict, user=Depends(get_current_user), db=Depends(get_tenant_db)):
+async def save_terms(data: dict, request: Request, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     if user.get("role") != "admin":
         raise HTTPException(403, "Admin access required")
     terms = data.get("terms", [])
@@ -290,6 +301,11 @@ async def save_terms(data: dict, user=Depends(get_current_user), db=Depends(get_
         if all_dates:
             await db.school_days.insert_many([{"date": d, "year": int(d[:4])} for d in all_dates])
 
+    await log_audit(db, user, "updated", "setting", "school_calendar",
+                    f"Terms saved for {save_year or 'all'}",
+                    metadata={"term_count": len(terms), "school_days": len(all_dates), "year": save_year},
+                    mirror_to_sa=True, request=request)
+
     return {
         "message": f"{len(terms)} term(s) saved · {len(all_dates)} school days generated for {save_year or 'all'}",
         "school_days_count": len(all_dates),
@@ -298,7 +314,7 @@ async def save_terms(data: dict, user=Depends(get_current_user), db=Depends(get_
 
 
 @router.delete("/settings/terms")
-async def delete_year(year: int, user=Depends(get_current_user), db=Depends(get_tenant_db)):
+async def delete_year(year: int, request: Request, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     """Remove all terms and school days for a given year."""
     if user.get("role") not in ["admin", "leadership"]:
         raise HTTPException(403, "Access denied")
@@ -311,4 +327,7 @@ async def delete_year(year: int, user=Depends(get_current_user), db=Depends(get_
         {"$set": {"terms": kept, "non_school_days": kept_nsd}}
     )
     await db.school_days.delete_many({"year": year})
+    await log_audit(db, user, "deleted", "setting", f"year_{year}", f"Year {year} deleted",
+                    metadata={"year": year},
+                    mirror_to_sa=True, request=request)
     return {"message": f"Year {year} deleted", "year": year}
