@@ -69,9 +69,12 @@ async def seed_database(db, student_count: int = 32):
                   "Robinson", "King", "Wright", "Scott", "Torres", "Green", "Baker", "Hill",
                   "Adams", "Nelson", "Carter", "Mitchell", "Roberts", "Campbell", "Phillips", "Evans"]
 
-    # ── Tier distribution: ~15% T3, ~30% T2, ~55% T1 (with variance) ────────
-    target_t3_pct = rng.uniform(0.10, 0.15)
-    target_t2_pct = rng.uniform(0.25, 0.30)
+    # ── Tier distribution: target ~70% T1 / ~20% T2 / ~10% T3 at the CURRENT
+    # (latest) screening. The trajectory logic below bumps ~13% of students
+    # one tier worse by year-end (decliners), so base percentages are slightly
+    # skewed toward T1 to hit the 70/20/10 target after that drift.
+    target_t3_pct = rng.uniform(0.08, 0.11)   # ~9–11% high-risk base
+    target_t2_pct = rng.uniform(0.10, 0.14)   # ~10–14% some-risk base
     t3_count = int(student_count * target_t3_pct)
     t2_count = int(student_count * target_t2_pct)
     t1_count = student_count - t3_count - t2_count
