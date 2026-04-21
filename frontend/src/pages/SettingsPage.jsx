@@ -1701,7 +1701,7 @@ export default function SettingsPage() {
   const tabProps = { settings, onSave: saveSettings, saving, msg, msgType, featureFlags };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto fade-in">
+    <div className="p-4 sm:p-6 lg:p-8 fade-in">
       <div className="mb-5 sm:mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Settings</h1>
         <p className="text-slate-500 mt-1">Customise WellTrack for your school</p>

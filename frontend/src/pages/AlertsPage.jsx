@@ -142,7 +142,7 @@ export default function AlertsPage() {
   const unreadTC = tierChanges.filter(a => !a.is_read).length;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto fade-in">
+    <div className="p-4 sm:p-6 lg:p-8 fade-in">
       <div className="flex flex-wrap items-start sm:items-center justify-between gap-3 sm:gap-4 mb-5 sm:mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 flex items-center gap-3" style={{fontFamily:'Manrope,sans-serif'}}>
