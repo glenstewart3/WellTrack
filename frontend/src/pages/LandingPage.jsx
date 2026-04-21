@@ -116,7 +116,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative z-10 mx-auto max-w-7xl px-6 pb-20 pt-12 lg:px-10 lg:pb-28 lg:pt-20">
+      <section className="relative z-10 mx-auto max-w-7xl px-6 pb-10 pt-12 lg:px-10 lg:pb-10 lg:pt-20">
         <div className="mx-auto max-w-3xl text-center">
           <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -177,7 +177,7 @@ export default function LandingPage() {
 
       {/* Features */}
       <section className="relative z-10">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-6 py-8 sm:grid-cols-3 lg:px-10">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-6 py-10 sm:grid-cols-3 lg:px-10">
           {[
             { icon: ShieldCheck, title: 'Evidence-based screening', desc: 'SAEBRS and self-report screening with automated risk classification across social, academic, and emotional domains.' },
             { icon: ChartLine, title: 'See change over time', desc: 'Trend lines per student, class, and year level — with clear tier movement and trajectory analysis.' },
@@ -210,7 +210,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="relative z-10 mx-auto max-w-7xl px-6 pt-6 pb-16 lg:px-10">
+      <section className="relative z-10 mx-auto max-w-7xl px-6 pt-10 pb-16 lg:px-10">
         <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-900 p-10 text-white sm:p-14">
           {/* Subtle spots in CTA */}
           <div className="pointer-events-none absolute inset-0">
