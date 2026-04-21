@@ -429,6 +429,10 @@ h1.text-3xl, h1.text-2xl {
   .tab-attention-pulse { animation: none; }
 }
 
+/* Sidebar NavLink hover — warmer, slightly darker than the tab rail */
+.sidebar-nav-hover:hover { background-color: oklch(95% .006 90); }
+[data-theme="dark"] .sidebar-nav-hover:hover { background-color: rgba(148, 163, 184, 0.1); }
+
 /* ── Landing page — dark mode overrides ────────────────────────────────── */
 .landing-page[data-landing-theme="dark"] {
   /* Swap slate text tokens to brighter equivalents */
