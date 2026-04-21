@@ -341,8 +341,8 @@ export default function DashboardLayout() {
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto relative">
-          {/* Subtle tier-color ambient blurs with slow drift (light mode only) */}
-          {theme !== 'dark' && (
+          {/* Subtle tier-color ambient blurs with slow drift */}
+          {theme !== 'dark' ? (
             <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" aria-hidden="true">
               {/* Top row */}
               <div className="wt-blur-drift-a absolute -top-32 right-[10%] md:right-[18%] h-[280px] w-[280px] md:h-[460px] md:w-[460px] rounded-full opacity-35 blur-3xl" style={{ background: 'rgba(34, 197, 94, 0.38)' }} />
@@ -352,6 +352,16 @@ export default function DashboardLayout() {
               {/* Bottom row */}
               <div className="wt-blur-drift-d absolute bottom-[-8%] left-[-4%] md:left-[6%] h-[260px] w-[260px] md:h-[380px] md:w-[380px] rounded-full opacity-25 blur-3xl" style={{ background: 'rgba(239, 68, 68, 0.28)' }} />
               <div className="wt-blur-drift-e hidden md:block absolute bottom-[-10%] right-[22%] h-[320px] w-[320px] rounded-full opacity-30 blur-3xl" style={{ background: 'rgba(16, 185, 129, 0.24)' }} />
+            </div>
+          ) : (
+            <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" aria-hidden="true">
+              {/* Dark-mode blurs: same tier colours, brighter opacity so they
+                  read on the navy surface, same slow drift animations */}
+              <div className="wt-blur-drift-a absolute -top-32 right-[10%] md:right-[18%] h-[280px] w-[280px] md:h-[460px] md:w-[460px] rounded-full opacity-55 blur-3xl" style={{ background: 'rgba(52, 211, 153, 0.30)' }} />
+              <div className="wt-blur-drift-b absolute top-1/3 right-[-12%] md:right-[-6%] h-[260px] w-[260px] md:h-[400px] md:w-[400px] rounded-full opacity-50 blur-3xl" style={{ background: 'rgba(251, 191, 36, 0.26)' }} />
+              <div className="wt-blur-drift-c hidden md:block absolute top-1/2 left-[28%] h-[300px] w-[300px] rounded-full opacity-40 blur-3xl" style={{ background: 'rgba(167, 139, 250, 0.22)' }} />
+              <div className="wt-blur-drift-d absolute bottom-[-8%] left-[-4%] md:left-[6%] h-[260px] w-[260px] md:h-[380px] md:w-[380px] rounded-full opacity-45 blur-3xl" style={{ background: 'rgba(251, 113, 133, 0.24)' }} />
+              <div className="wt-blur-drift-e hidden md:block absolute bottom-[-10%] right-[22%] h-[320px] w-[320px] rounded-full opacity-50 blur-3xl" style={{ background: 'rgba(34, 211, 238, 0.20)' }} />
             </div>
           )}
           <div className="relative z-10">

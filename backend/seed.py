@@ -113,18 +113,28 @@ async def seed_database(db, student_count: int = 32):
     event_gaps_days = [45 * i for i in range(8)]
     event_dates = sorted([most_recent - timedelta(days=g) for g in event_gaps_days])
 
-    # Label each with a Term/Period marker based on Australian term calendar
-    def _term_period_label(d):
-        # Terms: 1=Jan-early-Apr, 2=late-Apr-Jul, 3=Jul-Sep, 4=Oct-Dec
-        m = d.month
-        term = 1 if m <= 4 else (2 if m <= 7 else (3 if m <= 9 else 4))
-        # Period 1 = first half of term, Period 2 = second half
-        period = 1 if d.day <= 15 else 2
-        return term, period, f"Term {term} - P{period}"
+    # Label each with a Term/Period marker based on the Australian term calendar.
+    # We use day-of-year thresholds (Term 2 starts ~mid-Apr, Term 3 ~mid-Jul,
+    # Term 4 ~early-Oct) so April-ish screenings don't collide with Jan–Mar.
+    def _term_for(d):
+        doy = d.timetuple().tm_yday
+        if doy < 100:  return 1   # before ~Apr 10
+        if doy < 187:  return 2   # ~Apr 10 – Jul 6
+        if doy < 270:  return 3   # ~Jul 7 – Sep 27
+        return 4
 
     screening_sessions = []
-    for idx, ev_date in enumerate(event_dates):
-        term, period, label = _term_period_label(ev_date)
+    events_with_term = []
+    for ev_date in event_dates:
+        events_with_term.append((ev_date, _term_for(ev_date)))
+
+    # Group by (year, term) and number screenings P1, P2, P3 … chronologically.
+    from collections import defaultdict
+    period_counter = defaultdict(int)
+    for ev_date, term in events_with_term:
+        period_counter[(ev_date.year, term)] += 1
+        period_num = period_counter[(ev_date.year, term)]
+        label = f"Term {term} - P{period_num}"
         screening_sessions.append({
             "screening_id": f"scr_{ev_date.isoformat()}",
             "screening_period": label,
