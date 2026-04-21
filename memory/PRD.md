@@ -72,6 +72,12 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - [x] **Bulk actions emit exactly 1 audit entry** with `bulk_count`: attendance upload, bulk user import, student bulk import, photo ZIP upload, student-details CSV import, bulk archive/reactivate.
 - [x] Verified end-to-end via curl: settings update → both logs; student edit → tenant log only; bulk user import + delete × 3 → all mirrored with `tenant_slug="demo"`, `school_name="Demo School"`.
 
+### SA Audit Enhancements — Tenant Filter + Trend Chart (COMPLETED - 2026-04-21)
+- [x] **Backend**: `GET /api/superadmin/audit?tenant_slug=<slug>` — filters entries to one school.
+- [x] **Backend**: `GET /api/superadmin/audit/trend?days=30&tenant_slug=<slug>` — returns one bucket per UTC day counting `tenant_*` (settings/admin) actions only; logins excluded so the series reflects actual config drift.
+- [x] **Frontend (`SAAuditPage.jsx`)**: Added "All schools" ↔ per-school dropdown (`data-testid="sa-audit-tenant-filter"`), a top-panel area-chart trend (`data-testid="sa-audit-trend"`) showing "Last 30 days · N tenant-configuration changes", and a little school-badge pill on every entry row so SAs can see at a glance which tenant each change came from.
+- [x] Filter resets pagination to page 0; trend reloads on filter change.
+
 ### Pre-existing Features (from single-tenant)
 - Student management, SAEBRS screening, MTSS tier calculation
 - Attendance, Interventions, Appointments, Analytics, Reports

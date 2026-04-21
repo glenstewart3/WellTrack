@@ -531,13 +531,53 @@ async def impersonate_school(school_id: str, admin=Depends(get_super_admin)):
 @router.get("/superadmin/audit")
 async def sa_audit_log(
     page: int = 0, per_page: int = 50,
+    tenant_slug: str = None,
     admin=Depends(get_super_admin),
 ):
-    total = await control_db.super_admin_audit.count_documents({})
+    q = {}
+    if tenant_slug:
+        q["tenant_slug"] = tenant_slug
+    total = await control_db.super_admin_audit.count_documents(q)
     entries = await control_db.super_admin_audit.find(
-        {}, {"_id": 0}
+        q, {"_id": 0}
     ).sort("timestamp", -1).skip(page * per_page).limit(per_page).to_list(None)
     return {"total": total, "page": page, "per_page": per_page, "entries": entries}
+
+
+@router.get("/superadmin/audit/trend")
+async def sa_audit_trend(
+    days: int = 30,
+    tenant_slug: str = None,
+    admin=Depends(get_super_admin),
+):
+    """Return one bucket per calendar day (UTC) for the last N days, counting
+    settings/administration changes (tenant_* actions). The login entries are
+    excluded so the chart reflects configuration drift only."""
+    from datetime import datetime, timezone, timedelta
+    now = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    start = now - timedelta(days=days - 1)
+    q = {
+        "timestamp": {"$gte": start.isoformat()},
+        "action": {"$regex": "^tenant_"},  # settings/admin actions mirrored from tenants
+    }
+    if tenant_slug:
+        q["tenant_slug"] = tenant_slug
+
+    # Build empty buckets
+    buckets = {}
+    for i in range(days):
+        d = (start + timedelta(days=i)).date().isoformat()
+        buckets[d] = 0
+
+    async for entry in control_db.super_admin_audit.find(q, {"_id": 0, "timestamp": 1}):
+        ts = entry.get("timestamp", "")
+        if len(ts) >= 10:
+            day = ts[:10]
+            if day in buckets:
+                buckets[day] += 1
+
+    series = [{"date": d, "count": c} for d, c in sorted(buckets.items())]
+    return {"days": days, "tenant_slug": tenant_slug, "total": sum(b for b in buckets.values()), "series": series}
 
 
 # ── Super Admins CRUD ────────────────────────────────────────────────────────
