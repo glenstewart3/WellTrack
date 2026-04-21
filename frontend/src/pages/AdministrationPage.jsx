@@ -8,7 +8,7 @@ import {
   Eye, EyeOff, CheckCircle, Lock, LayoutDashboard, ClipboardCheck,
   Users, Radar, BarChart3, Target, CalendarDays, Users2, Bell, Settings,
   RotateCcw, Zap, Stethoscope, Settings2, FileText, Upload, Download, AlertTriangle,
-  Database,
+  Database, Gauge,
 } from 'lucide-react';
 import { DEFAULT_FEATURE_PERMISSIONS } from '../hooks/usePermissions';
 import useDocumentTitle from '../hooks/useDocumentTitle';
@@ -77,6 +77,7 @@ const DEFAULT_PERMISSIONS = {
 
 // ── TAB NAV ──────────────────────────────────────────────────────────────────
 const TABS = [
+  { key: 'Overview', icon: Gauge },
   { key: 'User Management', icon: UserCog },
   { key: 'Classes', icon: Users2 },
   { key: 'Role Permissions', icon: Shield },
@@ -1446,10 +1447,8 @@ function ClassesTab() {
   );
 }
 
-// ── OVERVIEW CARDS ───────────────────────────────────────────────────────────
-function OverviewCards({ onJump, onStats }) {
-  const [stats, setStats] = useState(null);
-
+// ── OVERVIEW DATA FETCHER (headless, always mounted) ─────────────────────────
+function OverviewFetcher({ onStats }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -1479,20 +1478,23 @@ function OverviewCards({ onJump, onStats }) {
         const assignedClasses = classes.filter(c => c.teacher_user_id).length;
         const unassignedClasses = classes.length - assignedClasses;
 
-        const newStats = {
-          users:      { total: activeUsers, sub: `${users.length - activeUsers} inactive` },
-          classes:    { total: classes.length, sub: `${assignedClasses}/${classes.length} with teacher` },
-          backup:     { label: backupLabel, sub: latestBackup ? `${latestBackup.size_kb} KB` : 'Run your first backup', tone: backupTone },
-          audit:      { total: audit.total, sub: 'changes today' },
-        };
-        setStats(newStats);
-        // Lift attention counts to parent for tab nudges
-        if (onStats) onStats({ classes_unassigned: unassignedClasses });
+        onStats({
+          classes_unassigned: unassignedClasses,
+          users:   { total: activeUsers, inactive: users.length - activeUsers, list: users },
+          classes: { total: classes.length, assigned: assignedClasses, list: classes },
+          backup:  { label: backupLabel, sub: latestBackup ? `${latestBackup.size_kb} KB` : 'Run your first backup', tone: backupTone },
+          audit:   { total: audit.total },
+        });
       } catch (e) { console.error('overview fetch failed', e); }
     })();
     return () => { cancelled = true; };
   }, [onStats]);
 
+  return null;
+}
+
+// ── OVERVIEW TAB ─────────────────────────────────────────────────────────────
+function OverviewTab({ stats, onJump }) {
   const toneMap = {
     slate:   { bg: 'bg-slate-50',   icon: 'text-slate-600',   ring: 'ring-slate-200' },
     emerald: { bg: 'bg-emerald-50', icon: 'text-emerald-600', ring: 'ring-emerald-200' },
@@ -1507,7 +1509,7 @@ function OverviewCards({ onJump, onStats }) {
         type="button"
         onClick={onClick}
         data-testid={testId}
-        className="group bg-white border border-slate-200 hover:border-slate-300 hover:shadow-sm rounded-xl p-4 text-left transition-all flex flex-col justify-between min-h-[100px]"
+        className="group bg-white border border-slate-200 hover:border-slate-300 hover:shadow-sm rounded-xl p-4 text-left transition-all flex flex-col justify-between min-h-[110px]"
       >
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</span>
@@ -1525,26 +1527,71 @@ function OverviewCards({ onJump, onStats }) {
 
   if (!stats) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5 sm:mb-6">
-        {[1, 2, 3, 4].map(i => <div key={i} className="h-[100px] bg-white border border-slate-100 rounded-xl animate-pulse" />)}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[1, 2, 3, 4].map(i => <div key={i} className="h-[110px] bg-white border border-slate-100 rounded-xl animate-pulse" />)}
       </div>
     );
   }
 
+  const usersSub = `${stats.users.inactive} inactive`;
+  const classesSub = `${stats.classes.assigned}/${stats.classes.total} with teacher`;
+
+  // Recent activity snapshot — last 5 audit events
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5 sm:mb-6" data-testid="admin-overview">
-      <Card label="Active users" value={stats.users.total} sub={stats.users.sub}
-            icon={UserCog} tone="indigo"
-            onClick={() => onJump('User Management')} testId="overview-users-card" />
-      <Card label="Classes" value={stats.classes.total} sub={stats.classes.sub}
-            icon={Users2} tone="slate"
-            onClick={() => onJump('Classes')} testId="overview-classes-card" />
-      <Card label="Last backup" value={stats.backup.label} sub={stats.backup.sub}
-            icon={Database} tone={stats.backup.tone}
-            onClick={() => onJump('Data')} testId="overview-backup-card" />
-      <Card label="Audit activity" value={stats.audit.total} sub={stats.audit.sub}
-            icon={ClipboardCheck} tone="emerald"
-            onClick={() => onJump('Audit Log')} testId="overview-audit-card" />
+    <div className="space-y-6" data-testid="admin-overview-tab">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card label="Active users" value={stats.users.total} sub={usersSub}
+              icon={UserCog} tone="indigo"
+              onClick={() => onJump('User Management')} testId="overview-users-card" />
+        <Card label="Classes" value={stats.classes.total} sub={classesSub}
+              icon={Users2} tone="slate"
+              onClick={() => onJump('Classes')} testId="overview-classes-card" />
+        <Card label="Last backup" value={stats.backup.label} sub={stats.backup.sub}
+              icon={Database} tone={stats.backup.tone}
+              onClick={() => onJump('Data')} testId="overview-backup-card" />
+        <Card label="Audit activity" value={stats.audit.total} sub="changes today"
+              icon={ClipboardCheck} tone="emerald"
+              onClick={() => onJump('Audit Log')} testId="overview-audit-card" />
+      </div>
+
+      {/* Quick action callouts — things that need attention */}
+      {stats.classes_unassigned > 0 && (
+        <button
+          onClick={() => onJump('Classes')}
+          data-testid="overview-unassigned-callout"
+          className="w-full flex items-center gap-3 p-4 text-left bg-amber-50 border border-amber-200 hover:border-amber-300 rounded-xl transition-all"
+        >
+          <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
+            <AlertTriangle size={18} className="text-amber-700" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-900">
+              {stats.classes_unassigned} {stats.classes_unassigned === 1 ? 'class needs' : 'classes need'} a teacher assigned
+            </p>
+            <p className="text-xs text-amber-700 mt-0.5">Assign teachers so radar filters and targeted interventions work correctly.</p>
+          </div>
+          <span className="text-xs font-semibold text-amber-800 shrink-0">Open Classes →</span>
+        </button>
+      )}
+
+      {(!stats.backup.label || stats.backup.tone === 'amber') && (
+        <button
+          onClick={() => onJump('Data')}
+          data-testid="overview-backup-callout"
+          className="w-full flex items-center gap-3 p-4 text-left bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl transition-all"
+        >
+          <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center shrink-0">
+            <Database size={18} className="text-slate-700" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-slate-900">
+              {stats.backup.label === 'No backups yet' ? "You haven't run a backup yet" : `Last backup was ${stats.backup.label}`}
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">Backups run automatically overnight. You can also trigger one on demand.</p>
+          </div>
+          <span className="text-xs font-semibold text-slate-600 shrink-0">Open Data →</span>
+        </button>
+      )}
     </div>
   );
 }
@@ -1554,8 +1601,9 @@ export default function AdministrationPage() {
   useDocumentTitle('Administration');
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('User Management');
+  const [activeTab, setActiveTab] = useState('Overview');
   const [attention, setAttention] = useState({});
+  const [overviewStats, setOverviewStats] = useState(null);
 
   useEffect(() => {
     if (user && user.role !== 'admin') navigate('/dashboard');
@@ -1564,6 +1612,11 @@ export default function AdministrationPage() {
   if (user?.role !== 'admin') return null;
 
   const tabAttention = { Classes: attention.classes_unassigned || 0 };
+
+  const handleStats = (stats) => {
+    setOverviewStats(stats);
+    setAttention({ classes_unassigned: stats.classes_unassigned });
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 fade-in">
@@ -1576,8 +1629,10 @@ export default function AdministrationPage() {
 
       <TabNav active={activeTab} onChange={setActiveTab} attention={tabAttention} />
 
-      <OverviewCards onJump={setActiveTab} onStats={setAttention} />
+      {/* Overview data is fetched here and lifted for the Overview tab + tab-nudges */}
+      <OverviewFetcher onStats={handleStats} />
 
+      {activeTab === 'Overview' && <OverviewTab stats={overviewStats} onJump={setActiveTab} />}
       {activeTab === 'User Management' && <UserManagementTab />}
       {activeTab === 'Classes' && <ClassesTab />}
       {activeTab === 'Role Permissions' && <RolePermissionsTab />}

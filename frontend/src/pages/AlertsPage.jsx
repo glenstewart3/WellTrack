@@ -142,20 +142,21 @@ export default function AlertsPage() {
   const unreadTC = tierChanges.filter(a => !a.is_read).length;
 
   return (
-    <div className="p-6 lg:p-8 max-w-4xl mx-auto fade-in">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto fade-in">
+      <div className="flex flex-wrap items-start sm:items-center justify-between gap-3 sm:gap-4 mb-5 sm:mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3" style={{fontFamily:'Manrope,sans-serif'}}>
-            <Bell size={28} className="text-slate-600" /> Alerts
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 flex items-center gap-3" style={{fontFamily:'Manrope,sans-serif'}}>
+            <Bell size={24} className="sm:hidden text-slate-600" />
+            <Bell size={28} className="hidden sm:inline text-slate-600" /> Alerts
           </h1>
-          <p className="text-slate-500 mt-1">
+          <p className="text-sm sm:text-base text-slate-500 mt-1">
             {unread > 0 ? <span className="text-rose-600 font-medium">{unread} unread alert{unread > 1 ? 's' : ''}</span> : 'All alerts read'}
           </p>
         </div>
         <div className="flex gap-2">
           {unread > 0 && (
             <button onClick={markAllRead} data-testid="mark-all-read-btn"
-              className="px-4 py-2 text-sm font-medium bg-white border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 transition-colors">
+              className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium bg-white border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 transition-colors">
               Mark All Read
             </button>
           )}
@@ -163,21 +164,21 @@ export default function AlertsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3 mb-5">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-5">
         {[
           { label: 'Early Warnings', value: earlyWarnings.length, color: 'text-amber-600' },
           { label: 'Tier Changes', value: tierChanges.length, color: 'text-indigo-600' },
           { label: 'Unread', value: unread, color: 'text-rose-600' },
         ].map(stat => (
-          <div key={stat.label} className="bg-white border border-slate-200 rounded-xl p-4 text-center">
-            <p className={`text-2xl font-bold ${stat.color}`} style={{fontFamily:'Manrope,sans-serif'}}>{stat.value}</p>
-            <p className="text-xs text-slate-400 mt-0.5">{stat.label}</p>
+          <div key={stat.label} className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 text-center">
+            <p className={`text-xl sm:text-2xl font-bold ${stat.color}`} style={{fontFamily:'Manrope,sans-serif'}}>{stat.value}</p>
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">{stat.label}</p>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex overflow-x-auto overflow-y-hidden border-b border-slate-200 mb-0 -mx-6 px-6 sm:mx-0 sm:px-0">
+      <div className="flex overflow-x-auto overflow-y-hidden border-b border-slate-200 mb-0 -mx-4 sm:-mx-6 px-4 sm:px-6 md:mx-0 md:px-0 no-scrollbar">
         {[
           { key: 'early_warning', label: 'Early Warnings', short: 'Warnings', count: unreadEW, Icon: AlertTriangle },
           { key: 'tier_change', label: 'Tier Changes', short: 'Tier Chg', count: unreadTC, Icon: TrendingUp },

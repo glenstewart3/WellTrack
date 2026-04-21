@@ -206,15 +206,15 @@ export default function DashboardLayout() {
           >
             <Menu size={20} />
           </button>
-          {/* School name (experiment: moved from sidebar to top bar) */}
+          <div className="flex-1" />
+          {/* School name (right side of top bar) */}
           {settings.school_name && (
-            <div className="hidden sm:flex items-center gap-2 min-w-0" data-testid="topbar-school-name">
+            <div className="hidden sm:flex items-center gap-2 min-w-0 mr-2" data-testid="topbar-school-name">
               <span className="truncate font-semibold text-sm" style={{ fontFamily: 'Manrope,sans-serif', color: 'var(--wt-foreground)' }}>
                 {settings.school_name}
               </span>
             </div>
           )}
-          <div className="flex-1" />
           {/* Alert indicator */}
           <NavLink to="/alerts" className="relative p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors" data-testid="alert-bell">
             <Bell size={18} />

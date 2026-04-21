@@ -40,12 +40,13 @@ function TabNav({ active, onChange, featureFlags }) {
   const ff = featureFlags || {};
   const visibleTabs = TAB_CONFIG.filter(() => true);
   return (
-    <div className="flex flex-wrap gap-1 mb-8 p-1.5 bg-slate-100 rounded-2xl">
+    <div className="flex gap-1 mb-6 md:mb-8 p-1 md:p-1.5 bg-slate-100 rounded-2xl overflow-x-auto no-scrollbar max-w-full md:flex-wrap">
       {visibleTabs.map(({ key, icon: Icon }) => (
         <button
           key={key}
           onClick={() => onChange(key)}
-          className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl transition-all whitespace-nowrap ${
+          data-testid={`settings-tab-${key.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
+          className={`flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium rounded-xl transition-all whitespace-nowrap shrink-0 ${
             active === key
               ? 'bg-white text-slate-900 shadow-sm'
               : 'text-slate-500 hover:text-slate-700 hover:bg-white/60'
@@ -1700,9 +1701,9 @@ export default function SettingsPage() {
   const tabProps = { settings, onSave: saveSettings, saving, msg, msgType, featureFlags };
 
   return (
-    <div className="p-6 lg:p-8 max-w-3xl mx-auto fade-in">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Settings</h1>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto fade-in">
+      <div className="mb-5 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Settings</h1>
         <p className="text-slate-500 mt-1">Customise WellTrack for your school</p>
       </div>
 

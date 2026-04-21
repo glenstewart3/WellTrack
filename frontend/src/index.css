@@ -76,7 +76,7 @@ code {
   --wt-card: #ffffff;
   --wt-border: oklch(91.5% .008 85);          /* warm, softer border */
   --wt-border-soft: oklch(94.5% .006 88);     /* even gentler for internal dividers */
-  --wt-tab-bg: oklch(95% .006 90);            /* warm tab rail background */
+  --wt-tab-bg: oklch(98% .006 90);            /* warm tab rail background */
   --wt-foreground: #0f172a;     /* slate-900 */
   --wt-muted-fg: #64748b;       /* slate-500 */
 
