@@ -146,7 +146,7 @@ export default function LandingPage() {
         </div>
 
         {/* Tier cards */}
-        <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="mx-auto mt-12 grid max-w-5xl grid-cols-1 gap-4 sm:grid-cols-3">
           {(() => {
             // Base (light) palette
             const lightTiers = [
@@ -177,7 +177,7 @@ export default function LandingPage() {
 
       {/* Features */}
       <section className="relative z-10">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-6 py-16 sm:grid-cols-3 lg:px-10">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-6 py-8 sm:grid-cols-3 lg:px-10">
           {[
             { icon: ShieldCheck, title: 'Evidence-based screening', desc: 'SAEBRS and self-report screening with automated risk classification across social, academic, and emotional domains.' },
             { icon: ChartLine, title: 'See change over time', desc: 'Trend lines per student, class, and year level — with clear tier movement and trajectory analysis.' },
@@ -210,7 +210,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="relative z-10 mx-auto max-w-7xl px-6 py-20 lg:px-10">
+      <section className="relative z-10 mx-auto max-w-7xl px-6 pt-6 pb-16 lg:px-10">
         <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-900 p-10 text-white sm:p-14">
           {/* Subtle spots in CTA */}
           <div className="pointer-events-none absolute inset-0">
