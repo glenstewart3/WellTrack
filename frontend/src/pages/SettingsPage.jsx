@@ -1244,21 +1244,9 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
     if (!importFile) return;
     setImporting(true);
     try {
-      const text = await importFile.text();
-      let rows = [];
-      const lname = importFile.name.toLowerCase();
-      if (lname.endsWith('.csv')) {
-        const lines = text.split('\n').filter(l => l.trim());
-        if (lines.length < 2) throw new Error('File appears empty');
-        const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-        rows = lines.slice(1).map(line => {
-          const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-          return Object.fromEntries(headers.map((h, i) => [h, vals[i] || '']));
-        }).filter(r => Object.values(r).some(v => v));
-      } else {
-        throw new Error('Please upload a CSV file');
-      }
-      const res = await api.post('/students/import', { students: rows });
+      const fd = new FormData();
+      fd.append('file', importFile);
+      const res = await api.post('/students/import-file', fd);
       setImportResult(res.data);
       setImportFile(null);
       setMsgType('success');
@@ -1344,14 +1332,14 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
               <li>In Compass, go to <strong>People Management</strong></li>
               <li>Set filters: <strong>User Status = Active</strong> and <strong>Base Role = Student</strong></li>
               <li>Click <strong>Export &amp; Stats</strong> → <strong>Users</strong> → <strong>Select Filtered People</strong></li>
-              <li>Save the downloaded file as a <strong>.csv</strong> and upload it here</li>
+              <li>Save the downloaded file as a <strong>.csv</strong> or <strong>.xlsx</strong> and upload it here</li>
             </ol>
           </div>
         </details>
         <FileDropZone
-          accept=".csv"
+          accept=".csv,.xlsx,.xls"
           expectedKind="students"
-          label="Drop your students CSV here or click to browse"
+          label="Drop your students CSV or XLSX here or click to browse"
           file={importFile}
           onChange={(f, v) => { setImportFile(f); setImportValid(v); }}
           testIdPrefix="import-students"

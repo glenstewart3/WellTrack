@@ -147,6 +147,52 @@ async def import_students(data: dict, user=Depends(get_current_user), db=Depends
     return {"imported": len(imported), "updated": len(updated), "errors": errors, "total": len(rows)}
 
 
+@router.post("/students/import-file")
+async def import_students_from_file(file: UploadFile = File(...), user=Depends(get_current_user), db=Depends(get_tenant_db)):
+    """Accept a CSV or XLSX file directly (multipart upload), parse it into rows,
+    and hand the rows off to the same processing pipeline used by /students/import."""
+    if user.get("role") not in ["admin", "leadership"]:
+        raise HTTPException(403, "Admin or leadership access required")
+
+    content = await file.read()
+    fname = (file.filename or "").lower()
+
+    if fname.endswith(".csv"):
+        text = content.decode("utf-8-sig")
+        reader = csv.DictReader(io.StringIO(text))
+        rows = [dict(r) for r in reader]
+    elif fname.endswith(".xlsx") or fname.endswith(".xls"):
+        import openpyxl
+        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+        ws = wb.active
+        all_rows = list(ws.iter_rows(values_only=True))
+        if not all_rows:
+            raise HTTPException(400, "File is empty.")
+        # First non-empty row = headers
+        header_idx = 0
+        for i, r in enumerate(all_rows[:5]):
+            if any(v not in (None, "") for v in r):
+                header_idx = i
+                break
+        headers = [str(v or "").strip() for v in all_rows[header_idx]]
+        rows = []
+        for r in all_rows[header_idx + 1:]:
+            if not any(v not in (None, "") for v in r):
+                continue
+            row = {}
+            for i, h in enumerate(headers):
+                if not h:
+                    continue
+                v = r[i] if i < len(r) else None
+                row[h] = "" if v is None else str(v).strip()
+            rows.append(row)
+    else:
+        raise HTTPException(400, "Unsupported file format. Please upload a CSV or XLSX file.")
+
+    # Delegate to the same processing logic by calling the JSON endpoint handler
+    return await import_students({"students": rows}, user=user, db=db)
+
+
 @router.get("/students/summary")
 async def get_students_summary(class_name: Optional[str] = None, year_level: Optional[str] = None,
                                 status: Optional[str] = None,

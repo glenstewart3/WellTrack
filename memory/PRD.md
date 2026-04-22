@@ -110,6 +110,11 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - 4/4 pytest backend tests pass (timezone GET/PUT, SA audit filter/trend). See `/app/backend/tests/test_iteration46_p1.py`.
 - All 10 P1 frontend items verified by testing agent via Playwright. `/app/test_reports/iteration_46.json`.
 
+### Student Import XLSX Support (COMPLETED - 2026-04-22)
+- [x] **New endpoint** `POST /api/students/import-file` accepts multipart file upload of either CSV or XLSX, parses on the backend via openpyxl (already installed), then delegates to the same row-processing logic used by the JSON `/students/import` endpoint.
+- [x] **Frontend** Settings → Imports → Upload Students drop-zone now accepts `.csv,.xlsx,.xls`. `parseAndImport` posts the file directly as FormData (no client-side CSV parsing). `FileDropZone` validation accepts XLSX without header peek (since browsers can't parse XLSX natively).
+- [x] End-to-end verified: both CSV and XLSX test files with identical rows imported/updated correctly.
+
 ### P2 (Future)
 - [ ] Automated weekly backup via email
 - [ ] Email notifications for alerts

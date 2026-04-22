@@ -164,9 +164,13 @@ async function reviewFile(file, expectedKind) {
     return { ok: false, detected: 'unknown', hint: `Expected a .zip archive of photos but got "${file.name}".` };
   }
 
-  // All other kinds are CSV — peek at headers
+  // All other kinds are CSV/XLSX — XLSX headers can't be peeked client-side,
+  // so we trust the extension and let the backend validate.
+  if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+    return { ok: true, detected: expectedKind, hint: 'Excel file detected — ready to upload.' };
+  }
   if (!name.endsWith('.csv')) {
-    return { ok: false, detected: 'unknown', hint: `Expected a CSV file but got "${file.name}".` };
+    return { ok: false, detected: 'unknown', hint: `Expected a CSV or XLSX file but got "${file.name}".` };
   }
 
   let headers = [];
