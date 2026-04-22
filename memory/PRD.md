@@ -92,6 +92,12 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 
 ## Prioritized Backlog
 
+### P1 — Bugs to fix next session (added 2026-04-21)
+- [ ] **Remove old onboarding flow** — after adding a school in the SA portal, visiting `{slug}.welltrack.com.au` loads the broken legacy onboarding; user had to manually navigate to `/login` to hit the working new flow. Delete the old onboarding page/route entirely and ensure only the new one is reachable.
+- [ ] **Onboarding dark-mode incomplete** — with the theme set to "Follow system" and device in dark mode, the middle form is dark but the background and some assets remain light. Audit every element on the onboarding page and make it fully theme-aware.
+- [ ] **"Follow system" dark mode renders subtly different from "Force dark"** — sidebar background colour and the shield logo change when switching from forced-dark to follow-system. They should be byte-identical when the resolved theme is dark. Likely a CSS variable or `.dark` class scope mismatch between the two modes.
+- [ ] **Super Admin portal tab title missing** — browser tab shows the raw URL instead of a page title like "WellTrack Admin". Add document title hook / `<title>` tag to every SA route.
+
 ### P2 (Future)
 - [ ] Automated weekly backup via email
 - [ ] Email notifications for alerts
