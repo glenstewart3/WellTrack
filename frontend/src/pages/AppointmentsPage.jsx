@@ -381,12 +381,12 @@ function ScheduleTab({ students, confidential, onAddSession }) {
     <div>
       <div className="flex items-center gap-2 mb-5">
         <button onClick={() => setWeekStart(d => addDays(d, -7))}
-          className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+          className="p-2 wt-hover rounded-lg">
           <ChevronLeft size={16} className="text-slate-600" />
         </button>
         <span className="text-sm font-semibold text-slate-700 min-w-[190px] text-center">{formatWeekRange()}</span>
         <button onClick={() => setWeekStart(d => addDays(d, 7))}
-          className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+          className="p-2 wt-hover rounded-lg">
           <ChevronRight size={16} className="text-slate-600" />
         </button>
         <button onClick={load} className="ml-auto p-2 hover:bg-slate-100 rounded-lg transition-colors" title="Refresh">
@@ -648,12 +648,12 @@ function AvailabilityTab({ students, onAddSession }) {
       {/* Week navigation */}
       <div className="flex items-center gap-2 mb-5">
         <button onClick={() => setWeekStart(d => addDays(d, -7))}
-          className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+          className="p-2 wt-hover rounded-lg">
           <ChevronLeft size={16} className="text-slate-600" />
         </button>
         <span className="text-sm font-semibold text-slate-700 min-w-[190px] text-center">{formatWeekRange()}</span>
         <button onClick={() => setWeekStart(d => addDays(d, 7))}
-          className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+          className="p-2 wt-hover rounded-lg">
           <ChevronRight size={16} className="text-slate-600" />
         </button>
         <button onClick={load} className="ml-auto p-2 hover:bg-slate-100 rounded-lg transition-colors" title="Refresh">

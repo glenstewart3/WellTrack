@@ -1,0 +1,51 @@
+{
+  "summary": "Iteration 46 — Verified all 10 P1 items from the WellTrack sweep (onboarding redirect, SA warm theme, timezone dropdown, inline save toast, mobile hamburger wt-hover, school-name hide on mobile, Dummy School placeholder, SA tab titles, audit endpoints, dark-mode). 4/4 pytest backend tests pass. Frontend flows manually verified via Playwright. No regressions found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration46_p1.py",
+    "/app/test_reports/pytest/iteration_46.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "OnboardingPage.jsx is clean: 3 steps ('Your School', 'Data Setup', 'Ready'), legacy 'account' step removed, data-testid='onboarding-page' present on root, full dark-mode classes applied (dark:bg-slate-950, dark:bg-slate-900, etc.).",
+    "App.js correctly routes unauthenticated subdomain visits to /login (no legacy onboarding fallback). Verified: GET /settings without auth lands on /login.",
+    "SA layout renders warm WellTrack theme in authenticated pages (cream/beige sidebar, slate-900 brand). Note: /sa/login screen itself is still dark-navy branded which visually contrasts with the rest of the SA portal — not a functional regression but a minor cosmetic inconsistency the main agent may want to reconcile.",
+    ".wt-hover utility in index.css is correctly gated behind @media (hover: hover) and (pointer: fine) with oklch(95% .006 90) bg-color and a dark-theme override rgba(148,163,184,0.12). Buttons have touch-action: manipulation so mobile double-tap is prevented.",
+    "GeneralTab Save button parent is a flex container (class 'flex items-center gap-3'); clicking Save inserts an inline 'Saved successfully' span adjacent to the button (not a top-of-page toast). Confirmed via DOM read-back after click.",
+    "SA Schools page: name input placeholder is 'Dummy School' (data-testid='sa-school-name-input'); slug input placeholder is 'mooroopna' (lowercase — correct example slug, NOT the 'Mooroopna Primary School' legacy placeholder).",
+    "Tailwind config correctly supports darkMode: ['class', '[data-theme=\"dark\"]'] so dark: prefix works with the custom data-theme selector."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration46_p1.py (new file)"
+  ],
+  "success_rate": {
+    "backend": "100% (4/4 pytest: timezone GET/PUT + SA audit list/trend)",
+    "frontend": "100% (all 10 P1 UI items verified)"
+  },
+  "test_credentials": {
+    "demo_admin": "admin@test.com / password123 (X-Tenant-Slug: demo)",
+    "super_admin": "superadmin@welltrack.com.au / superadmin123"
+  },
+  "seed_data_creation": "None. Timezone PUT test restores original value in teardown.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "P1 sweep verified end-to-end. Key findings: (1) SA portal endpoint for login is POST /api/superadmin/auth/login-email (not /api/superadmin/login) — important for future backend tests. (2) /onboarding path is protected by the onboarding-status gate in App.js, so the testid data-testid='onboarding-page' only renders for tenants where onboarding_complete=false; to explicitly verify the page render, provision a fresh tenant via SA or flip onboarding_complete=false in the demo tenant's settings collection. (3) SA Schools placeholder values: name='Dummy School', slug='mooroopna' (example slug, lowercase — intentional). (4) Demo tenant's Settings → General save handler appends an inline span to the save button's flex parent — DOM assertion pattern is `document.querySelector('[data-testid=\"save-general-btn\"]').parentElement.textContent` should include 'Saved successfully' after click. (5) The /sa/login page still uses the older dark-navy branding while the rest of the SA portal uses the warm cream theme — main agent may wish to unify this later.",
+  "test_flow_summary": {
+    "SA portal": "Login (dark theme) → Dashboard/Schools/Audit/SuperAdmins/PlatformSettings (warm theme) — all 5 sidebar items present and clickable, all 4 tab titles correct (Dashboard · Super Admin | WellTrack, Schools · ..., Audit · ..., Sign in · ...).",
+    "SA Schools modal": "Add School modal opens with placeholder 'Dummy School'; no 'Mooroopna Primary School' placeholder anywhere.",
+    "SA Audit": "Trend chart (SVG) renders; GET /api/superadmin/audit?tenant_slug=demo and /trend?days=30 both return 200.",
+    "Tenant Settings": "Timezone dropdown (data-testid='general-timezone') renders as <select> with default 'Australia/Melbourne'; includes Sydney, Brisbane, Adelaide, Perth, Hobart, Darwin, Auckland, UTC, Singapore, Tokyo, London, LA, NY (14 options).",
+    "Inline save": "Clicking save-general-btn appends 'Saved successfully' span next to the button in its flex parent container.",
+    "Auth guard": "Unauthenticated visit to /settings redirects to /login (no broken onboarding page).",
+    "Mobile": "At 400px viewport, the topbar hamburger has class wt-hover and NOT hover:bg-slate-100; the school name 'Demo School' element is not in the DOM (hidden lg:flex)."
+  },
+  "rca of the issue": "N/A — no bugs found."
+}

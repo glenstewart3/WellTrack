@@ -16,7 +16,7 @@ export default function LoginPage() {
   useDocumentTitle('Login');
   const location = useLocation();
   const { settings } = useSettings();
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   // Login page always renders in light mode for consistency with public/marketing pages
   useEffect(() => {
@@ -83,7 +83,7 @@ export default function LoginPage() {
             {(settings.logo_base64 || settings.logo_dark_base64) && (
               <img
                 src={
-                  (theme === 'dark' || (theme === 'system' && window.matchMedia?.('(prefers-color-scheme: dark)').matches))
+                  resolvedTheme === 'dark'
                     ? (settings.logo_dark_base64 || settings.logo_base64)
                     : settings.logo_base64
                 }

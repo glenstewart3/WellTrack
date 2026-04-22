@@ -768,7 +768,7 @@ function BulkUploadUsersModal({ onClose, onDone }) {
             <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Bulk Upload Users</h3>
             <p className="text-xs text-slate-500 mt-0.5">Upload a CSV to create multiple users at once. Duplicates (existing emails) are skipped.</p>
           </div>
-          <button onClick={onClose} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-slate-100 text-slate-400" aria-label="Close">
+          <button onClick={onClose} className="h-8 w-8 rounded-lg flex items-center justify-center wt-hover text-slate-400 dark:text-slate-500" aria-label="Close">
             <X size={18} />
           </button>
         </div>

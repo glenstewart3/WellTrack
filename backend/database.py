@@ -41,4 +41,5 @@ SETTINGS_DEFAULTS = {
     "excluded_absence_types": [],
     "email_auth_enabled": True,
     "google_auth_enabled": True,
+    "timezone": "Australia/Melbourne",
 }

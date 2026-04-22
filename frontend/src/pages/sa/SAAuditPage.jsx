@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ScrollText, Loader2, ChevronLeft, ChevronRight, Shield, School, UserPlus, Key, Trash2, LogIn, Filter } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import saApi from '../../api-superadmin';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
 
 const ACTION_ICONS = {
   login: LogIn, created_school: School, updated_school: School, archived_school: Trash2,
@@ -12,25 +13,26 @@ const ACTION_ICONS = {
 };
 
 const ACTION_COLORS = {
-  login: 'text-blue-500 bg-blue-50',
-  created_school: 'text-emerald-500 bg-emerald-50',
-  updated_school: 'text-amber-500 bg-amber-50',
+  login: 'text-blue-500 bg-blue-50 dark:bg-blue-950/30',
+  created_school: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30',
+  updated_school: 'text-amber-500 bg-amber-50 dark:bg-amber-950/30',
   archived_school: 'text-red-500 bg-red-50',
-  added_school_admin: 'text-violet-500 bg-violet-50',
+  added_school_admin: 'text-violet-500 bg-violet-50 dark:bg-violet-950/30',
   removed_school_admin: 'text-red-500 bg-red-50',
-  reset_password: 'text-amber-500 bg-amber-50',
-  impersonated: 'text-blue-500 bg-blue-50',
-  created_super_admin: 'text-emerald-500 bg-emerald-50',
+  reset_password: 'text-amber-500 bg-amber-50 dark:bg-amber-950/30',
+  impersonated: 'text-blue-500 bg-blue-50 dark:bg-blue-950/30',
+  created_super_admin: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30',
   deleted_super_admin: 'text-red-500 bg-red-50',
-  tenant_updated: 'text-amber-500 bg-amber-50',
-  tenant_created: 'text-emerald-500 bg-emerald-50',
+  tenant_updated: 'text-amber-500 bg-amber-50 dark:bg-amber-950/30',
+  tenant_created: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30',
   tenant_deleted: 'text-red-500 bg-red-50',
-  tenant_bulk_import: 'text-violet-500 bg-violet-50',
+  tenant_bulk_import: 'text-violet-500 bg-violet-50 dark:bg-violet-950/30',
   tenant_data_wipe: 'text-red-500 bg-red-50',
-  tenant_uploaded: 'text-blue-500 bg-blue-50',
+  tenant_uploaded: 'text-blue-500 bg-blue-50 dark:bg-blue-950/30',
 };
 
 export default function SAAuditPage() {
+  useDocumentTitle('Audit · Super Admin');
   const [entries, setEntries] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -86,7 +88,7 @@ export default function SAAuditPage() {
             data-testid="sa-audit-tenant-filter"
             value={tenantFilter}
             onChange={(e) => setTenantFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 min-w-[180px]"
+            className="px-3 py-1.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 min-w-[180px]"
           >
             <option value="">All schools</option>
             {schools.map(s => (
@@ -98,7 +100,7 @@ export default function SAAuditPage() {
 
       {/* Trend chart */}
       {trend && (
-        <div className="mb-6 bg-white rounded-xl border border-slate-200 shadow-sm p-5" data-testid="sa-audit-trend">
+        <div className="mb-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-5" data-testid="sa-audit-trend">
           <div className="flex items-baseline justify-between mb-3">
             <div>
               <h2 className="text-sm font-semibold text-slate-700">Settings & administration changes</h2>
@@ -145,11 +147,11 @@ export default function SAAuditPage() {
           {tenantFilter ? `No audit entries for ${activeSchool?.name || tenantFilter}` : 'No audit entries yet'}
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="divide-y divide-slate-100" data-testid="sa-audit-entries">
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800" data-testid="sa-audit-entries">
             {entries.map(e => {
               const Icon = ACTION_ICONS[e.action] || ScrollText;
-              const color = ACTION_COLORS[e.action] || 'text-slate-500 bg-slate-50';
+              const color = ACTION_COLORS[e.action] || 'text-slate-500 bg-slate-50 dark:bg-slate-800';
               return (
                 <div key={e.audit_id} className="flex items-start gap-3 px-5 py-3">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
@@ -161,7 +163,7 @@ export default function SAAuditPage() {
                       <span className="text-slate-500">{formatAction(e.action)}</span>{' '}
                       {e.entity_name && <span className="font-medium">{e.entity_name}</span>}
                       {e.tenant_slug && (
-                        <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">
+                        <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600">
                           <School size={10} />{e.school_name || e.tenant_slug}
                         </span>
                       )}
@@ -180,7 +182,7 @@ export default function SAAuditPage() {
             })}
           </div>
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50">
+            <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
               <span className="text-xs text-slate-500">Page {page + 1} of {totalPages}</span>
               <div className="flex gap-1">
                 <button data-testid="sa-audit-prev" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="p-1.5 rounded text-slate-500 hover:bg-white disabled:opacity-30">

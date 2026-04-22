@@ -101,13 +101,6 @@ function BrandingTab({ settings: s, onSave, saving, msg, msgType }) {
 
   return (
     <div className="space-y-5">
-      {msg && (
-        <div className={`flex items-center gap-2 rounded-xl p-4 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
-          <CheckCircle size={15} className={msgType === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
-          <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
-        </div>
-      )}
-
       {/* Logos — Light & Dark */}
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>School Logo</h3>
@@ -191,11 +184,19 @@ function BrandingTab({ settings: s, onSave, saving, msg, msgType }) {
         </div>
       </div>
 
-      <button onClick={handleSave} disabled={saving} data-testid="save-branding-btn"
+      <div className="flex items-center gap-3">
+
+        {msg && (
+
+          <span className={`text-sm font-medium ${msgType === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{msg}</span>
+
+        )}
+<button onClick={handleSave} disabled={saving} data-testid="save-branding-btn"
         className="w-full py-3.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 disabled:opacity-60 transition-colors flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
         {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
         {saving ? 'Saving…' : 'Save Branding'}
       </button>
+</div>
     </div>
   );
 }
@@ -209,13 +210,6 @@ function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
 
   return (
     <div className="space-y-5">
-      {msg && (
-        <div className={`flex items-center gap-2 rounded-xl p-4 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
-          <CheckCircle size={15} className={msgType === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
-          <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
-        </div>
-      )}
-
       {/* Tier thresholds */}
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <div className="flex items-center justify-between mb-1">
@@ -289,11 +283,19 @@ function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
         </div>
       </div>
 
-      <button onClick={handleSave} disabled={saving} data-testid="save-mtss-btn"
+      <div className="flex items-center gap-3">
+
+        {msg && (
+
+          <span className={`text-sm font-medium ${msgType === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{msg}</span>
+
+        )}
+<button onClick={handleSave} disabled={saving} data-testid="save-mtss-btn"
         className="w-full py-3.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
         {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
         {saving ? 'Saving…' : 'Save MTSS Settings'}
       </button>
+</div>
     </div>
   );
 }
@@ -394,13 +396,6 @@ function InterventionsTab({ settings: s, onSave, saving, msg, msgType, featureFl
 
   return (
     <div className="space-y-4">
-      {msg && (
-        <div className={`flex items-center gap-2 rounded-xl p-4 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
-          <CheckCircle size={15} className={msgType === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
-          <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
-        </div>
-      )}
-
       <div className="bg-white border border-slate-200 rounded-xl p-5">
         <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Intervention Library</h3>
         <p className="text-xs text-slate-400 mb-4">Configure types and appointment scheduling per type.</p>
@@ -476,13 +471,18 @@ function InterventionsTab({ settings: s, onSave, saving, msg, msgType, featureFl
         </div>
       </div>
 
-      <button onClick={() => onSave({ intervention_types: intTypes })} disabled={saving}
-        data-testid="save-interventions-btn"
-        className="w-full py-3.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2"
-        style={{ backgroundColor: 'var(--wt-accent)' }}>
-        {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-        {saving ? 'Saving…' : 'Save Intervention Settings'}
-      </button>
+      <div className="flex items-center gap-3">
+        {msg && (
+          <span className={`text-sm font-medium ${msgType === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{msg}</span>
+        )}
+        <button onClick={() => onSave({ intervention_types: intTypes })} disabled={saving}
+          data-testid="save-interventions-btn"
+          className="w-full py-3.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2"
+          style={{ backgroundColor: 'var(--wt-accent)' }}>
+          {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+          {saving ? 'Saving…' : 'Save Intervention Settings'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -534,13 +534,6 @@ function StudentDataTab({ settings: s, onSave, saving, msg, msgType }) {
 
   return (
     <div className="space-y-5">
-      {msg && (
-        <div className={`flex items-center gap-2 rounded-xl p-4 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
-          <CheckCircle size={15} className={msgType === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
-          <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
-        </div>
-      )}
-
       {/* Academic year */}
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Academic Year</h3>
@@ -679,11 +672,19 @@ function StudentDataTab({ settings: s, onSave, saving, msg, msgType }) {
         )}
       </div>
 
-      <button onClick={handleSave} disabled={saving} data-testid="save-student-data-btn"
+      <div className="flex items-center gap-3">
+
+        {msg && (
+
+          <span className={`text-sm font-medium ${msgType === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{msg}</span>
+
+        )}
+<button onClick={handleSave} disabled={saving} data-testid="save-student-data-btn"
         className="w-full py-3.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
         {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
         {saving ? 'Saving…' : 'Save Student Data Settings'}
       </button>
+</div>
     </div>
   );
 }
@@ -695,6 +696,7 @@ function GeneralTab({ settings: s, onSave, saving, msg, msgType, featureFlags })
   const [schoolType, setSchoolType] = useState(s.school_type || 'both');
   const [currentTerm, setCurrentTerm] = useState(s.current_term || 'Term 1');
   const [currentYear, setCurrentYear] = useState(s.current_year || new Date().getFullYear());
+  const [tz, setTz] = useState(s.timezone || 'Australia/Melbourne');
   const [emailAuthEnabled, setEmailAuthEnabled] = useState(s.email_auth_enabled !== false);
   const [googleAuthEnabled, setGoogleAuthEnabled] = useState(s.google_auth_enabled !== false);
   const [pwForm, setPwForm] = useState({ current_password: '', new_password: '', confirm: '' });
@@ -707,7 +709,7 @@ function GeneralTab({ settings: s, onSave, saving, msg, msgType, featureFlags })
     setGoogleAuthEnabled(s.google_auth_enabled !== false);
   }, [s.email_auth_enabled]);
 
-  const handleSave = () => onSave({ school_name: schoolName, school_type: schoolType, current_term: currentTerm, current_year: currentYear, email_auth_enabled: emailAuthEnabled, google_auth_enabled: googleAuthEnabled });
+  const handleSave = () => onSave({ school_name: schoolName, school_type: schoolType, current_term: currentTerm, current_year: currentYear, timezone: tz, email_auth_enabled: emailAuthEnabled, google_auth_enabled: googleAuthEnabled });
 
   const handleChangePassword = async () => {
     if (pwForm.new_password !== pwForm.confirm) {
@@ -771,6 +773,19 @@ function GeneralTab({ settings: s, onSave, saving, msg, msgType, featureFlags })
           <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Current Year</label>
           <input type="number" value={currentYear} onChange={e => setCurrentYear(+e.target.value)} min={2020} max={2040}
             className="w-32 px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none" />
+        </div>
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Timezone</label>
+          <select value={tz} onChange={e => setTz(e.target.value)} data-testid="general-timezone"
+            className="w-full md:w-96 px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20">
+            {[
+              'Australia/Melbourne', 'Australia/Sydney', 'Australia/Brisbane',
+              'Australia/Adelaide', 'Australia/Perth', 'Australia/Hobart',
+              'Australia/Darwin', 'Pacific/Auckland',
+              'UTC', 'Asia/Singapore', 'Asia/Tokyo', 'Europe/London', 'America/Los_Angeles', 'America/New_York',
+            ].map(z => <option key={z} value={z}>{z}</option>)}
+          </select>
+          <p className="text-xs text-slate-500 mt-1.5">Used for all date/time displays (dashboard, attendance imports, audit log).</p>
         </div>
       </div>
 
@@ -837,11 +852,19 @@ function GeneralTab({ settings: s, onSave, saving, msg, msgType, featureFlags })
         </div>
       </div>
 
-      <button onClick={handleSave} disabled={saving} data-testid="save-general-btn"
+      <div className="flex items-center gap-3">
+
+        {msg && (
+
+          <span className={`text-sm font-medium ${msgType === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{msg}</span>
+
+        )}
+<button onClick={handleSave} disabled={saving} data-testid="save-general-btn"
         className="w-full py-3.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
         {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
         {saving ? 'Saving…' : 'Save General Settings'}
       </button>
+</div>
     </div>
   );
 }
@@ -1036,13 +1059,6 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
 
   return (
     <div className="space-y-5">
-      {msg && (
-        <div className={`flex items-center gap-2 rounded-xl p-4 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
-          <CheckCircle size={15} className={msgType === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
-          <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
-        </div>
-      )}
-
       {/* Year selector */}
       <div className="bg-white border border-slate-200 rounded-xl p-5">
         <div className="flex items-start justify-between mb-3">
@@ -1313,13 +1329,6 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
 
   return (
     <div className="space-y-5">
-      {msg && (
-        <div className={`flex items-center gap-2 rounded-xl p-4 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
-          <CheckCircle size={15} className={msgType === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
-          <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
-        </div>
-      )}
-
       {/* Student Import */}
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 mb-1" style={{ fontFamily: 'Manrope,sans-serif' }}>Import Students</h3>
@@ -1662,11 +1671,19 @@ function ScreeningSessionsTab({ settings: s, onSave, saving, msg, msgType, featu
           </div>
         )}
 
-        <button onClick={handleSave} disabled={saving} data-testid="save-screening-period-btn"
+        <div className="flex items-center gap-3">
+
+          {msg && (
+
+            <span className={`text-sm font-medium ${msgType === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{msg}</span>
+
+          )}
+<button onClick={handleSave} disabled={saving} data-testid="save-screening-period-btn"
           className="w-full py-3 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
           {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
           {saving ? 'Saving…' : 'Save Screening Settings'}
         </button>
+</div>
       </div>
 
       {/* Screening Modules */}
@@ -1730,13 +1747,6 @@ function IntegrationsTab({ settings: s, onSave, saving, msg, msgType, featureFla
 
   return (
     <div className="space-y-5">
-      {msg && (
-        <div className={`flex items-center gap-2 rounded-xl p-4 ${msgType === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
-          <CheckCircle size={15} className={msgType === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
-          <p className={`text-sm ${msgType === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg}</p>
-        </div>
-      )}
-
       {/* AI Suggestions toggle */}
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <div className="flex items-center justify-between">
@@ -1783,11 +1793,19 @@ function IntegrationsTab({ settings: s, onSave, saving, msg, msgType, featureFla
         </div>
       </div>
 
-      <button onClick={handleSave} disabled={saving} data-testid="save-integrations-btn"
+      <div className="flex items-center gap-3">
+
+        {msg && (
+
+          <span className={`text-sm font-medium ${msgType === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{msg}</span>
+
+        )}
+<button onClick={handleSave} disabled={saving} data-testid="save-integrations-btn"
         className="w-full py-3.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
         {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
         {saving ? 'Saving…' : 'Save Integration Settings'}
       </button>
+</div>
     </div>
   );
 }

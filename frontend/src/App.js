@@ -160,13 +160,15 @@ function SchoolRouter() {
     );
   }
 
-  // If onboarding not done and no user, check if any users exist (has_users from status)
-  // If users exist → show login first; if no users → show legacy onboarding
+  // If onboarding not done and no user, always send to /login.
+  // (The old self-signup onboarding flow is deprecated — schools are now
+  // provisioned via the Super Admin portal, which creates the admin account
+  // upfront. After login, the SA-provisioned user completes the new onboarding.)
   if (!onboardingDone && !user) {
     return (
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="*" element={<OnboardingPage onComplete={() => setOnboardingDone(true)} />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
   }

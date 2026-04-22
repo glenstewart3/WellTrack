@@ -32,7 +32,7 @@ const roleBadgeColors = { teacher: 'bg-blue-100 text-blue-700', screener: 'bg-in
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const { settings, loadFullSettings } = useSettings();
-  const { theme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -54,11 +54,11 @@ export default function DashboardLayout() {
   useEffect(() => { loadFullSettings(); }, [loadFullSettings]);
 
   const accent = settings.accent_color || '#0f172a';
-  // Use theme-specific nav active color when not on default theme
-  const activeNavColor = THEME_NAV_ACTIVE[theme] || accent;
+  // Use theme-specific nav active color when not on default theme (use RESOLVED so system-dark matches force-dark)
+  const activeNavColor = THEME_NAV_ACTIVE[resolvedTheme] || accent;
   // Sidebar: match page bg (warm cream) in light, dark surface in dark
-  const sidebarClass = theme === 'dark' ? 'wt-sidebar' : '';
-  const sidebarStyle = theme === 'dark' ? {} : { backgroundColor: 'var(--wt-page-bg)', borderColor: 'var(--wt-header-border)' };
+  const sidebarClass = resolvedTheme === 'dark' ? 'wt-sidebar' : '';
+  const sidebarStyle = resolvedTheme === 'dark' ? {} : { backgroundColor: 'var(--wt-page-bg)', borderColor: 'var(--wt-header-border)' };
 
   // Trial banner: show if school is on trial and expires within 14 days
   const featureFlags = settings.feature_flags || {};
@@ -92,9 +92,9 @@ export default function DashboardLayout() {
           <div className="flex items-center gap-3">
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-              style={{ backgroundColor: theme === 'dark' ? '#f1f5f9' : '#0f172a' }}
+              style={{ backgroundColor: resolvedTheme === 'dark' ? '#f1f5f9' : '#0f172a' }}
             >
-              <Shield size={16} style={{ color: theme === 'dark' ? '#0f172a' : '#ffffff' }} />
+              <Shield size={16} style={{ color: resolvedTheme === 'dark' ? '#0f172a' : '#ffffff' }} />
             </div>
             <p className="font-extrabold" style={{ fontFamily: 'Manrope,sans-serif', fontSize: '1.1rem', color: 'var(--wt-foreground)' }}>
               {settings.platform_name || 'WellTrack'}
@@ -191,7 +191,7 @@ export default function DashboardLayout() {
         <header className="relative border-b px-4 lg:px-6 py-3 flex items-center gap-4 shrink-0" style={{ backgroundColor: 'var(--wt-header-bg)', borderColor: 'var(--wt-header-border)' }}>
           <button
             onClick={() => setMobileOpen(true)}
-            className="lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-600"
+            className="lg:hidden p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300"
             data-testid="mobile-menu-btn"
           >
             <Menu size={20} />
@@ -204,9 +204,9 @@ export default function DashboardLayout() {
             >
               <div
                 className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-                style={{ backgroundColor: theme === 'dark' ? '#f1f5f9' : '#0f172a' }}
+                style={{ backgroundColor: resolvedTheme === 'dark' ? '#f1f5f9' : '#0f172a' }}
               >
-                <Shield size={13} style={{ color: theme === 'dark' ? '#0f172a' : '#ffffff' }} />
+                <Shield size={13} style={{ color: resolvedTheme === 'dark' ? '#0f172a' : '#ffffff' }} />
               </div>
               <span
                 className="font-extrabold text-[15px]"
@@ -217,16 +217,17 @@ export default function DashboardLayout() {
             </div>
           )}
           <div className="flex-1" />
-          {/* School name (right side of top bar) — desktop + tablet only */}
+          {/* School name (right side of top bar) — desktop + tablet only. Hidden on mobile
+              where the centered WellTrack logo already identifies the platform. */}
           {settings.school_name && (
-            <div className="hidden sm:flex items-center gap-2 min-w-0 mr-2" data-testid="topbar-school-name">
+            <div className="hidden lg:flex items-center gap-2 min-w-0 mr-2" data-testid="topbar-school-name">
               <span className="truncate font-semibold text-sm" style={{ fontFamily: 'Manrope,sans-serif', color: 'var(--wt-foreground)' }}>
                 {settings.school_name}
               </span>
             </div>
           )}
           {/* Alert indicator */}
-          <NavLink to="/alerts" className="relative p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors" data-testid="alert-bell">
+          <NavLink to="/alerts" className="relative p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" data-testid="alert-bell">
             <Bell size={18} />
             {alertCount > 0 && (
               <span

@@ -112,7 +112,7 @@ export default function FileDropZone({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); clearFile(); }}
-              className="shrink-0 h-8 w-8 rounded-lg flex items-center justify-center hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+              className="shrink-0 h-8 w-8 rounded-lg flex items-center justify-center wt-hover text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
               aria-label="Remove file"
               data-testid={`${testIdPrefix}-remove`}
             >

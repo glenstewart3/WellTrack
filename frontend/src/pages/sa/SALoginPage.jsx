@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { Shield, AlertCircle, Eye, EyeOff, Loader2, UserPlus } from 'lucide-react';
 import { useSAAuth } from '../../context/SuperAdminAuthContext';
 import saApi from '../../api-superadmin';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
 
 export default function SALoginPage() {
+  useDocumentTitle('Sign in · Super Admin');
   const { admin, checkAuth } = useSAAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState('loading'); // 'loading' | 'bootstrap' | 'login'

@@ -12,6 +12,13 @@ body {
   background-color: #f8fafc;
 }
 
+/* Remove 300ms tap delay + disable double-tap zoom on interactive elements.
+   Fixes "need two taps to click" on touch devices where sticky hover can
+   consume the first pointer event. */
+button, a, [role="button"], input[type="button"], input[type="submit"] {
+  touch-action: manipulation;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Manrope', sans-serif;
 }
@@ -429,9 +436,20 @@ h1.text-3xl, h1.text-2xl {
   .tab-attention-pulse { animation: none; }
 }
 
-/* Sidebar NavLink hover — warmer, slightly darker than the tab rail */
-.sidebar-nav-hover:hover { background-color: oklch(95% .006 90); }
-[data-theme="dark"] .sidebar-nav-hover:hover { background-color: rgba(148, 163, 184, 0.1); }
+/* Sidebar NavLink hover — warmer, slightly darker than the tab rail.
+   Wrapped in (hover: hover) so touch devices don't get a sticky hover
+   state that consumes the first tap. */
+@media (hover: hover) and (pointer: fine) {
+  .sidebar-nav-hover:hover { background-color: oklch(95% .006 90); }
+  [data-theme="dark"] .sidebar-nav-hover:hover { background-color: rgba(148, 163, 184, 0.1); }
+}
+
+/* Reusable warm hover utility — replaces legacy `hover:bg-slate-100`. */
+.wt-hover { transition: background-color 120ms ease; touch-action: manipulation; }
+@media (hover: hover) and (pointer: fine) {
+  .wt-hover:hover { background-color: oklch(95% .006 90); }
+  [data-theme="dark"] .wt-hover:hover { background-color: rgba(148, 163, 184, 0.12); }
+}
 
 /* ── Landing page — dark mode overrides ────────────────────────────────── */
 .landing-page[data-landing-theme="dark"] {
