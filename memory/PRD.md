@@ -92,17 +92,23 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 
 ## Prioritized Backlog
 
-### P1 — Bugs to fix next session (added 2026-04-21)
-- [ ] **Remove old onboarding flow** — after adding a school in the SA portal, visiting `{slug}.welltrack.com.au` loads the broken legacy onboarding; user had to manually navigate to `/login` to hit the working new flow. Delete the old onboarding page/route entirely and ensure only the new one is reachable.
-- [ ] **Onboarding dark-mode incomplete** — with the theme set to "Follow system" and device in dark mode, the middle form is dark but the background and some assets remain light. Audit every element on the onboarding page and make it fully theme-aware.
-- [ ] **"Follow system" dark mode renders subtly different from "Force dark"** — sidebar background colour and the shield logo change when switching from forced-dark to follow-system. They should be byte-identical when the resolved theme is dark. Likely a CSS variable or `.dark` class scope mismatch between the two modes.
-- [ ] **Super Admin portal tab title missing** — browser tab shows the raw URL instead of a page title like "WellTrack Admin". Add document title hook / `<title>` tag to every SA route.
-- [ ] **Replace "Mooroopna Primary School" placeholder text everywhere** — global find/replace every occurrence of Mooroopna-as-placeholder (demo copy, screenshots in marketing, sample data, README, etc.) with a generic "Dummy School" / "Example School". Keep the actual `mooroopna` tenant untouched — only the placeholder copy needs swapping.
-- [ ] **Double-tap bug on mobile/tablet** — hamburger menu and some Administration tabs require two taps to register on touch devices. Likely a hover-state `:hover` being mis-interpreted as the first tap on touch. Audit touch event handlers and `@media (hover: hover)` guards to ensure first tap triggers the click action cleanly.
-- [ ] **Timezone handling + user-selectable timezone** — audit all server-side timestamps to confirm they're stored in UTC and rendered in the school's local zone. Add a Timezone dropdown in **Settings → School** (default Australia/Melbourne) and apply it consistently across attendance date math, audit log timestamps, screening session windows, etc.
-- [ ] **Hide school name when WellTrack logo is centred in the nav bar** — on the layouts where the logo occupies the centre of the top nav, the right-side school name is redundant; hide it there to declutter.
-- [ ] **Legacy grey hover backgrounds on buttons** — some buttons (e.g. the hamburger menu button) still use the old grey (`hover:bg-slate-100/200` style) instead of the warm `oklch(95% .006 90)` hover used elsewhere. Sweep the codebase and align all interactive elements to the warm hover tone.
-- [ ] **Settings save toast should appear near the button, not at the top** — move the success/error confirmation popup so it renders adjacent to the Save button (inline toast or floating tooltip beside it) instead of the global top-of-screen toast. Applies to every "Save" action on Settings pages.
+### P1 sweep — 10 items + SA warm theme (COMPLETED - 2026-04-22)
+- [x] **Legacy onboarding removed** — App.js redirects unauthenticated subdomain visits to `/login` (no more broken self-signup flow). OnboardingPage rewritten with 3 steps only: 'Your School', 'Data Setup', 'Ready'.
+- [x] **Onboarding dark-mode** — every element now has proper `dark:` variants (background, cards, inputs, buttons, badges).
+- [x] **"Follow system" ≡ "Force dark"** — ThemeContext now exposes `resolvedTheme` ('dark' | 'default', never 'system'). DashboardLayout + LoginPage use resolvedTheme for sidebar/shield/logo decisions so rendering is byte-identical regardless of source.
+- [x] **SA tab titles** — every SA page has `useDocumentTitle('... · Super Admin')`. Browser tab shows proper names.
+- [x] **Mooroopna → Dummy School** placeholder swap in SASchoolsPage.jsx (frontend only; backend test fixtures untouched).
+- [x] **Mobile double-tap fix** — CSS `touch-action: manipulation` on all buttons/anchors + hover rules wrapped in `@media (hover: hover) and (pointer: fine)` so touch devices never get sticky hover that consumes the first tap.
+- [x] **Timezone setting** — added `timezone: "Australia/Melbourne"` to SETTINGS_DEFAULTS. Settings → General tab now has a Timezone dropdown (Australia/Melbourne, Sydney, Brisbane, Adelaide, Perth, Hobart, Darwin, NZ, UTC, SG, JP, LN, LA, NYC). Frontend helper `utils/dateFmt.js` for timezone-aware formatting.
+- [x] **School name hidden when mobile logo centered** — topbar school-name changed from `hidden sm:flex` to `hidden lg:flex`; on mobile, only the centered WellTrack logo shows.
+- [x] **Warm hover everywhere** — new `.wt-hover` utility class (oklch 95% warm cream in light / rgba slate in dark). Hamburger menu, bell, SA sidebar items, icon buttons all use it. Legacy `hover:bg-slate-100` on icon buttons swept.
+- [x] **Inline save toast** — Settings page: removed 7 top-of-tab `{msg && <banner>}` panels. Wrapped each Save button in `flex items-center gap-3` with an inline `<span>` that shows the success/error message next to the button instead of at the top of the page.
+- [x] **SA portal WellTrack re-skin** — SALayout + SALoginPage + all 6 SA pages now use warm oklch tokens (`var(--wt-page-bg)`, `var(--wt-header-bg)`, `var(--wt-header-border)`) with full dark-mode variants. Brand shield is slate-900 rounded-full (matching tenant portal), Manrope 800 logo font, cream sidebar background, active nav highlights slate-900, all hovers use `.wt-hover`.
+- [x] **Tailwind dark mode** — updated `tailwind.config.js` to `darkMode: ['class', '[data-theme="dark"]']` so the `dark:` prefix works with our `data-theme` selector.
+
+### Testing
+- 4/4 pytest backend tests pass (timezone GET/PUT, SA audit filter/trend). See `/app/backend/tests/test_iteration46_p1.py`.
+- All 10 P1 frontend items verified by testing agent via Playwright. `/app/test_reports/iteration_46.json`.
 
 ### P2 (Future)
 - [ ] Automated weekly backup via email

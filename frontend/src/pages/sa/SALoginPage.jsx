@@ -15,6 +15,18 @@ export default function SALoginPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // SA portal respects system dark mode
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const apply = () => document.documentElement.setAttribute(
+      'data-theme',
+      mq.matches ? 'dark' : 'default',
+    );
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+
   useEffect(() => {
     if (admin) { navigate('/sa/dashboard', { replace: true }); return; }
     saApi.post('/auth/bootstrap', { name: '__check__', email: 'x', password: '12345678' })
@@ -46,33 +58,46 @@ export default function SALoginPage() {
     }
   };
 
+  const inputCls = 'w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-900/20 dark:focus:ring-slate-300/20 focus:border-slate-400 dark:focus:border-slate-600';
+
   if (mode === 'loading') {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--wt-page-bg)' }}>
+        <Loader2 className="w-8 h-8 text-slate-500 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4" data-testid="sa-login-page">
+    <div
+      className="min-h-screen flex items-center justify-center px-4"
+      style={{ backgroundColor: 'var(--wt-page-bg)' }}
+      data-testid="sa-login-page"
+    >
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-600/30">
-            <Shield size={28} className="text-white" />
+          <div className="w-14 h-14 rounded-full bg-slate-900 dark:bg-slate-100 flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <Shield size={26} className="text-white dark:text-slate-900" />
           </div>
-          <h1 className="text-2xl font-bold text-white">WellTrack</h1>
-          <p className="text-sm text-blue-300 uppercase tracking-widest mt-1 font-medium">Super Admin Portal</p>
+          <h1
+            className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight"
+            style={{ fontFamily: 'Manrope, sans-serif' }}
+          >
+            WellTrack
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 font-semibold">
+            Super Admin Portal
+          </p>
         </div>
 
         {/* Card */}
-        <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6 shadow-2xl">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
           <div className="mb-5">
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100" style={{ fontFamily: 'Manrope, sans-serif' }}>
               {mode === 'bootstrap' ? 'Create First Super Admin' : 'Sign In'}
             </h2>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               {mode === 'bootstrap'
                 ? 'Set up the first administrator for the WellTrack platform.'
                 : 'Enter your credentials to access the admin portal.'}
@@ -80,7 +105,7 @@ export default function SALoginPage() {
           </div>
 
           {error && (
-            <div className="flex items-start gap-2 text-red-400 text-sm bg-red-900/20 rounded-lg p-3 mb-4 border border-red-800/30" data-testid="sa-login-error">
+            <div className="flex items-start gap-2 text-rose-700 dark:text-rose-300 text-sm bg-rose-50 dark:bg-rose-950/40 rounded-lg p-3 mb-4 border border-rose-200 dark:border-rose-900" data-testid="sa-login-error">
               <AlertCircle size={16} className="mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
@@ -89,38 +114,38 @@ export default function SALoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'bootstrap' && (
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Full Name</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Full Name</label>
                 <div className="relative">
-                  <UserPlus size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <UserPlus size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                   <input
                     type="text"
                     value={form.name}
                     onChange={e => setForm({ ...form, name: e.target.value })}
                     placeholder="Your full name"
                     required
-                    className="w-full bg-slate-700/50 border border-slate-600 rounded-lg pl-10 pr-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={inputCls}
                     data-testid="sa-name-input"
                   />
                 </div>
               </div>
             )}
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">Email</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Email</label>
               <div className="relative">
-                <Shield size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Shield size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                 <input
                   type="email"
                   value={form.email}
                   onChange={e => setForm({ ...form, email: e.target.value })}
                   placeholder="admin@yourschool.edu.au"
                   required
-                  className="w-full bg-slate-700/50 border border-slate-600 rounded-lg pl-10 pr-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={inputCls}
                   data-testid="sa-email-input"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">Password</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Password</label>
               <div className="relative">
                 <input
                   type={showPw ? 'text' : 'password'}
@@ -129,10 +154,10 @@ export default function SALoginPage() {
                   placeholder={mode === 'bootstrap' ? 'Min 8 characters' : 'Your password'}
                   required
                   minLength={8}
-                  className="w-full bg-slate-700/50 border border-slate-600 rounded-lg pl-3 pr-10 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-3 pr-10 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-900/20 dark:focus:ring-slate-300/20 focus:border-slate-400 dark:focus:border-slate-600"
                   data-testid="sa-password-input"
                 />
-                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
@@ -140,7 +165,7 @@ export default function SALoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
+              className="w-full bg-slate-900 dark:bg-slate-100 hover:opacity-90 text-white dark:text-slate-900 font-semibold py-3 rounded-xl text-sm transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
               data-testid="sa-login-submit"
             >
               {submitting && <Loader2 size={16} className="animate-spin" />}
@@ -149,7 +174,7 @@ export default function SALoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-slate-600 mt-6">WellTrack Platform Administration</p>
+        <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-6">WellTrack Platform Administration</p>
       </div>
     </div>
   );
