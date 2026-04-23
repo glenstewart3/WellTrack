@@ -870,6 +870,55 @@ function BulkUploadUsersModal({ onClose, onDone }) {
 }
 
 // ── ROLE PERMISSIONS TAB ─────────────────────────────────────────────────────
+// Shared column grid for permission tables (declared at module scope so the
+// styles object is stable across renders — keeps PermRow's props identity stable)
+const PERM_GRID_COLS = { gridTemplateColumns: '1fr repeat(5, 90px) 80px', minWidth: '700px' };
+
+// Extracted so the component identity is stable across re-renders. When
+// PermRow was defined INSIDE RolePermissionsTab, React re-declared the
+// function on every render, treating it as a new component type and
+// unmounting+remounting every row on each parent update. That caused the
+// "pulse" effect on hover because the row's transition-colors animation
+// restarted from its non-hover state on every remount.
+function PermRow({ label, roleKey, hasPermFn, onToggle, isLast, roles }) {
+  return (
+    <div
+      className={`grid items-center border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${isLast ? 'border-b-0' : ''}`}
+      style={PERM_GRID_COLS}
+    >
+      <div className="px-5 py-3.5">
+        <span className="text-sm font-medium text-slate-700">{label}</span>
+      </div>
+      {roles.map(role => {
+        const allowed = hasPermFn(role.value);
+        return (
+          <div key={role.value} className="flex items-center justify-center">
+            <button
+              onClick={() => onToggle(role.value)}
+              data-testid={`perm-${role.value}-${roleKey}`}
+              title={`${allowed ? 'Revoke' : 'Grant'} ${role.label} access`}
+              className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-all ${
+                allowed ? 'bg-emerald-500 border-emerald-500 hover:bg-emerald-600'
+                        : 'border-slate-200 hover:border-slate-400 bg-white'
+              }`}
+            >
+              {allowed && <CheckCircle size={12} className="text-white" strokeWidth={3} />}
+            </button>
+          </div>
+        );
+      })}
+      <div className="flex items-center justify-center">
+        <div
+          className="w-5 h-5 rounded flex items-center justify-center bg-slate-200 border-2 border-slate-200"
+          title="Administrators always have full access"
+        >
+          <Lock size={9} className="text-slate-400" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RolePermissionsTab() {
   const { settings, loadFullSettings } = useSettings();
   const [permissions, setPermissions] = useState(null);
@@ -924,47 +973,8 @@ function RolePermissionsTab() {
 
   if (!permissions || !featurePerms) return <div className="py-12 text-center text-slate-400 text-sm">Loading…</div>;
 
-  // Shared column grid style
-  const gridCols = { gridTemplateColumns: '1fr repeat(5, 90px) 80px', minWidth: '700px' };
-
-  // Reusable permission row
-  const PermRow = ({ label, roleKey, hasPermFn, onToggle, isLast }) => (
-    <div className={`grid items-center border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${isLast ? 'border-b-0' : ''}`} style={gridCols}>
-      <div className="px-5 py-3.5">
-        <span className="text-sm font-medium text-slate-700">{label}</span>
-      </div>
-      {CONFIGURABLE_ROLES.map(role => {
-        const allowed = hasPermFn(role.value);
-        return (
-          <div key={role.value} className="flex items-center justify-center">
-            <button onClick={() => onToggle(role.value)}
-              data-testid={`perm-${role.value}-${roleKey}`}
-              title={`${allowed ? 'Revoke' : 'Grant'} ${role.label} access`}
-              className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-all ${
-                allowed ? 'bg-emerald-500 border-emerald-500 hover:bg-emerald-600' : 'border-slate-200 hover:border-slate-400 bg-white'
-              }`}>
-              {allowed && <CheckCircle size={12} className="text-white" strokeWidth={3} />}
-            </button>
-          </div>
-        );
-      })}
-      <div className="flex items-center justify-center">
-        <div className="w-5 h-5 rounded flex items-center justify-center bg-slate-200 border-2 border-slate-200" title="Administrators always have full access">
-          <Lock size={9} className="text-slate-400" />
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div className="space-y-5">
-      {msg.text && (
-        <div className={`flex items-center gap-2 rounded-xl p-4 ${msg.type === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
-          <CheckCircle size={15} className={msg.type === 'error' ? 'text-rose-600' : 'text-emerald-600'} />
-          <p className={`text-sm ${msg.type === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{msg.text}</p>
-        </div>
-      )}
-
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Role Permissions</h2>
@@ -984,7 +994,7 @@ function RolePermissionsTab() {
           <span className="text-xs text-slate-400">— which pages each role can navigate to</span>
         </div>
         <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto">
-          <div className="grid border-b border-slate-200 bg-slate-50" style={gridCols}>
+          <div className="grid border-b border-slate-200 bg-slate-50" style={PERM_GRID_COLS}>
             <div className="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Page</div>
             {CONFIGURABLE_ROLES.map(r => (
               <div key={r.value} className="py-3 text-xs font-semibold text-slate-600 text-center">{r.label}</div>
@@ -998,7 +1008,7 @@ function RolePermissionsTab() {
             return (
               <div key={page.key}
                 className={`grid items-center border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${idx === PERMISSION_PAGES.length - 1 ? 'border-b-0' : ''}`}
-                style={gridCols}>
+                style={PERM_GRID_COLS}>
                 <div className="px-5 py-3.5 flex items-center gap-2.5">
                   <Icon size={14} className="text-slate-400 shrink-0" />
                   <span className="text-sm font-medium text-slate-700">{page.label}</span>
@@ -1042,7 +1052,7 @@ function RolePermissionsTab() {
             return (
               <div key={group} className="bg-white border border-slate-200 rounded-xl overflow-x-auto">
                 {/* Group header */}
-                <div className="grid border-b border-slate-100 bg-slate-50/70" style={gridCols}>
+                <div className="grid border-b border-slate-100 bg-slate-50/70" style={PERM_GRID_COLS}>
                   <div className="px-5 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">{group}</div>
                   {CONFIGURABLE_ROLES.map(r => (
                     <div key={r.value} className="py-2.5 text-xs font-semibold text-slate-500 text-center">{r.label}</div>
@@ -1059,6 +1069,7 @@ function RolePermissionsTab() {
                     hasPermFn={(role) => hasFeaturePerm(role, action.key)}
                     onToggle={(role) => toggleFeature(role, action.key)}
                     isLast={idx === actions.length - 1}
+                    roles={CONFIGURABLE_ROLES}
                   />
                 ))}
               </div>
@@ -1074,11 +1085,18 @@ function RolePermissionsTab() {
         </p>
       </div>
 
-      <button onClick={save} disabled={saving} data-testid="save-permissions-btn"
-        className="w-full py-3.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
-        {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-        {saving ? 'Saving…' : 'Save Permissions'}
-      </button>
+      <div className="flex items-center gap-3">
+        {msg.text && (
+          <span className={`text-sm font-medium ${msg.type === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`} data-testid="perm-save-status">
+            {msg.text}
+          </span>
+        )}
+        <button onClick={save} disabled={saving} data-testid="save-permissions-btn"
+          className="flex-1 py-3.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2" style={{ backgroundColor: 'var(--wt-accent)' }}>
+          {saving ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+          {saving ? 'Saving…' : 'Save Permissions'}
+        </button>
+      </div>
     </div>
   );
 }
