@@ -184,6 +184,7 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - Staff import no longer requires `STAFF_STATUS` column — all rows treated as active per tenant request.
 - **Staff import now SKIPS existing users entirely** (match by email). This preserves manual role/name edits made in User Management after the initial import; re-running the payroll export only adds brand-new staff.
 - **Staff import excludes Casual Relief Teachers** — any row whose `PAYROLL_CLASS` starts with `CRT` is reported under `skip` (reason: `"CRT excluded"`) in both preview and commit.
+- **Staff upload moved to Administration → User Management** — the old legacy email/name/role bulk-CSV modal is replaced with a SIS payroll-based modal using the shared `ImportPreviewCard` (detect file kind, count tiles, add/skip lists, Confirm gated on preview). The redundant Staff block on Settings → Imports has been removed; student/attendance/photo imports still live there.
 - Student import normalises `GENDER` values M→Male, F→Female, X→Non-binary (both import and student-details secondary import).
 - Case note modal on StudentProfilePage: removed "Staff Member" input; author is auto-populated from the logged-in user and shown in a read-only pill (`data-testid="note-author-pill"`).
 - Top-right Alerts bell is now hidden for users whose role doesn't have `/alerts` in `settings.role_permissions` (admins still see it).
