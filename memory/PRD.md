@@ -177,3 +177,12 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - Frequency UI: Daily / Weekly checkbox pills + free-text custom input, combined with " · " separator and stored as-is on `Intervention.frequency`.
 - `/api/appointments/ongoing` returns `frequency`; AppointmentsPage renders a pill with `data-testid="frequency-<id>"`.
 - Save button now gated on all backend-required fields (student, type, staff, start_date, review_date) so the UX matches the Pydantic contract.
+
+### 2026-02-24 — Import preview, role-gated alerts, case-note author, UX polish (COMPLETED)
+- New dry-run preview endpoints: `POST /api/users/import-staff-preview` and `POST /api/students/import-file-preview` — return detected file kind, per-row add/update/skip/error lists, and counts without touching the database. `SettingsPage → Imports` now auto-previews the moment a file is dropped; admin must click "Confirm Import (N staff|students)" to commit. Mismatched uploads (student file in staff slot, etc.) render a red warning banner.
+- Staff import no longer requires `STAFF_STATUS` column — all rows treated as active per tenant request.
+- Student import normalises `GENDER` values M→Male, F→Female, X→Non-binary (both import and student-details secondary import).
+- Case note modal on StudentProfilePage: removed "Staff Member" input; author is auto-populated from the logged-in user and shown in a read-only pill (`data-testid="note-author-pill"`).
+- Top-right Alerts bell is now hidden for users whose role doesn't have `/alerts` in `settings.role_permissions` (admins still see it).
+- Global mobile double-tap fix: Tailwind `hoverOnlyWhenSupported: true` — `hover:` utilities now wrap in `@media (hover: hover)` so touch devices don't consume the first tap on a hover state.
+- Appointments Ongoing tab: new "Next due" pill computed from `last_session_date || start_date + frequency` cadence — renders overdue (red) / today (amber) / upcoming (slate) with the ISO due date and delta days. Silent when the frequency string isn't parseable.

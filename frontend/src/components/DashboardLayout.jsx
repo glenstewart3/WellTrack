@@ -240,8 +240,8 @@ export default function DashboardLayout() {
           )}
           {/* Alert indicator — hidden when the user's role doesn't have access to /alerts */}
           {canViewAlerts && (
-            <NavLink to="/alerts" className="relative p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" data-testid="alert-bell">
-              <Bell size={18} />
+            <NavLink to="/alerts" className="relative p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" data-testid="alert-bell" aria-label="Alerts">
+              <Bell size={18} data-testid="alerts-bell-button" />
               {alertCount > 0 && (
                 <span
                   data-testid="alert-badge"
