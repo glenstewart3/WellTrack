@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Request, Response, UploadFile, File
 from datetime import datetime, timezone, timedelta
 import uuid
 import os
@@ -570,6 +570,188 @@ async def bulk_create_users(data: dict, request: Request, user=Depends(get_curre
                     mirror_to_sa=True, request=request)
 
     return {"imported": len(imported), "skipped": len(skipped), "errors": errors, "skipped_list": skipped[:50]}
+
+
+# ── Staff XLSX/CSV import ────────────────────────────────────────────────────
+# PAYROLL_CLASS prefix → role map. Longer prefixes are matched first so "CES*"
+# wins over "ES*". Every prefix ends with "*" in the user's spec but we strip it.
+_STAFF_ROLE_RULES = [
+    ("CES",   "screener"),     # Cover ES staff
+    ("CLASS", "teacher"),      # Classroom teacher
+    ("LEARN", "teacher"),      # Learning specialist
+    ("LEAD",  "teacher"),      # Leading teacher
+    ("PAR",   "teacher"),      # Paraprofessional
+    ("AP",    "leadership"),   # Assistant principal
+    ("PR",    "leadership"),   # Principal
+    ("ES",    "screener"),     # Education support
+]
+
+
+def _role_for_payroll_class(payroll_class: str):
+    """Return the mapped role (e.g. 'teacher') or None if no prefix matches.
+    Longer prefixes checked first so 'CES' doesn't get mis-matched as 'ES'."""
+    if not payroll_class:
+        return None
+    pc = payroll_class.strip().upper()
+    for prefix, role in sorted(_STAFF_ROLE_RULES, key=lambda x: -len(x[0])):
+        if pc.startswith(prefix):
+            return role
+    return None
+
+
+@router.post("/users/import-staff")
+async def import_staff(
+    request: Request,
+    file: UploadFile = File(...),
+    user=Depends(get_current_user),
+    db=Depends(get_tenant_db),
+):
+    """Import staff from an XLSX or CSV file using the SIS payroll export schema.
+
+    Expected headers (row 1):
+        SFKEY, FIRST_NAME, SURNAME, E_MAIL, STAFF_STATUS, PAYROLL_CLASS
+
+    Behaviour:
+      • Rows where STAFF_STATUS is not 'Active' (case-insensitive) are skipped.
+      • Role is derived from PAYROLL_CLASS prefix via _STAFF_ROLE_RULES.
+      • Rows whose PAYROLL_CLASS doesn't match any rule default to 'teacher'
+        and are surfaced in the response as `uncategorised` so the admin can
+        reassign manually.
+      • Matching: upsert by lowercase email.
+    """
+    from fastapi import HTTPException
+    import io
+    import csv as _csv
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    content = await file.read()
+    fname = (file.filename or "").lower()
+
+    if fname.endswith(".csv"):
+        text = content.decode("utf-8-sig")
+        reader = _csv.DictReader(io.StringIO(text))
+        rows = [dict(r) for r in reader]
+    elif fname.endswith(".xlsx") or fname.endswith(".xls"):
+        import openpyxl
+        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+        ws = wb.active
+        all_rows = list(ws.iter_rows(values_only=True))
+        if not all_rows:
+            raise HTTPException(400, "File is empty.")
+        header_idx = 0
+        for i, r in enumerate(all_rows[:5]):
+            if any(v not in (None, "") for v in r):
+                header_idx = i
+                break
+        headers = [str(v or "").strip() for v in all_rows[header_idx]]
+        rows = []
+        for r in all_rows[header_idx + 1:]:
+            if not any(v not in (None, "") for v in r):
+                continue
+            row = {}
+            for i, h in enumerate(headers):
+                if not h:
+                    continue
+                v = r[i] if i < len(r) else None
+                row[h] = "" if v is None else str(v).strip()
+            rows.append(row)
+    else:
+        raise HTTPException(400, "Unsupported file format. Please upload a CSV or XLSX file.")
+
+    imported, updated, skipped, errors, uncategorised = [], [], [], [], []
+
+    existing = {}
+    async for u in db.users.find({}, {"_id": 0, "user_id": 1, "email": 1, "role": 1, "name": 1}):
+        if u.get("email"):
+            existing[u["email"].lower()] = u
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    for i, row in enumerate(rows):
+        row_num = i + 2
+        def _g(*keys, r=row):
+            for k in keys:
+                for rk in r.keys():
+                    if rk.strip().upper().replace(" ", "_") == k.upper().replace(" ", "_"):
+                        v = r[rk]
+                        if v is not None and str(v).strip() != "":
+                            return str(v).strip()
+            return ""
+
+        status = _g("STAFF_STATUS", "status").lower()
+        if status and status != "active":
+            skipped.append({"row": row_num, "reason": f"status={status}"})
+            continue
+
+        email = _g("E_MAIL", "EMAIL", "email").lower()
+        first = _g("FIRST_NAME", "first_name")
+        last = _g("SURNAME", "last_name")
+        sfkey = _g("SFKEY", "staff_key")
+        payroll_class = _g("PAYROLL_CLASS", "payroll_class")
+
+        if not email:
+            errors.append({"row": row_num, "sfkey": sfkey, "error": "Missing E_MAIL"})
+            continue
+
+        name = f"{first} {last}".strip() or email
+        role = _role_for_payroll_class(payroll_class)
+        if role is None:
+            role = "teacher"
+            uncategorised.append({"row": row_num, "email": email, "name": name,
+                                  "payroll_class": payroll_class, "assigned": role})
+
+        if email in existing:
+            cur = existing[email]
+            changes = {}
+            if cur.get("role") != role:
+                changes["role"] = role
+            if cur.get("name") != name:
+                changes["name"] = name
+            if sfkey and cur.get("sfkey") != sfkey:
+                changes["sfkey"] = sfkey
+            if changes:
+                await db.users.update_one({"user_id": cur["user_id"]}, {"$set": changes})
+                updated.append({"email": email, "role": role, "changes": list(changes.keys())})
+            else:
+                skipped.append({"row": row_num, "email": email, "reason": "no change"})
+        else:
+            new_user = {
+                "user_id": f"user_{uuid.uuid4().hex[:12]}",
+                "email": email,
+                "name": name,
+                "picture": "",
+                "role": role,
+                "sfkey": sfkey or None,
+                "created_at": now_iso,
+            }
+            new_user = {k: v for k, v in new_user.items() if v is not None}
+            await db.users.insert_one({**new_user})
+            existing[email] = new_user
+            imported.append({"email": email, "name": name, "role": role})
+
+    await log_audit(
+        db, user, "bulk_import", "user", "",
+        f"Staff import — {file.filename}",
+        bulk_count=len(imported) + len(updated),
+        metadata={
+            "imported": len(imported),
+            "updated": len(updated),
+            "skipped": len(skipped),
+            "errors": len(errors),
+            "uncategorised": len(uncategorised),
+        },
+        mirror_to_sa=True, request=request,
+    )
+
+    return {
+        "imported": len(imported),
+        "updated": len(updated),
+        "skipped": len(skipped),
+        "errors": errors,
+        "uncategorised": uncategorised[:50],
+        "total": len(rows),
+    }
 
 
 @router.get("/users/bulk-template")

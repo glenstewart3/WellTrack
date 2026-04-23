@@ -151,6 +151,8 @@ const SIGNATURES = {
   attendance:       ['absence date', 'absence_date', 'absence', 'reason', 'date',
                      'stkey', 'am_attended', 'pm_attended', 'am_late_arrival', 'pm_late_arrival'],
   users:            ['email', 'name', 'role'],
+  staff:            ['sfkey', 'first_name', 'surname', 'e_mail', 'email',
+                     'staff_status', 'payroll_class'],
 };
 
 async function reviewFile(file, expectedKind) {
@@ -221,6 +223,7 @@ function humanizeKind(kind) {
     attendance: 'Attendance',
     photos: 'Photos',
     users: 'Users',
+    staff: 'Staff',
   })[kind] || 'the target';
 }
 

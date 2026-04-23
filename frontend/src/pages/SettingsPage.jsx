@@ -5,7 +5,7 @@ import { useSettings } from '../context/SettingsContext';
 import {
   Settings, AlertTriangle, CheckCircle, Loader, School,
   Download, Upload, RefreshCw, Palette, Building2, Image, Plus, X,
-  Sliders, ToggleLeft, ToggleRight, Tag, User, Shield, RotateCcw, Bot, Wifi, FileUp,
+  Sliders, ToggleLeft, ToggleRight, Tag, User, Users, Shield, RotateCcw, Bot, Wifi, FileUp,
   Calendar, CalendarDays, BookOpen, Target, ClipboardCheck
 } from 'lucide-react';
 import useDocumentTitle from '../hooks/useDocumentTitle';
@@ -1239,6 +1239,31 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
   const [photoValid, setPhotoValid] = useState(null);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [photoResult, setPhotoResult] = useState(null);
+  const [staffFile, setStaffFile] = useState(null);
+  const [staffValid, setStaffValid] = useState(null);
+  const [uploadingStaff, setUploadingStaff] = useState(false);
+  const [staffResult, setStaffResult] = useState(null);
+
+  const uploadStaff = async () => {
+    if (!staffFile) return;
+    setUploadingStaff(true);
+    setStaffResult(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', staffFile);
+      const res = await api.post('/users/import-staff', fd);
+      setStaffResult(res.data);
+      setStaffFile(null);
+      setMsgType('success');
+      const uncat = res.data.uncategorised?.length || 0;
+      setMsg(`Staff import: ${res.data.imported} new · ${res.data.updated} updated · ${res.data.skipped} skipped${uncat ? ` · ${uncat} uncategorised (defaulted to teacher)` : ''}`);
+      setTimeout(() => setMsg(''), 10000);
+    } catch (e) {
+      setMsgType('error');
+      setMsg(e.response?.data?.detail || e.message || 'Staff import failed');
+      setTimeout(() => setMsg(''), 6000);
+    } finally { setUploadingStaff(false); }
+  };
 
   const parseAndImport = async () => {
     if (!importFile) return;
@@ -1420,10 +1445,88 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
       </div>
 
       {/* Student Photos Upload */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6">
+      {/* ── STAFF IMPORT ───────────────────────────────────────── */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6">
         <div className="flex items-start gap-3 mb-3">
-          <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
-            <Image size={15} className="text-indigo-600" />
+          <div className="w-8 h-8 bg-violet-50 dark:bg-violet-950/30 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+            <Users size={15} className="text-violet-600 dark:text-violet-400" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100" style={{ fontFamily: 'Manrope,sans-serif' }}>Upload Staff</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+              Upload your SIS payroll export (XLSX or CSV). Expected headers:{' '}
+              <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">SFKEY, FIRST_NAME, SURNAME, E_MAIL, STAFF_STATUS, PAYROLL_CLASS</code>
+            </p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">
+              Roles are auto-assigned from <strong>PAYROLL_CLASS</strong>:
+            </p>
+            <ul className="text-xs text-slate-500 dark:text-slate-400 mt-1 ml-4 list-disc space-y-0.5">
+              <li><code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">CES*</code> + <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">ES*</code> → Screener</li>
+              <li><code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">CLASS*</code> + <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">LEARN*</code> + <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">LEAD*</code> + <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">PAR*</code> → Teacher</li>
+              <li><code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">AP*</code> + <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">PR*</code> → Leadership</li>
+            </ul>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">
+              Only rows with <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">STAFF_STATUS=Active</code> are imported. Unknown payroll classes default to Teacher and are flagged for review.
+            </p>
+          </div>
+        </div>
+        <FileDropZone
+          accept=".csv,.xlsx,.xls"
+          expectedKind="staff"
+          label="Drop your staff XLSX or CSV here or click to browse"
+          file={staffFile}
+          onChange={(f, v) => { setStaffFile(f); setStaffValid(v); setStaffResult(null); }}
+          testIdPrefix="import-staff"
+        />
+        {staffFile && (
+          <div className="mt-3 flex items-center gap-3 justify-end">
+            {msg && (
+              <span className={`text-sm font-medium ${msgType === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{msg}</span>
+            )}
+            <button onClick={uploadStaff} disabled={uploadingStaff || staffValid?.ok === false} data-testid="upload-staff-btn"
+              className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+              style={{ backgroundColor: 'var(--wt-accent)' }}>
+              {uploadingStaff ? <Loader size={14} className="animate-spin" /> : <Upload size={14} />}
+              {uploadingStaff ? 'Uploading…' : 'Upload Staff'}
+            </button>
+          </div>
+        )}
+        {staffResult && (
+          <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs text-slate-600 dark:text-slate-300 space-y-2" data-testid="staff-upload-result">
+            <div className="flex items-center gap-4 flex-wrap">
+              <span className="text-emerald-700 dark:text-emerald-400 font-semibold">{staffResult.imported} new</span>
+              <span className="text-blue-700 dark:text-blue-400 font-semibold">{staffResult.updated} updated</span>
+              {staffResult.skipped > 0 && <span className="text-slate-500 dark:text-slate-400">{staffResult.skipped} skipped</span>}
+              {staffResult.errors?.length > 0 && <span className="text-rose-700 dark:text-rose-400 font-semibold">{staffResult.errors.length} errors</span>}
+              {staffResult.uncategorised?.length > 0 && <span className="text-amber-700 dark:text-amber-400 font-semibold">{staffResult.uncategorised.length} uncategorised (→ teacher)</span>}
+            </div>
+            {staffResult.uncategorised?.length > 0 && (
+              <details className="mt-1">
+                <summary className="cursor-pointer text-amber-600 dark:text-amber-400">Review uncategorised staff</summary>
+                <ul className="mt-1 ml-4 text-[11px] space-y-0.5">
+                  {staffResult.uncategorised.map((u, i) => (
+                    <li key={i}>
+                      <strong>{u.name}</strong> ({u.email}) — payroll class <code className="bg-slate-100 dark:bg-slate-700 px-1 rounded">{u.payroll_class || '∅'}</code> → defaulted to <strong>teacher</strong>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+            {staffResult.errors?.length > 0 && (
+              <details className="mt-1">
+                <summary className="cursor-pointer text-rose-600 dark:text-rose-400">Show errors</summary>
+                <ul className="mt-1 ml-4 text-[11px] space-y-0.5">
+                  {staffResult.errors.slice(0, 20).map((e, i) => (
+                    <li key={i}>Row {e.row}: {e.error}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl p-6">
           </div>
           <div>
             <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Upload Photos</h3>

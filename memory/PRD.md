@@ -115,6 +115,19 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - [x] **Frontend** Settings → Imports → Upload Students drop-zone now accepts `.csv,.xlsx,.xls`. `parseAndImport` posts the file directly as FormData (no client-side CSV parsing). `FileDropZone` validation accepts XLSX without header peek (since browsers can't parse XLSX natively).
 - [x] End-to-end verified: both CSV and XLSX test files with identical rows imported/updated correctly.
 
+### Staff Import (COMPLETED - 2026-04-22)
+- [x] **New endpoint** `POST /api/users/import-staff` parses CSV/XLSX with SIS payroll export schema (`SFKEY, FIRST_NAME, SURNAME, E_MAIL, STAFF_STATUS, PAYROLL_CLASS`).
+- [x] **Role auto-assignment** from PAYROLL_CLASS prefix (`_STAFF_ROLE_RULES`, longest-prefix-first match so `CES*` wins over `ES*`):
+  - `CES*` + `ES*` → screener
+  - `CLASS*` + `LEARN*` + `LEAD*` + `PAR*` → teacher
+  - `AP*` + `PR*` → leadership
+  - Unknown → defaults to `teacher`, surfaced as `uncategorised` in response for admin review
+- [x] Only rows with `STAFF_STATUS=Active` imported; others skipped with reason.
+- [x] Upsert logic: matches existing users by lowercase email, updates role/name/sfkey only if changed, preserves existing passwords and profile pictures.
+- [x] Frontend Settings → Imports: new **Upload Staff** card above Photo Upload with drop-zone (`.csv,.xlsx,.xls`), role-mapping legend, and result breakdown panel showing imported/updated/skipped/errors/uncategorised with collapsible details.
+- [x] Audit logged as single `bulk_import` entry with full metadata, mirrored to SA log.
+- [x] End-to-end verified via curl with 12-row test XLSX: 10 imported with correct roles, 1 inactive skipped, 1 no-email error, 1 UNKNOWN payroll class flagged uncategorised.
+
 ### P2 (Future)
 - [ ] Automated weekly backup via email
 - [ ] Email notifications for alerts
