@@ -4,6 +4,7 @@ import api from '../api';
 import { getTierColors, getRiskColors, INTERVENTION_TYPES, NOTE_TYPES } from '../utils/tierUtils';
 import { ArrowLeft, Plus, X, Loader, Edit2, Check, Sparkles, Trash2, AlertTriangle, Stethoscope } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../context/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -183,6 +184,7 @@ function InlineEditNote({ note, onSave, onDelete, canDelete }) {
 
 export default function StudentProfilePage() {
   const { settings } = useSettings();
+  const { user } = useAuth();
   const { canDo } = usePermissions();
   const customFields = settings.custom_student_fields || [];
   const interventionTypes = (() => {
@@ -304,9 +306,11 @@ export default function StudentProfilePage() {
   };
 
   const addNote = async () => {
-    if (!newNote.notes || !newNote.staff_member) return;
+    if (!newNote.notes) return;
+    // Staff member = whoever is logged in; no longer asked in the modal
+    const staff = user?.name || user?.email || '';
     try {
-      await api.post('/case-notes', { ...newNote, student_id: studentId });
+      await api.post('/case-notes', { ...newNote, staff_member: staff, student_id: studentId });
       const res = await api.get(`/students/${studentId}/profile`);
       setProfile(res.data);
       setShowAddNote(false);
@@ -1036,8 +1040,11 @@ export default function StudentProfilePage() {
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20">
                 {NOTE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
-              <input placeholder="Staff Member" value={newNote.staff_member} onChange={e => setNewNote(p => ({...p, staff_member: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+              {/* Author — locked to the logged-in user */}
+              <div className="flex items-center gap-2 px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300" data-testid="note-author-pill">
+                <span className="text-xs font-medium text-slate-400 dark:text-slate-500">Author</span>
+                <span className="truncate">{user?.name || user?.email || '—'}</span>
+              </div>
               <input type="date" value={newNote.date} onChange={e => setNewNote(p => ({...p, date: e.target.value}))}
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
               <textarea placeholder="Note details..." rows={4} value={newNote.notes} onChange={e => setNewNote(p => ({...p, notes: e.target.value}))}

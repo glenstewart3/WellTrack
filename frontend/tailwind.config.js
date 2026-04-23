@@ -1,6 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
     darkMode: ['class', '[data-theme="dark"]'],
+    // Makes Tailwind's `hover:` utilities generate `@media (hover: hover)` rules,
+    // so on touch devices the first tap doesn't consume itself by activating a
+    // sticky hover state — fixes double-tap issues on tablets/phones.
+    future: {
+        hoverOnlyWhenSupported: true,
+    },
     content: [
     "./src/**/*.{js,jsx,ts,tsx}",
     "./public/index.html"

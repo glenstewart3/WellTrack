@@ -36,6 +36,45 @@ function addDays(date, n) {
   return d;
 }
 
+// ── Next-session-due estimator ────────────────────────────────────────────────
+// Given a frequency string (as produced by AddInterventionModal) and the date
+// of the most recent session (or start_date fallback), return a reasonable
+// ISO date for when the next session should happen, plus a friendly status
+// bucket: 'overdue' | 'today' | 'upcoming'. Returns null if no sensible
+// cadence can be inferred.
+function parseCadenceDays(freq) {
+  if (!freq) return null;
+  const f = freq.toLowerCase();
+  if (/\bdaily\b/.test(f) || /\b5\s*[x×]\s*(per\s*)?week\b/.test(f)) return 1;
+  // N×/per week — take the most frequent qualifier present in the string
+  const perWeek = f.match(/(\d+)\s*[x×]\s*(?:per\s*)?week/);
+  if (perWeek) {
+    const n = Math.max(1, Math.min(7, parseInt(perWeek[1], 10)));
+    return Math.max(1, Math.round(7 / n));
+  }
+  if (/\bfortnightly\b/.test(f) || /\bevery\s+2\s+weeks?\b/.test(f)) return 14;
+  if (/\bweekly\b/.test(f) || /\bonce\s+a\s+week\b/.test(f)) return 7;
+  if (/\bmonthly\b/.test(f)) return 30;
+  return null;
+}
+
+function computeNextSessionDue(intv) {
+  const days = parseCadenceDays(intv?.frequency);
+  if (!days) return null;
+  const basisStr = intv.last_session_date || intv.start_date;
+  if (!basisStr) return null;
+  const basis = new Date(basisStr);
+  if (Number.isNaN(basis.getTime())) return null;
+  const due = addDays(basis, days);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const dueMid = new Date(due); dueMid.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((dueMid - today) / 86400000);
+  let status = 'upcoming';
+  if (diffDays < 0) status = 'overdue';
+  else if (diffDays === 0) status = 'today';
+  return { iso: formatDate(due), diffDays, status };
+}
+
 // ── Tab Nav ───────────────────────────────────────────────────────────────────
 
 const TABS = [
@@ -535,6 +574,32 @@ function OngoingTab({ confidential, onAddSession }) {
                 {item.last_session_date && (
                   <span className="text-xs text-slate-400 dark:text-slate-500">Last: {item.last_session_date}</span>
                 )}
+                {(() => {
+                  // "Next due" badge — derived from frequency + last_session_date.
+                  // Overdue = red, due today = amber, upcoming = slate. Silent when
+                  // cadence can't be parsed (bespoke free-text frequencies).
+                  const due = computeNextSessionDue(item);
+                  if (!due) return null;
+                  const cls = due.status === 'overdue'
+                    ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
+                    : due.status === 'today'
+                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300';
+                  const label = due.status === 'overdue'
+                    ? `Next due ${due.iso} (${Math.abs(due.diffDays)}d overdue)`
+                    : due.status === 'today'
+                    ? 'Next due today'
+                    : `Next due ${due.iso} (in ${due.diffDays}d)`;
+                  return (
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${cls}`}
+                      data-testid={`next-due-${item.intervention_id}`}
+                      data-status={due.status}
+                    >
+                      {label}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
             <button

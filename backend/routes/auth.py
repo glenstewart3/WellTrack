@@ -599,6 +599,165 @@ def _role_for_payroll_class(payroll_class: str):
     return None
 
 
+# ── Shared: parse a CSV/XLSX upload into a list of dict rows ─────────────────
+def _parse_spreadsheet(content: bytes, filename: str):
+    """Parse CSV or XLSX bytes into a list of row dicts (keyed by header).
+    Raises HTTPException(400) on unsupported format or empty file."""
+    from fastapi import HTTPException
+    import io
+    import csv as _csv
+    fname = (filename or "").lower()
+    if fname.endswith(".csv"):
+        reader = _csv.DictReader(io.StringIO(content.decode("utf-8-sig")))
+        return [dict(r) for r in reader]
+    if fname.endswith(".xlsx") or fname.endswith(".xls"):
+        import openpyxl
+        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+        ws = wb.active
+        all_rows = list(ws.iter_rows(values_only=True))
+        if not all_rows:
+            raise HTTPException(400, "File is empty.")
+        header_idx = 0
+        for i, r in enumerate(all_rows[:5]):
+            if any(v not in (None, "") for v in r):
+                header_idx = i
+                break
+        headers = [str(v or "").strip() for v in all_rows[header_idx]]
+        out = []
+        for r in all_rows[header_idx + 1:]:
+            if not any(v not in (None, "") for v in r):
+                continue
+            row = {}
+            for i, h in enumerate(headers):
+                if not h:
+                    continue
+                v = r[i] if i < len(r) else None
+                row[h] = "" if v is None else str(v).strip()
+            out.append(row)
+        return out
+    raise HTTPException(400, "Unsupported file format. Please upload a CSV or XLSX file.")
+
+
+def _row_get(row: dict, *keys: str) -> str:
+    """Header-agnostic row accessor — matches regardless of case/underscores/spaces."""
+    norm = lambda s: str(s).strip().upper().replace(" ", "_")
+    wanted = {norm(k) for k in keys}
+    for rk in row.keys():
+        if norm(rk) in wanted:
+            v = row[rk]
+            if v is not None and str(v).strip() != "":
+                return str(v).strip()
+    return ""
+
+
+def _detect_file_kind(rows: list) -> dict:
+    """Sniff headers and return a hint about which upload this file is meant for.
+    Used by preview endpoints so an accidental student → staff upload (or vice
+    versa) is flagged BEFORE we touch the database."""
+    if not rows:
+        return {"looks_like": "unknown", "confidence": "low", "headers": []}
+    headers = {str(h).strip().upper().replace(" ", "_") for h in rows[0].keys() if h}
+    staff_markers = {"SFKEY", "E_MAIL", "PAYROLL_CLASS"}
+    student_markers = {"STKEY", "SCHOOL_YEAR", "HOME_GROUP", "BIRTHDATE", "ENTRY", "PREF_NAME"}
+    staff_hits = len(headers & staff_markers)
+    student_hits = len(headers & student_markers)
+    if staff_hits >= 2 and staff_hits > student_hits:
+        return {"looks_like": "staff", "confidence": "high" if staff_hits >= 3 else "medium",
+                "headers": sorted(headers)}
+    if student_hits >= 2 and student_hits > staff_hits:
+        return {"looks_like": "student", "confidence": "high" if student_hits >= 3 else "medium",
+                "headers": sorted(headers)}
+    return {"looks_like": "unknown", "confidence": "low", "headers": sorted(headers)}
+
+
+def _analyse_staff_rows(rows: list, existing: dict) -> dict:
+    """Dry-run analysis of a parsed staff spreadsheet.
+    Returns counts + per-row decisions (add / update / skip / error)."""
+    to_add, to_update, to_skip, errors, uncategorised = [], [], [], [], []
+    seen_emails: set = set()
+    for i, row in enumerate(rows):
+        row_num = i + 2
+        email = _row_get(row, "E_MAIL", "EMAIL", "email").lower()
+        first = _row_get(row, "FIRST_NAME", "first_name")
+        last = _row_get(row, "SURNAME", "last_name")
+        sfkey = _row_get(row, "SFKEY", "staff_key")
+        payroll_class = _row_get(row, "PAYROLL_CLASS", "payroll_class")
+
+        if not email:
+            errors.append({"row": row_num, "sfkey": sfkey, "error": "Missing E_MAIL"})
+            continue
+        if email in seen_emails:
+            to_skip.append({"row": row_num, "email": email, "reason": "duplicate email in file"})
+            continue
+        seen_emails.add(email)
+
+        name = f"{first} {last}".strip() or email
+        role = _role_for_payroll_class(payroll_class)
+        is_uncategorised = role is None
+        if role is None:
+            role = "teacher"
+            uncategorised.append({"row": row_num, "email": email, "name": name,
+                                  "payroll_class": payroll_class, "assigned": role})
+
+        cur = existing.get(email)
+        if cur:
+            changes = []
+            if cur.get("role") != role: changes.append("role")
+            if cur.get("name") != name: changes.append("name")
+            if sfkey and cur.get("sfkey") != sfkey: changes.append("sfkey")
+            if changes:
+                to_update.append({"row": row_num, "email": email, "name": name, "role": role,
+                                  "existing_role": cur.get("role"), "changes": changes,
+                                  "uncategorised": is_uncategorised})
+            else:
+                to_skip.append({"row": row_num, "email": email, "reason": "no change"})
+        else:
+            to_add.append({"row": row_num, "email": email, "name": name, "role": role,
+                           "payroll_class": payroll_class, "uncategorised": is_uncategorised})
+    return {
+        "counts": {
+            "add": len(to_add), "update": len(to_update),
+            "skip": len(to_skip), "errors": len(errors),
+            "uncategorised": len(uncategorised),
+        },
+        "add": to_add[:200], "update": to_update[:200],
+        "skip": to_skip[:50], "errors": errors[:50],
+        "uncategorised": uncategorised[:50],
+    }
+
+
+@router.post("/users/import-staff-preview")
+async def import_staff_preview(
+    file: UploadFile = File(...),
+    user=Depends(get_current_user),
+    db=Depends(get_tenant_db),
+):
+    """Dry-run: parse a staff file and report what WOULD happen on import.
+    Nothing is written to the database. Used by the Settings UI to let admins
+    verify the file contents — including that they're not accidentally
+    uploading a student export — before committing."""
+    from fastapi import HTTPException
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    content = await file.read()
+    rows = _parse_spreadsheet(content, file.filename or "")
+    kind = _detect_file_kind(rows)
+
+    existing: dict = {}
+    async for u in db.users.find({}, {"_id": 0, "user_id": 1, "email": 1, "role": 1, "name": 1, "sfkey": 1}):
+        if u.get("email"):
+            existing[u["email"].lower()] = u
+
+    analysis = _analyse_staff_rows(rows, existing)
+    return {
+        "filename": file.filename,
+        "total_rows": len(rows),
+        "file_kind": kind,
+        **analysis,
+    }
+
+
 @router.post("/users/import-staff")
 async def import_staff(
     request: Request,
@@ -609,10 +768,13 @@ async def import_staff(
     """Import staff from an XLSX or CSV file using the SIS payroll export schema.
 
     Expected headers (row 1):
-        SFKEY, FIRST_NAME, SURNAME, E_MAIL, STAFF_STATUS, PAYROLL_CLASS
+        SFKEY, FIRST_NAME, SURNAME, E_MAIL, PAYROLL_CLASS
+    (STAFF_STATUS was previously required; rows are now always treated as
+    Active per tenant request — the SIS export already excludes terminated
+    staff.)
 
     Behaviour:
-      • Rows where STAFF_STATUS is not 'Active' (case-insensitive) are skipped.
+      • All rows are imported regardless of STAFF_STATUS (if present).
       • Role is derived from PAYROLL_CLASS prefix via _STAFF_ROLE_RULES.
       • Rows whose PAYROLL_CLASS doesn't match any rule default to 'teacher'
         and are surfaced in the response as `uncategorised` so the admin can
@@ -680,9 +842,10 @@ async def import_staff(
             return ""
 
         status = _g("STAFF_STATUS", "status").lower()
-        if status and status != "active":
-            skipped.append({"row": row_num, "reason": f"status={status}"})
-            continue
+        # Per tenant request (2026-02): STAFF_STATUS is no longer required —
+        # all rows are assumed Active. We keep the read only so a future
+        # re-introduction of the column is backwards-compatible.
+        _ = status
 
         email = _g("E_MAIL", "EMAIL", "email").lower()
         first = _g("FIRST_NAME", "first_name")

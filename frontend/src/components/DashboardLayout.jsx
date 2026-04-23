@@ -78,11 +78,23 @@ export default function DashboardLayout() {
 
   const [alertCount, setAlertCount] = useState(0);
 
+  // ── Alerts visibility ──────────────────────────────────────────────────────
+  // Admins always see alerts; for other roles we check the same role_permissions
+  // map used by the sidebar so a user who can't open /alerts also doesn't see
+  // the top-right bell (or its badge).
+  const canViewAlerts = (() => {
+    if (user?.role === 'admin') return true;
+    const rolePerms = settings?.role_permissions;
+    if (rolePerms?.[user?.role]) return rolePerms[user.role].includes('alerts');
+    return true; // no custom perms yet → default-allow, same as sidebar
+  })();
+
   useEffect(() => {
+    if (!canViewAlerts) { setAlertCount(0); return; }
     api.get('/alerts?resolved=false')
       .then(r => setAlertCount(Array.isArray(r.data) ? r.data.length : 0))
       .catch(() => {});
-  }, []);
+  }, [canViewAlerts]);
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -226,18 +238,20 @@ export default function DashboardLayout() {
               </span>
             </div>
           )}
-          {/* Alert indicator */}
-          <NavLink to="/alerts" className="relative p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" data-testid="alert-bell">
-            <Bell size={18} />
-            {alertCount > 0 && (
-              <span
-                data-testid="alert-badge"
-                className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none"
-              >
-                {alertCount > 99 ? '99+' : alertCount}
-              </span>
-            )}
-          </NavLink>
+          {/* Alert indicator — hidden when the user's role doesn't have access to /alerts */}
+          {canViewAlerts && (
+            <NavLink to="/alerts" className="relative p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" data-testid="alert-bell">
+              <Bell size={18} />
+              {alertCount > 0 && (
+                <span
+                  data-testid="alert-badge"
+                  className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none"
+                >
+                  {alertCount > 99 ? '99+' : alertCount}
+                </span>
+              )}
+            </NavLink>
+          )}
           {/* User avatar + click dropdown */}
           <div className="relative" ref={userMenuRef}>
             <button

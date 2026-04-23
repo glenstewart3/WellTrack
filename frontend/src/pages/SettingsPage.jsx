@@ -1226,11 +1226,141 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
 
 
 // ── IMPORTS TAB ──────────────────────────────────────────────────────────────
+// ── Reusable preview card shared by Student + Staff imports ───────────────
+// Purpose: verify the file contents BEFORE admins commit the upload, so an
+// accidental student→staff (or vice-versa) file swap is caught early.
+function ImportPreviewCard({ kind, preview, testIdPrefix }) {
+  const expected = kind;                         // 'staff' | 'student'
+  const detected = preview?.file_kind?.looks_like;
+  const mismatch = detected && detected !== 'unknown' && detected !== expected;
+  const counts = preview?.counts || {};
+
+  const kindLabel = kind === 'staff' ? 'Staff' : 'Student';
+  const bannerCls = mismatch
+    ? 'border-rose-300 bg-rose-50 dark:bg-rose-950/30 dark:border-rose-800'
+    : (detected === expected
+        ? 'border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-800'
+        : 'border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800');
+
+  return (
+    <div className="mt-3 space-y-3" data-testid={testIdPrefix}>
+      <div className={`p-3 rounded-xl border text-xs ${bannerCls}`}
+        data-testid={`${testIdPrefix}-banner`}
+        data-looks-like={detected || 'unknown'}
+        data-mismatch={mismatch ? 'true' : 'false'}
+      >
+        <div className="flex items-center gap-2 font-semibold">
+          {mismatch ? (
+            <span className="text-rose-700 dark:text-rose-300">
+              ⚠ This file looks like a <strong>{detected}</strong> file, not a {kindLabel.toLowerCase()} file. Double-check before importing.
+            </span>
+          ) : detected === expected ? (
+            <span className="text-emerald-700 dark:text-emerald-300">
+              ✓ Detected a {kindLabel.toLowerCase()} file — <strong>{preview.total_rows}</strong> row{preview.total_rows !== 1 ? 's' : ''} parsed
+            </span>
+          ) : (
+            <span className="text-amber-700 dark:text-amber-300">
+              Couldn't confidently identify this as a {kindLabel.toLowerCase()} file. Review the planned changes below.
+            </span>
+          )}
+        </div>
+        {preview.file_kind?.headers?.length > 0 && (
+          <p className="mt-1 text-slate-500 dark:text-slate-400">
+            Detected columns: <span className="font-mono">{preview.file_kind.headers.slice(0, 10).join(', ')}{preview.file_kind.headers.length > 10 ? '…' : ''}</span>
+          </p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs" data-testid={`${testIdPrefix}-counts`}>
+        <div className="p-3 rounded-xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-900">
+          <div className="font-bold text-lg text-emerald-700 dark:text-emerald-300" data-testid={`${testIdPrefix}-count-add`}>{counts.add || 0}</div>
+          <div className="text-emerald-700/70 dark:text-emerald-300/70">will be added</div>
+        </div>
+        <div className="p-3 rounded-xl border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-900">
+          <div className="font-bold text-lg text-blue-700 dark:text-blue-300" data-testid={`${testIdPrefix}-count-update`}>{counts.update || 0}</div>
+          <div className="text-blue-700/70 dark:text-blue-300/70">will be updated</div>
+        </div>
+        <div className="p-3 rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700">
+          <div className="font-bold text-lg text-slate-700 dark:text-slate-200" data-testid={`${testIdPrefix}-count-skip`}>{counts.skip || 0}</div>
+          <div className="text-slate-500 dark:text-slate-400">will be skipped</div>
+        </div>
+        <div className={`p-3 rounded-xl border ${counts.errors ? 'border-rose-200 bg-rose-50 dark:bg-rose-950/20 dark:border-rose-900' : 'border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700'}`}>
+          <div className={`font-bold text-lg ${counts.errors ? 'text-rose-700 dark:text-rose-300' : 'text-slate-700 dark:text-slate-200'}`} data-testid={`${testIdPrefix}-count-errors`}>{counts.errors || 0}</div>
+          <div className={counts.errors ? 'text-rose-700/70 dark:text-rose-300/70' : 'text-slate-500 dark:text-slate-400'}>errors</div>
+        </div>
+      </div>
+
+      {kind === 'staff' && preview.uncategorised?.length > 0 && (
+        <details className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-xl p-3">
+          <summary className="cursor-pointer font-medium">
+            {preview.uncategorised.length} row{preview.uncategorised.length !== 1 ? 's have' : ' has'} unknown payroll class → defaulting to Teacher (review after import)
+          </summary>
+          <ul className="mt-1.5 ml-4 list-disc space-y-0.5">
+            {preview.uncategorised.slice(0, 15).map((u, i) => (
+              <li key={i}>{u.name} ({u.email}) — <code>{u.payroll_class || '∅'}</code></li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {preview.add?.length > 0 && (
+        <details className="text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3" data-testid={`${testIdPrefix}-add-list`}>
+          <summary className="cursor-pointer font-medium text-emerald-700 dark:text-emerald-300">
+            + {counts.add} will be added {preview.add.length < (counts.add || 0) ? `(showing first ${preview.add.length})` : ''}
+          </summary>
+          <ul className="mt-1.5 ml-4 list-disc space-y-0.5">
+            {preview.add.slice(0, 20).map((r, i) => (
+              <li key={i}>
+                {kind === 'staff'
+                  ? <>{r.name} · {r.email} — <strong>{r.role}</strong>{r.uncategorised ? ' (uncategorised)' : ''}</>
+                  : <>{r.name} {r.year_level ? `· ${r.year_level}` : ''} {r.class_name ? `· ${r.class_name}` : ''} {r.gender ? `· ${r.gender}` : ''}</>
+                }
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {preview.update?.length > 0 && (
+        <details className="text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3" data-testid={`${testIdPrefix}-update-list`}>
+          <summary className="cursor-pointer font-medium text-blue-700 dark:text-blue-300">
+            ↻ {counts.update} will be updated {preview.update.length < (counts.update || 0) ? `(showing first ${preview.update.length})` : ''}
+          </summary>
+          <ul className="mt-1.5 ml-4 list-disc space-y-0.5">
+            {preview.update.slice(0, 20).map((r, i) => (
+              <li key={i}>
+                {kind === 'staff'
+                  ? <>{r.name} · {r.email} → changes: <strong>{(r.changes || []).join(', ') || '—'}</strong></>
+                  : <>{r.name} → changes: <strong>{(r.changes || []).join(', ') || '—'}</strong></>
+                }
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {preview.errors?.length > 0 && (
+        <details className="text-xs text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900 rounded-xl p-3" data-testid={`${testIdPrefix}-errors-list`}>
+          <summary className="cursor-pointer font-medium">{counts.errors} error{counts.errors !== 1 ? 's' : ''} — these rows will be skipped</summary>
+          <ul className="mt-1.5 ml-4 list-disc space-y-0.5">
+            {preview.errors.slice(0, 20).map((e, i) => (
+              <li key={i}>Row {e.row}: {e.error}</li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
+  );
+}
+
+
 function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
   const [importFile, setImportFile] = useState(null);
   const [importValid, setImportValid] = useState(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
+  const [importPreview, setImportPreview] = useState(null);
+  const [previewingStudents, setPreviewingStudents] = useState(false);
   const [attFile, setAttFile] = useState(null);
   const [attValid, setAttValid] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -1243,6 +1373,56 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
   const [staffValid, setStaffValid] = useState(null);
   const [uploadingStaff, setUploadingStaff] = useState(false);
   const [staffResult, setStaffResult] = useState(null);
+  const [staffPreview, setStaffPreview] = useState(null);
+  const [previewingStaff, setPreviewingStaff] = useState(false);
+
+  // Auto-preview whenever a new staff/student file is picked.
+  // Admin must click "Confirm Import" to actually commit — this gives them a
+  // chance to spot a mix-up (e.g. accidentally uploading a student file to
+  // the staff slot) BEFORE it touches the database.
+  useEffect(() => {
+    if (!staffFile) { setStaffPreview(null); return; }
+    let cancelled = false;
+    (async () => {
+      setPreviewingStaff(true);
+      try {
+        const fd = new FormData();
+        fd.append('file', staffFile);
+        const res = await api.post('/users/import-staff-preview', fd);
+        if (!cancelled) setStaffPreview(res.data);
+      } catch (e) {
+        if (!cancelled) {
+          setMsgType('error');
+          setMsg(e.response?.data?.detail || 'Could not preview staff file');
+          setTimeout(() => setMsg(''), 5000);
+          setStaffFile(null);
+        }
+      } finally { if (!cancelled) setPreviewingStaff(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [staffFile, setMsg, setMsgType]);
+
+  useEffect(() => {
+    if (!importFile) { setImportPreview(null); return; }
+    let cancelled = false;
+    (async () => {
+      setPreviewingStudents(true);
+      try {
+        const fd = new FormData();
+        fd.append('file', importFile);
+        const res = await api.post('/students/import-file-preview', fd);
+        if (!cancelled) setImportPreview(res.data);
+      } catch (e) {
+        if (!cancelled) {
+          setMsgType('error');
+          setMsg(e.response?.data?.detail || 'Could not preview student file');
+          setTimeout(() => setMsg(''), 5000);
+          setImportFile(null);
+        }
+      } finally { if (!cancelled) setPreviewingStudents(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [importFile, setMsg, setMsgType]);
 
   const uploadStaff = async () => {
     if (!staffFile) return;
@@ -1254,6 +1434,7 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
       const res = await api.post('/users/import-staff', fd);
       setStaffResult(res.data);
       setStaffFile(null);
+      setStaffPreview(null);
       setMsgType('success');
       const uncat = res.data.uncategorised?.length || 0;
       setMsg(`Staff import: ${res.data.imported} new · ${res.data.updated} updated · ${res.data.skipped} skipped${uncat ? ` · ${uncat} uncategorised (defaulted to teacher)` : ''}`);
@@ -1274,6 +1455,7 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
       const res = await api.post('/students/import-file', fd);
       setImportResult(res.data);
       setImportFile(null);
+      setImportPreview(null);
       setMsgType('success');
       setMsg(`Import complete: ${res.data.imported} new, ${res.data.updated || 0} updated, ${res.data.errors?.length || 0} errors`);
       setTimeout(() => setMsg(''), 6000);
@@ -1366,15 +1548,32 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
           expectedKind="students"
           label="Drop your students CSV or XLSX here or click to browse"
           file={importFile}
-          onChange={(f, v) => { setImportFile(f); setImportValid(v); }}
+          onChange={(f, v) => { setImportFile(f); setImportValid(v); setImportResult(null); }}
           testIdPrefix="import-students"
         />
-        {importFile && (
-          <div className="mt-3 flex justify-end">
+        {previewingStudents && (
+          <div className="mt-3 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400" data-testid="student-preview-loading">
+            <Loader size={12} className="animate-spin" /> Parsing file…
+          </div>
+        )}
+        {importPreview && (
+          <ImportPreviewCard
+            kind="student"
+            preview={importPreview}
+            testIdPrefix="student-import-preview"
+          />
+        )}
+        {importFile && importPreview && !previewingStudents && (
+          <div className="mt-3 flex justify-end gap-2">
+            <button onClick={() => { setImportFile(null); setImportPreview(null); }}
+              className="px-4 py-2 text-slate-600 dark:text-slate-300 text-sm rounded-lg wt-hover border border-slate-200 dark:border-slate-700"
+              data-testid="cancel-student-import-btn">
+              Cancel
+            </button>
             <button onClick={parseAndImport} disabled={importing || importValid?.ok === false} data-testid="run-import-btn"
               className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity" style={{ backgroundColor: 'var(--wt-accent)' }}>
               {importing ? <Loader size={14} className="animate-spin" /> : <Upload size={14} />}
-              {importing ? 'Importing…' : 'Import'}
+              {importing ? 'Importing…' : `Confirm Import (${(importPreview.counts?.add || 0) + (importPreview.counts?.update || 0)} students)`}
             </button>
           </div>
         )}
@@ -1455,7 +1654,7 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
             <h3 className="font-semibold text-slate-900 dark:text-slate-100" style={{ fontFamily: 'Manrope,sans-serif' }}>Upload Staff</h3>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
               Upload your SIS payroll export (XLSX or CSV). Expected headers:{' '}
-              <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">SFKEY, FIRST_NAME, SURNAME, E_MAIL, STAFF_STATUS, PAYROLL_CLASS</code>
+              <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">SFKEY, FIRST_NAME, SURNAME, E_MAIL, PAYROLL_CLASS</code>
             </p>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">
               Roles are auto-assigned from <strong>PAYROLL_CLASS</strong>:
@@ -1466,7 +1665,7 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
               <li><code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">AP*</code> + <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">PR*</code> → Leadership</li>
             </ul>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">
-              Only rows with <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">STAFF_STATUS=Active</code> are imported. Unknown payroll classes default to Teacher and are flagged for review.
+              All rows are treated as active — your SIS export should already exclude terminated staff. Unknown payroll classes default to Teacher and are flagged for review.
             </p>
           </div>
         </div>
@@ -1478,16 +1677,33 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
           onChange={(f, v) => { setStaffFile(f); setStaffValid(v); setStaffResult(null); }}
           testIdPrefix="import-staff"
         />
-        {staffFile && (
+        {previewingStaff && (
+          <div className="mt-3 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400" data-testid="staff-preview-loading">
+            <Loader size={12} className="animate-spin" /> Parsing file…
+          </div>
+        )}
+        {staffPreview && (
+          <ImportPreviewCard
+            kind="staff"
+            preview={staffPreview}
+            testIdPrefix="staff-import-preview"
+          />
+        )}
+        {staffFile && staffPreview && !previewingStaff && (
           <div className="mt-3 flex items-center gap-3 justify-end">
             {msg && (
               <span className={`text-sm font-medium ${msgType === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{msg}</span>
             )}
+            <button onClick={() => { setStaffFile(null); setStaffPreview(null); }}
+              className="px-4 py-2 text-slate-600 dark:text-slate-300 text-sm rounded-lg wt-hover border border-slate-200 dark:border-slate-700"
+              data-testid="cancel-staff-import-btn">
+              Cancel
+            </button>
             <button onClick={uploadStaff} disabled={uploadingStaff || staffValid?.ok === false} data-testid="upload-staff-btn"
               className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
               style={{ backgroundColor: 'var(--wt-accent)' }}>
               {uploadingStaff ? <Loader size={14} className="animate-spin" /> : <Upload size={14} />}
-              {uploadingStaff ? 'Uploading…' : 'Upload Staff'}
+              {uploadingStaff ? 'Uploading…' : `Confirm Import (${(staffPreview.counts?.add || 0) + (staffPreview.counts?.update || 0)} staff)`}
             </button>
           </div>
         )}

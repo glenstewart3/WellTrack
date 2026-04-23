@@ -96,6 +96,13 @@ async def import_students(data: dict, user=Depends(get_current_user), db=Depends
         last_name      = _get(row, "SURNAME",    "Surname", "last_name")
         family         = _get(row, "FAMILY",     "family")
         gender         = _get(row, "GENDER",     "gender")
+        # Single-letter M/F exports are common in SIS payroll dumps —
+        # normalise to the full label used in the rest of the app.
+        if gender:
+            g = gender.strip().upper()
+            if g == "M": gender = "Male"
+            elif g == "F": gender = "Female"
+            elif g == "X": gender = "Non-binary"
         dob            = _date_iso(_get(row, "BIRTHDATE", "date_of_birth", "dob"))
         entry_date     = _date_iso(_get(row, "ENTRY", "enrolment_date", "entry_date"))
         class_name     = _get(row, "HOME_GROUP", "Form Group", "class_name")
@@ -201,6 +208,150 @@ async def import_students_from_file(file: UploadFile = File(...), user=Depends(g
 
     # Delegate to the same processing logic by calling the JSON endpoint handler
     return await import_students({"students": rows}, user=user, db=db)
+
+
+def _parse_spreadsheet_rows(content: bytes, filename: str) -> list:
+    """Shared parser used by both /students/import-file and its preview twin."""
+    fname = (filename or "").lower()
+    if fname.endswith(".csv"):
+        reader = csv.DictReader(io.StringIO(content.decode("utf-8-sig")))
+        return [dict(r) for r in reader]
+    if fname.endswith(".xlsx") or fname.endswith(".xls"):
+        import openpyxl
+        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+        ws = wb.active
+        all_rows = list(ws.iter_rows(values_only=True))
+        if not all_rows:
+            raise HTTPException(400, "File is empty.")
+        header_idx = 0
+        for i, r in enumerate(all_rows[:5]):
+            if any(v not in (None, "") for v in r):
+                header_idx = i
+                break
+        headers = [str(v or "").strip() for v in all_rows[header_idx]]
+        out = []
+        for r in all_rows[header_idx + 1:]:
+            if not any(v not in (None, "") for v in r):
+                continue
+            row = {}
+            for i, h in enumerate(headers):
+                if not h:
+                    continue
+                v = r[i] if i < len(r) else None
+                row[h] = "" if v is None else str(v).strip()
+            out.append(row)
+        return out
+    raise HTTPException(400, "Unsupported file format. Please upload a CSV or XLSX file.")
+
+
+@router.post("/students/import-file-preview")
+async def import_students_preview(file: UploadFile = File(...),
+                                   user=Depends(get_current_user),
+                                   db=Depends(get_tenant_db)):
+    """Dry-run: parse a student file and describe what WOULD happen on import.
+    Nothing is written to the database. The response also identifies whether
+    the uploaded file looks like a Student export or something else (e.g. the
+    Staff payroll file) so admins catch mix-ups before committing."""
+    if user.get("role") not in ["admin", "leadership"]:
+        raise HTTPException(403, "Admin or leadership access required")
+
+    content = await file.read()
+    rows = _parse_spreadsheet_rows(content, file.filename or "")
+
+    # Sniff file kind — mirrors the auth.py helper; kept local to avoid a
+    # cross-router import.
+    headers = {str(h).strip().upper().replace(" ", "_") for h in (rows[0].keys() if rows else []) if h}
+    staff_markers = {"SFKEY", "E_MAIL", "PAYROLL_CLASS"}
+    student_markers = {"STKEY", "SCHOOL_YEAR", "HOME_GROUP", "BIRTHDATE", "ENTRY", "PREF_NAME"}
+    staff_hits, student_hits = len(headers & staff_markers), len(headers & student_markers)
+    if student_hits >= 2 and student_hits > staff_hits:
+        kind = {"looks_like": "student", "confidence": "high" if student_hits >= 3 else "medium"}
+    elif staff_hits >= 2 and staff_hits > student_hits:
+        kind = {"looks_like": "staff", "confidence": "high" if staff_hits >= 3 else "medium"}
+    else:
+        kind = {"looks_like": "unknown", "confidence": "low"}
+    kind["headers"] = sorted(headers)
+
+    # Build a lookup of existing students keyed by sussi_id
+    existing: dict = {}
+    async for s in db.students.find({}, {"_id": 0, "student_id": 1, "sussi_id": 1, "first_name": 1,
+                                          "last_name": 1, "preferred_name": 1, "year_level": 1,
+                                          "class_name": 1}):
+        sk = s.get("sussi_id")
+        if sk:
+            existing[str(sk).strip()] = s
+
+    def _g(row, *keys):
+        for k in keys:
+            v = row.get(k)
+            if v is not None and str(v).strip() != "":
+                return str(v).strip()
+        return ""
+
+    _koorie_map = {"N": "No", "K": "Koorie", "B": "Both (ATSI)",
+                   "T": "Torres Strait Islander", "A": "Aboriginal"}
+
+    to_add, to_update, skipped, errors = [], [], [], []
+    for i, row in enumerate(rows):
+        row_num = i + 2
+        base_role = _g(row, "Base Role", "base_role") or "Student"
+        user_status = _g(row, "User Status", "user_status") or "Active"
+        if base_role.lower() not in ("student", "") or user_status.lower() == "inactive":
+            skipped.append({"row": row_num, "reason": f"{base_role}/{user_status}"})
+            continue
+
+        stkey = _g(row, "STKEY", "Import Identifier", "SussiId", "sussi_id")
+        first = _g(row, "FIRST_NAME", "First Name", "first_name")
+        pref = _g(row, "PREF_NAME", "Preferred Name", "preferred_name")
+        last = _g(row, "SURNAME", "Surname", "last_name")
+        yl_raw = _g(row, "SCHOOL_YEAR", "Year Level", "year_level")
+        class_name = _g(row, "HOME_GROUP", "Form Group", "class_name")
+        g_raw = _g(row, "GENDER", "gender").upper()
+        gender_preview = {"M": "Male", "F": "Female", "X": "Non-binary"}.get(g_raw, g_raw)
+
+        # Apply same year-level normalisation preview
+        yl_display = yl_raw
+        if yl_raw:
+            yl = yl_raw.strip()
+            if yl in ("0", "00") or yl.lower() in ("prep", "f", "k", "kinder", "foundation"):
+                yl_display = "Foundation"
+            elif yl.isdigit() and 1 <= int(yl) <= 12:
+                yl_display = f"Year {yl}"
+
+        if not stkey and not first and not last:
+            errors.append({"row": row_num, "error": "Missing student identifier"})
+            continue
+
+        full = f"{first} {last}".strip() + (f" ({pref})" if pref and pref != first else "")
+        entry = {"row": row_num, "stkey": stkey, "name": full or stkey,
+                 "year_level": yl_display, "class_name": class_name,
+                 "gender": gender_preview}
+
+        if stkey and stkey in existing:
+            cur = existing[stkey]
+            changes = []
+            if cur.get("first_name") != first and first: changes.append("first_name")
+            if cur.get("last_name") != last and last: changes.append("last_name")
+            if cur.get("year_level") != yl_display and yl_display: changes.append("year_level")
+            if cur.get("class_name") != class_name and class_name: changes.append("class_name")
+            if changes:
+                to_update.append({**entry, "changes": changes})
+            else:
+                skipped.append({"row": row_num, "stkey": stkey, "name": full, "reason": "no change"})
+        else:
+            to_add.append(entry)
+
+    return {
+        "filename": file.filename,
+        "total_rows": len(rows),
+        "file_kind": kind,
+        "counts": {"add": len(to_add), "update": len(to_update),
+                   "skip": len(skipped), "errors": len(errors)},
+        "add": to_add[:200],
+        "update": to_update[:200],
+        "skip": skipped[:50],
+        "errors": errors[:50],
+    }
 
 
 @router.get("/students/summary")
@@ -842,7 +993,12 @@ async def import_student_details(file: UploadFile = File(...), user=Depends(get_
                 update["class_name"] = hg
 
         if gender_c is not None and gender_c < len(raw) and raw[gender_c]:
-            update["gender"] = raw[gender_c]
+            g_raw = str(raw[gender_c]).strip()
+            g_up = g_raw.upper()
+            if g_up == "M":   update["gender"] = "Male"
+            elif g_up == "F": update["gender"] = "Female"
+            elif g_up == "X": update["gender"] = "Non-binary"
+            else:             update["gender"] = g_raw
         if eal_c is not None and eal_c < len(raw) and raw[eal_c]:
             update["eal_status"] = raw[eal_c]
         if atsi_c is not None and atsi_c < len(raw) and raw[atsi_c]:
