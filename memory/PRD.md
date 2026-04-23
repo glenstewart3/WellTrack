@@ -182,6 +182,7 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 ### 2026-02-24 — Import preview, role-gated alerts, case-note author, UX polish (COMPLETED)
 - New dry-run preview endpoints: `POST /api/users/import-staff-preview` and `POST /api/students/import-file-preview` — return detected file kind, per-row add/update/skip/error lists, and counts without touching the database. `SettingsPage → Imports` now auto-previews the moment a file is dropped; admin must click "Confirm Import (N staff|students)" to commit. Mismatched uploads (student file in staff slot, etc.) render a red warning banner.
 - Staff import no longer requires `STAFF_STATUS` column — all rows treated as active per tenant request.
+- **Staff import now SKIPS existing users entirely** (match by email). This preserves manual role/name edits made in User Management after the initial import; re-running the payroll export only adds brand-new staff.
 - Student import normalises `GENDER` values M→Male, F→Female, X→Non-binary (both import and student-details secondary import).
 - Case note modal on StudentProfilePage: removed "Staff Member" input; author is auto-populated from the logged-in user and shown in a read-only pill (`data-testid="note-author-pill"`).
 - Top-right Alerts bell is now hidden for users whose role doesn't have `/alerts` in `settings.role_permissions` (admins still see it).

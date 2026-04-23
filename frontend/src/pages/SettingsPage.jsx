@@ -1665,7 +1665,7 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
               <li><code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">AP*</code> + <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">PR*</code> → Leadership</li>
             </ul>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">
-              All rows are treated as active — your SIS export should already exclude terminated staff. Unknown payroll classes default to Teacher and are flagged for review.
+              All rows are treated as active — your SIS export should already exclude terminated staff. Unknown payroll classes default to Teacher and are flagged for review. <strong>Existing staff are never overwritten</strong> on re-import, so manual role or name edits made in User Management are preserved.
             </p>
           </div>
         </div>

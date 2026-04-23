@@ -701,16 +701,11 @@ def _analyse_staff_rows(rows: list, existing: dict) -> dict:
 
         cur = existing.get(email)
         if cur:
-            changes = []
-            if cur.get("role") != role: changes.append("role")
-            if cur.get("name") != name: changes.append("name")
-            if sfkey and cur.get("sfkey") != sfkey: changes.append("sfkey")
-            if changes:
-                to_update.append({"row": row_num, "email": email, "name": name, "role": role,
-                                  "existing_role": cur.get("role"), "changes": changes,
-                                  "uncategorised": is_uncategorised})
-            else:
-                to_skip.append({"row": row_num, "email": email, "reason": "no change"})
+            # Mirrors the import endpoint: existing users are preserved as-is
+            # so manual role/name edits aren't clobbered on re-import.
+            to_skip.append({"row": row_num, "email": email, "name": name,
+                            "existing_role": cur.get("role"),
+                            "reason": "already exists"})
         else:
             to_add.append({"row": row_num, "email": email, "name": name, "role": role,
                            "payroll_class": payroll_class, "uncategorised": is_uncategorised})
@@ -865,19 +860,11 @@ async def import_staff(
                                   "payroll_class": payroll_class, "assigned": role})
 
         if email in existing:
-            cur = existing[email]
-            changes = {}
-            if cur.get("role") != role:
-                changes["role"] = role
-            if cur.get("name") != name:
-                changes["name"] = name
-            if sfkey and cur.get("sfkey") != sfkey:
-                changes["sfkey"] = sfkey
-            if changes:
-                await db.users.update_one({"user_id": cur["user_id"]}, {"$set": changes})
-                updated.append({"email": email, "role": role, "changes": list(changes.keys())})
-            else:
-                skipped.append({"row": row_num, "email": email, "reason": "no change"})
+            # Per tenant request (2026-02): once a staff user exists, do NOT
+            # overwrite them on re-import — this preserves manual edits such
+            # as role changes, professional settings, or name corrections
+            # the admin has made in User Management.
+            skipped.append({"row": row_num, "email": email, "reason": "already exists"})
         else:
             new_user = {
                 "user_id": f"user_{uuid.uuid4().hex[:12]}",
