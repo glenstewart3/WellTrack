@@ -14,6 +14,7 @@ import { DEFAULT_FEATURE_PERMISSIONS } from '../hooks/usePermissions';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import FileDropZone from '../components/FileDropZone';
 import DataManagement from '../components/DataManagement';
+import { todayLocal } from '../utils/dateFmt';
 
 const ROLE_OPTIONS = [
   { value: 'teacher',      label: 'Teacher',          color: 'bg-blue-100 text-blue-700' },
@@ -1453,7 +1454,7 @@ function OverviewFetcher({ onStats }) {
     let cancelled = false;
     (async () => {
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const today = todayLocal();
         const [users, classes, backups, audit] = await Promise.all([
           api.get('/users').then(r => r.data).catch(() => []),
           api.get('/classes').then(r => r.data).catch(() => []),

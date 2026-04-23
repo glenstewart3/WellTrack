@@ -128,6 +128,16 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - [x] Audit logged as single `bulk_import` entry with full metadata, mirrored to SA log.
 - [x] End-to-end verified via curl with 12-row test XLSX: 10 imported with correct roles, 1 inactive skipped, 1 no-email error, 1 UNKNOWN payroll class flagged uncategorised.
 
+### Timezone-aware today + Year Level Formatting (COMPLETED - 2026-04-22)
+- [x] **Appointments today-marker fix**: replaced `toISOString().split('T')[0]` (UTC) with local-timezone `formatDate(d)` in `pages/AppointmentsPage.jsx`. Week navigation and "today" highlight now match the user's actual local date regardless of UTC offset.
+- [x] **Shared helper** `utils/dateFmt.js` adds `todayLocal()` + `addDaysLocal()` producing YYYY-MM-DD in local time. Rolled into DashboardPage, InterventionsPage, AttendancePage, AdministrationPage, StudentProfilePage.
+- [x] **Student import SCHOOL_YEAR normalisation** (`routes/students.py`):
+  - `"0"` / `"00"` / `"Prep"` / `"F"` / `"K"` / `"Foundation"` → **"Foundation"**
+  - `"01"` ... `"12"` → **"Year 01"** ... **"Year 12"** (zero-padding preserved)
+  - `"1"` ... `"12"` → **"Year 1"** ... **"Year 12"**
+  - Anything else (e.g. `"Year 1"`, `"VCE"`) → unchanged
+- [x] 7/7 test cases verified end-to-end via XLSX upload: all year-level transformations correct.
+
 ### P2 (Future)
 - [ ] Automated weekly backup via email
 - [ ] Email notifications for alerts

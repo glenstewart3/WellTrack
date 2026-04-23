@@ -102,9 +102,19 @@ async def import_students(data: dict, user=Depends(get_current_user), db=Depends
         year_level     = _get(row, "SCHOOL_YEAR","Year Level", "year_level")
         koorie_raw     = _get(row, "KOORIE",     "koorie").upper()
         koorie         = _koorie_map.get(koorie_raw, koorie_raw) if koorie_raw else ""
-        # Normalise SCHOOL_YEAR (0 → "Foundation", "12" stays "12")
-        if year_level == "0":
-            year_level = "Foundation"
+        # Normalise SCHOOL_YEAR:
+        #   "0"/"00"        → "Foundation"
+        #   "01".."12"      → "Year 01".."Year 12" (keep zero-padding)
+        #   "1".."12"       → "Year 1".."Year 12"
+        #   "Prep"/"F"/"K"  → "Foundation"
+        #   anything else   → passed through unchanged
+        if year_level:
+            yl = year_level.strip()
+            if yl in ("0", "00") or yl.lower() in ("prep", "f", "k", "kinder", "foundation"):
+                year_level = "Foundation"
+            elif yl.isdigit() and 1 <= int(yl) <= 12:
+                year_level = f"Year {yl}"
+            # else keep original (e.g. "Year 1" already, "VCE", etc.)
 
         if not stkey and not first_name and not last_name:
             errors.append({"row": i + 1, "error": "Missing student identifier"})

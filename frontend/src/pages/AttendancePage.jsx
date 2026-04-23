@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { CalendarDays, AlertTriangle, Users, TrendingDown, Loader, X, Info } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import useDocumentTitle from '../hooks/useDocumentTitle';
+import { todayLocal } from '../utils/dateFmt';
 
 function TierBadge({ tier }) {
   const c = tier === 1
@@ -29,7 +30,7 @@ function AttendancePctBar({ pct }) {
 }
 
 function buildQS(year, period, month, week, termsArr) {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayLocal();
   const p = {};
   if (year) p.year = year;
   if (period === 'ytd') {

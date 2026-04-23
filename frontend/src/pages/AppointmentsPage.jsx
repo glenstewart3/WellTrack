@@ -20,7 +20,15 @@ function getWeekStart(date = new Date()) {
   return d;
 }
 
-function formatDate(d) { return d.toISOString().split('T')[0]; }
+function formatDate(d) {
+  // Always format in the LOCAL timezone (not UTC). Using toISOString drops the
+  // date to UTC which, combined with getDay() using local time, produces an
+  // off-by-one day mismatch (today highlighted on wrong cell).
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 function addDays(date, n) {
   const d = new Date(date);

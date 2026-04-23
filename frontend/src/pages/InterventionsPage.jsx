@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { exportInterventionsReport } from '../utils/pdfExport';
 import useDocumentTitle from '../hooks/useDocumentTitle';
+import { todayLocal } from '../utils/dateFmt';
 
 const BURL = process.env.REACT_APP_BACKEND_URL;
 
@@ -22,8 +23,8 @@ function studentDisplayName(s) {
   return `${s.first_name || ''}${pref} ${s.last_name || ''}`.trim();
 }
 
-function getToday() { return new Date().toISOString().split('T')[0]; }
-function getInDays(n) { return new Date(Date.now() + n * 86400000).toISOString().split('T')[0]; }
+function getToday() { return todayLocal(); }
+function getInDays(n) { return todayLocal(new Date(Date.now() + n * 86400000)); }
 
 function isOverdue(intv) {
   return intv.status === 'active' && !!intv.review_date && intv.review_date < getToday();

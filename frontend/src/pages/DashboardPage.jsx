@@ -11,6 +11,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
 import useDocumentTitle from '../hooks/useDocumentTitle';
+import { todayLocal } from '../utils/dateFmt';
 
 // Tier CSS-var palette
 const TIER_VAR = {
@@ -83,8 +84,8 @@ export default function DashboardPage() {
           try {
             const ongoingRes = await api.get('/appointments/ongoing');
             const ongoing = ongoingRes.data || [];
-            const today = new Date().toISOString().split('T')[0];
-            const in7days = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+            const today = todayLocal();
+            const in7days = todayLocal(new Date(Date.now() + 7 * 86400000));
             setAptAlerts({
               overdue:     ongoing.filter(i => i.review_overdue).length,
               approaching: ongoing.filter(i => {
@@ -162,7 +163,7 @@ export default function DashboardPage() {
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const firstName = user?.name?.split(' ')[0] || '';
   const termLabel = (() => {
-    const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const todayStr = todayLocal();
     const today = new Date(todayStr + 'T00:00:00');
     // Find the term that contains today
     const active = (terms || []).find(t =>

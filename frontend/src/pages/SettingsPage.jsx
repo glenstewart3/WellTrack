@@ -1527,6 +1527,9 @@ function ImportsTab({ msg, msgType, setMsg, setMsgType, settings, onSave }) {
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <div className="flex items-start gap-3 mb-3">
+          <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+            <Image size={15} className="text-indigo-600" />
           </div>
           <div>
             <h3 className="font-semibold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Upload Photos</h3>

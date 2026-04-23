@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { exportStudentProfile } from '../utils/pdfExport';
 import useDocumentTitle from '../hooks/useDocumentTitle';
+import { todayLocal } from '../utils/dateFmt';
 
 function TierBadge({ tier }) {
   const c = getTierColors(tier);
@@ -194,7 +195,7 @@ export default function StudentProfilePage() {
   const [showAddNote, setShowAddNote] = useState(false);
   const [saebrsView, setSaebrsView] = useState('total'); // 'total' or 'domains'
   const [newIntervention, setNewIntervention] = useState({ intervention_type: '', assigned_staff: '', start_date: '', review_date: '', goals: '', rationale: '', frequency: '', status: 'active' });
-  const [newNote, setNewNote] = useState({ note_type: 'General', notes: '', staff_member: '', date: new Date().toISOString().split('T')[0] });
+  const [newNote, setNewNote] = useState({ note_type: 'General', notes: '', staff_member: '', date: todayLocal() });
   const [aiSuggestions, setAiSuggestions] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
@@ -305,7 +306,7 @@ export default function StudentProfilePage() {
       const res = await api.get(`/students/${studentId}/profile`);
       setProfile(res.data);
       setShowAddNote(false);
-      setNewNote({ note_type: 'General', notes: '', staff_member: '', date: new Date().toISOString().split('T')[0] });
+      setNewNote({ note_type: 'General', notes: '', staff_member: '', date: todayLocal() });
     } catch (e) { console.error(e); }
   };
 
