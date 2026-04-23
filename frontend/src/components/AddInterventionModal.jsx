@@ -99,7 +99,11 @@ export default function AddInterventionModal({
   }, [frequencyChecks, freqCustom]);
 
   // ── Save ─────────────────────────────────────────────────────────────────
-  const canSave = form.student_id && form.intervention_type && form.assigned_staff && !saving;
+  // Backend Intervention model requires student_id, intervention_type,
+  // assigned_staff, start_date AND review_date — gate the button on all of
+  // them so the user gets clear affordance instead of a 422.
+  const canSave = !!(form.student_id && form.intervention_type && form.assigned_staff
+                     && form.start_date && form.review_date) && !saving;
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);

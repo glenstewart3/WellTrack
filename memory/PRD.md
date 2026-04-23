@@ -167,3 +167,13 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - iteration_43: Phase 5 + Onboarding + Impersonation (21/21)
 - iteration_44: Landing Page + SA Subdomain (12/12)
 - iteration_45: Time-based Attendance + Class/Teacher assignment (22/22)
+- iteration_46: P1 UI/UX sweep (dark-mode, warm-hover, mobile touch, toast placement)
+- iteration_47: Unified AddInterventionModal regression — 4/4 backend + full frontend flow (typeahead, grouped staff, Daily/Weekly + custom frequency, 69 frequency pills on Appointments Ongoing). No bugs.
+
+## Recent Changes
+### 2026-02-23 — Unified Add Intervention modal (COMPLETED)
+- Shared `AddInterventionModal.jsx` used by InterventionsPage and StudentProfilePage (locked mode on profile).
+- Typeahead student search (first/last/preferred name + class), grouped Assigned Staff dropdown (Wellbeing, Leadership, Professionals, Staff + team-wide / Unassigned / Multiple).
+- Frequency UI: Daily / Weekly checkbox pills + free-text custom input, combined with " · " separator and stored as-is on `Intervention.frequency`.
+- `/api/appointments/ongoing` returns `frequency`; AppointmentsPage renders a pill with `data-testid="frequency-<id>"`.
+- Save button now gated on all backend-required fields (student, type, staff, start_date, review_date) so the UX matches the Pydantic contract.
