@@ -683,6 +683,11 @@ def _analyse_staff_rows(rows: list, existing: dict) -> dict:
         sfkey = _row_get(row, "SFKEY", "staff_key")
         payroll_class = _row_get(row, "PAYROLL_CLASS", "payroll_class")
 
+        # Mirror the importer: exclude Casual Relief Teachers.
+        if payroll_class.upper().startswith("CRT"):
+            to_skip.append({"row": row_num, "email": email, "reason": "CRT excluded"})
+            continue
+
         if not email:
             errors.append({"row": row_num, "sfkey": sfkey, "error": "Missing E_MAIL"})
             continue
@@ -847,6 +852,13 @@ async def import_staff(
         last = _g("SURNAME", "last_name")
         sfkey = _g("SFKEY", "staff_key")
         payroll_class = _g("PAYROLL_CLASS", "payroll_class")
+
+        # Skip Casual Relief Teachers — tenant-requested exclusion because
+        # CRTs are short-term placements and shouldn't count as permanent
+        # staff for wellbeing/MTSS purposes.
+        if payroll_class.upper().startswith("CRT"):
+            skipped.append({"row": row_num, "email": email, "reason": "CRT excluded"})
+            continue
 
         if not email:
             errors.append({"row": row_num, "sfkey": sfkey, "error": "Missing E_MAIL"})
