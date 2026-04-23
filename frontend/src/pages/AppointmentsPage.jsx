@@ -495,8 +495,19 @@ function OngoingTab({ confidential, onAddSession }) {
               'border-slate-200'
             }`}
             data-testid={`ongoing-item-${item.intervention_id}`}>
-            <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
-              <span className="text-sm font-bold text-slate-600">
+            <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden flex items-center justify-center shrink-0" data-testid={`ongoing-avatar-${item.intervention_id}`}>
+              {!confidential && student.photo_url ? (
+                <img
+                  src={student.photo_url}
+                  alt={displayName}
+                  className="w-full h-full object-cover"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling && (e.currentTarget.nextSibling.style.display = 'flex'); }}
+                />
+              ) : null}
+              <span
+                className="text-sm font-bold text-slate-600 w-full h-full flex items-center justify-center"
+                style={{ display: (!confidential && student.photo_url) ? 'none' : 'flex' }}
+              >
                 {confidential ? '?' : (student.first_name?.[0] || '?')}
               </span>
             </div>
