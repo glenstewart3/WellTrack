@@ -525,10 +525,15 @@ function OngoingTab({ confidential, onAddSession }) {
                 )}
               </div>
               <div className="flex items-center gap-3 mt-1 flex-wrap">
-                <span className="text-xs text-slate-500 font-medium">{item.intervention_type}</span>
-                <span className="text-xs text-slate-400">{item.session_count || 0} sessions</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{item.intervention_type}</span>
+                {item.frequency && (
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300" data-testid={`frequency-${item.intervention_id}`}>
+                    {item.frequency}
+                  </span>
+                )}
+                <span className="text-xs text-slate-400 dark:text-slate-500">{item.session_count || 0} sessions</span>
                 {item.last_session_date && (
-                  <span className="text-xs text-slate-400">Last: {item.last_session_date}</span>
+                  <span className="text-xs text-slate-400 dark:text-slate-500">Last: {item.last_session_date}</span>
                 )}
               </div>
             </div>

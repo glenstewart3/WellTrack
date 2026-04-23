@@ -12,6 +12,7 @@ import {
 import { exportStudentProfile } from '../utils/pdfExport';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import { todayLocal } from '../utils/dateFmt';
+import AddInterventionModal from '../components/AddInterventionModal';
 
 function TierBadge({ tier }) {
   const c = getTierColors(tier);
@@ -208,6 +209,7 @@ export default function StudentProfilePage() {
   const [sessions, setSessions] = useState(null);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [professionals, setProfessionals] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   useEffect(() => {
     const load = async () => {
       try {
@@ -242,8 +244,12 @@ export default function StudentProfilePage() {
   const fetchProfessionals = async () => {
     if (professionals.length) return;
     try {
-      const res = await api.get('/appointments/professionals');
-      setProfessionals(res.data || []);
+      const [profRes, usersRes] = await Promise.all([
+        api.get('/appointments/professionals'),
+        api.get('/users'),
+      ]);
+      setProfessionals(profRes.data || []);
+      setAllUsers(usersRes.data || []);
     } catch { /* not critical */ }
   };
 
@@ -291,15 +297,10 @@ export default function StudentProfilePage() {
     } catch (e) { console.error(e); }
   };
 
-  const addIntervention = async () => {
-    if (!newIntervention.intervention_type || !newIntervention.assigned_staff) return;
-    try {
-      await api.post('/interventions', { ...newIntervention, student_id: studentId });
-      const res = await api.get(`/students/${studentId}/profile`);
-      setProfile(res.data);
-      setShowAddIntervention(false);
-      setNewIntervention({ intervention_type: '', assigned_staff: '', start_date: '', review_date: '', goals: '', frequency: '', status: 'active' });
-    } catch (e) { console.error(e); }
+  const addIntervention = async (formFromModal) => {
+    await api.post('/interventions', { ...formFromModal, student_id: studentId });
+    const res = await api.get(`/students/${studentId}/profile`);
+    setProfile(res.data);
   };
 
   const addNote = async () => {
@@ -1010,59 +1011,17 @@ export default function StudentProfilePage() {
         </div>
       )}
 
-      {/* Add Intervention Modal */}
-      {showAddIntervention && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>Add Intervention</h3>
-              <button onClick={() => setShowAddIntervention(false)}><X size={18} className="text-slate-400" /></button>
-            </div>
-            <div className="space-y-3">
-              <input
-                list="profile-intervention-types"
-                value={newIntervention.intervention_type}
-                onChange={e => setNewIntervention(p => ({...p, intervention_type: e.target.value}))}
-                placeholder="Select or type intervention type"
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20"
-              />
-              <datalist id="profile-intervention-types">
-                {INTERVENTION_TYPES.map(t => <option key={t} value={t} />)}
-              </datalist>
-              {professionals.length > 0 ? (
-                <select value={newIntervention.assigned_staff} onChange={e => setNewIntervention(p => ({...p, assigned_staff: e.target.value}))}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20 bg-white">
-                  <option value="">Select Assigned Staff…</option>
-                  {professionals.map(p => (
-                    <option key={p.user_id} value={p.name}>{p.name}{p.professional_type ? ` — ${p.professional_type}` : ''}</option>
-                  ))}
-                </select>
-              ) : (
-                <input placeholder="Assigned Staff" value={newIntervention.assigned_staff} onChange={e => setNewIntervention(p => ({...p, assigned_staff: e.target.value}))}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
-              )}
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-xs text-slate-400 block mb-1">Start Date</label>
-                  <input type="date" value={newIntervention.start_date} onChange={e => setNewIntervention(p => ({...p, start_date: e.target.value}))}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" /></div>
-                <div><label className="text-xs text-slate-400 block mb-1">Review Date</label>
-                  <input type="date" value={newIntervention.review_date} onChange={e => setNewIntervention(p => ({...p, review_date: e.target.value}))}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" /></div>
-              </div>
-              <input placeholder="Frequency (e.g. Weekly)" value={newIntervention.frequency} onChange={e => setNewIntervention(p => ({...p, frequency: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
-              <textarea placeholder="Reason for intervention" rows={2} value={newIntervention.rationale} onChange={e => setNewIntervention(p => ({...p, rationale: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20 resize-none" />
-              <textarea placeholder="Goals" rows={3} value={newIntervention.goals} onChange={e => setNewIntervention(p => ({...p, goals: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20 resize-none" />
-            </div>
-            <div className="flex gap-2 mt-4">
-              <button onClick={addIntervention} className="flex-1 bg-slate-900 text-white py-2 text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors">Save</button>
-              <button onClick={() => setShowAddIntervention(false)} className="flex-1 bg-slate-100 text-slate-700 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors">Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Add Intervention Modal — shared component */}
+      <AddInterventionModal
+        open={showAddIntervention}
+        onClose={() => setShowAddIntervention(false)}
+        onSave={addIntervention}
+        students={profile?.student ? [profile.student] : []}
+        interventionTypes={interventionTypes}
+        professionals={professionals}
+        allUsers={allUsers}
+        lockedStudentId={studentId}
+      />
 
       {/* Add Note Modal */}
       {showAddNote && (

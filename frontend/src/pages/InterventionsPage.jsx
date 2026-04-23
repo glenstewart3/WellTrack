@@ -12,6 +12,7 @@ import {
 import { exportInterventionsReport } from '../utils/pdfExport';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import { todayLocal } from '../utils/dateFmt';
+import AddInterventionModal from '../components/AddInterventionModal';
 
 const BURL = process.env.REACT_APP_BACKEND_URL;
 
@@ -370,16 +371,11 @@ export default function InterventionsPage() {
     } catch (e) { console.error(e); }
   };
 
-  const saveIntervention = async () => {
-    if (!form.student_id || !form.intervention_type || !form.assigned_staff) return;
-    setSaving(true);
-    try {
-      const res = await api.post('/interventions', form);
-      setInterventions(prev => [res.data, ...prev]);
-      setShowAdd(false);
-      setForm({ student_id: '', intervention_type: '', assigned_staff: '', start_date: '', review_date: '', goals: '', rationale: '', frequency: '', status: 'active', progress_notes: '' });
-    } catch (e) { console.error(e); }
-    finally { setSaving(false); }
+  const saveIntervention = async (formFromModal) => {
+    const payload = formFromModal || form;
+    const res = await api.post('/interventions', payload);
+    setInterventions(prev => [res.data, ...prev]);
+    setForm({ student_id: '', intervention_type: '', assigned_staff: '', start_date: '', review_date: '', goals: '', rationale: '', frequency: '', status: 'active', progress_notes: '' });
   };
 
   const handleUpdated = updated =>
@@ -670,102 +666,15 @@ export default function InterventionsPage() {
       )}
 
       {/* Add Modal */}
-      {showAdd && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-5">
-              <h3 className="font-bold text-slate-900 text-lg" style={{ fontFamily: 'Manrope,sans-serif' }}>New Intervention</h3>
-              <button onClick={() => setShowAdd(false)}><X size={18} className="text-slate-400" /></button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Student</label>
-                <select value={form.student_id} onChange={e => setForm(p => ({ ...p, student_id: e.target.value }))}
-                  data-testid="intervention-student-select"
-                  className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none bg-white">
-                  <option value="">Select Student</option>
-                  {students.map(s => <option key={s.student_id} value={s.student_id}>{studentDisplayName(s)} — {s.class_name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Intervention Type</label>
-                <input list="intervention-type-options" value={form.intervention_type}
-                  onChange={e => setForm(p => ({ ...p, intervention_type: e.target.value }))}
-                  placeholder="Select or type intervention type"
-                  className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none bg-white" />
-                <datalist id="intervention-type-options">
-                  {interventionTypes.map(t => <option key={t} value={t} />)}
-                </datalist>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Assigned Staff</label>
-                <select value={form.assigned_staff} onChange={e => setForm(p => ({ ...p, assigned_staff: e.target.value }))}
-                  data-testid="intervention-assigned-staff"
-                  className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none bg-white">
-                  <option value="">Select assignee…</option>
-                  <optgroup label="Group">
-                    <option value="Unassigned">Unassigned (no one specific)</option>
-                    <option value="Multiple">Multiple</option>
-                    <option value="Wellbeing">Wellbeing</option>
-                    <option value="Leadership">Leadership</option>
-                  </optgroup>
-                  {professionals.length > 0 && (
-                    <optgroup label="Professionals">
-                      {professionals.map(p => (
-                        <option key={p.user_id} value={p.name}>{p.name}{p.professional_type ? ` — ${p.professional_type}` : ''}</option>
-                      ))}
-                    </optgroup>
-                  )}
-                  {allUsers.length > 0 && (
-                    <optgroup label="Staff">
-                      {allUsers
-                        .filter(u => !professionals.some(p => p.user_id === u.user_id))
-                        .map(u => (
-                          <option key={u.user_id} value={u.name}>{u.name}{u.role ? ` — ${u.role}` : ''}</option>
-                        ))}
-                    </optgroup>
-                  )}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Start Date</label>
-                  <input type="date" value={form.start_date} onChange={e => setForm(p => ({ ...p, start_date: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none" />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Review Date</label>
-                  <input type="date" value={form.review_date} onChange={e => setForm(p => ({ ...p, review_date: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none" />
-                </div>
-              </div>
-              <input placeholder="Frequency (e.g. Weekly, 3x per week)" value={form.frequency}
-                onChange={e => setForm(p => ({ ...p, frequency: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none" />
-              <textarea placeholder="Reason for intervention" rows={2} value={form.rationale}
-                onChange={e => setForm(p => ({ ...p, rationale: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none resize-none" />
-              <textarea placeholder="Goals" rows={3} value={form.goals}
-                onChange={e => setForm(p => ({ ...p, goals: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none resize-none" />
-              <textarea placeholder="Initial progress notes (optional)" rows={2} value={form.progress_notes}
-                onChange={e => setForm(p => ({ ...p, progress_notes: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none resize-none" />
-            </div>
-            <div className="flex gap-2 mt-5">
-              <button onClick={saveIntervention} disabled={saving} data-testid="save-intervention-btn"
-                className="flex-1 py-3 text-white text-sm font-semibold rounded-xl hover:opacity-90 disabled:opacity-60 transition-opacity"
-                style={{ backgroundColor: 'var(--wt-accent)' }}>
-                {saving ? 'Saving…' : 'Save Intervention'}
-              </button>
-              <button onClick={() => setShowAdd(false)}
-                className="flex-1 bg-slate-100 text-slate-700 py-3 text-sm font-medium rounded-xl hover:bg-slate-200 transition-colors">
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AddInterventionModal
+        open={showAdd}
+        onClose={() => setShowAdd(false)}
+        onSave={saveIntervention}
+        students={students}
+        interventionTypes={interventionTypes}
+        professionals={professionals}
+        allUsers={allUsers}
+      />
     </div>
   );
 }

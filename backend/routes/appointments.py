@@ -240,6 +240,7 @@ async def get_ongoing_appointments(user=Depends(get_current_user), db=Depends(ge
             "student_id": i.get("student_id"),
             "student": students_by_id.get(i.get("student_id"), {}),
             "assigned_staff": i.get("assigned_staff", ""),
+            "frequency": i.get("frequency", ""),
             "start_date": i.get("start_date"),
             "review_date": review_date,
             "session_count": stats["count"],
