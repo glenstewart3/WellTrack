@@ -169,11 +169,85 @@ async def get_schedule(week_start: str = "", user=Depends(get_current_user), db=
 
 @router.get("/appointments/ongoing")
 async def get_ongoing_appointments(user=Depends(get_current_user), db=Depends(get_tenant_db)):
-    """Return appointments with status 'scheduled' (active/upcoming)."""
-    docs = await db.appointments.find(
-        {"status": "scheduled"}, {"_id": 0}
-    ).sort([("date", 1), ("time", 1)]).to_list(500)
-    return docs
+    """Return active interventions whose intervention-type has appointment
+    scheduling enabled. Each item is enriched with the student record and a
+    session count derived from appointments linked to that intervention.
+    """
+    # Pull the set of intervention types with scheduling on
+    settings_doc = await db.school_settings.find_one({}, {"_id": 0, "intervention_types": 1}) or {}
+    types = settings_doc.get("intervention_types") or []
+    # `intervention_types` may be a mix of strings (legacy) or dicts (new schema
+    # with per-type config). Treat strings as "scheduling on" by default so we
+    # don't silently drop interventions from tenants that haven't opened the new
+    # per-type settings. Dicts require `appointment_scheduling_enabled=True`.
+    enabled_types = set()
+    if not types:
+        enabled_types = None  # means "no restriction — show all active ints"
+    else:
+        for t in types:
+            if isinstance(t, str):
+                enabled_types.add(t)
+            elif isinstance(t, dict):
+                name = t.get("name") or t.get("type") or ""
+                if name and t.get("appointment_scheduling_enabled", False):
+                    enabled_types.add(name)
+        if not enabled_types:
+            # Admin has configured types but disabled scheduling for all
+            return []
+
+    q = {"status": "active"}
+    if enabled_types is not None:
+        q["intervention_type"] = {"$in": list(enabled_types)}
+
+    ints = await db.interventions.find(q, {"_id": 0}).sort("created_at", -1).to_list(500)
+    if not ints:
+        return []
+
+    student_ids = list({i["student_id"] for i in ints if i.get("student_id")})
+    int_ids     = [i["intervention_id"] for i in ints if i.get("intervention_id")]
+
+    students_by_id = {}
+    if student_ids:
+        async for s in db.students.find(
+            {"student_id": {"$in": student_ids}},
+            {"_id": 0, "student_id": 1, "first_name": 1, "last_name": 1, "class_name": 1, "year_level": 1, "photo_url": 1},
+        ):
+            students_by_id[s["student_id"]] = s
+
+    # Session counts + last session date per intervention
+    session_stats = {}
+    if int_ids:
+        pipe = [
+            {"$match": {"intervention_id": {"$in": int_ids}, "status": "completed"}},
+            {"$group": {
+                "_id": "$intervention_id",
+                "count": {"$sum": 1},
+                "last": {"$max": "$date"},
+            }},
+        ]
+        async for row in db.appointments.aggregate(pipe):
+            session_stats[row["_id"]] = {"count": row["count"], "last": row.get("last")}
+
+    # Build enriched items
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    out = []
+    for i in ints:
+        stats = session_stats.get(i["intervention_id"], {"count": 0, "last": None})
+        review_date = i.get("review_date") or ""
+        out.append({
+            "intervention_id": i["intervention_id"],
+            "intervention_type": i.get("intervention_type", ""),
+            "student_id": i.get("student_id"),
+            "student": students_by_id.get(i.get("student_id"), {}),
+            "assigned_staff": i.get("assigned_staff", ""),
+            "start_date": i.get("start_date"),
+            "review_date": review_date,
+            "session_count": stats["count"],
+            "last_session_date": stats.get("last"),
+            "review_overdue": bool(review_date and review_date < today),
+            "case_review_recommended": bool(stats["count"] >= 6),
+        })
+    return out
 
 
 @router.get("/appointments/completed")
