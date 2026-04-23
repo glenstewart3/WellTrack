@@ -142,6 +142,7 @@ Build a comprehensive MTSS (Multi-Tiered System of Supports) platform that trans
 - [ ] Automated weekly backup via email
 - [ ] Email notifications for alerts
 - [ ] Student Wellbeing Check-in feature
+- [ ] Daily dashboard digest / email summary to wellbeing staff listing every intervention with an overdue or today-due session (turns the Appointments "Next due" pill into a proactive nudge)
 
 ## Key Files
 ### Backend
