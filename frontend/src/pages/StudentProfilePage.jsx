@@ -184,7 +184,10 @@ export default function StudentProfilePage() {
   const { settings } = useSettings();
   const { canDo } = usePermissions();
   const customFields = settings.custom_student_fields || [];
-  const interventionTypes = settings.intervention_types?.length ? settings.intervention_types : INTERVENTION_TYPES;
+  const interventionTypes = (() => {
+    const raw = settings.intervention_types?.length ? settings.intervention_types : INTERVENTION_TYPES;
+    return raw.map(t => typeof t === 'string' ? t : (t?.name || '')).filter(Boolean);
+  })();
   const { studentId } = useParams();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);

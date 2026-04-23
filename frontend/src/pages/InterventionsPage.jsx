@@ -263,7 +263,13 @@ export default function InterventionsPage() {
   const navigate = useNavigate();
   const { canDo } = usePermissions();
   const { settings } = useSettings();
-  const interventionTypes = settings.intervention_types?.length ? settings.intervention_types : INTERVENTION_TYPES;
+  // Backend may store intervention_types either as legacy strings or as dicts
+  // ({name, appointment_scheduling_enabled}). Normalise to an array of strings
+  // for all dropdown/list UI.
+  const interventionTypes = (() => {
+    const raw = settings.intervention_types?.length ? settings.intervention_types : INTERVENTION_TYPES;
+    return raw.map(t => typeof t === 'string' ? t : (t?.name || '')).filter(Boolean);
+  })();
 
   const [interventions, setInterventions] = useState([]);
   const [students, setStudents]           = useState([]);
