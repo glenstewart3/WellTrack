@@ -1,0 +1,71 @@
+{
+  "short_name": "WellTrack",
+  "name": "WellTrack — MTSS Wellbeing",
+  "description": "Screen, track and respond to student wellbeing across MTSS tiers.",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "16x16 32x32 48x48 64x64",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "favicon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "favicon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "apple-touch-icon-180.png",
+      "type": "image/png",
+      "sizes": "180x180",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#0f172a",
+  "background_color": "#fbfaf6",
+  "orientation": "any",
+  "categories": ["education", "productivity", "health"],
+  "lang": "en",
+  "dir": "ltr",
+  "shortcuts": [
+    {
+      "name": "Students",
+      "short_name": "Students",
+      "description": "View student list",
+      "url": "/students",
+      "icons": [{ "src": "favicon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Screening",
+      "short_name": "Screen",
+      "description": "Start a screening session",
+      "url": "/screening",
+      "icons": [{ "src": "favicon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Interventions",
+      "short_name": "Interv",
+      "description": "View active interventions",
+      "url": "/interventions",
+      "icons": [{ "src": "favicon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "screenshots": []
+}

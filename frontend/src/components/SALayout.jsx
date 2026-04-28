@@ -1,0 +1,174 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { useSAAuth } from '../context/SuperAdminAuthContext';
+import { SA_PATH_PREFIX } from '../context/SABasePath';
+import {
+  LayoutDashboard, School, Shield, ScrollText, LogOut,
+  Menu, ChevronDown, Settings,
+} from 'lucide-react';
+
+const navItems = [
+  { path: `${SA_PATH_PREFIX}/dashboard`, icon: LayoutDashboard, label: 'Dashboard' },
+  { path: `${SA_PATH_PREFIX}/schools`,   icon: School,          label: 'Schools' },
+  { path: `${SA_PATH_PREFIX}/admins`,    icon: Shield,          label: 'Super Admins' },
+  { path: `${SA_PATH_PREFIX}/audit`,     icon: ScrollText,      label: 'Audit Log' },
+  { path: `${SA_PATH_PREFIX}/platform`,  icon: Settings,        label: 'Platform Settings' },
+];
+
+export default function SALayout() {
+  const { admin, logout } = useSAAuth();
+  const navigate = useNavigate();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setUserMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [userMenuOpen]);
+
+  // Force follow-system for SA portal (it's a platform-owner view, not tenant-themed)
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const apply = () => document.documentElement.setAttribute(
+      'data-theme',
+      mq.matches ? 'dark' : 'default',
+    );
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate(`${SA_PATH_PREFIX}/login`);
+  };
+
+  const Sidebar = () => (
+    <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--wt-page-bg)' }}>
+      <div className="px-5 py-5 border-b" style={{ borderColor: 'var(--wt-header-border)' }}>
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-full bg-slate-900 dark:bg-slate-100 flex items-center justify-center">
+            <Shield size={17} className="text-white dark:text-slate-900" />
+          </div>
+          <div>
+            <span
+              className="text-sm font-extrabold tracking-tight text-slate-900 dark:text-slate-100"
+              style={{ fontFamily: 'Manrope, sans-serif' }}
+            >
+              WellTrack
+            </span>
+            <span className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+              Super Admin
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <nav className="flex-1 py-3 px-3 space-y-0.5 overflow-y-auto" data-testid="sa-sidebar-nav">
+        {navItems.map(item => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            onClick={() => setMobileOpen(false)}
+            data-testid={`sa-nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+            className={({ isActive }) =>
+              `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors sidebar-nav-hover ${
+                isActive
+                  ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
+                  : 'text-slate-600 dark:text-slate-300'
+              }`
+            }
+          >
+            <item.icon size={17} />
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
+
+      <div className="p-3 border-t" style={{ borderColor: 'var(--wt-header-border)' }}>
+        <div ref={menuRef} className="relative">
+          <button
+            onClick={() => setUserMenuOpen(!userMenuOpen)}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-200 wt-hover transition-colors"
+            data-testid="sa-user-menu-button"
+          >
+            <div className="w-7 h-7 rounded-full bg-slate-900 dark:bg-slate-100 flex items-center justify-center text-xs text-white dark:text-slate-900 font-bold shrink-0">
+              {(admin?.name || 'S')[0].toUpperCase()}
+            </div>
+            <span className="truncate flex-1 text-left">{admin?.name || 'Admin'}</span>
+            <ChevronDown size={14} />
+          </button>
+          {userMenuOpen && (
+            <div className="absolute bottom-full left-0 right-0 mb-1 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 py-1 z-50">
+              <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-700">
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{admin?.email}</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-rose-600 dark:text-rose-400 wt-hover"
+                data-testid="sa-logout-button"
+              >
+                <LogOut size={14} />
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div
+      className="min-h-screen flex text-slate-900 dark:text-slate-100"
+      style={{ backgroundColor: 'var(--wt-page-bg)' }}
+      data-testid="sa-layout"
+    >
+      {/* Desktop sidebar */}
+      <aside
+        className="hidden lg:flex w-60 border-r flex-col fixed inset-y-0 z-30"
+        style={{ borderColor: 'var(--wt-header-border)' }}
+      >
+        <Sidebar />
+      </aside>
+
+      {/* Mobile sidebar */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-40">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
+          <aside
+            className="absolute inset-y-0 left-0 w-64 border-r flex flex-col z-50"
+            style={{ borderColor: 'var(--wt-header-border)' }}
+          >
+            <Sidebar />
+          </aside>
+        </div>
+      )}
+
+      {/* Main content */}
+      <div className="flex-1 lg:ml-60">
+        <header
+          className="sticky top-0 z-20 border-b h-14 flex items-center px-4 lg:px-6 shadow-sm"
+          style={{ backgroundColor: 'var(--wt-header-bg)', borderColor: 'var(--wt-header-border)' }}
+        >
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="lg:hidden mr-3 p-2 rounded-lg wt-hover text-slate-500 dark:text-slate-300"
+          >
+            <Menu size={20} />
+          </button>
+          <div className="flex-1" />
+          <span className="text-xs text-slate-500 dark:text-slate-400 mr-3 hidden sm:inline">{admin?.email}</span>
+        </header>
+        <main className="p-4 lg:p-6">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+}

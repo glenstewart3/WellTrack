@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta name="theme-color" content="#fbfaf6" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)" />
+        <link rel="icon" href="%PUBLIC_URL%/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/favicon.svg" />
+        <!-- Web App Manifest (Android / Chrome PWA install) -->
+        <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+        <!-- Apple touch icons (iOS "Add to Home Screen" webclip) — solid-bg, iOS auto-rounds corners -->
+        <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon-180.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/apple-touch-icon-180.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="%PUBLIC_URL%/apple-touch-icon-192.png" />
+        <link rel="apple-touch-icon" sizes="512x512" href="%PUBLIC_URL%/apple-touch-icon-512.png" />
+        <!-- iOS webclip: run standalone, match status bar -->
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="WellTrack" />
+        <meta name="application-name" content="WellTrack" />
+        <meta name="description" content="WellTrack — MTSS student wellbeing platform for Australian schools" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap" rel="stylesheet" />
+        <title>WellTrack — MTSS Wellbeing Platform</title>
+        <script>
+          // Blank the tab title before React mounts so subdomain/inner pages
+          // don't flash the landing page title while loading. The landing page
+          // (root domain + "/" path) keeps the default title above.
+          (function () {
+            try {
+              var host = window.location.hostname || '';
+              var path = window.location.pathname || '/';
+              var base = '%REACT_APP_BASE_DOMAIN%';
+              var isSubdomain = base && host.endsWith('.' + base) && host !== 'www.' + base;
+              var isRootPath = path === '/' || path === '/index.html' || path === '';
+              if (isSubdomain || !isRootPath) {
+                document.title = '';
+              }
+            } catch (e) { /* noop */ }
+          })();
+        </script>
+    </head>
+    <body>
+        <noscript>You need to enable JavaScript to run this app.</noscript>
+        <div id="root"></div>
+    </body>
+</html>
