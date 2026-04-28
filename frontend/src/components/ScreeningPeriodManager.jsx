@@ -318,7 +318,7 @@ export default function ScreeningPeriodManager() {
               </tr>
             </thead>
             <tbody>
-              {periods.map((period) => (
+              {[...periods].sort((a, b) => (a.start_date || '').localeCompare(b.start_date || '')).map((period) => (
                 <tr key={period.period_id} className="border-b border-slate-100 hover:bg-slate-50">
                   <td className="py-3 px-4">
                     <div className="font-medium text-slate-900">{period.name}</div>
