@@ -263,7 +263,7 @@ export default function DashboardLayout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
-        <header className="relative border-b px-4 lg:px-6 py-3 flex items-center gap-4 shrink-0" style={{ backgroundColor: 'var(--wt-header-bg)', borderColor: 'var(--wt-header-border)' }}>
+        <header className="relative border-b px-3 sm:px-4 lg:px-6 py-3 flex items-center gap-2 sm:gap-4 shrink-0" style={{ backgroundColor: 'var(--wt-header-bg)', borderColor: 'var(--wt-header-border)' }}>
           <button
             onClick={() => setMobileOpen(true)}
             className="lg:hidden p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300"
@@ -284,7 +284,7 @@ export default function DashboardLayout() {
                 <Shield size={13} style={{ color: resolvedTheme === 'dark' ? '#0f172a' : '#ffffff' }} />
               </div>
               <span
-                className="font-extrabold text-[15px]"
+                className="font-extrabold text-[15px] hidden sm:inline"
                 style={{ fontFamily: 'Manrope, sans-serif', color: 'var(--wt-foreground)' }}
               >
                 {settings.platform_name || 'WellTrack'}
@@ -302,11 +302,11 @@ export default function DashboardLayout() {
             </div>
           )}
           {/* Calendar icon */}
-          <NavLink to="/calendar" className="relative p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" aria-label="Calendar">
+          <NavLink to="/calendar" className="relative p-1.5 sm:p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" aria-label="Calendar">
             <Calendar size={18} />
           </NavLink>
           {/* Notifications icon */}
-          <NavLink to="/notifications" className="relative p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" aria-label="Notifications">
+          <NavLink to="/notifications" className="relative p-1.5 sm:p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" aria-label="Notifications">
             <Inbox size={18} />
             {notifCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 bg-blue-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
@@ -316,7 +316,7 @@ export default function DashboardLayout() {
           </NavLink>
           {/* Alert indicator — hidden when the user's role doesn't have access to /alerts */}
           {canViewAlerts && (
-            <NavLink to="/alerts" className="relative p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" data-testid="alert-bell" aria-label="Alerts">
+            <NavLink to="/alerts" className="relative p-1.5 sm:p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" data-testid="alert-bell" aria-label="Alerts">
               <Bell size={18} data-testid="alerts-bell-button" />
               {alertCount > 0 && (
                 <span
