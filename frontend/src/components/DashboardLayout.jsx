@@ -139,7 +139,7 @@ export default function DashboardLayout() {
       .catch(() => {});
   }, []);
 
-  const sidebarContent = (
+  const renderSidebar = () => (
     <div className="flex flex-col h-full">
       {/* Logo / Brand */}
       <div className="px-6 py-5 border-b border-slate-100">
@@ -247,15 +247,15 @@ export default function DashboardLayout() {
     <div className="flex h-dvh overflow-hidden" style={{ backgroundColor: 'var(--wt-page-bg, #f8fafc)' }}>
       {/* Desktop Sidebar */}
       <aside className={`hidden lg:flex flex-col w-60 border-r shrink-0 ${sidebarClass}`} style={sidebarStyle}>
-        {sidebarContent}
+        {renderSidebar()}
       </aside>
 
       {/* Mobile Overlay */}
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="fixed inset-0 bg-black/40" onPointerDown={() => setMobileOpen(false)} />
+          <div className="fixed inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
           <aside className={`relative z-10 flex flex-col w-60 h-full shadow-xl border-r ${sidebarClass}`} style={sidebarStyle}>
-            {sidebarContent}
+            {renderSidebar()}
           </aside>
         </div>
       )}
@@ -265,9 +265,9 @@ export default function DashboardLayout() {
         {/* Top bar */}
         <header className="relative border-b px-3 sm:px-4 lg:px-6 py-3 flex items-center gap-2 sm:gap-4 shrink-0" style={{ backgroundColor: 'var(--wt-header-bg)', borderColor: 'var(--wt-header-border)' }}>
           <button
-            onPointerDown={(e) => { e.preventDefault(); setMobileOpen(true); }}
+            onClick={() => setMobileOpen(true)}
             className="lg:hidden relative z-10 p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300"
-            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+            style={{ touchAction: 'manipulation' }}
             data-testid="mobile-menu-btn"
           >
             <Menu size={20} />
