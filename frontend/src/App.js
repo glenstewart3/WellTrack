@@ -26,6 +26,9 @@ import AttendancePage from './pages/AttendancePage';
 import AppointmentsPage from './pages/AppointmentsPage';
 import ReportBuilderPage from './pages/ReportBuilderPage';
 import TermComparisonPage from './pages/TermComparisonPage';
+import NotificationsPage from './pages/NotificationsPage';
+import CalendarPage from './pages/CalendarPage';
+import AuditLogPage from './pages/AuditLogPage';
 import SALoginPage from './pages/sa/SALoginPage';
 import SADashboardPage from './pages/sa/SADashboardPage';
 import SASchoolsPage from './pages/sa/SASchoolsPage';
@@ -194,6 +197,9 @@ function SchoolRouter() {
         <Route path="term-comparison" element={<TermComparisonPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="appointments" element={<AppointmentsPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="calendar" element={<CalendarPage />} />
+        <Route path="audit" element={<AuditLogPage />} />
         <Route path="admin" element={<AdministrationPage />} />
         <Route path="users" element={<Navigate to="/admin" replace />} />
       </Route>

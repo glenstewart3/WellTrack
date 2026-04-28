@@ -35,6 +35,7 @@ from routes.superadmin import router as superadmin_router
 from routes.classes import router as classes_router
 from routes.team import router as team_router
 from routes.data_quality import router as data_quality_router
+from routes.documents import router as documents_router
 
 app = FastAPI(title="WellTrack API")
 scheduler = AsyncIOScheduler()
@@ -74,6 +75,7 @@ api_router.include_router(superadmin_router)
 api_router.include_router(classes_router)
 api_router.include_router(team_router)
 api_router.include_router(data_quality_router)
+api_router.include_router(documents_router)
 
 app.include_router(api_router)
 
@@ -117,6 +119,17 @@ async def serve_staff_photo(slug: str, filename: str):
         from fastapi import HTTPException as _H
         raise _H(status_code=404, detail="Photo not found")
     return _FileResponse(photo_path)
+
+@app.get("/api/student-documents/{slug}/{student_id}/{filename}")
+async def serve_student_document(slug: str, student_id: str, filename: str):
+    """Serve a student document from the tenant-scoped uploads directory."""
+    _uploads = Path(os.environ.get("UPLOADS_DIR", str(Path(__file__).resolve().parent / "uploads")))
+    doc_path = _uploads / slug / "student_documents" / student_id / filename
+    if not doc_path.exists() or not doc_path.is_file():
+        from fastapi import HTTPException as _H
+        raise _H(status_code=404, detail="Document not found")
+    return _FileResponse(doc_path, filename=filename)
+
 
 # Legacy: also serve from old flat path for backward compat
 _default_photos = Path(__file__).resolve().parent / "uploads" / "student_photos"

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { getTierColors, getRiskColors, INTERVENTION_TYPES, NOTE_TYPES } from '../utils/tierUtils';
-import { ArrowLeft, Plus, X, Loader, Edit2, Check, Sparkles, Trash2, AlertTriangle, Stethoscope } from 'lucide-react';
+import { ArrowLeft, Plus, X, Loader, Edit2, Check, Sparkles, Trash2, AlertTriangle, Stethoscope, Paperclip, FileText, Upload, Download } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
@@ -252,6 +252,9 @@ export default function StudentProfilePage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [showAddIntervention, setShowAddIntervention] = useState(false);
+  const [documents, setDocuments] = useState([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [showAddNote, setShowAddNote] = useState(false);
   const [saebrsView, setSaebrsView] = useState('total'); // 'total' or 'domains'
   const [newIntervention, setNewIntervention] = useState({ intervention_type: '', assigned_staff: '', start_date: '', review_date: '', goals: '', rationale: '', frequency: '', status: 'active' });
@@ -285,6 +288,15 @@ export default function StudentProfilePage() {
       setAttendanceData(res.data);
     } catch { /* no attendance data yet */ }
     finally { setAttendanceLoading(false); }
+  };
+
+  const fetchDocuments = async () => {
+    setDocsLoading(true);
+    try {
+      const res = await api.get(`/students/${studentId}/documents`);
+      setDocuments(res.data);
+    } catch { setDocuments([]); }
+    finally { setDocsLoading(false); }
   };
 
   const canAccessAppointments = user?.appointment_access || user?.role === 'admin' || user?.role === 'professional';
@@ -541,6 +553,7 @@ export default function StudentProfilePage() {
       <div className="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 mb-6 overflow-x-auto">
         {[['overview', 'Overview'], ['attendance', 'Attendance'], ['screening', 'Screening History'], ['interventions', 'Interventions'], ['notes', 'Case Notes'],
           ...(canAccessAppointments ? [['sessions', 'Sessions']] : []),
+          ['documents', 'Documents'],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -549,6 +562,7 @@ export default function StudentProfilePage() {
               if (key === 'attendance') fetchAttendance();
               if (key === 'sessions') fetchSessions();
               if (key === 'interventions') fetchProfessionals();
+              if (key === 'documents') fetchDocuments();
             }}
             data-testid={`tab-${key}`}
             className={`px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${activeTab === key ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
@@ -1083,6 +1097,68 @@ export default function StudentProfilePage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {activeTab === 'documents' && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-slate-500">{documents.length} document{documents.length !== 1 ? 's' : ''}</p>
+            <label className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors cursor-pointer">
+              <Upload size={14} /> Upload File
+              <input type="file" className="hidden" onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setUploading(true);
+                try {
+                  const fd = new FormData();
+                  fd.append('file', file);
+                  await api.post(`/students/${studentId}/documents`, fd);
+                  fetchDocuments();
+                } catch (err) { alert(err.response?.data?.detail || 'Upload failed'); }
+                finally { setUploading(false); e.target.value = ''; }
+              }} />
+            </label>
+          </div>
+          {docsLoading && <div className="py-16 text-center text-slate-400"><Loader size={20} className="animate-spin mx-auto mb-2" />Loading documents…</div>}
+          {uploading && <div className="py-4 text-center text-slate-400 text-sm"><Loader size={14} className="animate-spin inline mr-2" />Uploading…</div>}
+          {!docsLoading && documents.length === 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-400">
+              <Paperclip size={28} className="mx-auto mb-3 opacity-30" />
+              <p className="font-medium">No documents uploaded</p>
+              <p className="text-xs mt-1 text-slate-300">Upload PDFs, reports, or other files to this student's profile</p>
+            </div>
+          )}
+          {documents.map(doc => (
+            <div key={doc.document_id} className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                <FileText size={18} className="text-slate-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-900 truncate">{doc.original_filename}</p>
+                <p className="text-xs text-slate-400">
+                  {(doc.file_size / 1024).toFixed(0)} KB · {doc.uploaded_by_name} · {doc.uploaded_at?.split('T')[0]}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <a href={`${process.env.REACT_APP_BACKEND_URL}${doc.download_url}`} target="_blank" rel="noopener noreferrer"
+                  className="p-2 text-slate-400 hover:text-slate-700 transition-colors" title="Download">
+                  <Download size={15} />
+                </a>
+                {canDo('students.add_edit') && (
+                  <button onClick={async () => {
+                    if (!window.confirm('Delete this document?')) return;
+                    try {
+                      await api.delete(`/students/${studentId}/documents/${doc.document_id}`);
+                      fetchDocuments();
+                    } catch (err) { alert('Failed to delete'); }
+                  }} className="p-2 text-slate-400 hover:text-rose-600 transition-colors" title="Delete">
+                    <Trash2 size={15} />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

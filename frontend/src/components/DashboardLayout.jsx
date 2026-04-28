@@ -7,8 +7,8 @@ import { useTheme, THEMES, THEME_NAV_ACTIVE } from '../context/ThemeContext';
 import {
   LayoutDashboard, ClipboardCheck, Users, Radar, BarChart3,
   Target, Users2, Bell, Settings, LogOut,
-  Menu, X, Shield, UserCog, CalendarDays, Check, Sun, Moon, CalendarClock,
-  AlertTriangle, FileText
+  Menu, X, Shield, UserCog, Check, Sun, Moon, CalendarClock,
+  Calendar, CalendarDays, AlertTriangle, FileText, Inbox
 } from 'lucide-react';
 
 const navItems = [
@@ -23,7 +23,10 @@ const navItems = [
   { path: '/attendance', icon: CalendarDays, label: 'Attendance', roles: ['leadership', 'admin'] },
   { path: '/meeting', icon: Users2, label: 'MTSS Meeting' },
   { path: '/alerts', icon: Bell, label: 'Alerts' },
+  { path: '/notifications', icon: Inbox, label: 'Notifications' },
+  { path: '/calendar', icon: Calendar, label: 'Calendar' },
   { path: '/settings', icon: Settings, label: 'Settings' },
+  { path: '/audit', icon: Shield, label: 'Audit Log', adminOnly: true },
   { path: '/admin', icon: UserCog, label: 'Administration', adminOnly: true },
 ];
 
