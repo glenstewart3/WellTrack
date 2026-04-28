@@ -329,7 +329,7 @@ function SAEBRSFlow({ className, period, onDone }) {
 
   return (
     <>
-      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-slate-100">
+      <div className="sticky top-0 z-10 backdrop-blur-sm border-b border-slate-100" style={{ backgroundColor: 'color-mix(in srgb, var(--wt-surface) 90%, transparent)' }}>
         <div className="max-w-3xl mx-auto px-6 lg:px-8 py-3 flex items-center justify-between">
           <span className="text-sm font-semibold text-slate-700">{student.first_name} {student.last_name}</span>
           <span className={`text-xs font-bold px-3 py-1 rounded-full ${allTouched ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
@@ -544,7 +544,7 @@ function SelfReportFlow({ className, period, onDone }) {
 
   return (
     <>
-      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-slate-100">
+      <div className="sticky top-0 z-10 backdrop-blur-sm border-b border-slate-100" style={{ backgroundColor: 'color-mix(in srgb, var(--wt-surface) 90%, transparent)' }}>
         <div className="max-w-2xl mx-auto px-6 lg:px-8 py-3 flex items-center justify-between">
           <span className="text-sm font-semibold text-slate-700">{student.first_name} {student.last_name}</span>
           <span className={`text-xs font-bold px-3 py-1 rounded-full ${allSrTouched ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'}`}>

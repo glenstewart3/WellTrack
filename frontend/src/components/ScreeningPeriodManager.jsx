@@ -256,29 +256,29 @@ export default function ScreeningPeriodManager() {
     <div className="space-y-6">
       {/* Current Status */}
       {currentStatus && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-blue-900 mb-3 flex items-center gap-2">
+        <div className="border border-blue-200 dark:border-blue-800 rounded-xl p-5" style={{ background: 'var(--wt-surface)' }}>
+          <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">
             <Calendar size={16} /> Current Screening Status
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <span className="text-xs text-blue-600 uppercase tracking-wide">Active Period</span>
-              <p className="text-lg font-semibold text-blue-900">
+              <span className="text-xs text-blue-600 dark:text-blue-400 uppercase tracking-wide">Active Period</span>
+              <p className="text-lg font-semibold text-slate-900">
                 {currentStatus.active?.name || 'None'}
               </p>
               {currentStatus.active && (
-                <p className="text-xs text-blue-600">
+                <p className="text-xs text-blue-600 dark:text-blue-400">
                   {fmtDisplayFromISO(currentStatus.active.start_date)} – {fmtDisplayFromISO(currentStatus.active.end_date)}
                 </p>
               )}
             </div>
             <div>
-              <span className="text-xs text-blue-600 uppercase tracking-wide">Current Term</span>
-              <p className="text-lg font-semibold text-blue-900">{currentTermName}</p>
+              <span className="text-xs text-blue-600 dark:text-blue-400 uppercase tracking-wide">Current Term</span>
+              <p className="text-lg font-semibold text-slate-900">{currentTermName}</p>
             </div>
             <div>
-              <span className="text-xs text-blue-600 uppercase tracking-wide">Upcoming</span>
-              <p className="text-sm text-blue-900">
+              <span className="text-xs text-blue-600 dark:text-blue-400 uppercase tracking-wide">Upcoming</span>
+              <p className="text-sm text-slate-900">
                 {currentStatus.upcoming?.length > 0 
                   ? `${currentStatus.upcoming.length} period(s) in next 14 days`
                   : 'No upcoming periods'}
