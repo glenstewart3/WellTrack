@@ -15,6 +15,7 @@ import useDocumentTitle from '../hooks/useDocumentTitle';
 import { todayLocal } from '../utils/dateFmt';
 import AddInterventionModal from '../components/AddInterventionModal';
 import { MentionTextarea } from '../components/MentionTextarea';
+import SupportPlanTab from '../components/SupportPlanTab';
 
 function TierBadge({ tier }) {
   const c = getTierColors(tier);
@@ -554,6 +555,7 @@ export default function StudentProfilePage() {
         {[['overview', 'Overview'], ['attendance', 'Attendance'], ['screening', 'Screening History'], ['interventions', 'Interventions'], ['notes', 'Case Notes'],
           ...(canAccessAppointments ? [['sessions', 'Sessions']] : []),
           ['documents', 'Documents'],
+          ['support-plan', 'Support Plan'],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -1098,6 +1100,15 @@ export default function StudentProfilePage() {
             );
           })}
         </div>
+      )}
+
+      {activeTab === 'support-plan' && (
+        <SupportPlanTab
+          studentId={studentId}
+          studentName={profile?.student ? `${profile.student.first_name} ${profile.student.last_name}` : ''}
+          tier={profile?.mtss_tier}
+          canEdit={canDo('students.add_edit')}
+        />
       )}
 
       {activeTab === 'documents' && (

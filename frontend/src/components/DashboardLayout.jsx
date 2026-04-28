@@ -8,7 +8,7 @@ import {
   LayoutDashboard, ClipboardCheck, Users, Radar, BarChart3,
   Target, Users2, Bell, Settings, LogOut,
   Menu, X, Shield, UserCog, Check, Sun, Moon, CalendarClock,
-  Calendar, CalendarDays, AlertTriangle, FileText, Inbox
+  Calendar, CalendarDays, AlertTriangle, FileText, Inbox, ClipboardList
 } from 'lucide-react';
 
 const navItems = [
@@ -19,6 +19,7 @@ const navItems = [
   { path: '/analytics', icon: BarChart3, label: 'Analytics' },
   { path: '/reports', icon: FileText, label: 'Reports' },
   { path: '/interventions', icon: Target, label: 'Interventions' },
+  { path: '/action-plans', icon: ClipboardList, label: 'Support Plans' },
   { path: '/appointments', icon: CalendarClock, label: 'Appointments', featureFlag: 'appointments' },
   { path: '/attendance', icon: CalendarDays, label: 'Attendance', roles: ['leadership', 'admin'] },
   { path: '/meeting', icon: Users2, label: 'MTSS Meeting' },

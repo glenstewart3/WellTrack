@@ -36,6 +36,7 @@ from routes.classes import router as classes_router
 from routes.team import router as team_router
 from routes.data_quality import router as data_quality_router
 from routes.documents import router as documents_router
+from routes.action_plans import router as action_plans_router
 
 app = FastAPI(title="WellTrack API")
 scheduler = AsyncIOScheduler()
@@ -76,6 +77,7 @@ api_router.include_router(classes_router)
 api_router.include_router(team_router)
 api_router.include_router(data_quality_router)
 api_router.include_router(documents_router)
+api_router.include_router(action_plans_router)
 
 app.include_router(api_router)
 
