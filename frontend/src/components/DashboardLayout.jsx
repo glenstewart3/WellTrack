@@ -8,27 +8,56 @@ import {
   LayoutDashboard, ClipboardCheck, Users, Radar, BarChart3,
   Target, Users2, Bell, Settings, LogOut,
   Menu, X, Shield, UserCog, Check, Sun, Moon, CalendarClock,
-  Calendar, CalendarDays, AlertTriangle, FileText, Inbox, ClipboardList
+  Calendar, CalendarDays, AlertTriangle, FileText, Inbox, ClipboardList,
+  ChevronDown, ChevronUp
 } from 'lucide-react';
 
-const navItems = [
-  { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { path: '/screening', icon: ClipboardCheck, label: 'Screening', roles: ['teacher', 'screener', 'wellbeing', 'leadership', 'admin'] },
-  { path: '/students', icon: Users, label: 'Students' },
-  { path: '/radar', icon: Radar, label: 'Class Risk Radar' },
-  { path: '/analytics', icon: BarChart3, label: 'Analytics' },
-  { path: '/reports', icon: FileText, label: 'Reports' },
-  { path: '/interventions', icon: Target, label: 'Interventions' },
-  { path: '/action-plans', icon: ClipboardList, label: 'Support Plans' },
-  { path: '/appointments', icon: CalendarClock, label: 'Appointments', featureFlag: 'appointments' },
-  { path: '/attendance', icon: CalendarDays, label: 'Attendance', roles: ['leadership', 'admin'] },
-  { path: '/meeting', icon: Users2, label: 'MTSS Meeting' },
-  { path: '/alerts', icon: Bell, label: 'Alerts' },
-  { path: '/notifications', icon: Inbox, label: 'Notifications' },
-  { path: '/calendar', icon: Calendar, label: 'Calendar' },
-  { path: '/settings', icon: Settings, label: 'Settings' },
-  { path: '/audit', icon: Shield, label: 'Audit Log', adminOnly: true },
-  { path: '/admin', icon: UserCog, label: 'Administration', adminOnly: true },
+const navGroups = [
+  {
+    key: 'core',
+    items: [
+      { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    ],
+  },
+  {
+    key: 'screening',
+    label: 'Screening & Data',
+    items: [
+      { path: '/screening', icon: ClipboardCheck, label: 'Screening', roles: ['teacher', 'screener', 'wellbeing', 'leadership', 'admin'] },
+      { path: '/students', icon: Users, label: 'Students' },
+      { path: '/radar', icon: Radar, label: 'Class Risk Radar' },
+      { path: '/analytics', icon: BarChart3, label: 'Analytics' },
+      { path: '/reports', icon: FileText, label: 'Reports' },
+    ],
+  },
+  {
+    key: 'support',
+    label: 'Support',
+    items: [
+      { path: '/interventions', icon: Target, label: 'Interventions' },
+      { path: '/action-plans', icon: ClipboardList, label: 'Support Plans' },
+      { path: '/appointments', icon: CalendarClock, label: 'Appointments', featureFlag: 'appointments' },
+      { path: '/meeting', icon: Users2, label: 'MTSS Meeting' },
+    ],
+  },
+  {
+    key: 'monitoring',
+    label: 'Monitoring',
+    items: [
+      { path: '/attendance', icon: CalendarDays, label: 'Attendance', roles: ['leadership', 'admin'] },
+      { path: '/alerts', icon: Bell, label: 'Alerts' },
+      { path: '/settings', icon: Settings, label: 'Settings' },
+    ],
+  },
+  {
+    key: 'admin',
+    label: 'Admin',
+    adminOnly: true,
+    items: [
+      { path: '/audit', icon: Shield, label: 'Audit Log', adminOnly: true },
+      { path: '/admin', icon: UserCog, label: 'Administration', adminOnly: true },
+    ],
+  },
 ];
 
 const roleLabels = { teacher: 'Teacher', screener: 'Screener', wellbeing: 'Wellbeing Staff', professional: 'Professional', leadership: 'Leadership', admin: 'Administrator' };
@@ -82,6 +111,9 @@ export default function DashboardLayout() {
   };
 
   const [alertCount, setAlertCount] = useState(0);
+  const [notifCount, setNotifCount] = useState(0);
+  const [collapsedGroups, setCollapsedGroups] = useState({});
+  const toggleGroup = (key) => setCollapsedGroups(p => ({ ...p, [key]: !p[key] }));
 
   // ── Alerts visibility ──────────────────────────────────────────────────────
   // Admins always see alerts; for other roles we check the same role_permissions
@@ -100,6 +132,12 @@ export default function DashboardLayout() {
       .then(r => setAlertCount(Array.isArray(r.data) ? r.data.filter(a => !a.is_read).length : 0))
       .catch(() => {});
   }, [canViewAlerts]);
+
+  useEffect(() => {
+    api.get('/notifications/unread-count')
+      .then(r => setNotifCount(r.data?.count || 0))
+      .catch(() => {});
+  }, []);
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -122,45 +160,65 @@ export default function DashboardLayout() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 sidebar-scroll overflow-y-auto">
-        <div className="space-y-0.5">
-          {navItems.filter(item => {
-            if (item.adminOnly && user?.role !== 'admin') return false;
-            // Feature flag gate — if a flag is explicitly set to false, hide the item
-            if (item.featureFlag && featureFlags[item.featureFlag] === false) return false;
-            if (user?.role === 'admin') return true;
-            // Use saved role_permissions if available
-            const rolePerms = settings?.role_permissions;
-            if (rolePerms?.[user?.role]) {
-              const pageKey = item.path.replace('/', '');
-              return rolePerms[user.role].includes(pageKey);
-            }
-            // Fallback: screener-only restriction
-            if (user?.role === 'screener') return item.path === '/screening';
-            if (item.roles && !item.roles.includes(user?.role)) return false;
-            return true;
-          }).map(({ path, icon: Icon, label }) => (
-            <NavLink
-              key={path}
-              to={path}
-              onClick={(e) => {
-                if (path === '/screening') {
-                  e.preventDefault();
-                  navigate('/screening', { state: { resetKey: Date.now() } });
-                }
-                setMobileOpen(false);
-              }}
-              data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
-              style={({ isActive }) => isActive ? { backgroundColor: activeNavColor } : {}}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
-                  isActive ? 'text-white shadow-sm' : 'text-slate-600 sidebar-nav-hover hover:text-slate-900'
-                }`
+        <div className="space-y-1">
+          {navGroups.map(group => {
+            if (group.adminOnly && user?.role !== 'admin') return null;
+            const visibleItems = group.items.filter(item => {
+              if (item.adminOnly && user?.role !== 'admin') return false;
+              if (item.featureFlag && featureFlags[item.featureFlag] === false) return false;
+              if (user?.role === 'admin') return true;
+              const rolePerms = settings?.role_permissions;
+              if (rolePerms?.[user?.role]) {
+                const pageKey = item.path.replace('/', '');
+                return rolePerms[user.role].includes(pageKey);
               }
-            >
-              <Icon size={17} className="shrink-0" />
-              <span>{label}</span>
-            </NavLink>
-          ))}
+              if (user?.role === 'screener') return item.path === '/screening';
+              if (item.roles && !item.roles.includes(user?.role)) return false;
+              return true;
+            });
+            if (visibleItems.length === 0) return null;
+            const isCollapsed = collapsedGroups[group.key];
+            return (
+              <div key={group.key}>
+                {group.label && (
+                  <button
+                    onClick={() => toggleGroup(group.key)}
+                    className="w-full flex items-center justify-between px-3 py-1.5 mt-2 mb-0.5 text-[10.5px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    <span>{group.label}</span>
+                    {isCollapsed ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
+                  </button>
+                )}
+                {!isCollapsed && (
+                  <div className="space-y-0.5">
+                    {visibleItems.map(({ path, icon: Icon, label }) => (
+                      <NavLink
+                        key={path}
+                        to={path}
+                        onClick={(e) => {
+                          if (path === '/screening') {
+                            e.preventDefault();
+                            navigate('/screening', { state: { resetKey: Date.now() } });
+                          }
+                          setMobileOpen(false);
+                        }}
+                        data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
+                        style={({ isActive }) => isActive ? { backgroundColor: activeNavColor } : {}}
+                        className={({ isActive }) =>
+                          `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+                            isActive ? 'text-white shadow-sm' : 'text-slate-600 sidebar-nav-hover hover:text-slate-900'
+                          }`
+                        }
+                      >
+                        <Icon size={16} className="shrink-0" />
+                        <span>{label}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </nav>
 
@@ -243,6 +301,19 @@ export default function DashboardLayout() {
               </span>
             </div>
           )}
+          {/* Calendar icon */}
+          <NavLink to="/calendar" className="relative p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" aria-label="Calendar">
+            <Calendar size={18} />
+          </NavLink>
+          {/* Notifications icon */}
+          <NavLink to="/notifications" className="relative p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" aria-label="Notifications">
+            <Inbox size={18} />
+            {notifCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 bg-blue-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                {notifCount > 99 ? '99+' : notifCount}
+              </span>
+            )}
+          </NavLink>
           {/* Alert indicator — hidden when the user's role doesn't have access to /alerts */}
           {canViewAlerts && (
             <NavLink to="/alerts" className="relative p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" data-testid="alert-bell" aria-label="Alerts">
