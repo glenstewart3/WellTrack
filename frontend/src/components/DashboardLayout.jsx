@@ -139,7 +139,7 @@ export default function DashboardLayout() {
       .catch(() => {});
   }, []);
 
-  const SidebarContent = () => (
+  const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo / Brand */}
       <div className="px-6 py-5 border-b border-slate-100">
@@ -247,7 +247,7 @@ export default function DashboardLayout() {
     <div className="flex h-dvh overflow-hidden" style={{ backgroundColor: 'var(--wt-page-bg, #f8fafc)' }}>
       {/* Desktop Sidebar */}
       <aside className={`hidden lg:flex flex-col w-60 border-r shrink-0 ${sidebarClass}`} style={sidebarStyle}>
-        <SidebarContent />
+        {sidebarContent}
       </aside>
 
       {/* Mobile Overlay */}
@@ -255,7 +255,7 @@ export default function DashboardLayout() {
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
           <aside className={`relative z-10 flex flex-col w-60 h-full shadow-xl border-r ${sidebarClass}`} style={sidebarStyle}>
-            <SidebarContent />
+            {sidebarContent}
           </aside>
         </div>
       )}
