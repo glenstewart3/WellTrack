@@ -421,7 +421,7 @@ export default function StudentsPage() {
     <div className="px-4 py-6 lg:px-8 lg:py-8 fade-in">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900" style={{fontFamily:'Manrope,sans-serif', fontWeight: 800}}>Students</h1>
+          <h1 className="text-3xl font-extrabold text-slate-900 flex items-center gap-3" style={{fontFamily:'Manrope,sans-serif', fontWeight: 800}}><Users size={28} className="text-slate-600" /> Students</h1>
           <div className="flex items-center gap-3 mt-1 flex-wrap">
             <p className="text-slate-500">{students.length} {filterStatus === 'archived' ? 'archived' : 'enrolled'} students</p>
             {filterStatus === 'active' && (() => {

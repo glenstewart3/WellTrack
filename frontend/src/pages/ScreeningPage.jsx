@@ -72,7 +72,7 @@ function ModeSelect({ onSelect, activePeriod, selectedPeriod }) {
   return (
     <div className="p-6 lg:p-8 max-w-4xl mx-auto fade-in">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Screening</h1>
+        <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3" style={{ fontFamily: 'Manrope,sans-serif' }}><ClipboardCheck size={28} className="text-slate-600" /> Screening</h1>
         <p className="text-slate-500 mt-1">Choose what you'd like to complete today</p>
       </div>
 
