@@ -93,7 +93,7 @@ export default function DashboardLayout() {
   useEffect(() => {
     if (!canViewAlerts) { setAlertCount(0); return; }
     api.get('/alerts?resolved=false')
-      .then(r => setAlertCount(Array.isArray(r.data) ? r.data.length : 0))
+      .then(r => setAlertCount(Array.isArray(r.data) ? r.data.filter(a => !a.is_read).length : 0))
       .catch(() => {});
   }, [canViewAlerts]);
 
