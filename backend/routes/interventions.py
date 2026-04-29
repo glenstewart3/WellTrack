@@ -140,7 +140,19 @@ async def get_interventions(student_id: Optional[str] = None, status: Optional[s
         query["student_id"] = student_id
     if status:
         query["status"] = status
-    return await db.interventions.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    interventions = await db.interventions.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    
+    # Enrich with student names
+    student_ids = [i["student_id"] for i in interventions if i.get("student_id")]
+    students = {}
+    if student_ids:
+        async for s in db.students.find({"student_id": {"$in": student_ids}}, {"student_id": 1, "first_name": 1, "last_name": 1}):
+            students[s["student_id"]] = f"{s.get('first_name', '')} {s.get('last_name', '')}".strip()
+    
+    for i in interventions:
+        i["student_name"] = students.get(i.get("student_id"), "Student")
+    
+    return interventions
 
 
 @router.post("/interventions")
