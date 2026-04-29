@@ -4,10 +4,11 @@ import { useSettings } from '../context/SettingsContext';
 // Defaults applied when role_feature_permissions is not yet saved in settings.
 // Admin always bypasses all checks.
 export const DEFAULT_FEATURE_PERMISSIONS = {
-  teacher:    ['students.add_edit', 'case_notes.add_edit', 'interventions.add_edit', 'interventions.ai_suggest', 'screenings.submit', 'analytics.export'],
-  screener:   ['screenings.submit'],
-  wellbeing:  ['students.add_edit', 'case_notes.add_edit', 'case_notes.delete', 'interventions.add_edit', 'interventions.delete', 'interventions.ai_suggest', 'screenings.submit', 'alerts.approve', 'analytics.export', 'appointments.delete'],
-  leadership: ['students.add_edit', 'students.archive', 'case_notes.add_edit', 'case_notes.delete', 'alerts.approve', 'attendance.upload', 'analytics.export', 'appointments.delete'],
+  teacher:    ['students.add_edit', 'case_notes.add_edit', 'interventions.add_edit', 'interventions.ai_suggest', 'screenings.submit', 'analytics.export', 'reports.view', 'reports.export', 'action-plans.add_edit'],
+  screener:   ['screenings.submit', 'students.view', 'reports.view'],
+  wellbeing:  ['students.add_edit', 'case_notes.add_edit', 'case_notes.delete', 'interventions.add_edit', 'interventions.delete', 'interventions.ai_suggest', 'screenings.submit', 'alerts.approve', 'analytics.export', 'appointments.delete', 'reports.view', 'reports.export', 'action-plans.add_edit', 'action-plans.delete'],
+  professional: ['students.view', 'interventions.add_edit', 'interventions.ai_suggest', 'appointments.add_edit', 'action-plans.add_edit', 'reports.view'],
+  leadership: ['students.add_edit', 'students.archive', 'case_notes.add_edit', 'case_notes.delete', 'alerts.approve', 'attendance.upload', 'analytics.export', 'appointments.delete', 'reports.view', 'reports.export', 'reports.export_pdf', 'action-plans.add_edit', 'action-plans.delete', 'calendar.manage'],
 };
 
 export function usePermissions() {

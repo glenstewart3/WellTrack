@@ -250,18 +250,22 @@ export default function ReportBuilderPage() {
         <div className="flex items-center gap-2">
           {(reportData.length > 0 || groupedData) && (
               <>
-                <button
-                  onClick={exportCSV}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2"
-                >
-                  <Download size={16} /> CSV
-                </button>
-                <button
-                  onClick={exportPDF}
-                  className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors flex items-center gap-2"
-                >
-                  <FileText size={16} /> PDF
-                </button>
+                {canDo('reports.export') && (
+                  <button
+                    onClick={exportCSV}
+                    className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2"
+                  >
+                    <Download size={16} /> CSV
+                  </button>
+                )}
+                {canDo('reports.export_pdf') && (
+                  <button
+                    onClick={exportPDF}
+                    className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors flex items-center gap-2"
+                  >
+                    <FileText size={16} /> PDF
+                  </button>
+                )}
               </>
             )}
         </div>

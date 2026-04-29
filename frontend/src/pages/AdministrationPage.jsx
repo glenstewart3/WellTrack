@@ -72,11 +72,11 @@ const CONFIGURABLE_ROLES = [
 ];
 
 const DEFAULT_PERMISSIONS = {
-  teacher:      ['dashboard', 'screening', 'students', 'radar', 'analytics', 'interventions', 'meeting', 'alerts'],
-  screener:     ['screening'],
-  wellbeing:    ['dashboard', 'screening', 'students', 'radar', 'analytics', 'interventions', 'appointments', 'meeting', 'alerts'],
-  professional: ['dashboard', 'students', 'interventions', 'appointments'],
-  leadership:   ['dashboard', 'screening', 'students', 'radar', 'analytics', 'interventions', 'attendance', 'meeting', 'alerts'],
+  teacher:      ['dashboard', 'screening', 'students', 'radar', 'analytics', 'reports', 'interventions', 'action-plans', 'meeting', 'alerts', 'settings'],
+  screener:     ['screening', 'students', 'settings'],
+  wellbeing:    ['dashboard', 'screening', 'students', 'radar', 'analytics', 'reports', 'interventions', 'action-plans', 'appointments', 'meeting', 'alerts', 'settings'],
+  professional: ['dashboard', 'students', 'interventions', 'action-plans', 'appointments', 'meeting', 'settings'],
+  leadership:   ['dashboard', 'screening', 'students', 'radar', 'analytics', 'reports', 'interventions', 'action-plans', 'attendance', 'meeting', 'alerts', 'settings'],
 };
 
 // ── TAB NAV ──────────────────────────────────────────────────────────────────

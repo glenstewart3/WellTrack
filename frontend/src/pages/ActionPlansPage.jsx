@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { usePermissions } from '../hooks/usePermissions';
 import {
   ClipboardList, ArrowRight, Filter, ChevronDown, ChevronUp, Loader, User, Plus
 } from 'lucide-react';
@@ -26,6 +27,7 @@ export default function ActionPlansPage() {
   useDocumentTitle('Support Plans');
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { canDo } = usePermissions();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('active');
@@ -92,12 +94,14 @@ export default function ActionPlansPage() {
           </h1>
           <p className="text-sm sm:text-base text-slate-500 mt-1">Manage student action plans and track progress</p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-sm"
-        >
-          <Plus size={18} /> New Support Plan
-        </button>
+        {canDo('action-plans.add_edit') && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-sm"
+          >
+            <Plus size={18} /> New Support Plan
+          </button>
+        )}
       </div>
 
       <SupportPlanFormModal
