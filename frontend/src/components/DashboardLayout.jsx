@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, memo } from 'react';
-import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
@@ -8,60 +8,56 @@ import {
   LayoutDashboard, ClipboardCheck, Users, Radar, BarChart3,
   Target, Users2, Bell, Settings, LogOut,
   Menu, X, Shield, UserCog, Check, Sun, Moon, CalendarClock,
-  Calendar, CalendarDays, AlertTriangle, FileText, Inbox, ClipboardList,
-  ChevronDown, ChevronUp, Search
+  Calendar, CalendarDays, AlertTriangle, FileText, Inbox, ClipboardList
 } from 'lucide-react';
 
+// Simple flat list of nav items
+const navItems = [
+  { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { path: '/screening', icon: ClipboardCheck, label: 'Screening', roles: ['teacher', 'screener', 'wellbeing', 'leadership', 'admin'] },
+  { path: '/students', icon: Users, label: 'Students' },
+  { path: '/radar', icon: Radar, label: 'Class Risk Radar' },
+  { path: '/analytics', icon: BarChart3, label: 'Analytics' },
+  { path: '/reports', icon: FileText, label: 'Reports' },
+  { path: '/interventions', icon: Target, label: 'Interventions' },
+  { path: '/action-plans', icon: ClipboardList, label: 'Support Plans' },
+  { path: '/appointments', icon: CalendarClock, label: 'Appointments', featureFlag: 'appointments' },
+  { path: '/meeting', icon: Users2, label: 'MTSS Meeting' },
+  { path: '/attendance', icon: CalendarDays, label: 'Attendance', roles: ['leadership', 'admin'] },
+  { path: '/alerts', icon: Bell, label: 'Alerts' },
+  { path: '/settings', icon: Settings, label: 'Settings' },
+  { path: '/audit', icon: Shield, label: 'Audit Log', adminOnly: true },
+  { path: '/admin', icon: UserCog, label: 'Administration', adminOnly: true },
+];
+
 // SidebarContent is defined OUTSIDE the main component to have stable identity
-// and prevent remounting issues on mobile
 const SidebarContent = memo(function SidebarContent({ 
   user, 
   settings, 
   activeNavColor, 
   sidebarClass, 
   sidebarStyle, 
-  onClose,
-  isMobile 
+  onClose
 }) {
   const navigate = useNavigate();
-  const location = useLocation();
   const featureFlags = settings.feature_flags || {};
-  
-  // Start all groups collapsed by default
-  const [collapsedGroups, setCollapsedGroups] = useState({
-    screening: true,
-    support: true,
-    monitoring: true,
-    admin: true,
-  });
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  const toggleGroup = (key) => setCollapsedGroups(p => ({ ...p, [key]: !p[key] }));
   
   const roleLabels = { teacher: 'Teacher', screener: 'Screener', wellbeing: 'Wellbeing Staff', professional: 'Professional', leadership: 'Leadership', admin: 'Administrator' };
   const roleBadgeColors = { teacher: 'bg-blue-100 text-blue-700', screener: 'bg-indigo-100 text-indigo-700', wellbeing: 'bg-purple-100 text-purple-700', professional: 'bg-violet-100 text-violet-700', leadership: 'bg-emerald-100 text-emerald-700', admin: 'bg-slate-100 text-slate-700' };
   
-  // Auto-expand group containing current page
-  useEffect(() => {
-    const currentPath = location.pathname;
-    navGroups.forEach(group => {
-      if (group.items.some(item => currentPath.startsWith(item.path))) {
-        setCollapsedGroups(prev => ({ ...prev, [group.key]: false }));
-      }
-    });
-  }, [location.pathname]);
-  
-  // Filter groups based on search
-  const filteredGroups = useMemo(() => {
-    if (!searchQuery.trim()) return navGroups;
-    const query = searchQuery.toLowerCase();
-    return navGroups.map(group => ({
-      ...group,
-      items: group.items.filter(item => 
-        item.label.toLowerCase().includes(query)
-      )
-    })).filter(group => group.items.length > 0 || group.key === 'core');
-  }, [searchQuery]);
+  const visibleItems = navItems.filter(item => {
+    if (item.adminOnly && user?.role !== 'admin') return false;
+    if (item.featureFlag && featureFlags[item.featureFlag] === false) return false;
+    if (user?.role === 'admin') return true;
+    const rolePerms = settings?.role_permissions;
+    if (rolePerms?.[user?.role]) {
+      const pageKey = item.path.replace('/', '');
+      return rolePerms[user.role].includes(pageKey);
+    }
+    if (user?.role === 'screener') return item.path === '/screening';
+    if (item.roles && !item.roles.includes(user?.role)) return false;
+    return true;
+  });
   
   return (
     <div className="flex flex-col h-full">
@@ -79,102 +75,50 @@ const SidebarContent = memo(function SidebarContent({
           </p>
         </div>
       </div>
-      
-      {/* Search */}
-      <div className="px-3 py-2">
-        <div className="relative">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Find page..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-          />
-        </div>
-      </div>
 
-      {/* Nav */}
-      <nav className="flex-1 px-2 py-2 sidebar-scroll overflow-y-auto">
+      {/* Nav - Simple flat list */}
+      <nav className="flex-1 px-3 py-3 sidebar-scroll overflow-y-auto">
         <div className="space-y-0.5">
-          {filteredGroups.map(group => {
-            if (group.adminOnly && user?.role !== 'admin') return null;
-            const visibleItems = group.items.filter(item => {
-              if (item.adminOnly && user?.role !== 'admin') return false;
-              if (item.featureFlag && featureFlags[item.featureFlag] === false) return false;
-              if (user?.role === 'admin') return true;
-              const rolePerms = settings?.role_permissions;
-              if (rolePerms?.[user?.role]) {
-                const pageKey = item.path.replace('/', '');
-                return rolePerms[user.role].includes(pageKey);
+          {visibleItems.map(({ path, icon: Icon, label }) => (
+            <NavLink
+              key={path}
+              to={path}
+              onClick={(e) => {
+                if (path === '/screening') {
+                  e.preventDefault();
+                  navigate('/screening', { state: { resetKey: Date.now() } });
+                }
+                onClose?.();
+              }}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+                  isActive 
+                    ? 'text-white shadow-sm' 
+                    : 'text-slate-600 hover:bg-slate-100/50 hover:text-slate-900'
+                }`
               }
-              if (user?.role === 'screener') return item.path === '/screening';
-              if (item.roles && !item.roles.includes(user?.role)) return false;
-              return true;
-            });
-            if (visibleItems.length === 0) return null;
-            const isCollapsed = collapsedGroups[group.key];
-            const hasActiveItem = visibleItems.some(item => location.pathname.startsWith(item.path));
-            return (
-              <div key={group.key}>
-                {group.label && (
-                  <button
-                    onClick={() => toggleGroup(group.key)}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 mt-1 mb-0.5 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
-                      hasActiveItem ? 'text-slate-600' : 'text-slate-400 hover:text-slate-600'
-                    }`}
-                  >
-                    <span>{group.label}</span>
-                    {isCollapsed ? <ChevronDown size={11} /> : <ChevronUp size={11} />}
-                  </button>
-                )}
-                {!isCollapsed && (
-                  <div className="space-y-0.5">
-                    {visibleItems.map(({ path, icon: Icon, label }) => (
-                      <NavLink
-                        key={path}
-                        to={path}
-                        onClick={(e) => {
-                          if (path === '/screening') {
-                            e.preventDefault();
-                            navigate('/screening', { state: { resetKey: Date.now() } });
-                          }
-                          onClose?.();
-                        }}
-                        className={({ isActive }) =>
-                          `flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-all duration-150 ${
-                            isActive 
-                              ? 'text-white shadow-sm' 
-                              : 'text-slate-600 hover:bg-slate-100/50 hover:text-slate-900'
-                          }`
-                        }
-                        style={({ isActive }) => isActive ? { backgroundColor: activeNavColor } : {}}
-                      >
-                        <Icon size={15} className="shrink-0" />
-                        <span className="truncate">{label}</span>
-                      </NavLink>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              style={({ isActive }) => isActive ? { backgroundColor: activeNavColor } : {}}
+            >
+              <Icon size={17} className="shrink-0" />
+              <span>{label}</span>
+            </NavLink>
+          ))}
         </div>
       </nav>
 
       {/* User info */}
-      <div className="px-3 py-3 border-t border-slate-100">
-        <div className="flex items-center gap-2.5">
+      <div className="px-4 py-4 border-t border-slate-100">
+        <div className="flex items-center gap-3">
           {user?.picture ? (
-            <img src={user.picture} alt={user.name} className="w-7 h-7 rounded-full object-cover" />
+            <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
           ) : (
-            <div className="w-7 h-7 bg-slate-200 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center">
               <span className="text-xs font-semibold text-slate-600">{user?.name?.[0] || 'U'}</span>
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-slate-900 truncate">{user?.name || 'User'}</p>
-            <span className={`text-[10px] px-1 py-0.5 rounded font-medium ${roleBadgeColors[user?.role] || 'bg-slate-100 text-slate-600'}`}>
+            <p className="text-sm font-medium text-slate-900 truncate">{user?.name || 'User'}</p>
+            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${roleBadgeColors[user?.role] || 'bg-slate-100 text-slate-600'}`}>
               {roleLabels[user?.role] || 'User'}
             </span>
           </div>
@@ -183,57 +127,6 @@ const SidebarContent = memo(function SidebarContent({
     </div>
   );
 });
-
-const navGroups = [
-  {
-    key: 'core',
-    items: [
-      { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    ],
-  },
-  {
-    key: 'screening',
-    label: 'Screening & Data',
-    items: [
-      { path: '/screening', icon: ClipboardCheck, label: 'Screening', roles: ['teacher', 'screener', 'wellbeing', 'leadership', 'admin'] },
-      { path: '/students', icon: Users, label: 'Students' },
-      { path: '/radar', icon: Radar, label: 'Class Risk Radar' },
-      { path: '/analytics', icon: BarChart3, label: 'Analytics' },
-      { path: '/reports', icon: FileText, label: 'Reports' },
-    ],
-  },
-  {
-    key: 'support',
-    label: 'Support',
-    items: [
-      { path: '/interventions', icon: Target, label: 'Interventions' },
-      { path: '/action-plans', icon: ClipboardList, label: 'Support Plans' },
-      { path: '/appointments', icon: CalendarClock, label: 'Appointments', featureFlag: 'appointments' },
-      { path: '/meeting', icon: Users2, label: 'MTSS Meeting' },
-    ],
-  },
-  {
-    key: 'monitoring',
-    label: 'Monitoring',
-    items: [
-      { path: '/attendance', icon: CalendarDays, label: 'Attendance', roles: ['leadership', 'admin'] },
-      { path: '/alerts', icon: Bell, label: 'Alerts' },
-      { path: '/settings', icon: Settings, label: 'Settings' },
-    ],
-  },
-  {
-    key: 'admin',
-    label: 'Admin',
-    adminOnly: true,
-    items: [
-      { path: '/audit', icon: Shield, label: 'Audit Log', adminOnly: true },
-      { path: '/admin', icon: UserCog, label: 'Administration', adminOnly: true },
-    ],
-  },
-];
-
-const roleLabels = { teacher: 'Teacher', screener: 'Screener', wellbeing: 'Wellbeing Staff', professional: 'Professional', leadership: 'Leadership', admin: 'Administrator' };
-const roleBadgeColors = { teacher: 'bg-blue-100 text-blue-700', screener: 'bg-indigo-100 text-indigo-700', wellbeing: 'bg-purple-100 text-purple-700', professional: 'bg-violet-100 text-violet-700', leadership: 'bg-emerald-100 text-emerald-700', admin: 'bg-slate-100 text-slate-700' };
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
