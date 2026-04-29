@@ -8,7 +8,7 @@ import {
   Eye, EyeOff, CheckCircle, Lock, LayoutDashboard, ClipboardCheck,
   Users, Radar, BarChart3, Target, CalendarDays, Users2, Bell, Settings,
   RotateCcw, Zap, Stethoscope, Settings2, FileText, Upload, AlertTriangle,
-  Database, Gauge,
+  Database, Gauge, Calendar, Inbox, ClipboardList,
 } from 'lucide-react';
 import { DEFAULT_FEATURE_PERMISSIONS } from '../hooks/usePermissions';
 import useDocumentTitle from '../hooks/useDocumentTitle';
@@ -35,9 +35,13 @@ const PERMISSION_PAGES = [
   { key: 'screening',     label: 'Screening',           icon: ClipboardCheck },
   { key: 'students',      label: 'Students & Profiles', icon: Users },
   { key: 'radar',         label: 'Class Risk Radar',    icon: Radar },
-  { key: 'analytics',     label: 'Analytics', icon: BarChart3 },
+  { key: 'analytics',     label: 'Analytics',           icon: BarChart3 },
+  { key: 'reports',       label: 'Reports',             icon: FileText },
   { key: 'interventions', label: 'Interventions',       icon: Target },
+  { key: 'action-plans',  label: 'Support Plans',       icon: ClipboardList },
   { key: 'appointments',  label: 'Appointments',        icon: Stethoscope },
+  { key: 'calendar',      label: 'Calendar',            icon: Calendar },
+  { key: 'notifications', label: 'Notifications',     icon: Inbox },
   { key: 'attendance',    label: 'Attendance',          icon: CalendarDays },
   { key: 'meeting',       label: 'MTSS Meeting',        icon: Users2 },
   { key: 'alerts',        label: 'Alerts',              icon: Bell },
@@ -58,6 +62,11 @@ const FEATURE_ACTIONS = [
   { key: 'attendance.upload',         label: 'Upload Attendance Data',        group: 'Attendance' },
   { key: 'analytics.export',          label: 'Export Data (CSV / PDF)',       group: 'Analytics' },
   { key: 'appointments.delete',       label: 'Delete Appointments',           group: 'Appointments' },
+  { key: 'reports.view',              label: 'View Reports',                  group: 'Reports' },
+  { key: 'reports.export',            label: 'Export Reports (CSV)',          group: 'Reports' },
+  { key: 'reports.export_pdf',        label: 'Export Reports (PDF)',          group: 'Reports' },
+  { key: 'action-plans.add_edit',     label: 'Add & Edit Support Plans',      group: 'Support Plans' },
+  { key: 'action-plans.delete',       label: 'Delete Support Plans',          group: 'Support Plans' },
 ];
 
 const ACTION_GROUPS = [...new Set(FEATURE_ACTIONS.map(a => a.group))];
