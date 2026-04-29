@@ -194,38 +194,6 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Stats summary */}
-      {(() => {
-        const thisMonth = events.filter(e => {
-          const d = new Date(e.date);
-          return d.getFullYear() === year && d.getMonth() === month;
-        });
-        const stats = {
-          screening: thisMonth.filter(e => e.type === 'screening').length,
-          intervention: thisMonth.filter(e => e.type === 'intervention').length,
-          appointment: thisMonth.filter(e => e.type === 'appointment').length,
-          term: thisMonth.filter(e => e.type === 'term').length,
-        };
-        return (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-            {[
-              { label: 'Screenings', value: stats.screening, color: 'bg-indigo-50 text-indigo-700 border-indigo-100', icon: ClipboardCheck },
-              { label: 'Interventions', value: stats.intervention, color: 'bg-amber-50 text-amber-700 border-amber-100', icon: Target },
-              { label: 'Appointments', value: stats.appointment, color: 'bg-purple-50 text-purple-700 border-purple-100', icon: CalendarClock },
-              { label: 'Term Dates', value: stats.term, color: 'bg-emerald-50 text-emerald-700 border-emerald-100', icon: BookOpen },
-            ].map(s => (
-              <div key={s.label} className={`rounded-xl border p-3 ${s.color}`}>
-                <div className="flex items-center gap-2 mb-1">
-                  <s.icon size={16} />
-                  <span className="text-xs font-medium opacity-75">{s.label}</span>
-                </div>
-                <p className="text-xl font-bold">{s.value}</p>
-              </div>
-            ))}
-          </div>
-        );
-      })()}
-
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Calendar grid */}
         <div className="lg:col-span-3">
@@ -268,7 +236,7 @@ export default function CalendarPage() {
                   <div
                     key={i}
                     onClick={() => setSelectedDate(d.date === selectedDate ? null : d.date)}
-                    className={`min-h-[90px] sm:min-h-[110px] lg:min-h-[140px] xl:min-h-[160px] p-1.5 border-b border-r border-slate-100 cursor-pointer transition-colors ${
+                    className={`min-h-[90px] sm:min-h-[110px] lg:min-h-[120px] p-1.5 border-b border-r border-slate-100 cursor-pointer transition-colors ${
                       !d.current ? 'bg-slate-50/50' : 'hover:bg-slate-50'
                     } ${isSelected ? 'bg-blue-50 ring-1 ring-blue-300 ring-inset' : ''}`}
                   >
