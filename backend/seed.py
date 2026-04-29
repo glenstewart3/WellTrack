@@ -14,11 +14,25 @@ async def seed_database(db, student_count: int = 32):
 
     for col in ["students", "attendance", "attendance_records", "school_days", "screening_sessions",
                 "saebrs_results", "self_report_results", "interventions", "case_notes", "alerts",
-                "appointments"]:
+                "appointments", "action_plans", "calendar_events", "notifications", "reports"]:
         await db[col].delete_many({})
 
     await db.school_settings.update_one({}, {"$set": {
         "excluded_absence_types": ["Camp", "Excursion", "School Event"],
+        "role_permissions": {
+            "teacher": ["dashboard", "screening", "students", "radar", "analytics", "reports", "interventions", "action-plans", "meeting", "alerts", "settings", "calendar", "notifications"],
+            "screener": ["screening", "students", "settings", "calendar", "notifications"],
+            "wellbeing": ["dashboard", "screening", "students", "radar", "analytics", "reports", "interventions", "action-plans", "appointments", "meeting", "alerts", "settings", "calendar", "notifications"],
+            "professional": ["dashboard", "students", "interventions", "action-plans", "appointments", "meeting", "settings", "calendar", "notifications"],
+            "leadership": ["dashboard", "screening", "students", "radar", "analytics", "reports", "interventions", "action-plans", "attendance", "meeting", "alerts", "settings", "calendar", "notifications"],
+        },
+        "feature_permissions": {
+            "teacher": ["students.add_edit", "case_notes.add_edit", "interventions.add_edit", "interventions.ai_suggest", "screenings.submit", "analytics.export", "reports.view", "reports.export", "action-plans.add_edit"],
+            "screener": ["screenings.submit", "students.view", "reports.view"],
+            "wellbeing": ["students.add_edit", "case_notes.add_edit", "case_notes.delete", "interventions.add_edit", "interventions.delete", "interventions.ai_suggest", "screenings.submit", "alerts.approve", "analytics.export", "appointments.delete", "reports.view", "reports.export", "action-plans.add_edit", "action-plans.delete"],
+            "professional": ["students.view", "interventions.add_edit", "interventions.ai_suggest", "appointments.add_edit", "action-plans.add_edit", "reports.view"],
+            "leadership": ["students.add_edit", "students.archive", "case_notes.add_edit", "case_notes.delete", "alerts.approve", "attendance.upload", "analytics.export", "appointments.delete", "reports.view", "reports.export", "reports.export_pdf", "action-plans.add_edit", "action-plans.delete", "calendar.manage"],
+        }
     }}, upsert=True)
 
     settings_doc = await db.school_settings.find_one({}, {"_id": 0})
@@ -719,6 +733,186 @@ async def seed_database(db, student_count: int = 32):
     # Combine individual and class-level alerts
     all_alerts_combined = all_alerts + class_alerts
 
+    # ── Generate Support Plans (Action Plans) for Tier 2 & 3 students ───────
+    all_action_plans = []
+    plan_templates = [
+        ("Attendance Support Plan", "Improve attendance through early morning check-ins and parent engagement"),
+        ("Behaviour Support Plan", "Develop self-regulation strategies and conflict resolution skills"),
+        ("Academic Support Plan", "Targeted literacy intervention with multi-sensory approach"),
+        ("Social Skills Plan", "Build peer relationships through structured play and buddy systems"),
+        ("Emotional Regulation Plan", "Teach coping strategies for anxiety and emotional dysregulation"),
+    ]
+    for idx, student in enumerate(students):
+        # Only Tier 2 and 3 get support plans
+        base_risk = risk_assignments[idx]
+        if base_risk == "low":
+            continue
+        sid = student["student_id"]
+        pref = student.get('preferred_name')
+        first = student['first_name']
+        display = f"{first}{(' (' + pref + ')') if pref and pref != first else ''} {student['last_name']}"
+        # 1-2 support plans per eligible student
+        for pi in range(rng.randint(1, 2)):
+            tmpl = plan_templates[pi % len(plan_templates)]
+            start_month = rng.randint(2, 5)
+            start_day = rng.randint(1, 28)
+            start_date = f"{seed_year}-{start_month:02d}-{start_day:02d}"
+            review_month = min(start_month + 2, 12)
+            review_date = f"{seed_year}-{review_month:02d}-{start_day:02d}"
+            status = rng.choice(["active", "active", "completed"])
+            all_action_plans.append({
+                "plan_id": f"plan_{uuid.uuid4().hex[:8]}",
+                "student_id": sid,
+                "student_name": display,
+                "title": tmpl[0],
+                "description": tmpl[1],
+                "goals": [
+                    {"id": str(uuid.uuid4()), "text": "Reduce absenteeism by 20% within 6 weeks", "completed": status == "completed"},
+                    {"id": str(uuid.uuid4()), "text": "Improve engagement in class activities", "completed": rng.random() > 0.5},
+                ],
+                "strategies": rng.choice([
+                    "Daily check-in with mentor teacher",
+                    "Visual schedule and transition warnings",
+                    "Parent communication log",
+                    "Break card access",
+                ]),
+                "start_date": start_date,
+                "review_date": review_date,
+                "status": status,
+                "staff_member": rng.choice(staff_options),
+                "created_at": f"{start_date}T09:00:00",
+            })
+
+    # ── Generate Calendar Events (Screening Periods, Terms) ─────────────────
+    all_calendar_events = []
+    # Term dates
+    terms_data = [
+        {"name": "Term 1", "start": f"{seed_year}-01-29", "end": f"{seed_year}-03-28", "type": "term"},
+        {"name": "Term 2", "start": f"{seed_year}-04-15", "end": f"{seed_year}-06-28", "type": "term"},
+        {"name": "Term 3", "start": f"{seed_year}-07-15", "end": f"{seed_year}-09-20", "type": "term"},
+        {"name": "Term 4", "start": f"{seed_year}-10-07", "end": f"{seed_year}-12-20", "type": "term"},
+    ]
+    for term in terms_data:
+        all_calendar_events.append({
+            "event_id": f"cal_{uuid.uuid4().hex[:8]}",
+            "title": f"{term['name']}",
+            "date": term["start"],
+            "type": term["type"],
+            "detail": f"Term Start",
+            "created_at": f"{term['start']}T00:00:00",
+        })
+        all_calendar_events.append({
+            "event_id": f"cal_{uuid.uuid4().hex[:8]}",
+            "title": f"{term['name']} End",
+            "date": term["end"],
+            "type": term["type"],
+            "detail": f"Term End",
+            "created_at": f"{term['end']}T00:00:00",
+        })
+    # Screening period windows (based on screening sessions)
+    for sess in screening_sessions:
+        all_calendar_events.append({
+            "event_id": f"cal_{uuid.uuid4().hex[:8]}",
+            "title": f"Screening: {sess['screening_period']}",
+            "date": sess["date"],
+            "type": "screening",
+            "detail": f"SAEBRS + Wellbeing Screening",
+            "screening_id": sess["screening_id"],
+            "created_at": f"{sess['date']}T00:00:00",
+        })
+    # Add intervention review dates from the interventions we created
+    for intv in all_int:
+        if intv.get("review_date"):
+            all_calendar_events.append({
+                "event_id": f"cal_{uuid.uuid4().hex[:8]}",
+                "title": f"Review: {intv['intervention_type']}",
+                "date": intv["review_date"],
+                "type": "intervention",
+                "detail": f"Student review for {intv['intervention_type']}",
+                "student_id": intv["student_id"],
+                "intervention_id": intv["intervention_id"],
+                "created_at": f"{intv['review_date']}T00:00:00",
+            })
+    # Add support plan review dates
+    for plan in all_action_plans:
+        if plan.get("review_date"):
+            all_calendar_events.append({
+                "event_id": f"cal_{uuid.uuid4().hex[:8]}",
+                "title": f"Review: {plan['title']}",
+                "date": plan["review_date"],
+                "type": "intervention",
+                "detail": plan["title"],
+                "student_id": plan["student_id"],
+                "plan_id": plan["plan_id"],
+                "created_at": f"{plan['review_date']}T00:00:00",
+            })
+    # Add appointment dates
+    for apt in all_appts:
+        if apt.get("date"):
+            all_calendar_events.append({
+                "event_id": f"cal_{uuid.uuid4().hex[:8]}",
+                "title": f"{apt['student_name']} - {apt['appointment_type']}",
+                "date": apt["date"],
+                "type": "appointment",
+                "detail": f"{apt['staff_member']} - {apt.get('room', 'TBC')}",
+                "student_id": apt["student_id"],
+                "appointment_id": apt["appointment_id"],
+                "created_at": f"{apt['date']}T00:00:00",
+            })
+
+    # ── Generate Notifications for Demo Users ────────────────────────────────
+    all_notifications = []
+    demo_users = [
+        {"user_id": "user_teacher_001", "name": "Ms Patel", "role": "teacher"},
+        {"user_id": "user_wellbeing_001", "name": "Ms Parker", "role": "wellbeing"},
+        {"user_id": "user_leadership_001", "name": "Mr Principal", "role": "leadership"},
+    ]
+    notification_templates = [
+        ("alert", "New Alert", "A student has moved to Tier 3 and requires immediate support"),
+        ("screening", "Screening Due", "SAEBRS screening window opens next week"),
+        ("appointment", "Appointment Reminder", "You have a parent meeting scheduled tomorrow"),
+        ("intervention", "Review Due", "Intervention review due for student"),
+        ("system", "System Update", "New features available in WellTrack"),
+    ]
+    for user in demo_users:
+        for ni in range(rng.randint(3, 6)):
+            tmpl = notification_templates[ni % len(notification_templates)]
+            days_ago = rng.randint(0, 14)
+            notif_date = date_type.today() - timedelta(days=days_ago)
+            all_notifications.append({
+                "notification_id": f"notif_{uuid.uuid4().hex[:8]}",
+                "user_id": user["user_id"],
+                "type": tmpl[0],
+                "title": tmpl[1],
+                "message": tmpl[2],
+                "is_read": days_ago > 3,  # Older ones are read
+                "created_at": f"{notif_date.isoformat()}T{rng.randint(8, 16):02d}:00:00",
+            })
+
+    # ── Generate Sample Reports ─────────────────────────────────────────────
+    all_reports = []
+    report_templates = [
+        ("Tier Distribution Report", "Overview of student tiers by year level and class"),
+        ("Screening Summary", "SAEBRS and wellbeing screening results by term"),
+        ("Attendance Analysis", "Students with attendance below 90%"),
+        ("Intervention Outcomes", "Summary of intervention effectiveness"),
+        ("Class Risk Profile", "Wellbeing risk levels by classroom"),
+    ]
+    for ri, rtmpl in enumerate(report_templates):
+        all_reports.append({
+            "report_id": f"rpt_{uuid.uuid4().hex[:8]}",
+            "name": rtmpl[0],
+            "description": rtmpl[1],
+            "type": rng.choice(["summary", "detailed", "export"]),
+            "filters": {
+                "year": seed_year,
+                "terms": ["Term 1", "Term 2"],
+                "year_levels": ["Foundation", "Year 1", "Year 3", "Year 5"],
+            },
+            "created_by": rng.choice([u["user_id"] for u in demo_users]),
+            "created_at": f"{seed_year}-0{ri+2}-15T10:00:00",
+        })
+
     for col_data, col_name in [
         (all_prior_saebrs + all_s1 + all_s2, "saebrs_results"),
         (all_prior_plus   + all_p1 + all_p2, "self_report_results"),
@@ -728,6 +922,10 @@ async def seed_database(db, student_count: int = 32):
         (all_alerts_combined, "alerts"),
         (all_appts,       "appointments"),
         (all_class_screenings, "class_screenings"),
+        (all_action_plans, "action_plans"),
+        (all_calendar_events, "calendar_events"),
+        (all_notifications, "notifications"),
+        (all_reports,     "reports"),
     ]:
         if col_data:
             await db[col_name].insert_many(col_data)
@@ -760,4 +958,8 @@ async def seed_database(db, student_count: int = 32):
         "class_screenings": len(all_class_screenings),
         "class_alerts": len(class_alerts),
         "classes": len({s["class_name"] for s in students}),
+        "action_plans": len(all_action_plans),
+        "calendar_events": len(all_calendar_events),
+        "notifications": len(all_notifications),
+        "reports": len(all_reports),
     }
