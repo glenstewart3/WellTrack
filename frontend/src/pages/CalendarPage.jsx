@@ -101,7 +101,32 @@ export default function CalendarPage() {
         if (intv.review_date) {
           evts.push({
             id: `intv-${intv.intervention_id}`, date: intv.review_date, type: 'intervention',
-            title: `Review: ${intv.student_name || 'Student'}`, detail: intv.intervention_type,
+            title: `${intv.student_name || 'Student'} - Review`,
+            detail: intv.intervention_type || 'Intervention Review',
+          });
+        }
+      }
+
+      // Appointments
+      const appts = await api.get('/appointments/upcoming').catch(() => ({ data: [] }));
+      for (const a of (Array.isArray(appts.data) ? appts.data : [])) {
+        if (a.scheduled_date && a.scheduled_date >= fmt(new Date(year, month - 1, 1)) && a.scheduled_date <= fmt(new Date(year, month + 2, 0))) {
+          evts.push({
+            id: `appt-${a.appointment_id}`, date: a.scheduled_date, type: 'appointment',
+            title: `${a.student_name || 'Student'} - ${a.session_type || 'Appointment'}`,
+            detail: a.provider_name || a.location || 'Scheduled appointment',
+          });
+        }
+      }
+
+      // Support plan reviews
+      const plans = await api.get('/action-plans?status=active').catch(() => ({ data: [] }));
+      for (const p of (Array.isArray(plans.data) ? plans.data : [])) {
+        if (p.review_date) {
+          evts.push({
+            id: `plan-${p.plan_id}`, date: p.review_date, type: 'intervention',
+            title: `${p.student_name || 'Student'} - Support Plan Review`,
+            detail: p.title || 'Support Plan Review',
           });
         }
       }
@@ -192,7 +217,7 @@ export default function CalendarPage() {
                   <div
                     key={i}
                     onClick={() => setSelectedDate(d.date === selectedDate ? null : d.date)}
-                    className={`min-h-[80px] sm:min-h-[100px] p-1.5 border-b border-r border-slate-100 cursor-pointer transition-colors ${
+                    className={`min-h-[90px] sm:min-h-[110px] p-1.5 border-b border-r border-slate-100 cursor-pointer transition-colors ${
                       !d.current ? 'bg-slate-50/50' : 'hover:bg-slate-50'
                     } ${isSelected ? 'bg-blue-50 ring-1 ring-blue-300 ring-inset' : ''}`}
                   >
@@ -202,16 +227,16 @@ export default function CalendarPage() {
                       {d.day}
                     </div>
                     <div className="space-y-0.5">
-                      {dayEvents.slice(0, 3).map(e => {
+                      {dayEvents.slice(0, 4).map(e => {
                         const conf = EVENT_TYPES[e.type] || EVENT_TYPES.screening;
                         return (
-                          <div key={e.id} className={`text-[10px] px-1.5 py-0.5 rounded font-medium truncate ${conf.color} text-white`}>
-                            {e.title}
+                          <div key={e.id} className={`text-[10px] px-1.5 py-0.5 rounded font-medium leading-tight ${conf.color} text-white`}>
+                            <span className="truncate block">{e.title}</span>
                           </div>
                         );
                       })}
-                      {dayEvents.length > 3 && (
-                        <div className="text-[10px] text-slate-400 font-medium pl-1">+{dayEvents.length - 3} more</div>
+                      {dayEvents.length > 4 && (
+                        <div className="text-[10px] text-slate-400 font-medium pl-1">+{dayEvents.length - 4} more</div>
                       )}
                     </div>
                   </div>
@@ -250,9 +275,9 @@ export default function CalendarPage() {
                     return (
                       <div key={e.id} className={`flex items-start gap-2 p-2.5 rounded-lg border ${conf.light}`}>
                         <Icon size={14} className="mt-0.5 shrink-0" />
-                        <div>
-                          <p className="text-xs font-semibold">{e.title}</p>
-                          {e.detail && <p className="text-[11px] opacity-70">{e.detail}</p>}
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold truncate">{e.title}</p>
+                          {e.detail && <p className="text-[11px] text-slate-600 mt-0.5">{e.detail}</p>}
                         </div>
                       </div>
                     );
