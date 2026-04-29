@@ -195,7 +195,7 @@ export default function ActionPlansPage() {
               <div className="divide-y divide-slate-100">
                 {group.plans.map(plan => (
                   <div key={plan.plan_id} className="px-4 py-3 flex items-center gap-3 hover:bg-slate-50/30 transition-colors cursor-pointer"
-                    onClick={() => navigate(`/students/${plan.student_id}`)}>
+                    onClick={() => navigate(`/students/${plan.student_id}?tab=support-plan`)}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-medium text-slate-800">{plan.title}</span>

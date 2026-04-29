@@ -196,7 +196,7 @@ export default function CalendarPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Calendar grid */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 min-w-0">
           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
             {/* Month nav */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
@@ -269,7 +269,7 @@ export default function CalendarPage() {
         </div>
 
         {/* Sidebar — selected day detail + legend */}
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0 lg:min-w-[280px] lg:max-w-[320px]" style={{ scrollbarGutter: 'stable' }}>
           {/* Legend */}
           <div className="bg-white border border-slate-200 rounded-xl p-4">
             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Event Types</h3>
@@ -302,9 +302,9 @@ export default function CalendarPage() {
                         className={`flex items-start gap-2 p-2.5 rounded-lg border ${conf.light} ${path ? 'cursor-pointer hover:bg-opacity-80 hover:shadow-sm transition-all' : ''}`}
                       >
                         <Icon size={14} className="mt-0.5 shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold truncate">{e.title}</p>
-                          {e.detail && <p className="text-[11px] text-slate-600 mt-0.5">{e.detail}</p>}
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                          <p className="text-xs font-semibold break-words leading-tight">{e.title}</p>
+                          {e.detail && <p className="text-[11px] text-slate-600 mt-0.5 break-words">{e.detail}</p>}
                           {path && <p className="text-[10px] text-blue-600 mt-1">Click to view →</p>}
                         </div>
                       </div>

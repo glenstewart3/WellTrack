@@ -736,12 +736,51 @@ async def seed_database(db, student_count: int = 32):
     # ── Generate Support Plans (Action Plans) for Tier 2 & 3 students ───────
     all_action_plans = []
     plan_templates = [
-        ("Attendance Support Plan", "Improve attendance through early morning check-ins and parent engagement"),
-        ("Behaviour Support Plan", "Develop self-regulation strategies and conflict resolution skills"),
-        ("Academic Support Plan", "Targeted literacy intervention with multi-sensory approach"),
-        ("Social Skills Plan", "Build peer relationships through structured play and buddy systems"),
-        ("Emotional Regulation Plan", "Teach coping strategies for anxiety and emotional dysregulation"),
+        ("Attendance Support Plan", "Improve attendance through early morning check-ins and parent engagement", 
+         ["Student has 85% attendance with multiple unexplained absences", "Family experiencing transport difficulties"]),
+        ("Behaviour Support Plan", "Develop self-regulation strategies and conflict resolution skills",
+         ["Student responds well to visual cues and structured routines", "Escalates during unstructured play times"]),
+        ("Academic Support Plan", "Targeted literacy intervention with multi-sensory approach",
+         ["Strong oral language skills and creativity", "Reading 18 months below expected level"]),
+        ("Social Skills Plan", "Build peer relationships through structured play and buddy systems",
+         ["Kind and empathetic toward younger students", "Difficulty initiating peer interactions"]),
+        ("Emotional Regulation Plan", "Teach coping strategies for anxiety and emotional dysregulation",
+         ["Self-aware and articulate about feelings when calm", "Frequent anxiety episodes during transitions and tests"]),
     ]
+    
+    # Plan-specific goal templates
+    goal_templates = {
+        "Attendance": [
+            {"description": "Increase attendance to 90% or above", "target": "90% attendance rate", "timeline": "6 weeks"},
+            {"description": "Reduce late arrivals to maximum 1 per week", "target": "1 or fewer lates", "timeline": "4 weeks"},
+        ],
+        "Behaviour": [
+            {"description": "Use self-regulation strategies during 80% of transitions", "target": "80% success rate", "timeline": "6 weeks"},
+            {"description": "Complete conflict resolution without adult support", "target": "3 consecutive resolutions", "timeline": "4 weeks"},
+        ],
+        "Academic": [
+            {"description": "Increase reading level by 6 months", "target": "Reading age improvement", "timeline": "Term 2"},
+            {"description": "Complete literacy tasks independently", "target": "80% independent completion", "timeline": "8 weeks"},
+        ],
+        "Social": [
+            {"description": "Initiate 2 peer interactions per day", "target": "2 daily initiations", "timeline": "5 weeks"},
+            {"description": "Participate in group work without prompting", "target": "Group engagement", "timeline": "6 weeks"},
+        ],
+        "Emotional": [
+            {"description": "Use calming strategies in 90% of anxiety episodes", "target": "90% strategy use", "timeline": "6 weeks"},
+            {"description": "Verbalise needs before escalation", "target": "80% verbalisation", "timeline": "4 weeks"},
+        ],
+    }
+    
+    review_schedule_options = ["Weekly", "Fortnightly", "Monthly", "Per Term"]
+    parent_involvement_templates = [
+        "Weekly phone calls to discuss progress",
+        "Daily communication book between home and school",
+        "Parent attends review meetings each term",
+        "Parent implements matching strategies at home",
+        "Fortnightly emails with progress updates",
+    ]
+    
     for idx, student in enumerate(students):
         # Only Tier 2 and 3 get support plans
         base_risk = risk_assignments[idx]
@@ -751,6 +790,8 @@ async def seed_database(db, student_count: int = 32):
         pref = student.get('preferred_name')
         first = student['first_name']
         display = f"{first}{(' (' + pref + ')') if pref and pref != first else ''} {student['last_name']}"
+        # Determine tier (2 or 3 based on risk)
+        tier = 3 if base_risk == "high" else 2
         # 1-2 support plans per eligible student
         for pi in range(rng.randint(1, 2)):
             tmpl = plan_templates[pi % len(plan_templates)]
@@ -760,15 +801,45 @@ async def seed_database(db, student_count: int = 32):
             review_month = min(start_month + 2, 12)
             review_date = f"{seed_year}-{review_month:02d}-{start_day:02d}"
             status = rng.choice(["active", "active", "completed"])
+            created_by = rng.choice(["Ms Parker (Wellbeing)", "Ms Ahmed (SENCO)", student["teacher"]])
+            # Get goal template based on plan type
+            plan_type_key = tmpl[0].split()[0]  # "Attendance", "Behaviour", etc.
+            goals_for_plan = goal_templates.get(plan_type_key, goal_templates["Attendance"])
+            
+            # Generate 1-2 reviews for completed plans
+            reviews = []
+            if status == "completed":
+                num_reviews = rng.randint(1, 3)
+                for ri in range(num_reviews):
+                    review_date_offset = rng.randint(14, 60)
+                    r_date = date_type.fromisoformat(start_date) + timedelta(days=review_date_offset)
+                    reviews.append({
+                        "review_id": f"rev_{uuid.uuid4().hex[:8]}",
+                        "date": r_date.isoformat(),
+                        "outcome": rng.choice(["on_track", "needs_adjustment", "goals_met", "not_progressing"]),
+                        "notes": rng.choice([
+                            "Student showing good progress toward goals",
+                            "Some goals met, others require more time",
+                            "Excellent engagement with strategies",
+                            "Adjusting approach based on student feedback",
+                        ]),
+                        "next_review_date": (r_date + timedelta(days=14)).isoformat(),
+                    })
+            
             all_action_plans.append({
                 "plan_id": f"plan_{uuid.uuid4().hex[:8]}",
                 "student_id": sid,
                 "student_name": display,
+                "student_year_level": student["year_level"],
+                "student_class": student["class_name"],
                 "title": tmpl[0],
                 "description": tmpl[1],
+                "tier": tier,
+                "strengths": tmpl[2][0],
+                "concerns": tmpl[2][1],
                 "goals": [
-                    {"id": str(uuid.uuid4()), "text": "Reduce absenteeism by 20% within 6 weeks", "completed": status == "completed"},
-                    {"id": str(uuid.uuid4()), "text": "Improve engagement in class activities", "completed": rng.random() > 0.5},
+                    {"description": goals_for_plan[0]["description"], "target": goals_for_plan[0]["target"], "timeline": goals_for_plan[0]["timeline"]},
+                    {"description": goals_for_plan[1 % len(goals_for_plan)]["description"], "target": goals_for_plan[1 % len(goals_for_plan)]["target"], "timeline": goals_for_plan[1 % len(goals_for_plan)]["timeline"]},
                 ],
                 "strategies": [
                     {"description": rng.choice([
@@ -776,12 +847,32 @@ async def seed_database(db, student_count: int = 32):
                         "Visual schedule and transition warnings",
                         "Parent communication log",
                         "Break card access",
-                    ]), "responsible": rng.choice(["Teacher", "Wellbeing Staff", "Parent"])}
+                        "Buddy system for social interactions",
+                        "Modified seating plan",
+                    ]), "responsible": rng.choice(["Teacher", "Wellbeing Staff", "Parent", "Student"])},
+                    {"description": rng.choice([
+                        "Exit pass for regulation breaks",
+                        "Visual timer for task management",
+                        "Weekly goal setting and reflection",
+                        "Positive reinforcement chart",
+                        "Peer mentoring program",
+                    ]), "responsible": rng.choice(["Teacher", "Wellbeing Staff", "Parent", "Student"])},
                 ],
+                "parent_involvement": rng.choice(parent_involvement_templates),
+                "review_schedule": rng.choice(review_schedule_options),
+                "notes": rng.choice([
+                    "Plan developed collaboratively with family",
+                    "Student actively participated in goal setting",
+                    "Reviewing strategies fortnightly with team",
+                    "Parent engagement strong",
+                    "Adjusting based on term feedback",
+                ]),
+                "reviews": reviews,
                 "start_date": start_date,
                 "review_date": review_date,
                 "status": status,
                 "staff_member": rng.choice(staff_options),
+                "created_by_name": created_by,
                 "created_at": f"{start_date}T09:00:00",
             })
 
