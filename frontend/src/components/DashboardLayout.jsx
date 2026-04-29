@@ -70,7 +70,7 @@ const SidebarContent = memo(function SidebarContent({
           >
             <Shield size={14} style={{ color: sidebarClass ? '#0f172a' : '#ffffff' }} />
           </div>
-          <p className="font-extrabold text-sm" style={{ fontFamily: 'Manrope,sans-serif', color: 'var(--wt-foreground)' }}>
+          <p className="font-extrabold" style={{ fontFamily: 'Manrope,sans-serif', fontSize: '1.1rem', color: 'var(--wt-foreground)' }}>
             {settings.platform_name || 'WellTrack'}
           </p>
         </div>
