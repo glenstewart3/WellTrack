@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, memo } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
@@ -8,7 +8,8 @@ import {
   LayoutDashboard, ClipboardCheck, Users, Radar, BarChart3,
   Target, Users2, Bell, Settings, LogOut,
   Menu, X, Shield, UserCog, Check, Sun, Moon, CalendarClock,
-  Calendar, CalendarDays, AlertTriangle, FileText, Inbox, ClipboardList
+  Calendar, CalendarDays, AlertTriangle, FileText, Inbox, ClipboardList,
+  MoreHorizontal
 } from 'lucide-react';
 
 // Simple flat list of nav items
@@ -133,7 +134,9 @@ export default function DashboardLayout() {
   const { settings, loadFullSettings } = useSettings();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [trialBannerDismissed, setTrialBannerDismissed] = useState(false);
   const userMenuRef = useRef(null);
@@ -233,20 +236,20 @@ export default function DashboardLayout() {
             sidebarClass={sidebarClass}
             sidebarStyle={sidebarStyle}
             onClose={() => setMobileOpen(false)}
-            isMobile
           />
         </aside>
       </div>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top bar */}
+        {/* Top bar - desktop only hamburger, mobile has bottom nav */}
         <header className="relative border-b px-3 sm:px-4 lg:px-6 py-3 flex items-center gap-2 sm:gap-4 shrink-0" style={{ backgroundColor: 'var(--wt-header-bg)', borderColor: 'var(--wt-header-border)' }}>
+          {/* Desktop hamburger for collapsing sidebar (future feature) - hidden on mobile since we have bottom nav */}
           <button
             onClick={() => setMobileOpen(true)}
-            className="lg:hidden relative z-20 p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 active:scale-95"
+            className="hidden lg:flex relative z-20 p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300"
             style={{ touchAction: 'manipulation' }}
-            data-testid="mobile-menu-btn"
+            data-testid="desktop-menu-btn"
           >
             <Menu size={20} />
           </button>
@@ -434,10 +437,120 @@ export default function DashboardLayout() {
               <div className="wt-blur-drift-e hidden md:block absolute bottom-[-10%] right-[22%] h-[320px] w-[320px] rounded-full opacity-50 blur-3xl" style={{ background: 'rgba(34, 211, 238, 0.20)' }} />
             </div>
           )}
-          <div className="relative z-10">
+          <div className="relative z-10 pb-16 lg:pb-0">
             <Outlet />
           </div>
         </main>
+
+        {/* Bottom Navigation - Mobile & Tablet only */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 z-40" style={{ backgroundColor: 'var(--wt-header-bg)', borderColor: 'var(--wt-header-border)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+          <div className="flex items-center justify-around py-2">
+            <NavLink
+              to="/dashboard"
+              className={({ isActive }) => `flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${isActive ? 'text-blue-600' : 'text-slate-500'}`}
+              style={({ isActive }) => isActive ? { color: activeNavColor } : {}}
+            >
+              <LayoutDashboard size={22} />
+              <span className="text-[10px] font-medium">Home</span>
+            </NavLink>
+            <NavLink
+              to="/students"
+              className={({ isActive }) => `flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${isActive ? 'text-blue-600' : 'text-slate-500'}`}
+              style={({ isActive }) => isActive ? { color: activeNavColor } : {}}
+            >
+              <Users size={22} />
+              <span className="text-[10px] font-medium">Students</span>
+            </NavLink>
+            <NavLink
+              to="/screening"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/screening', { state: { resetKey: Date.now() } });
+              }}
+              className={({ isActive }) => `flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${isActive ? 'text-blue-600' : 'text-slate-500'}`}
+              style={({ isActive }) => isActive ? { color: activeNavColor } : {}}
+            >
+              <ClipboardCheck size={22} />
+              <span className="text-[10px] font-medium">Screening</span>
+            </NavLink>
+            {canViewAlerts && (
+              <NavLink
+                to="/alerts"
+                className={({ isActive }) => `flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors relative ${isActive ? 'text-blue-600' : 'text-slate-500'}`}
+                style={({ isActive }) => isActive ? { color: activeNavColor } : {}}
+              >
+                <Bell size={22} />
+                {alertCount > 0 && (
+                  <span className="absolute top-0 right-1 min-w-[14px] h-[14px] px-1 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                    {alertCount > 99 ? '99+' : alertCount}
+                  </span>
+                )}
+                <span className="text-[10px] font-medium">Alerts</span>
+              </NavLink>
+            )}
+            <button
+              onClick={() => setMoreOpen(true)}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${moreOpen ? 'text-blue-600' : 'text-slate-500'}`}
+            >
+              <MoreHorizontal size={22} />
+              <span className="text-[10px] font-medium">More</span>
+            </button>
+          </div>
+        </nav>
+
+        {/* More Sheet - slides up from bottom */}
+        <div 
+          className={`lg:hidden fixed inset-0 z-50 transition-opacity duration-200 ${moreOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+          aria-hidden={!moreOpen}
+        >
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMoreOpen(false)} />
+          <div 
+            className={`absolute left-0 right-0 bottom-0 bg-white rounded-t-2xl shadow-2xl transform transition-transform duration-200 ease-out ${moreOpen ? 'translate-y-0' : 'translate-y-full'}`}
+            style={{ backgroundColor: 'var(--wt-header-bg)', maxHeight: '70vh' }}
+          >
+            {/* Handle bar */}
+            <div className="flex justify-center pt-3 pb-1" onClick={() => setMoreOpen(false)}>
+              <div className="w-10 h-1 bg-slate-300 rounded-full" />
+            </div>
+            {/* Header */}
+            <div className="px-4 py-2 border-b border-slate-100 flex items-center justify-between" style={{ borderColor: 'var(--wt-header-border)' }}>
+              <h3 className="font-semibold text-slate-900">Menu</h3>
+              <button onClick={() => setMoreOpen(false)} className="p-1.5 rounded-lg hover:bg-slate-100">
+                <X size={18} className="text-slate-500" />
+              </button>
+            </div>
+            {/* Menu items grid */}
+            <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(70vh - 100px)' }}>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { path: '/radar', icon: Radar, label: 'Risk Radar' },
+                  { path: '/analytics', icon: BarChart3, label: 'Analytics' },
+                  { path: '/reports', icon: FileText, label: 'Reports' },
+                  { path: '/interventions', icon: Target, label: 'Interventions' },
+                  { path: '/action-plans', icon: ClipboardList, label: 'Support Plans' },
+                  ...(settings?.feature_flags?.appointments !== false ? [{ path: '/appointments', icon: CalendarClock, label: 'Appointments' }] : []),
+                  { path: '/meeting', icon: Users2, label: 'MTSS Meeting' },
+                  ...(user?.role === 'leadership' || user?.role === 'admin' ? [{ path: '/attendance', icon: CalendarDays, label: 'Attendance' }] : []),
+                  { path: '/settings', icon: Settings, label: 'Settings' },
+                  ...(user?.role === 'admin' ? [
+                    { path: '/audit', icon: Shield, label: 'Audit Log' },
+                    { path: '/admin', icon: UserCog, label: 'Admin' },
+                  ] : []),
+                ].map(({ path, icon: Icon, label }) => (
+                  <NavLink
+                    key={path}
+                    to={path}
+                    onClick={() => setMoreOpen(false)}
+                    className={({ isActive }) => `flex flex-col items-center gap-2 p-3 rounded-xl transition-colors ${isActive ? 'bg-blue-50 text-blue-600' : 'hover:bg-slate-100 text-slate-600'}`}
+                  >
+                    <Icon size={22} />
+                    <span className="text-[11px] font-medium text-center leading-tight">{label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
