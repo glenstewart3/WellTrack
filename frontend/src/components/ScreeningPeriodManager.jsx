@@ -42,7 +42,13 @@ function buildTermWeeks(termStart, termEnd) {
   return weeks;
 }
 
-function fmtISO(d) { return d.toISOString().split('T')[0]; }
+function fmtISO(d) {
+  // Use local date parts to avoid UTC timezone shift
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
 function fmtDisplay(d) {
   const dd = String(d.getDate()).padStart(2, '0');
   const mm = String(d.getMonth() + 1).padStart(2, '0');
