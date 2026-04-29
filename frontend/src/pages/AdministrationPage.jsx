@@ -8,7 +8,7 @@ import {
   Eye, EyeOff, CheckCircle, Lock, LayoutDashboard, ClipboardCheck,
   Users, Radar, BarChart3, Target, CalendarDays, Users2, Bell, Settings,
   RotateCcw, Zap, Stethoscope, Settings2, FileText, Upload, AlertTriangle,
-  Database, Gauge, ClipboardList,
+  Database, Gauge, Calendar, Inbox, ClipboardList,
 } from 'lucide-react';
 import { DEFAULT_FEATURE_PERMISSIONS } from '../hooks/usePermissions';
 import useDocumentTitle from '../hooks/useDocumentTitle';
@@ -40,6 +40,8 @@ const PERMISSION_PAGES = [
   { key: 'interventions', label: 'Interventions',       icon: Target },
   { key: 'action-plans',  label: 'Support Plans',       icon: ClipboardList },
   { key: 'appointments',  label: 'Appointments',        icon: Stethoscope },
+  { key: 'calendar',      label: 'Calendar',            icon: Calendar },
+  { key: 'notifications', label: 'Notifications',       icon: Inbox },
   { key: 'attendance',    label: 'Attendance',          icon: CalendarDays },
   { key: 'meeting',       label: 'MTSS Meeting',        icon: Users2 },
   { key: 'alerts',        label: 'Alerts',              icon: Bell },
