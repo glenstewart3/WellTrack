@@ -27,7 +27,6 @@ const navItems = [
   { path: '/attendance', icon: CalendarDays, label: 'Attendance', roles: ['leadership', 'admin'] },
   { path: '/alerts', icon: Bell, label: 'Alerts' },
   { path: '/settings', icon: Settings, label: 'Settings' },
-  { path: '/audit', icon: Shield, label: 'Audit Log', adminOnly: true },
   { path: '/admin', icon: UserCog, label: 'Administration', adminOnly: true },
 ];
 

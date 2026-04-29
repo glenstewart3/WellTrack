@@ -28,7 +28,6 @@ import ReportBuilderPage from './pages/ReportBuilderPage';
 import TermComparisonPage from './pages/TermComparisonPage';
 import NotificationsPage from './pages/NotificationsPage';
 import CalendarPage from './pages/CalendarPage';
-import AuditLogPage from './pages/AuditLogPage';
 import ActionPlansPage from './pages/ActionPlansPage';
 import SALoginPage from './pages/sa/SALoginPage';
 import SADashboardPage from './pages/sa/SADashboardPage';
@@ -201,7 +200,6 @@ function SchoolRouter() {
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="action-plans" element={<ActionPlansPage />} />
-        <Route path="audit" element={<AuditLogPage />} />
         <Route path="admin" element={<AdministrationPage />} />
         <Route path="users" element={<Navigate to="/admin" replace />} />
       </Route>

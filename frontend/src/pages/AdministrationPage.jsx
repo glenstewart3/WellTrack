@@ -1176,7 +1176,7 @@ function AuditLogTab() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
-  const [filters, setFilters] = useState({ entity_type: '', action: '', date_from: '', date_to: '' });
+  const [filters, setFilters] = useState({ entity_type: '', action: '', date_from: '', date_to: '', user_id: '' });
   const PER_PAGE = 50;
 
   const load = async (p = 0, f = filters) => {
@@ -1187,6 +1187,7 @@ function AuditLogTab() {
       if (f.action) params.set('action', f.action);
       if (f.date_from) params.set('date_from', f.date_from);
       if (f.date_to) params.set('date_to', f.date_to);
+      if (f.user_id) params.set('user_id', f.user_id);
       const res = await api.get(`/audit?${params}`);
       setLogs(res.data.entries || []);
       setTotal(res.data.total || 0);
@@ -1198,7 +1199,7 @@ function AuditLogTab() {
 
   const applyFilters = () => { setPage(0); load(0); };
   const clearFilters = () => {
-    const reset = { entity_type: '', action: '', date_from: '', date_to: '' };
+    const reset = { entity_type: '', action: '', date_from: '', date_to: '', user_id: '' };
     setFilters(reset); setPage(0); load(0, reset);
   };
 
@@ -1248,6 +1249,12 @@ function AuditLogTab() {
           <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">To</label>
           <input type="date" value={filters.date_to} onChange={e => setF('date_to', e.target.value)}
             className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none" />
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">User</label>
+          <input type="text" value={filters.user_id} onChange={e => setF('user_id', e.target.value)}
+            placeholder="User ID or email"
+            className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none w-40" />
         </div>
         <button onClick={applyFilters}
           className="px-4 py-2 text-sm font-semibold bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
