@@ -62,7 +62,7 @@ const SidebarContent = memo(function SidebarContent({
   return (
     <div className="flex flex-col h-full">
       {/* Logo / Brand */}
-      <div className="px-5 py-[14px] border-b border-slate-100">
+      <div className="px-5 pt-[15px] pb-[15px] border-b border-slate-100">
         <div className="flex items-center gap-3">
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
