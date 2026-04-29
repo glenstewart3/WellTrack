@@ -244,15 +244,7 @@ export default function DashboardLayout() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar - desktop only hamburger, mobile has bottom nav */}
         <header className="relative border-b px-3 sm:px-4 lg:px-6 py-3 flex items-center gap-2 sm:gap-4 shrink-0" style={{ backgroundColor: 'var(--wt-header-bg)', borderColor: 'var(--wt-header-border)' }}>
-          {/* Desktop hamburger for collapsing sidebar (future feature) - hidden on mobile since we have bottom nav */}
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="hidden lg:flex relative z-20 p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300"
-            style={{ touchAction: 'manipulation' }}
-            data-testid="desktop-menu-btn"
-          >
-            <Menu size={20} />
-          </button>
+          {/* Hamburger removed - desktop has permanent sidebar, mobile has bottom nav */}
           {/* Mobile-only centered WellTrack logo (hidden when sidebar drawer is open) */}
           {!mobileOpen && (
             <div

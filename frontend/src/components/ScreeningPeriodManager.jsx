@@ -9,7 +9,7 @@ const TERMS = ['Term 1', 'Term 2', 'Term 3', 'Term 4'];
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-/** Given a term's start/end dates, return an array of { week, start, end, label } for every Monday-Friday week. */
+/** Given a term's start/end dates, return an array of { week, start, end, label } for every Monday-Sunday week. */
 function buildTermWeeks(termStart, termEnd) {
   if (!termStart || !termEnd) return [];
   const weeks = [];
@@ -24,7 +24,7 @@ function buildTermWeeks(termStart, termEnd) {
   while (cursor <= e) {
     const weekStart = new Date(cursor);
     const weekEnd = new Date(cursor);
-    weekEnd.setDate(weekEnd.getDate() + 4); // Friday
+    weekEnd.setDate(weekEnd.getDate() + 6); // Sunday (full week)
     // Only include if the week overlaps the term
     if (weekEnd >= s) {
       const clampedStart = weekStart < s ? new Date(s) : weekStart;

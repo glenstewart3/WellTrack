@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../api';
 import { useSettings } from '../context/SettingsContext';
+import { useNavigate } from 'react-router-dom';
 import {
   Calendar, ChevronLeft, ChevronRight, ClipboardCheck, Target,
   CalendarClock, BookOpen, Loader
@@ -17,6 +18,19 @@ const EVENT_TYPES = {
   intervention: { color: 'bg-amber-500', light: 'bg-amber-50 text-amber-700 border-amber-200', icon: Target, label: 'Intervention Review' },
   appointment: { color: 'bg-purple-500', light: 'bg-purple-50 text-purple-700 border-purple-200', icon: CalendarClock, label: 'Appointment' },
 };
+
+// Helper to get navigation path for an event
+function getEventNavigation(e) {
+  if (e.type === 'screening') return '/screening';
+  if (e.type === 'appointment') return '/appointments';
+  if (e.type === 'intervention') {
+    // Extract student_id from event id (format: intv-{intervention_id})
+    // We need to pass the student_id, which should be in the event data
+    return e.student_id ? `/students/${e.student_id}?tab=interventions` : '/interventions';
+  }
+  if (e.type === 'term') return '/settings';
+  return null;
+}
 
 function getMonthDays(year, month) {
   const first = new Date(year, month, 1);
@@ -56,6 +70,7 @@ function todayStr() {
 export default function CalendarPage() {
   useDocumentTitle('Calendar');
   const { settings } = useSettings();
+  const navigate = useNavigate();
   const today = todayStr();
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth());
@@ -103,6 +118,8 @@ export default function CalendarPage() {
             id: `intv-${intv.intervention_id}`, date: intv.review_date, type: 'intervention',
             title: `${intv.student_name || 'Student'} - Intervention review`,
             detail: intv.intervention_type || 'Intervention',
+            student_id: intv.student_id,
+            intervention_id: intv.intervention_id,
           });
         }
       }
@@ -127,6 +144,8 @@ export default function CalendarPage() {
             id: `plan-${p.plan_id}`, date: p.review_date, type: 'intervention',
             title: `${p.student_name || 'Student'} - Support Plan Review`,
             detail: p.title || 'Support Plan Review',
+            student_id: p.student_id,
+            plan_id: p.plan_id,
           });
         }
       }
@@ -229,8 +248,16 @@ export default function CalendarPage() {
                     <div className="space-y-0.5">
                       {dayEvents.slice(0, 4).map(e => {
                         const conf = EVENT_TYPES[e.type] || EVENT_TYPES.screening;
+                        const path = getEventNavigation(e);
                         return (
-                          <div key={e.id} className={`text-[10px] px-1.5 py-0.5 rounded font-medium leading-tight ${conf.color} text-white`}>
+                          <div 
+                            key={e.id} 
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              if (path) navigate(path);
+                            }}
+                            className={`text-[10px] px-1.5 py-0.5 rounded font-medium leading-tight ${conf.color} text-white cursor-pointer hover:opacity-90 ${path ? 'hover:underline' : ''}`}
+                          >
                             <span className="truncate block">{e.title}</span>
                           </div>
                         );
@@ -272,12 +299,18 @@ export default function CalendarPage() {
                   {selectedEvents.map(e => {
                     const conf = EVENT_TYPES[e.type] || EVENT_TYPES.screening;
                     const Icon = conf.icon;
+                    const path = getEventNavigation(e);
                     return (
-                      <div key={e.id} className={`flex items-start gap-2 p-2.5 rounded-lg border ${conf.light}`}>
+                      <div 
+                        key={e.id} 
+                        onClick={() => path && navigate(path)}
+                        className={`flex items-start gap-2 p-2.5 rounded-lg border ${conf.light} ${path ? 'cursor-pointer hover:bg-opacity-80 hover:shadow-sm transition-all' : ''}`}
+                      >
                         <Icon size={14} className="mt-0.5 shrink-0" />
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-xs font-semibold truncate">{e.title}</p>
                           {e.detail && <p className="text-[11px] text-slate-600 mt-0.5">{e.detail}</p>}
+                          {path && <p className="text-[10px] text-blue-600 mt-1">Click to view →</p>}
                         </div>
                       </div>
                     );
