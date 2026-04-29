@@ -268,7 +268,7 @@ export default function CalendarPage() {
                   <div
                     key={i}
                     onClick={() => setSelectedDate(d.date === selectedDate ? null : d.date)}
-                    className={`min-h-[90px] sm:min-h-[110px] p-1.5 border-b border-r border-slate-100 cursor-pointer transition-colors ${
+                    className={`min-h-[90px] sm:min-h-[110px] lg:min-h-[140px] xl:min-h-[160px] p-1.5 border-b border-r border-slate-100 cursor-pointer transition-colors ${
                       !d.current ? 'bg-slate-50/50' : 'hover:bg-slate-50'
                     } ${isSelected ? 'bg-blue-50 ring-1 ring-blue-300 ring-inset' : ''}`}
                   >
