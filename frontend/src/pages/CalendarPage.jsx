@@ -280,15 +280,10 @@ export default function CalendarPage() {
                     <div className="space-y-0.5">
                       {dayEvents.slice(0, 4).map(e => {
                         const conf = EVENT_TYPES[e.type] || EVENT_TYPES.screening;
-                        const path = getEventNavigation(e);
                         return (
                           <div 
                             key={e.id} 
-                            onClick={(ev) => {
-                              ev.stopPropagation();
-                              if (path) navigate(path);
-                            }}
-                            className={`text-[10px] px-1.5 py-0.5 rounded font-medium leading-tight ${conf.color} text-white cursor-pointer hover:opacity-90 ${path ? 'hover:underline' : ''}`}
+                            className={`text-[10px] px-1.5 py-0.5 rounded font-medium leading-tight ${conf.color} text-white`}
                           >
                             <span className="truncate block">{e.title}</span>
                           </div>
