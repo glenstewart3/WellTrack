@@ -770,12 +770,14 @@ async def seed_database(db, student_count: int = 32):
                     {"id": str(uuid.uuid4()), "text": "Reduce absenteeism by 20% within 6 weeks", "completed": status == "completed"},
                     {"id": str(uuid.uuid4()), "text": "Improve engagement in class activities", "completed": rng.random() > 0.5},
                 ],
-                "strategies": rng.choice([
-                    "Daily check-in with mentor teacher",
-                    "Visual schedule and transition warnings",
-                    "Parent communication log",
-                    "Break card access",
-                ]),
+                "strategies": [
+                    {"description": rng.choice([
+                        "Daily check-in with mentor teacher",
+                        "Visual schedule and transition warnings",
+                        "Parent communication log",
+                        "Break card access",
+                    ]), "responsible": rng.choice(["Teacher", "Wellbeing Staff", "Parent"])}
+                ],
                 "start_date": start_date,
                 "review_date": review_date,
                 "status": status,
