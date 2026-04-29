@@ -101,8 +101,8 @@ export default function CalendarPage() {
         if (intv.review_date) {
           evts.push({
             id: `intv-${intv.intervention_id}`, date: intv.review_date, type: 'intervention',
-            title: `${intv.student_name || 'Student'} - Review`,
-            detail: intv.intervention_type || 'Intervention Review',
+            title: `${intv.student_name || 'Student'} - Intervention review`,
+            detail: intv.intervention_type || 'Intervention',
           });
         }
       }
