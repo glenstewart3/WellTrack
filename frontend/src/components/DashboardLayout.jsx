@@ -26,6 +26,8 @@ const navItems = [
   { path: '/meeting', icon: Users2, label: 'MTSS Meeting' },
   { path: '/attendance', icon: CalendarDays, label: 'Attendance', roles: ['leadership', 'admin'] },
   { path: '/alerts', icon: Bell, label: 'Alerts' },
+  { path: '/calendar', icon: Calendar, label: 'Calendar' },
+  { path: '/notifications', icon: Inbox, label: 'Notifications' },
   { path: '/settings', icon: Settings, label: 'Settings' },
   { path: '/admin', icon: UserCog, label: 'Administration', adminOnly: true },
 ];

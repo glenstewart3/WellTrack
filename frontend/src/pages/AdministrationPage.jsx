@@ -72,11 +72,11 @@ const CONFIGURABLE_ROLES = [
 ];
 
 const DEFAULT_PERMISSIONS = {
-  teacher:      ['dashboard', 'screening', 'students', 'radar', 'analytics', 'reports', 'interventions', 'action-plans', 'meeting', 'alerts', 'settings'],
-  screener:     ['screening', 'students', 'settings'],
-  wellbeing:    ['dashboard', 'screening', 'students', 'radar', 'analytics', 'reports', 'interventions', 'action-plans', 'appointments', 'meeting', 'alerts', 'settings'],
-  professional: ['dashboard', 'students', 'interventions', 'action-plans', 'appointments', 'meeting', 'settings'],
-  leadership:   ['dashboard', 'screening', 'students', 'radar', 'analytics', 'reports', 'interventions', 'action-plans', 'attendance', 'meeting', 'alerts', 'settings'],
+  teacher:      ['dashboard', 'screening', 'students', 'radar', 'analytics', 'reports', 'interventions', 'action-plans', 'meeting', 'alerts', 'settings', 'calendar', 'notifications'],
+  screener:     ['screening', 'students', 'settings', 'calendar', 'notifications'],
+  wellbeing:    ['dashboard', 'screening', 'students', 'radar', 'analytics', 'reports', 'interventions', 'action-plans', 'appointments', 'meeting', 'alerts', 'settings', 'calendar', 'notifications'],
+  professional: ['dashboard', 'students', 'interventions', 'action-plans', 'appointments', 'meeting', 'settings', 'calendar', 'notifications'],
+  leadership:   ['dashboard', 'screening', 'students', 'radar', 'analytics', 'reports', 'interventions', 'action-plans', 'attendance', 'meeting', 'alerts', 'settings', 'calendar', 'notifications'],
 };
 
 // ── TAB NAV ──────────────────────────────────────────────────────────────────
