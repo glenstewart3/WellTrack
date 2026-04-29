@@ -524,7 +524,6 @@ export default function DashboardLayout() {
                   ...(user?.role === 'leadership' || user?.role === 'admin' ? [{ path: '/attendance', icon: CalendarDays, label: 'Attendance' }] : []),
                   { path: '/settings', icon: Settings, label: 'Settings' },
                   ...(user?.role === 'admin' ? [
-                    { path: '/audit', icon: Shield, label: 'Audit Log' },
                     { path: '/admin', icon: UserCog, label: 'Admin' },
                   ] : []),
                 ].map(({ path, icon: Icon, label }) => (
