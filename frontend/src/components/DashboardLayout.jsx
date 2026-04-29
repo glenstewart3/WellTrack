@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useMemo, memo } from 'react';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
@@ -9,8 +9,180 @@ import {
   Target, Users2, Bell, Settings, LogOut,
   Menu, X, Shield, UserCog, Check, Sun, Moon, CalendarClock,
   Calendar, CalendarDays, AlertTriangle, FileText, Inbox, ClipboardList,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, Search
 } from 'lucide-react';
+
+// SidebarContent is defined OUTSIDE the main component to have stable identity
+// and prevent remounting issues on mobile
+const SidebarContent = memo(function SidebarContent({ 
+  user, 
+  settings, 
+  activeNavColor, 
+  sidebarClass, 
+  sidebarStyle, 
+  onClose,
+  isMobile 
+}) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const featureFlags = settings.feature_flags || {};
+  
+  // Start all groups collapsed by default
+  const [collapsedGroups, setCollapsedGroups] = useState({
+    screening: true,
+    support: true,
+    monitoring: true,
+    admin: true,
+  });
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const toggleGroup = (key) => setCollapsedGroups(p => ({ ...p, [key]: !p[key] }));
+  
+  const roleLabels = { teacher: 'Teacher', screener: 'Screener', wellbeing: 'Wellbeing Staff', professional: 'Professional', leadership: 'Leadership', admin: 'Administrator' };
+  const roleBadgeColors = { teacher: 'bg-blue-100 text-blue-700', screener: 'bg-indigo-100 text-indigo-700', wellbeing: 'bg-purple-100 text-purple-700', professional: 'bg-violet-100 text-violet-700', leadership: 'bg-emerald-100 text-emerald-700', admin: 'bg-slate-100 text-slate-700' };
+  
+  // Auto-expand group containing current page
+  useEffect(() => {
+    const currentPath = location.pathname;
+    navGroups.forEach(group => {
+      if (group.items.some(item => currentPath.startsWith(item.path))) {
+        setCollapsedGroups(prev => ({ ...prev, [group.key]: false }));
+      }
+    });
+  }, [location.pathname]);
+  
+  // Filter groups based on search
+  const filteredGroups = useMemo(() => {
+    if (!searchQuery.trim()) return navGroups;
+    const query = searchQuery.toLowerCase();
+    return navGroups.map(group => ({
+      ...group,
+      items: group.items.filter(item => 
+        item.label.toLowerCase().includes(query)
+      )
+    })).filter(group => group.items.length > 0 || group.key === 'core');
+  }, [searchQuery]);
+  
+  return (
+    <div className="flex flex-col h-full">
+      {/* Logo / Brand */}
+      <div className="px-5 py-4 border-b border-slate-100">
+        <div className="flex items-center gap-3">
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+            style={{ backgroundColor: sidebarClass ? '#f1f5f9' : '#0f172a' }}
+          >
+            <Shield size={14} style={{ color: sidebarClass ? '#0f172a' : '#ffffff' }} />
+          </div>
+          <p className="font-extrabold text-sm" style={{ fontFamily: 'Manrope,sans-serif', color: 'var(--wt-foreground)' }}>
+            {settings.platform_name || 'WellTrack'}
+          </p>
+        </div>
+      </div>
+      
+      {/* Search */}
+      <div className="px-3 py-2">
+        <div className="relative">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Find page..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          />
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 px-2 py-2 sidebar-scroll overflow-y-auto">
+        <div className="space-y-0.5">
+          {filteredGroups.map(group => {
+            if (group.adminOnly && user?.role !== 'admin') return null;
+            const visibleItems = group.items.filter(item => {
+              if (item.adminOnly && user?.role !== 'admin') return false;
+              if (item.featureFlag && featureFlags[item.featureFlag] === false) return false;
+              if (user?.role === 'admin') return true;
+              const rolePerms = settings?.role_permissions;
+              if (rolePerms?.[user?.role]) {
+                const pageKey = item.path.replace('/', '');
+                return rolePerms[user.role].includes(pageKey);
+              }
+              if (user?.role === 'screener') return item.path === '/screening';
+              if (item.roles && !item.roles.includes(user?.role)) return false;
+              return true;
+            });
+            if (visibleItems.length === 0) return null;
+            const isCollapsed = collapsedGroups[group.key];
+            const hasActiveItem = visibleItems.some(item => location.pathname.startsWith(item.path));
+            return (
+              <div key={group.key}>
+                {group.label && (
+                  <button
+                    onClick={() => toggleGroup(group.key)}
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 mt-1 mb-0.5 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+                      hasActiveItem ? 'text-slate-600' : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    <span>{group.label}</span>
+                    {isCollapsed ? <ChevronDown size={11} /> : <ChevronUp size={11} />}
+                  </button>
+                )}
+                {!isCollapsed && (
+                  <div className="space-y-0.5">
+                    {visibleItems.map(({ path, icon: Icon, label }) => (
+                      <NavLink
+                        key={path}
+                        to={path}
+                        onClick={(e) => {
+                          if (path === '/screening') {
+                            e.preventDefault();
+                            navigate('/screening', { state: { resetKey: Date.now() } });
+                          }
+                          onClose?.();
+                        }}
+                        className={({ isActive }) =>
+                          `flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-all duration-150 ${
+                            isActive 
+                              ? 'text-white shadow-sm' 
+                              : 'text-slate-600 hover:bg-slate-100/50 hover:text-slate-900'
+                          }`
+                        }
+                        style={({ isActive }) => isActive ? { backgroundColor: activeNavColor } : {}}
+                      >
+                        <Icon size={15} className="shrink-0" />
+                        <span className="truncate">{label}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* User info */}
+      <div className="px-3 py-3 border-t border-slate-100">
+        <div className="flex items-center gap-2.5">
+          {user?.picture ? (
+            <img src={user.picture} alt={user.name} className="w-7 h-7 rounded-full object-cover" />
+          ) : (
+            <div className="w-7 h-7 bg-slate-200 rounded-full flex items-center justify-center">
+              <span className="text-xs font-semibold text-slate-600">{user?.name?.[0] || 'U'}</span>
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-slate-900 truncate">{user?.name || 'User'}</p>
+            <span className={`text-[10px] px-1 py-0.5 rounded font-medium ${roleBadgeColors[user?.role] || 'bg-slate-100 text-slate-600'}`}>
+              {roleLabels[user?.role] || 'User'}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
 
 const navGroups = [
   {
@@ -112,8 +284,6 @@ export default function DashboardLayout() {
 
   const [alertCount, setAlertCount] = useState(0);
   const [notifCount, setNotifCount] = useState(0);
-  const [collapsedGroups, setCollapsedGroups] = useState({});
-  const toggleGroup = (key) => setCollapsedGroups(p => ({ ...p, [key]: !p[key] }));
 
   // ── Alerts visibility ──────────────────────────────────────────────────────
   // Admins always see alerts; for other roles we check the same role_permissions
@@ -139,126 +309,41 @@ export default function DashboardLayout() {
       .catch(() => {});
   }, []);
 
-  const renderSidebar = () => (
-    <div className="flex flex-col h-full">
-      {/* Logo / Brand */}
-      <div className="px-6 py-5 border-b border-slate-100">
-        <div>
-          <div className="flex items-center gap-3">
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-              style={{ backgroundColor: resolvedTheme === 'dark' ? '#f1f5f9' : '#0f172a' }}
-            >
-              <Shield size={16} style={{ color: resolvedTheme === 'dark' ? '#0f172a' : '#ffffff' }} />
-            </div>
-            <p className="font-extrabold" style={{ fontFamily: 'Manrope,sans-serif', fontSize: '1.1rem', color: 'var(--wt-foreground)' }}>
-              {settings.platform_name || 'WellTrack'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-4 sidebar-scroll overflow-y-auto">
-        <div className="space-y-1">
-          {navGroups.map(group => {
-            if (group.adminOnly && user?.role !== 'admin') return null;
-            const visibleItems = group.items.filter(item => {
-              if (item.adminOnly && user?.role !== 'admin') return false;
-              if (item.featureFlag && featureFlags[item.featureFlag] === false) return false;
-              if (user?.role === 'admin') return true;
-              const rolePerms = settings?.role_permissions;
-              if (rolePerms?.[user?.role]) {
-                const pageKey = item.path.replace('/', '');
-                return rolePerms[user.role].includes(pageKey);
-              }
-              if (user?.role === 'screener') return item.path === '/screening';
-              if (item.roles && !item.roles.includes(user?.role)) return false;
-              return true;
-            });
-            if (visibleItems.length === 0) return null;
-            const isCollapsed = collapsedGroups[group.key];
-            return (
-              <div key={group.key}>
-                {group.label && (
-                  <button
-                    onClick={() => toggleGroup(group.key)}
-                    className="w-full flex items-center justify-between px-3 py-1.5 mt-2 mb-0.5 text-[10.5px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-600 transition-colors"
-                  >
-                    <span>{group.label}</span>
-                    {isCollapsed ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
-                  </button>
-                )}
-                {!isCollapsed && (
-                  <div className="space-y-0.5">
-                    {visibleItems.map(({ path, icon: Icon, label }) => (
-                      <NavLink
-                        key={path}
-                        to={path}
-                        onClick={(e) => {
-                          if (path === '/screening') {
-                            e.preventDefault();
-                            navigate('/screening', { state: { resetKey: Date.now() } });
-                          }
-                          setMobileOpen(false);
-                        }}
-                        data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
-                        style={({ isActive }) => isActive ? { backgroundColor: activeNavColor } : {}}
-                        className={({ isActive }) =>
-                          `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
-                            isActive ? 'text-white shadow-sm' : 'text-slate-600 sidebar-nav-hover hover:text-slate-900'
-                          }`
-                        }
-                      >
-                        <Icon size={16} className="shrink-0" />
-                        <span>{label}</span>
-                      </NavLink>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </nav>
-
-      {/* User info */}
-      <div className="px-4 py-4 border-t border-slate-100">
-        <div className="flex items-center gap-3 mb-3">
-          {user?.picture ? (
-            <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
-          ) : (
-            <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center">
-              <span className="text-xs font-semibold text-slate-600">{user?.name?.[0] || 'U'}</span>
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-900 truncate">{user?.name || 'User'}</p>
-            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${roleBadgeColors[user?.role] || 'bg-slate-100 text-slate-600'}`}>
-              {roleLabels[user?.role] || 'User'}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="flex h-dvh overflow-hidden" style={{ backgroundColor: 'var(--wt-page-bg, #f8fafc)' }}>
       {/* Desktop Sidebar */}
-      <aside className={`hidden lg:flex flex-col w-60 border-r shrink-0 ${sidebarClass}`} style={sidebarStyle}>
-        {renderSidebar()}
+      <aside className={`hidden lg:flex flex-col w-56 border-r shrink-0 ${sidebarClass}`} style={sidebarStyle}>
+        <SidebarContent 
+          user={user} 
+          settings={settings} 
+          activeNavColor={activeNavColor}
+          sidebarClass={sidebarClass}
+          sidebarStyle={sidebarStyle}
+        />
       </aside>
 
-      {/* Mobile Overlay */}
-      {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="fixed inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
-          <aside className={`relative z-10 flex flex-col w-60 h-full shadow-xl border-r ${sidebarClass}`} style={sidebarStyle}>
-            {renderSidebar()}
-          </aside>
-        </div>
-      )}
+      {/* Mobile Overlay - Always rendered but hidden via CSS to prevent mount/unmount issues */}
+      <div 
+        className={`lg:hidden fixed inset-0 z-50 transition-opacity duration-200 ${mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        aria-hidden={!mobileOpen}
+      >
+        <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
+        <aside 
+          className={`absolute left-0 top-0 bottom-0 w-60 shadow-xl border-r transform transition-transform duration-200 ease-out ${sidebarClass}`} 
+          style={{ ...sidebarStyle, transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)' }}
+        >
+          <SidebarContent 
+            user={user} 
+            settings={settings} 
+            activeNavColor={activeNavColor}
+            sidebarClass={sidebarClass}
+            sidebarStyle={sidebarStyle}
+            onClose={() => setMobileOpen(false)}
+            isMobile
+          />
+        </aside>
+      </div>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -266,7 +351,7 @@ export default function DashboardLayout() {
         <header className="relative border-b px-3 sm:px-4 lg:px-6 py-3 flex items-center gap-2 sm:gap-4 shrink-0" style={{ backgroundColor: 'var(--wt-header-bg)', borderColor: 'var(--wt-header-border)' }}>
           <button
             onClick={() => setMobileOpen(true)}
-            className="lg:hidden relative z-10 p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300"
+            className="lg:hidden relative z-20 p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 active:scale-95"
             style={{ touchAction: 'manipulation' }}
             data-testid="mobile-menu-btn"
           >
