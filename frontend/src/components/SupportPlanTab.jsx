@@ -17,7 +17,31 @@ const TIER_COLORS = {
   3: 'bg-rose-100 text-rose-700',
 };
 
+// Read-only view components for goals and strategies
+function GoalRow({ goal, index }) {
+  return (
+    <div className="flex gap-2 p-2.5 bg-slate-50 rounded-lg text-sm">
+      <span className="text-slate-400 font-mono text-xs mt-0.5">{index + 1}.</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-slate-700">{goal.description}</p>
+        {goal.target && <p className="text-xs text-slate-500 mt-0.5">Target: {goal.target}</p>}
+        {goal.timeline && <p className="text-xs text-slate-400">Timeline: {goal.timeline}</p>}
+      </div>
+    </div>
+  );
+}
 
+function StrategyRow({ strategy, index }) {
+  return (
+    <div className="flex gap-2 p-2.5 bg-slate-50 rounded-lg text-sm">
+      <span className="text-slate-400 font-mono text-xs mt-0.5">{index + 1}.</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-slate-700">{strategy.description}</p>
+        {strategy.responsible && <p className="text-xs text-slate-500 mt-0.5">Responsible: {strategy.responsible}</p>}
+      </div>
+    </div>
+  );
+}
 
 function PlanCard({ plan, onEdit, onDelete, onAddReview, expanded, onToggle }) {
   const [showReviewForm, setShowReviewForm] = useState(false);
