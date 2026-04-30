@@ -378,7 +378,7 @@ function UserManagementTab() {
                       )}
                     </td>
                     <td className="py-3.5 px-4 text-slate-400 text-xs">{u.created_at?.split('T')[0] || '—'}</td>
-                    <td className="py-3.5 px-4 text-slate-400 text-xs">{u.last_login ? u.last_login.split('T')[0] : <span className="text-slate-300">Never</span>}</td>
+                    <td className="py-3.5 px-4 text-slate-400 text-xs">{u.last_login ? u.last_login.split('T')[0].split('-').reverse().join('-') : <span className="text-slate-300">Never</span>}</td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-1">
                         <button onClick={() => openEditModal(u)}
