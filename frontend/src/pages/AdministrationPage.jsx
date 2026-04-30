@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
@@ -479,7 +480,7 @@ function UserManagementTab() {
       </div>
 
       {/* Add User Modal */}
-      {showAdd && (
+      {showAdd && createPortal(
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
             <div className="flex justify-between items-center mb-5">
@@ -525,10 +526,10 @@ function UserManagementTab() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* Set Password Modal */}
-      {setPasswordUser && (
+      {setPasswordUser && createPortal(
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
             <div className="flex justify-between items-center mb-5">
@@ -570,10 +571,10 @@ function UserManagementTab() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* Professional Settings Modal */}
-      {profUser && (
+      {profUser && createPortal(
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0">
@@ -689,10 +690,10 @@ function UserManagementTab() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* Delete Confirm Modal */}
-      {deleteConfirm && (
+      {deleteConfirm && createPortal(
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
             <h3 className="font-bold text-slate-900 mb-2" style={{ fontFamily: 'Manrope,sans-serif' }}>Remove User?</h3>
@@ -709,7 +710,7 @@ function UserManagementTab() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {showBulkUpload && (
         <StaffUploadModal
@@ -727,7 +728,7 @@ function UserManagementTab() {
       )}
 
       {/* Edit User Modal */}
-      {editUserModal && (
+      {editUserModal && createPortal(
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
             <div className="flex justify-between items-center mb-5">
@@ -793,7 +794,7 @@ function UserManagementTab() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }
