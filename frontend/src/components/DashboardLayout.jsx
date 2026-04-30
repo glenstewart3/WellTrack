@@ -283,96 +283,58 @@ export default function DashboardLayout() {
               </p>
             </div>
           )}
-          {/* Desktop Global Search - Absolutely centered on screen */}
-          <div className="hidden lg:block absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-full max-w-md px-4">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search size={18} className="text-slate-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search students, interventions, plans..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  if (e.target.value.length >= 2) {
-                    performSearch(e.target.value);
-                  } else {
-                    setSearchResults([]);
-                  }
-                }}
-                className="w-full pl-11 pr-4 py-2.5 text-sm bg-white border border-slate-200 shadow-md hover:shadow-lg focus:shadow-xl focus:border-blue-400 rounded-xl transition-all outline-none placeholder:text-slate-400"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => { setSearchQuery(''); setSearchResults([]); }}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  <X size={16} className="text-slate-400 hover:text-slate-600" />
-                </button>
-              )}
-              {searchResults.length > 0 && searchQuery.length >= 2 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 py-2 z-50 max-h-80 overflow-y-auto">
-                  {searchResults.map((result) => (
-                    <button
-                      key={result.id}
-                      onClick={() => {
-                        navigate(result.path);
-                        setSearchQuery('');
-                        setSearchResults([]);
-                      }}
-                      className="w-full px-4 py-2.5 text-left hover:bg-slate-50 flex items-center gap-3"
-                    >
-                      <result.icon size={18} className="text-slate-400" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-800 truncate">{result.title}</p>
-                        <p className="text-xs text-slate-500">{result.subtitle ? `${result.subtitle} · ` : ''}{result.type}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
 
-          <div className="flex-1 lg:hidden" />
-          {/* School name (right side of top bar) — desktop + tablet only. Hidden on mobile
-              where the centered WellTrack logo already identifies the platform. */}
+          {/* Far left: School name */}
           {settings.school_name && (
-            <div className="hidden lg:flex items-center gap-2 min-w-0 mr-2" data-testid="topbar-school-name">
+            <div className="hidden lg:flex items-center gap-2 min-w-0 flex-shrink-0" data-testid="topbar-school-name">
               <span className="truncate font-semibold text-sm" style={{ fontFamily: 'Manrope,sans-serif', color: 'var(--wt-foreground)' }}>
                 {settings.school_name}
               </span>
             </div>
           )}
-          {/* Calendar icon */}
-          <NavLink to="/calendar" className="relative p-1.5 sm:p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" aria-label="Calendar">
-            <Calendar size={18} />
-          </NavLink>
-          {/* Notifications icon */}
-          <NavLink to="/notifications" className="relative p-1.5 sm:p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" aria-label="Notifications">
-            <Inbox size={18} />
-            {notifCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 bg-blue-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
-                {notifCount > 99 ? '99+' : notifCount}
-              </span>
-            )}
-          </NavLink>
-          {/* Alert indicator — hidden when the user's role doesn't have access to /alerts */}
-          {canViewAlerts && (
-            <NavLink to="/alerts" className="relative p-1.5 sm:p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors hidden lg:flex" data-testid="alert-bell" aria-label="Alerts">
-              <Bell size={18} data-testid="alerts-bell-button" />
-              {alertCount > 0 && (
-                <span
-                  className="absolute top-1 right-1 min-w-[14px] h-[14px] px-1 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center"
-                >
-                  {alertCount > 99 ? '99+' : alertCount}
+
+          <div className="flex-1 lg:hidden" />
+
+          {/* Center: Navigation icons */}
+          <div className="hidden lg:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
+            {/* Calendar icon */}
+            <NavLink to="/calendar" className="relative p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" aria-label="Calendar">
+              <Calendar size={20} />
+            </NavLink>
+            {/* Notifications icon */}
+            <NavLink to="/notifications" className="relative p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" aria-label="Notifications">
+              <Inbox size={20} />
+              {notifCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 bg-blue-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                  {notifCount > 99 ? '99+' : notifCount}
                 </span>
               )}
             </NavLink>
-          )}
-          {/* User avatar + click dropdown */}
-          <div className="relative" ref={userMenuRef}>
+            {/* Alert indicator */}
+            {canViewAlerts && (
+              <NavLink to="/alerts" className="relative p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" data-testid="alert-bell" aria-label="Alerts">
+                <Bell size={20} data-testid="alerts-bell-button" />
+                {alertCount > 0 && (
+                  <span
+                    className="absolute top-1 right-1 min-w-[14px] h-[14px] px-1 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center"
+                  >
+                    {alertCount > 99 ? '99+' : alertCount}
+                  </span>
+                )}
+              </NavLink>
+            )}
+            {/* Search button */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="relative p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors"
+              aria-label="Search"
+            >
+              <Search size={20} />
+            </button>
+          </div>
+
+          {/* Far right: User avatar */}
+          <div className="relative ml-auto" ref={userMenuRef}>
             <button
               onClick={() => setUserMenuOpen(p => !p)}
               className="rounded-full focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-slate-400"
@@ -618,19 +580,19 @@ export default function DashboardLayout() {
           </div>
         </div>
 
-        {/* Mobile Search Modal */}
+        {/* Search Modal - Desktop & Mobile */}
         <div 
-          className={`lg:hidden fixed inset-0 z-50 transition-opacity duration-200 ${searchOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+          className={`fixed inset-0 z-50 transition-opacity duration-200 ${searchOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
           aria-hidden={!searchOpen}
         >
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSearchOpen(false)} />
           <div 
-            className={`absolute left-4 right-4 top-20 bg-white rounded-2xl shadow-2xl transform transition-transform duration-200 ease-out ${searchOpen ? 'translate-y-0' : '-translate-y-4'}`}
+            className={`absolute left-4 right-4 lg:left-auto lg:right-auto lg:w-full lg:max-w-lg lg:left-1/2 lg:-translate-x-1/2 top-20 lg:top-24 bg-white rounded-2xl shadow-2xl transform transition-transform duration-200 ease-out ${searchOpen ? 'translate-y-0' : '-translate-y-4'}`}
           >
             {/* Search Input */}
             <div className="p-4 border-b border-slate-100">
               <div className="relative">
-                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search students, interventions, plans..."
@@ -644,14 +606,14 @@ export default function DashboardLayout() {
                     }
                   }}
                   autoFocus={searchOpen}
-                  className="w-full pl-10 pr-10 py-3 text-base bg-white border border-slate-200 shadow-sm focus:shadow-md focus:border-blue-400 rounded-xl outline-none"
+                  className="w-full pl-12 pr-12 py-3.5 text-base bg-white border border-slate-200 shadow-sm focus:shadow-md focus:border-blue-400 rounded-xl outline-none"
                 />
                 {searchQuery && (
                   <button 
                     onClick={() => { setSearchQuery(''); setSearchResults([]); }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-full hover:bg-slate-200"
                   >
-                    <X size={16} className="text-slate-400" />
+                    <X size={18} className="text-slate-400" />
                   </button>
                 )}
               </div>
