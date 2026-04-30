@@ -142,7 +142,15 @@ export default function DashboardLayout() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const searchInputRef = useRef(null);
   const userMenuRef = useRef(null);
+
+  // Auto-focus search input when modal opens
+  useEffect(() => {
+    if (searchOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [searchOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -500,10 +508,7 @@ export default function DashboardLayout() {
               onClick={() => setSearchOpen(true)}
               className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${searchOpen ? 'text-blue-600' : 'text-slate-500'}`}
             >
-              <div className="relative">
-                <Search size={22} />
-                <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-500 rounded-full"></div>
-              </div>
+              <Search size={22} />
               <span className="text-[10px] font-medium">Search</span>
             </button>
             <button
@@ -594,6 +599,7 @@ export default function DashboardLayout() {
               <div className="relative">
                 <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
+                  ref={searchInputRef}
                   type="text"
                   placeholder="Search students, interventions, plans..."
                   value={searchQuery}
@@ -605,7 +611,6 @@ export default function DashboardLayout() {
                       setSearchResults([]);
                     }
                   }}
-                  autoFocus={searchOpen}
                   className="w-full pl-12 pr-12 py-3.5 text-base bg-white border border-slate-200 shadow-sm focus:shadow-md focus:border-blue-400 rounded-xl outline-none"
                 />
                 {searchQuery && (
