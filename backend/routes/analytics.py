@@ -21,11 +21,13 @@ async def tier_distribution(user=Depends(get_current_user), db=Depends(get_tenan
     students = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
     student_ids = [s["student_id"] for s in students]
 
-    saebrs_map, plus_map, att_map = await asyncio.gather(
+    saebrs_map, plus_map, att_map, settings_doc = await asyncio.gather(
         get_latest_saebrs_bulk(db, student_ids),
         get_latest_saebrs_plus_bulk(db, student_ids),
         get_bulk_attendance_stats(db, student_ids),
+        get_school_settings_doc(db),
     )
+    thresholds = settings_doc.get("tier_thresholds", {})
 
     counts = {"tier1": 0, "tier2": 0, "tier3": 0, "unscreened": 0}
     class_breakdown = {}
@@ -38,7 +40,7 @@ async def tier_distribution(user=Depends(get_current_user), db=Depends(get_tenan
         if cls not in class_breakdown:
             class_breakdown[cls] = {"tier1": 0, "tier2": 0, "tier3": 0, "teacher": s.get("teacher", "")}
         if saebrs and plus:
-            t = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
+            t = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct, thresholds)
             counts[f"tier{t}"] += 1
             class_breakdown[cls][f"tier{t}"] += 1
         elif saebrs:
@@ -78,7 +80,11 @@ async def tier_movement(limit: int = 8, user=Depends(get_current_user), db=Depen
         r["_id"]: [{k: v for k, v in d.items() if k != "_id"} for d in r["docs"]]
         for r in plus_agg
     }
-    att_map = await get_bulk_attendance_stats(db, student_ids)
+    att_map, settings_doc = await asyncio.gather(
+        get_bulk_attendance_stats(db, student_ids),
+        get_school_settings_doc(db),
+    )
+    thresholds = settings_doc.get("tier_thresholds", {})
 
     def _to_dt(v):
         if isinstance(v, datetime):
@@ -134,7 +140,7 @@ async def tier_movement(limit: int = 8, user=Depends(get_current_user), db=Depen
             else:
                 break
         if s_doc and p_doc:
-            return compute_mtss_tier(s_doc["risk_level"], p_doc["wellbeing_tier"], att_pct)
+            return compute_mtss_tier(s_doc["risk_level"], p_doc["wellbeing_tier"], att_pct, thresholds)
         if s_doc:
             rl = s_doc["risk_level"]
             return 3 if rl == "High Risk" else (2 if rl == "Some Risk" else 1)
@@ -188,7 +194,7 @@ async def classroom_radar(class_name: str, user=Depends(get_current_user), db=De
         score_trend = (all_saebrs[-1]["total_score"] - all_saebrs[-2]["total_score"]) if len(all_saebrs) >= 2 else None
 
         if saebrs and plus:
-            tier = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
+            tier = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct, thresholds)
         elif saebrs:
             tier = 3 if saebrs["risk_level"] == "High Risk" else (2 if saebrs["risk_level"] == "Some Risk" else 1)
         else:
@@ -230,11 +236,13 @@ async def school_wide(year_level: Optional[str] = None, class_name: Optional[str
     students = await db.students.find(query, {"_id": 0}).to_list(500)
     student_ids = [s["student_id"] for s in students]
 
-    saebrs_map, plus_map, att_map = await asyncio.gather(
+    saebrs_map, plus_map, att_map, settings_doc = await asyncio.gather(
         get_latest_saebrs_bulk(db, student_ids),
         get_latest_saebrs_plus_bulk(db, student_ids),
         get_bulk_attendance_stats(db, student_ids),
+        get_school_settings_doc(db),
     )
+    thresholds = settings_doc.get("tier_thresholds", {})
 
     domain_totals = {"social": 0, "academic": 0, "emotional": 0, "belonging": 0, "attendance": 0}
     domain_counts = 0
@@ -280,7 +288,7 @@ async def school_wide(year_level: Optional[str] = None, class_name: Optional[str
                 else:
                     domain_risk[dim]["low"] += 1
         if saebrs and plus:
-            t = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
+            t = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct, thresholds)
             tier_by_year[yr][f"tier{t}"] += 1
             class_breakdown[cls][f"tier{t}"] += 1
             tier_distribution[t] = tier_distribution.get(t, 0) + 1
@@ -310,11 +318,13 @@ async def cohort_comparison(group_by: str = "year_level", user=Depends(get_curre
     students = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
     student_ids = [s["student_id"] for s in students]
 
-    saebrs_map, plus_map, att_map = await asyncio.gather(
+    saebrs_map, plus_map, att_map, settings_doc = await asyncio.gather(
         get_latest_saebrs_bulk(db, student_ids),
         get_latest_saebrs_plus_bulk(db, student_ids),
         get_bulk_attendance_stats(db, student_ids),
+        get_school_settings_doc(db),
     )
+    thresholds = settings_doc.get("tier_thresholds", {})
 
     cohorts: dict = {}
     for s in students:
@@ -339,7 +349,7 @@ async def cohort_comparison(group_by: str = "year_level", user=Depends(get_curre
             else:
                 cohorts[key]["risk_low"] += 1
         if saebrs and plus:
-            t = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
+            t = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct, thresholds)
         elif saebrs:
             t = 3 if saebrs["risk_level"] == "High Risk" else (2 if saebrs["risk_level"] == "Some Risk" else 1)
         else:
@@ -403,6 +413,7 @@ async def attendance_trends(year_level: Optional[str] = None, class_name: Option
         get_school_settings_doc(db),
         get_bulk_attendance_records(db, student_ids),
     )
+    thresholds_att = settings_doc.get("tier_thresholds", {})
     year = settings_doc.get("current_year")
     today_str = date_obj.today().isoformat()
     coverage_end = settings_doc.get("attendance_coverage_max_date")
@@ -434,9 +445,11 @@ async def attendance_trends(year_level: Optional[str] = None, class_name: Option
                                   entry_date=s.get("entry_date"))
         att_pct = stats["pct"]
 
-        if att_pct < 90:
+        att_low_t = thresholds_att.get("attendance_low_threshold", 92.0)
+        att_sev_t = thresholds_att.get("attendance_severe_threshold", 75.0)
+        if att_pct < att_low_t:
             chronic_absentees.append({"student": s, "attendance_pct": round(att_pct, 1),
-                                      "tier": 3 if att_pct < 80 else 2})
+                                      "tier": 3 if att_pct < att_sev_t else 2})
         for r in recs:
             month = r.get("date", "")[:7]
             try:
@@ -487,12 +500,14 @@ async def meeting_prep(user=Depends(get_current_user), db=Depends(get_tenant_db)
     students = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
     student_ids = [s["student_id"] for s in students]
 
-    all_saebrs_map, plus_map, att_map, active_int_docs = await asyncio.gather(
+    all_saebrs_map, plus_map, att_map, active_int_docs, settings_doc = await asyncio.gather(
         get_all_saebrs_bulk(db, student_ids),
         get_latest_saebrs_plus_bulk(db, student_ids),
         get_bulk_attendance_stats(db, student_ids),
         db.interventions.find({"student_id": {"$in": student_ids}, "status": "active"}, {"_id": 0}).to_list(1000),
+        get_school_settings_doc(db),
     )
+    thresholds = settings_doc.get("tier_thresholds", {})
     interventions_by_student: dict = defaultdict(list)
     for intv in active_int_docs:
         interventions_by_student[intv["student_id"]].append(intv)
@@ -509,7 +524,7 @@ async def meeting_prep(user=Depends(get_current_user), db=Depends(get_tenant_db)
         att_pct = att_map.get(sid, {}).get("pct", 100.0)
 
         if saebrs and plus:
-            tier = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
+            tier = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct, thresholds)
         elif saebrs:
             tier = 3 if saebrs["risk_level"] == "High Risk" else (2 if saebrs["risk_level"] == "Some Risk" else 1)
         else:
@@ -571,9 +586,11 @@ async def get_available_terms(user=Depends(get_current_user), db=Depends(get_ten
 @router.post("/analytics/term-comparison")
 async def term_comparison(req: TermComparisonRequest, user=Depends(get_current_user), db=Depends(get_tenant_db)):
     """Compare screening and wellbeing data across selected terms."""
-    
+    settings_doc = await get_school_settings_doc(db)
+    thresholds = settings_doc.get("tier_thresholds", {})
+
     results = []
-    
+
     for term_info in req.terms:
         screening_period = term_info.get("screening_period", f"{term_info['term']} {term_info['year']}")
         
@@ -616,9 +633,10 @@ async def term_comparison(req: TermComparisonRequest, user=Depends(get_current_u
             if saebrs and plus:
                 att_pct = 100.0  # Default for historical
                 tier = compute_mtss_tier(
-                    saebrs.get("risk_level"), 
-                    plus.get("wellbeing_tier"), 
-                    att_pct
+                    saebrs.get("risk_level"),
+                    plus.get("wellbeing_tier"),
+                    att_pct,
+                    thresholds
                 )
             elif saebrs:
                 tier = 3 if saebrs.get("risk_level") == "High Risk" else (

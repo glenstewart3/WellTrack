@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
+import asyncio
 import re
 import httpx
 import json as _json
@@ -682,9 +683,13 @@ async def suggest_interventions(student_id: str, user=Depends(get_current_user),
 
     # Get latest screening data
     from helpers import get_latest_saebrs_bulk, get_latest_saebrs_plus_bulk, get_student_attendance_pct
-    saebrs_map = await get_latest_saebrs_bulk(db, [student_id])
-    plus_map = await get_latest_saebrs_plus_bulk(db, [student_id])
+    saebrs_map, plus_map, settings_doc = await asyncio.gather(
+        get_latest_saebrs_bulk(db, [student_id]),
+        get_latest_saebrs_plus_bulk(db, [student_id]),
+        get_school_settings_doc(db),
+    )
     att_pct = await get_student_attendance_pct(db, student_id)
+    thresholds = settings_doc.get("tier_thresholds", {})
 
     saebrs = saebrs_map.get(student_id)
     plus = plus_map.get(student_id)
@@ -693,7 +698,7 @@ async def suggest_interventions(student_id: str, user=Depends(get_current_user),
     tier = None
     if saebrs and plus:
         from helpers import compute_mtss_tier
-        tier = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
+        tier = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct, thresholds)
     elif saebrs:
         tier = 3 if saebrs["risk_level"] == "High Risk" else (2 if saebrs["risk_level"] == "Some Risk" else 1)
 

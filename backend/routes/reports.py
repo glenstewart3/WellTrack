@@ -32,13 +32,15 @@ async def tier_csv(user=Depends(get_current_user), db=Depends(get_tenant_db)):
     students = await db.students.find({}, {"_id": 0}).to_list(500)
     student_ids = [s["student_id"] for s in students]
 
-    saebrs_map, plus_map, att_map, active_int_docs = await asyncio.gather(
+    saebrs_map, plus_map, att_map, active_int_docs, settings_doc = await asyncio.gather(
         get_latest_saebrs_bulk(db, student_ids),
         get_latest_saebrs_plus_bulk(db, student_ids),
         get_bulk_attendance_stats(db, student_ids),
         db.interventions.find({"student_id": {"$in": student_ids}, "status": "active"},
                               {"_id": 0, "student_id": 1}).to_list(1000),
+        get_school_settings_doc(db),
     )
+    thresholds = settings_doc.get("tier_thresholds", {})
     int_count_map: dict = {}
     for intv in active_int_docs:
         sid = intv["student_id"]
@@ -55,7 +57,7 @@ async def tier_csv(user=Depends(get_current_user), db=Depends(get_tenant_db)):
         att_pct = att_map.get(sid, {}).get("pct", 100.0)
         int_count = int_count_map.get(sid, 0)
         if saebrs and plus:
-            tier = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
+            tier = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct, thresholds)
         elif saebrs:
             tier = 3 if saebrs["risk_level"] == "High Risk" else (2 if saebrs["risk_level"] == "Some Risk" else 1)
         else:
@@ -199,13 +201,15 @@ async def support_gaps_report(
     students = await db.students.find(sq, {"_id": 0}).to_list(500)
     student_ids = [s["student_id"] for s in students]
 
-    saebrs_map, plus_map, att_map, active_int_docs = await asyncio.gather(
+    saebrs_map, plus_map, att_map, active_int_docs, settings_doc = await asyncio.gather(
         get_latest_saebrs_bulk(db, student_ids),
         get_latest_saebrs_plus_bulk(db, student_ids),
         get_bulk_attendance_stats(db, student_ids),
         db.interventions.find({"student_id": {"$in": student_ids}, "status": "active"},
                               {"_id": 0, "student_id": 1}).to_list(1000),
+        get_school_settings_doc(db),
     )
+    thresholds = settings_doc.get("tier_thresholds", {})
     students_with_active_int = {intv["student_id"] for intv in active_int_docs}
 
     gaps = []
@@ -215,7 +219,7 @@ async def support_gaps_report(
         plus = plus_map.get(sid)
         att_pct = att_map.get(sid, {}).get("pct", 100.0)
         if saebrs and plus:
-            tier = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
+            tier = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct, thresholds)
         elif saebrs:
             tier = 3 if saebrs["risk_level"] == "High Risk" else (2 if saebrs["risk_level"] == "Some Risk" else 1)
         else:
@@ -274,12 +278,14 @@ async def generate_custom_report(
     student_ids = [s["student_id"] for s in students]
     
     # Fetch related data in parallel
-    saebrs_map, plus_map, att_map, interventions_map = await asyncio.gather(
+    saebrs_map, plus_map, att_map, interventions_map, settings_doc = await asyncio.gather(
         get_latest_saebrs_bulk(db, student_ids),
         get_latest_saebrs_plus_bulk(db, student_ids),
         get_bulk_attendance_stats(db, student_ids),
-        _get_student_interventions_map(db, student_ids)
+        _get_student_interventions_map(db, student_ids),
+        get_school_settings_doc(db),
     )
+    thresholds = settings_doc.get("tier_thresholds", {})
     
     # Build report rows
     results = []
@@ -319,9 +325,10 @@ async def generate_custom_report(
         att_pct = att_map.get(sid, {}).get("pct", 100.0)
         if saebrs and plus:
             row["mtss_tier"] = compute_mtss_tier(
-                saebrs.get("risk_level"), 
-                plus.get("wellbeing_tier"), 
-                att_pct
+                saebrs.get("risk_level"),
+                plus.get("wellbeing_tier"),
+                att_pct,
+                thresholds
             )
         elif saebrs:
             row["mtss_tier"] = 3 if saebrs.get("risk_level") == "High Risk" else (
@@ -332,8 +339,10 @@ async def generate_custom_report(
         
         # Attendance
         row["attendance_pct"] = round(att_pct, 1) if att_pct else ""
-        row["attendance_status"] = "Chronic" if att_pct and att_pct < 80 else (
-            "At Risk" if att_pct and att_pct < 90 else "Good"
+        _att_sev = thresholds.get("attendance_severe_threshold", 75.0)
+        _att_low = thresholds.get("attendance_low_threshold", 92.0)
+        row["attendance_status"] = "Chronic" if att_pct and att_pct < _att_sev else (
+            "At Risk" if att_pct and att_pct < _att_low else "Good"
         )
         
         # Interventions

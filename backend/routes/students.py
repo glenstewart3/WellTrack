@@ -7,7 +7,7 @@ from PIL import Image
 from deps import get_tenant_db
 import asyncio
 from helpers import get_current_user, get_student_attendance_pct, compute_mtss_tier, \
-    get_bulk_attendance_stats, get_latest_saebrs_bulk, get_latest_saebrs_plus_bulk
+    get_bulk_attendance_stats, get_latest_saebrs_bulk, get_latest_saebrs_plus_bulk, get_school_settings_doc
 from models import Student
 from utils.audit import log_audit
 
@@ -366,13 +366,15 @@ async def get_students_summary(class_name: Optional[str] = None, year_level: Opt
     students = await db.students.find(query, {"_id": 0}).sort("last_name", 1).to_list(500)
     student_ids = [s["student_id"] for s in students]
 
-    saebrs_map, plus_map, att_map, active_int_docs = await asyncio.gather(
+    saebrs_map, plus_map, att_map, active_int_docs, settings_doc = await asyncio.gather(
         get_latest_saebrs_bulk(db, student_ids),
         get_latest_saebrs_plus_bulk(db, student_ids),
         get_bulk_attendance_stats(db, student_ids),
         db.interventions.find({"student_id": {"$in": student_ids}, "status": "active"},
                               {"_id": 0, "student_id": 1}).to_list(1000),
+        get_school_settings_doc(db),
     )
+    thresholds = settings_doc.get("tier_thresholds", {})
     active_int_count: dict = {}
     for intv in active_int_docs:
         sid = intv["student_id"]
@@ -386,7 +388,7 @@ async def get_students_summary(class_name: Optional[str] = None, year_level: Opt
         att_pct = att_map.get(sid, {}).get("pct", 100.0)
 
         if saebrs and plus:
-            tier = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct)
+            tier = compute_mtss_tier(saebrs["risk_level"], plus["wellbeing_tier"], att_pct, thresholds)
         elif saebrs:
             tier = 3 if saebrs["risk_level"] == "High Risk" else (2 if saebrs["risk_level"] == "Some Risk" else 1)
         else:
@@ -429,8 +431,10 @@ async def get_student_profile(student_id: str, user=Depends(get_current_user), d
     latest_saebrs = saebrs_results[-1] if saebrs_results else None
     latest_plus = saebrs_plus[-1] if saebrs_plus else None
 
+    settings_doc = await get_school_settings_doc(db)
+    thresholds = settings_doc.get("tier_thresholds", {})
     if latest_saebrs and latest_plus:
-        tier = compute_mtss_tier(latest_saebrs["risk_level"], latest_plus["wellbeing_tier"], att_pct)
+        tier = compute_mtss_tier(latest_saebrs["risk_level"], latest_plus["wellbeing_tier"], att_pct, thresholds)
     elif latest_saebrs:
         tier = 3 if latest_saebrs["risk_level"] == "High Risk" else (2 if latest_saebrs["risk_level"] == "Some Risk" else 1)
     else:
