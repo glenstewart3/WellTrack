@@ -9,7 +9,7 @@ import {
   Target, Users2, Bell, Settings, LogOut,
   Menu, X, Shield, UserCog, Check, Sun, Moon, CalendarClock,
   Calendar, CalendarDays, AlertTriangle, FileText, Inbox, ClipboardList,
-  MoreHorizontal
+  MoreHorizontal, Search, Command
 } from 'lucide-react';
 
 // Simple flat list of nav items
@@ -138,6 +138,10 @@ export default function DashboardLayout() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [trialBannerDismissed, setTrialBannerDismissed] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const userMenuRef = useRef(null);
 
   // Close dropdown when clicking outside
@@ -153,6 +157,24 @@ export default function DashboardLayout() {
   }, [userMenuOpen]);
 
   useEffect(() => { loadFullSettings(); }, [loadFullSettings]);
+
+  // Global search function
+  const performSearch = async (query) => {
+    if (!query || query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    setSearchLoading(true);
+    try {
+      const res = await api.get(`/search?q=${encodeURIComponent(query)}`);
+      setSearchResults(res.data || []);
+    } catch {
+      // Fallback: search locally from recent data if API fails
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
 
   const accent = settings.accent_color || '#0f172a';
   // Use theme-specific nav active color when not on default theme (use RESOLVED so system-dark matches force-dark)
@@ -252,19 +274,57 @@ export default function DashboardLayout() {
             >
               <div
                 className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-                style={{ backgroundColor: resolvedTheme === 'dark' ? '#f1f5f9' : '#0f172a' }}
+                style={{ backgroundColor: 'var(--wt-accent, #0f172a)' }}
               >
-                <Shield size={13} style={{ color: resolvedTheme === 'dark' ? '#0f172a' : '#ffffff' }} />
+                <Shield size={12} className="text-white" />
               </div>
-              <span
-                className="font-extrabold text-[15px] hidden sm:inline"
-                style={{ fontFamily: 'Manrope, sans-serif', color: 'var(--wt-foreground)' }}
-              >
+              <p className="font-extrabold text-sm text-slate-900 dark:text-white" style={{ fontFamily: 'Manrope,sans-serif' }}>
                 {settings.platform_name || 'WellTrack'}
-              </span>
+              </p>
             </div>
           )}
-          <div className="flex-1" />
+          {/* Desktop Global Search - Centered */}
+          <div className="hidden lg:flex flex-1 justify-center max-w-xl mx-auto">
+            <div className="relative w-full max-w-md">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search students, interventions, plans..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value.length >= 2) {
+                    performSearch(e.target.value);
+                  } else {
+                    setSearchResults([]);
+                  }
+                }}
+                className="w-full pl-10 pr-4 py-2 text-sm bg-slate-100 border-transparent focus:bg-white focus:border-slate-300 rounded-xl transition-all outline-none"
+              />
+              {searchResults.length > 0 && searchQuery.length >= 2 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 max-h-80 overflow-y-auto">
+                  {searchResults.map((result) => (
+                    <button
+                      key={result.id}
+                      onClick={() => {
+                        navigate(result.path);
+                        setSearchQuery('');
+                        setSearchResults([]);
+                      }}
+                      className="w-full px-4 py-2.5 text-left hover:bg-slate-50 flex items-center gap-3"
+                    >
+                      <result.icon size={18} className="text-slate-400" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-800 truncate">{result.title}</p>
+                        <p className="text-xs text-slate-500">{result.type}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex-1 lg:hidden" />
           {/* School name (right side of top bar) — desktop + tablet only. Hidden on mobile
               where the centered WellTrack logo already identifies the platform. */}
           {settings.school_name && (
@@ -289,12 +349,11 @@ export default function DashboardLayout() {
           </NavLink>
           {/* Alert indicator — hidden when the user's role doesn't have access to /alerts */}
           {canViewAlerts && (
-            <NavLink to="/alerts" className="relative p-1.5 sm:p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors" data-testid="alert-bell" aria-label="Alerts">
+            <NavLink to="/alerts" className="relative p-1.5 sm:p-2 rounded-lg wt-hover text-slate-600 dark:text-slate-300 transition-colors hidden lg:flex" data-testid="alert-bell" aria-label="Alerts">
               <Bell size={18} data-testid="alerts-bell-button" />
               {alertCount > 0 && (
                 <span
-                  data-testid="alert-badge"
-                  className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none"
+                  className="absolute top-1 right-1 min-w-[14px] h-[14px] px-1 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center"
                 >
                   {alertCount > 99 ? '99+' : alertCount}
                 </span>
@@ -464,26 +523,23 @@ export default function DashboardLayout() {
               <ClipboardCheck size={22} />
               <span className="text-[10px] font-medium">Screening</span>
             </NavLink>
-            {canViewAlerts && (
-              <NavLink
-                to="/alerts"
-                className={({ isActive }) => `flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors relative ${isActive ? 'text-blue-600' : 'text-slate-500'}`}
-                style={({ isActive }) => isActive ? { color: activeNavColor } : {}}
-              >
-                <Bell size={22} />
-                {alertCount > 0 && (
-                  <span className="absolute top-0 right-1 min-w-[14px] h-[14px] px-1 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                    {alertCount > 99 ? '99+' : alertCount}
-                  </span>
-                )}
-                <span className="text-[10px] font-medium">Alerts</span>
-              </NavLink>
-            )}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${searchOpen ? 'text-blue-600' : 'text-slate-500'}`}
+            >
+              <Command size={22} />
+              <span className="text-[10px] font-medium">Search</span>
+            </button>
             <button
               onClick={() => setMoreOpen(true)}
               className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${moreOpen ? 'text-blue-600' : 'text-slate-500'}`}
             >
               <MoreHorizontal size={22} />
+              {alertCount > 0 && (
+                <span className="absolute top-0 right-12 min-w-[14px] h-[14px] px-1 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {alertCount > 99 ? '99+' : alertCount}
+                </span>
+              )}
               <span className="text-[10px] font-medium">More</span>
             </button>
           </div>
@@ -522,22 +578,110 @@ export default function DashboardLayout() {
                   ...(settings?.feature_flags?.appointments !== false ? [{ path: '/appointments', icon: CalendarClock, label: 'Appointments' }] : []),
                   { path: '/meeting', icon: Users2, label: 'MTSS Meeting' },
                   ...(user?.role === 'leadership' || user?.role === 'admin' ? [{ path: '/attendance', icon: CalendarDays, label: 'Attendance' }] : []),
+                  ...(canViewAlerts ? [{ path: '/alerts', icon: Bell, label: 'Alerts', badge: alertCount }] : []),
                   { path: '/settings', icon: Settings, label: 'Settings' },
                   ...(user?.role === 'admin' ? [
                     { path: '/admin', icon: UserCog, label: 'Admin' },
                   ] : []),
-                ].map(({ path, icon: Icon, label }) => (
+                ].map(({ path, icon: Icon, label, badge }) => (
                   <NavLink
                     key={path}
                     to={path}
                     onClick={() => setMoreOpen(false)}
-                    className={({ isActive }) => `flex flex-col items-center gap-2 p-3 rounded-xl transition-colors ${isActive ? 'bg-blue-50 text-blue-600' : 'hover:bg-slate-100 text-slate-600'}`}
+                    className={({ isActive }) => `flex flex-col items-center gap-2 p-3 rounded-xl transition-colors relative ${isActive ? 'bg-blue-50 text-blue-600' : 'hover:bg-slate-100 text-slate-600'}`}
                   >
                     <Icon size={22} />
+                    {badge > 0 && (
+                      <span className="absolute top-2 right-2 min-w-[16px] h-[16px] px-1 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                        {badge > 99 ? '99+' : badge}
+                      </span>
+                    )}
                     <span className="text-[11px] font-medium text-center leading-tight">{label}</span>
                   </NavLink>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Search Modal */}
+        <div 
+          className={`lg:hidden fixed inset-0 z-50 transition-opacity duration-200 ${searchOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+          aria-hidden={!searchOpen}
+        >
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSearchOpen(false)} />
+          <div 
+            className={`absolute left-4 right-4 top-20 bg-white rounded-2xl shadow-2xl transform transition-transform duration-200 ease-out ${searchOpen ? 'translate-y-0' : '-translate-y-4'}`}
+          >
+            {/* Search Input */}
+            <div className="p-4 border-b border-slate-100">
+              <div className="relative">
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search students, interventions, plans..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if (e.target.value.length >= 2) {
+                      performSearch(e.target.value);
+                    } else {
+                      setSearchResults([]);
+                    }
+                  }}
+                  autoFocus={searchOpen}
+                  className="w-full pl-10 pr-10 py-3 text-base bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-400 outline-none"
+                />
+                {searchQuery && (
+                  <button 
+                    onClick={() => { setSearchQuery(''); setSearchResults([]); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200"
+                  >
+                    <X size={16} className="text-slate-400" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Search Results */}
+            <div className="max-h-[60vh] overflow-y-auto">
+              {searchLoading ? (
+                <div className="p-8 text-center">
+                  <div className="animate-spin w-6 h-6 border-2 border-slate-300 border-t-slate-600 rounded-full mx-auto mb-2" />
+                  <p className="text-sm text-slate-500">Searching...</p>
+                </div>
+              ) : searchResults.length > 0 ? (
+                <div className="py-2">
+                  {searchResults.map((result) => (
+                    <button
+                      key={result.id}
+                      onClick={() => {
+                        navigate(result.path);
+                        setSearchQuery('');
+                        setSearchResults([]);
+                        setSearchOpen(false);
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-slate-50 flex items-center gap-3 border-b border-slate-50 last:border-0"
+                    >
+                      <result.icon size={20} className="text-slate-400" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-800 truncate">{result.title}</p>
+                        <p className="text-xs text-slate-500">{result.type}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : searchQuery.length >= 2 ? (
+                <div className="p-8 text-center text-slate-400">
+                  <Search size={32} className="mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No results found</p>
+                </div>
+              ) : (
+                <div className="p-8 text-center text-slate-400">
+                  <Command size={32} className="mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">Type to search...</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
