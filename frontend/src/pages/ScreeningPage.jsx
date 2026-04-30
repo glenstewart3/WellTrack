@@ -351,7 +351,7 @@ function SAEBRSFlow({ className, period, selectedPeriod, onDone }) {
           </button>
           <span className="text-slate-300">·</span>
           <span className="text-sm text-slate-500">{current + 1} / {students.length}</span>
-          <span className="ml-auto px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full">{period}</span>
+          <span className="ml-auto px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full">{selectedPeriod?.name || period}</span>
         </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl p-7 mb-5">
