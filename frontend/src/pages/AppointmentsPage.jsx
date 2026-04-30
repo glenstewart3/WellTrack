@@ -674,7 +674,7 @@ function ScheduleTab({ students, confidential, onAddSession }) {
 
 // ── Ongoing Tab ───────────────────────────────────────────────────────────────
 
-function OngoingTab({ confidential, onAddSession }) {
+function OngoingTab({ confidential, onAddSession, navigate }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -785,17 +785,26 @@ function OngoingTab({ confidential, onAddSession }) {
                 })()}
               </div>
             </div>
-            <button
-              onClick={() => onAddSession({
-                student_id: item.student_id,
-                intervention_id: item.intervention_id,
-                intervention_type: item.intervention_type,
-              })}
-              data-testid={`add-session-ongoing-${item.intervention_id}`}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-2 text-white rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: 'var(--wt-accent)' }}>
-              <Plus size={13} /> Session
-            </button>
+            <div className="shrink-0 flex items-center gap-2">
+              <button
+                onClick={() => onAddSession({
+                  student_id: item.student_id,
+                  intervention_id: item.intervention_id,
+                  intervention_type: item.intervention_type,
+                })}
+                data-testid={`add-session-ongoing-${item.intervention_id}`}
+                className="flex items-center gap-1.5 px-3 py-2 text-white rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: 'var(--wt-accent)' }}>
+                <Plus size={13} /> Session
+              </button>
+              <button
+                onClick={() => navigate(`/students/${item.student_id}`)}
+                data-testid={`profile-btn-ongoing-${item.intervention_id}`}
+                title="View student profile"
+                className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 transition-colors">
+                <ExternalLink size={13} />
+              </button>
+            </div>
           </div>
         );
       })}
@@ -1091,7 +1100,7 @@ export default function AppointmentsPage() {
         <ScheduleTab key={`sch-${refreshKey}`} students={students} confidential={confidential} onAddSession={setSessionModal} />
       )}
       {tab === 'ongoing' && (
-        <OngoingTab key={`ong-${refreshKey}`} confidential={confidential} onAddSession={setSessionModal} />
+        <OngoingTab key={`ong-${refreshKey}`} confidential={confidential} onAddSession={setSessionModal} navigate={navigate} />
       )}
       {tab === 'completed' && (
         <CompletedTab key={`cmp-${refreshKey}`} confidential={confidential} />
