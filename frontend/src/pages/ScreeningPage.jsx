@@ -356,7 +356,7 @@ function SAEBRSFlow({ className, period, selectedPeriod, onDone }) {
 
       <div className="bg-white border border-slate-200 rounded-2xl p-7 mb-5">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center overflow-hidden">
+          <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center overflow-hidden">
             {student.photo_url
               ? <img src={`${process.env.REACT_APP_BACKEND_URL}${student.photo_url}`} alt={student.first_name} className="w-full h-full object-cover" />
               : <span className="text-lg font-bold text-white">{student.first_name[0]}{student.last_name[0]}</span>}
@@ -566,7 +566,7 @@ function SelfReportFlow({ className, period, selectedPeriod, onDone }) {
 
       <div className="bg-white border border-slate-200 rounded-2xl p-7">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center overflow-hidden">
+          <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center overflow-hidden">
             {student.photo_url
               ? <img src={`${process.env.REACT_APP_BACKEND_URL}${student.photo_url}`} alt={student.first_name} className="w-full h-full object-cover" />
               : <span className="text-lg font-bold text-white">{student.first_name[0]}{student.last_name[0]}</span>}
