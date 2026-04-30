@@ -587,7 +587,7 @@ export default function DashboardLayout() {
         >
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSearchOpen(false)} />
           <div 
-            className={`absolute left-4 right-4 lg:left-auto lg:right-auto lg:w-full lg:max-w-lg lg:left-1/2 lg:-translate-x-1/2 top-20 lg:top-24 bg-white rounded-2xl shadow-2xl transform transition-transform duration-200 ease-out ${searchOpen ? 'translate-y-0' : '-translate-y-4'}`}
+            className={`absolute left-4 right-4 lg:inset-x-auto lg:w-full lg:max-w-lg lg:left-1/2 lg:-translate-x-1/2 top-20 lg:top-24 bg-white rounded-2xl shadow-2xl transform transition-transform duration-200 ease-out ${searchOpen ? 'translate-y-0' : '-translate-y-4'}`}
           >
             {/* Search Input */}
             <div className="p-4 border-b border-slate-100">
