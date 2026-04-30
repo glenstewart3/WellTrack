@@ -76,10 +76,9 @@ async def submit_saebrs_plus(result: SAEBRSPlusResult, user=Depends(get_current_
     aca = saebrs["academic_score"] if saebrs else result.academic_domain
     items = result.self_report_items
     if len(items) >= 7:
-        item0_rev = 3 - items[0]
-        emo = item0_rev + items[1] + items[2]
+        emo = (3 - items[0]) + (3 - items[1]) + (3 - items[2])
         bel = items[3] + items[4] + items[5] + items[6]
-        if items[0] >= 2:
+        if items[0] >= 2 or items[1] >= 2 or items[2] >= 2:
             student = await db.students.find_one({"student_id": result.student_id}, {"_id": 0})
             if student:
                 name = f"{student['first_name']} {student['last_name']}"

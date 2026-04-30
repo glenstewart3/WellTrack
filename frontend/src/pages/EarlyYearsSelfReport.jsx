@@ -38,12 +38,13 @@ export function isF2Student(yearLevel) {
 // ── Scoring ───────────────────────────────────────────────────────────────────
 // Raw answers: 0/1/2 (per user spec)
 // Rescale: 0→0, 1→1.5, 2→3  (maps 3-pt to same range as Y3-6 4-pt)
-// Positive Q4-Q7: invert after rescale (3 - rescaled) so "Always" → 3 for backend
+// Q1-Q3 (idx 0-2) are NEGATIVE: high raw = bad → invert after rescale so backend gets high = good
+// Q4-Q7 (idx 3-6) are POSITIVE: high raw = good → use rescaled directly
 function buildF2BackendItems(rawAnswers) {
   const RESCALE = [0, 1.5, 3];
   return rawAnswers.map((raw, idx) => {
     const rescaled = RESCALE[raw];
-    return idx >= 3 ? 3 - rescaled : rescaled;
+    return idx < 3 ? 3 - rescaled : rescaled;
   });
 }
 
@@ -177,7 +178,7 @@ function useSpeech() {
 
   return { speaking, speak, stop };
 }
-export function F2SelfReportForm({ student, period, screeningId, onSave, onBack }) {
+export function F2SelfReportForm({ student, period, selectedPeriod, screeningId, onSave, onBack }) {
   const [answers, setAnswers] = useState(Array(7).fill(null));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -243,7 +244,7 @@ export function F2SelfReportForm({ student, period, screeningId, onSave, onBack 
           </button>
           <div className="text-center">
             <p className="text-base font-bold text-slate-900 dark:text-slate-100" style={{ fontFamily: 'Manrope, sans-serif' }}>{displayName}</p>
-            <p className="text-xs text-slate-400 dark:text-slate-500">{period}</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500">{selectedPeriod?.name || period}</p>
           </div>
           {/* Progress badge */}
           <div className={`text-xs font-bold px-3 py-1 rounded-full ${allAnswered ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400'}`}>

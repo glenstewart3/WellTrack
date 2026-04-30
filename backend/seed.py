@@ -177,12 +177,19 @@ async def seed_database(db, student_count: int = 32):
     low_s = [3, 3, 3, 2, 3, 3]; low_a = [3, 3, 2, 3, 2, 3]; low_e = [3, 3, 3, 3, 2, 3, 3]
     some_s = [2, 2, 2, 2, 1, 2]; some_a = [2, 2, 1, 2, 1, 2]; some_e = [2, 2, 2, 1, 2, 2, 2]
     high_s = [1, 0, 1, 1, 0, 1]; high_a = [0, 1, 0, 1, 0, 0]; high_e = [1, 0, 0, 1, 0, 1, 0]
-    sr_low = [0, 3, 3, 3, 3, 3, 3]; sr_some = [2, 2, 2, 2, 2, 2, 2]; sr_high = [3, 0, 1, 0, 1, 0, 1]
+    # Q1-Q3 (indices 0-2) are negative: reversed as (3 - item)
+    # Q4-Q7 (indices 3-6) are positive: used as-is
+    # emo = (3-i0)+(3-i1)+(3-i2)  →  max 9  (low raw = good)
+    # bel = i3+i4+i5+i6            →  max 12 (high raw = good)
+    # total = emo + bel             →  max 21
+    sr_low  = [0, 0, 0, 3, 3, 3, 3]  # emo=(3+3+3)=9, bel=12 → total=21 (Tier 1 ≥16)
+    sr_some = [1, 2, 1, 2, 2, 2, 1]  # emo=(2+1+2)=5, bel=7  → total=12 (Tier 2 11–15)
+    sr_high = [3, 3, 2, 0, 1, 0, 1]  # emo=(0+0+1)=1, bel=2  → total=3  (Tier 3 ≤10)
 
     att_map = {
-        "low":  [97, 98, 96, 99],
-        "some": [91, 92, 93, 94],
-        "high": [72, 68, 82, 75],
+        "low":  [96, 97, 98, 99],       # >= 92% (low risk)
+        "some": [86, 87, 88, 89, 90],   # 85–91% (some risk → Tier 2)
+        "high": [70, 72, 74, 76, 78],   # mix of severe (<75) and high (75–84)
     }
 
     def vary(items, delta=1):
@@ -292,19 +299,18 @@ async def seed_database(db, student_count: int = 32):
                     "created_at": ts}
 
         def make_plus(saebrs_doc, sr_items, screening_id, screening_period, att, ts):
-            soc = saebrs_doc["social_score"]; aca = saebrs_doc["academic_score"]
-            rev = 3 - sr_items[0]
-            emo = rev + sr_items[1] + sr_items[2]
+            emo = (3 - sr_items[0]) + (3 - sr_items[1]) + (3 - sr_items[2])
             bel = sr_items[3] + sr_items[4] + sr_items[5] + sr_items[6]
-            att_s = compute_attendance_score(att * 100)
-            att_d = att_s * 3
-            total = soc + aca + emo + bel + att_d
+            total = emo + bel  # 0–21 student self-report scale only
+            _thresholds = {"self_report_tier1_min": 16, "self_report_tier2_min": 11}
             return {"result_id": str(uuid.uuid4()), "student_id": sid, "screening_id": screening_id,
                     "screening_period": screening_period,
                     "self_report_items": sr_items, "attendance_pct": att * 100,
-                    "social_domain": soc, "academic_domain": aca, "emotional_domain": emo,
-                    "belonging_domain": bel, "attendance_domain": att_d,
-                    "wellbeing_total": total, "wellbeing_tier": compute_wellbeing_tier(total),
+                    "social_domain": saebrs_doc["social_score"],
+                    "academic_domain": saebrs_doc["academic_score"],
+                    "emotional_domain": emo,
+                    "belonging_domain": bel,
+                    "wellbeing_total": total, "wellbeing_tier": compute_wellbeing_tier(total, _thresholds),
                     "created_at": ts}
 
         # Generate a SAEBRS + self-report for every screening session (16 sessions = 2 years)

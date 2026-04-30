@@ -527,6 +527,7 @@ function SelfReportFlow({ className, period, selectedPeriod, onDone }) {
       <F2SelfReportForm
         student={student}
         period={period}
+        selectedPeriod={selectedPeriod}
         screeningId={screeningId}
         onSave={(studentId) => {
           setCompletedStudents(prev => new Set([...prev, studentId]));
