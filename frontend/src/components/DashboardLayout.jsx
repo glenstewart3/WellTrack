@@ -283,57 +283,6 @@ export default function DashboardLayout() {
               </p>
             </div>
           )}
-          {/* Desktop Global Search - Centered */}
-          <div className="hidden lg:flex flex-1 justify-center max-w-xl mx-auto">
-            <div className="relative w-full max-w-md">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={18} className="text-slate-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search students, interventions, plans..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  if (e.target.value.length >= 2) {
-                    performSearch(e.target.value);
-                  } else {
-                    setSearchResults([]);
-                  }
-                }}
-                className="w-full pl-11 pr-4 py-2.5 text-sm bg-white border border-slate-200 shadow-sm hover:shadow-md focus:shadow-lg focus:border-blue-400 rounded-xl transition-all outline-none placeholder:text-slate-400"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => { setSearchQuery(''); setSearchResults([]); }}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  <X size={16} className="text-slate-400 hover:text-slate-600" />
-                </button>
-              )}
-              {searchResults.length > 0 && searchQuery.length >= 2 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 max-h-80 overflow-y-auto">
-                  {searchResults.map((result) => (
-                    <button
-                      key={result.id}
-                      onClick={() => {
-                        navigate(result.path);
-                        setSearchQuery('');
-                        setSearchResults([]);
-                      }}
-                      className="w-full px-4 py-2.5 text-left hover:bg-slate-50 flex items-center gap-3"
-                    >
-                      <result.icon size={18} className="text-slate-400" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-800 truncate">{result.title}</p>
-                        <p className="text-xs text-slate-500">{result.subtitle ? `${result.subtitle} · ` : ''}{result.type}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
           <div className="flex-1 lg:hidden" />
           {/* School name (right side of top bar) — desktop + tablet only. Hidden on mobile
               where the centered WellTrack logo already identifies the platform. */}
@@ -497,6 +446,58 @@ export default function DashboardLayout() {
               <div className="wt-blur-drift-e hidden md:block absolute bottom-[-10%] right-[22%] h-[320px] w-[320px] rounded-full opacity-50 blur-3xl" style={{ background: 'rgba(34, 211, 238, 0.20)' }} />
             </div>
           )}
+          {/* Desktop Global Search - Centered in page */}
+          <div className="hidden lg:flex justify-center pt-6 pb-2 px-4">
+            <div className="relative w-full max-w-lg">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Search size={20} className="text-slate-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search students, interventions, plans..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value.length >= 2) {
+                    performSearch(e.target.value);
+                  } else {
+                    setSearchResults([]);
+                  }
+                }}
+                className="w-full pl-12 pr-4 py-3 text-base bg-white border border-slate-200 shadow-md hover:shadow-lg focus:shadow-xl focus:border-blue-400 rounded-xl transition-all outline-none placeholder:text-slate-400"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(''); setSearchResults([]); }}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center"
+                >
+                  <X size={18} className="text-slate-400 hover:text-slate-600" />
+                </button>
+              )}
+              {searchResults.length > 0 && searchQuery.length >= 2 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 py-2 z-50 max-h-80 overflow-y-auto">
+                  {searchResults.map((result) => (
+                    <button
+                      key={result.id}
+                      onClick={() => {
+                        navigate(result.path);
+                        setSearchQuery('');
+                        setSearchResults([]);
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-slate-50 flex items-center gap-3"
+                    >
+                      <result.icon size={20} className="text-slate-400" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-800 truncate">{result.title}</p>
+                        <p className="text-xs text-slate-500">{result.subtitle ? `${result.subtitle} · ` : ''}{result.type}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="relative z-10 pb-16 lg:pb-0">
             <Outlet />
           </div>
