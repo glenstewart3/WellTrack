@@ -1036,6 +1036,7 @@ export default function AppointmentsPage() {
   useDocumentTitle('Appointments');
   const { user } = useAuth();
   const { canDo } = usePermissions();
+  const navigate = useNavigate();
   const [tab, setTab] = useState('schedule');
   const [confidential, setConfidential] = useState(false);
   const [sessionModal, setSessionModal] = useState(null);
