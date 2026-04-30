@@ -61,7 +61,7 @@ async def tier_movement(limit: int = 8, user=Depends(get_current_user), db=Depen
     from their most-recent SAEBRS + SAEBRS-plus created on/before that date.
     """
     from datetime import datetime, timedelta, timezone
-    limit = max(1, min(limit, 20))
+    limit = max(1, min(limit, 30))
 
     students = await db.students.find({"enrolment_status": "active"}, {"_id": 0}).to_list(500)
     student_ids = [s["student_id"] for s in students]
@@ -95,9 +95,9 @@ async def tier_movement(limit: int = 8, user=Depends(get_current_user), db=Depen
         except Exception:
             return None
 
-    # Collect all unique screening dates (past 365 days) across both result types
+    # Collect all unique screening dates (past 730 days = 2 years) across both result types
     now = datetime.now(timezone.utc)
-    year_ago = now - timedelta(days=365)
+    year_ago = now - timedelta(days=730)
     date_set = set()
     for hist in saebrs_hist_map.values():
         for d in hist:

@@ -71,7 +71,7 @@ export default function DashboardPage() {
         const currentYear = new Date().getFullYear();
         const [tierRes, moveRes, alertRes, studRes, termsRes, screeningRes] = await Promise.all([
           api.get('/analytics/tier-distribution'),
-          api.get('/analytics/tier-movement?limit=8'),
+          api.get('/analytics/tier-movement?limit=20'),
           api.get('/alerts?resolved=false'),
           api.get('/students/summary'),
           api.get(`/settings/terms?year=${currentYear}`).catch(() => ({ data: { terms: [] } })),
@@ -389,7 +389,7 @@ export default function DashboardPage() {
                 Tier movement
               </h3>
               <p className="text-xs" style={{ color: 'var(--wt-muted-fg)' }}>
-                Share of students by tier · last {movementData.length || 8} screenings
+                Share of students by tier · {movementData.length ? `${movementData.length} screenings` : 'loading…'}{multipleYears ? ` across ${yearsInChart.size} years` : ''}
               </p>
             </div>
             <div className="flex items-center gap-3 text-[11px]" style={{ color: 'var(--wt-muted-fg)' }}>
@@ -416,7 +416,7 @@ export default function DashboardPage() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--wt-border)" />
-                <XAxis dataKey="xLabel" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--wt-muted-fg)' }} />
+                <XAxis dataKey="xLabel" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--wt-muted-fg)' }} interval={movementData.length > 10 ? 1 : 0} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--wt-muted-fg)' }} width={32} />
                 <Tooltip
                   contentStyle={{ borderRadius: '0.5rem', border: '1px solid var(--wt-border)', fontSize: '12px', backgroundColor: 'var(--wt-card)' }}
