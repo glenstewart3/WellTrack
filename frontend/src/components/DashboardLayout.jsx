@@ -476,34 +476,30 @@ export default function DashboardLayout() {
         {/* Bottom Navigation - Mobile & Tablet only */}
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 z-40" style={{ backgroundColor: 'var(--wt-header-bg)', borderColor: 'var(--wt-header-border)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
           <div className="flex items-center justify-around py-2">
-            <NavLink
-              to="/dashboard"
-              className={({ isActive }) => `flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${isActive ? 'text-blue-600' : 'text-slate-500'}`}
-              style={({ isActive }) => isActive ? { color: activeNavColor } : {}}
+            <button
+              onClick={() => navigate('/dashboard')}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${location.pathname === '/dashboard' ? 'text-blue-600' : 'text-slate-500'}`}
+              style={{ color: location.pathname === '/dashboard' ? activeNavColor : undefined }}
             >
               <LayoutDashboard size={22} />
               <span className="text-[10px] font-medium">Home</span>
-            </NavLink>
-            <NavLink
-              to="/students"
-              className={({ isActive }) => `flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${isActive ? 'text-blue-600' : 'text-slate-500'}`}
-              style={({ isActive }) => isActive ? { color: activeNavColor } : {}}
+            </button>
+            <button
+              onClick={() => navigate('/students')}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${location.pathname === '/students' || location.pathname.startsWith('/students/') ? 'text-blue-600' : 'text-slate-500'}`}
+              style={{ color: location.pathname === '/students' || location.pathname.startsWith('/students/') ? activeNavColor : undefined }}
             >
               <Users size={22} />
               <span className="text-[10px] font-medium">Students</span>
-            </NavLink>
-            <NavLink
-              to="/screening"
-              onClick={(e) => {
-                e.preventDefault();
-                navigate('/screening', { state: { resetKey: Date.now() } });
-              }}
-              className={({ isActive }) => `flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${isActive ? 'text-blue-600' : 'text-slate-500'}`}
-              style={({ isActive }) => isActive ? { color: activeNavColor } : {}}
+            </button>
+            <button
+              onClick={() => navigate('/screening', { state: { resetKey: Date.now() } })}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${location.pathname === '/screening' ? 'text-blue-600' : 'text-slate-500'}`}
+              style={{ color: location.pathname === '/screening' ? activeNavColor : undefined }}
             >
               <ClipboardCheck size={22} />
               <span className="text-[10px] font-medium">Screening</span>
-            </NavLink>
+            </button>
             <button
               onClick={() => setSearchOpen(true)}
               className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${searchOpen ? 'text-blue-600' : 'text-slate-500'}`}
@@ -565,11 +561,10 @@ export default function DashboardLayout() {
                     { path: '/admin', icon: UserCog, label: 'Admin' },
                   ] : []),
                 ].map(({ path, icon: Icon, label, badge }) => (
-                  <NavLink
+                  <button
                     key={path}
-                    to={path}
-                    onClick={() => setMoreOpen(false)}
-                    className={({ isActive }) => `flex flex-col items-center gap-2 p-3 rounded-xl transition-colors relative ${isActive ? 'bg-blue-50 text-blue-600' : 'hover:bg-slate-100 text-slate-600'}`}
+                    onClick={() => { navigate(path); setMoreOpen(false); }}
+                    className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-colors relative ${location.pathname === path || location.pathname.startsWith(path + '/') ? 'bg-blue-50 text-blue-600' : 'hover:bg-slate-100 text-slate-600'}`}
                   >
                     <Icon size={22} />
                     {badge > 0 && (
@@ -578,7 +573,7 @@ export default function DashboardLayout() {
                       </span>
                     )}
                     <span className="text-[11px] font-medium text-center leading-tight">{label}</span>
-                  </NavLink>
+                  </button>
                 ))}
               </div>
             </div>
