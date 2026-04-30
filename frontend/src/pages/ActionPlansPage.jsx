@@ -4,7 +4,7 @@ import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
 import {
-  ClipboardList, ArrowRight, Filter, ChevronDown, ChevronUp, Loader, User, Plus
+  ClipboardList, ArrowRight, Filter, ChevronDown, ChevronUp, Loader, User, Plus, Search, AlertTriangle
 } from 'lucide-react';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import { timeAgo } from '../utils/dateFmt';
@@ -42,7 +42,9 @@ export default function ActionPlansPage() {
       setLoading(true);
       try {
         const params = new URLSearchParams();
-        if (statusFilter) params.set('status', statusFilter);
+        // Don't pass 'overdue' to API as it's computed locally; for overdue we fetch all active
+        if (statusFilter && statusFilter !== 'overdue') params.set('status', statusFilter);
+        if (statusFilter === 'overdue') params.set('status', 'active');
         const res = await api.get(`/action-plans?${params.toString()}`);
         setPlans(res.data);
       } catch (e) { console.error(e); }
@@ -53,6 +55,13 @@ export default function ActionPlansPage() {
 
   const filtered = useMemo(() => {
     let list = plans;
+    // Handle overdue filter locally (computed based on review_date)
+    if (statusFilter === 'overdue') {
+      list = list.filter(p => {
+        if (!p.review_date || p.status !== 'active') return false;
+        return p.review_date < new Date().toISOString().slice(0, 10);
+      });
+    }
     if (tierFilter) list = list.filter(p => String(p.tier) === tierFilter);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -62,7 +71,7 @@ export default function ActionPlansPage() {
       );
     }
     return list;
-  }, [plans, tierFilter, searchQuery]);
+  }, [plans, tierFilter, searchQuery, statusFilter]);
 
   // Group by student
   const grouped = useMemo(() => {
@@ -115,7 +124,8 @@ export default function ActionPlansPage() {
           }
           // Refresh plans
           const params = new URLSearchParams();
-          if (statusFilter) params.set('status', statusFilter);
+          if (statusFilter && statusFilter !== 'overdue') params.set('status', statusFilter);
+          if (statusFilter === 'overdue') params.set('status', 'active');
           const res = await api.get(`/action-plans?${params.toString()}`);
           setPlans(res.data);
         }}
@@ -138,25 +148,37 @@ export default function ActionPlansPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex rounded-lg border border-slate-200 overflow-hidden">
-          {['', 'active', 'draft', 'completed', 'archived'].map(s => (
-            <button key={s} onClick={() => { setStatusFilter(s); }}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${statusFilter === s ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>
-              {s || 'All'}
+      <div className="flex flex-wrap gap-3 mb-4">
+        {/* Status tabs */}
+        <div className="flex rounded-lg border border-slate-200 overflow-hidden bg-white">
+          {[['', 'All'], ['active', 'Active'], ['overdue', 'Overdue'], ['completed', 'Completed'], ['archived', 'Archived']].map(([val, label]) => (
+            <button key={val} onClick={() => setStatusFilter(val)}
+              className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                statusFilter === val
+                  ? val === 'overdue' ? 'bg-red-600 text-white' : 'bg-slate-900 text-white'
+                  : 'text-slate-600 hover:bg-slate-50'
+              }`}>
+              {val === 'overdue' && <AlertTriangle size={12} />}{label}
             </button>
           ))}
         </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search student…"
+            className="pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none bg-white w-44" />
+        </div>
+
+        {/* Tier filter */}
         <select value={tierFilter} onChange={e => setTierFilter(e.target.value)}
-          className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10">
-          <option value="">All tiers</option>
+          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none bg-white">
+          <option value="">All Tiers</option>
           <option value="1">Tier 1</option>
           <option value="2">Tier 2</option>
           <option value="3">Tier 3</option>
         </select>
-        <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-          placeholder="Search student name…"
-          className="text-xs border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 w-48" />
       </div>
 
       {/* Plan list grouped by student */}
