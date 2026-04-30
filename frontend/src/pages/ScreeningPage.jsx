@@ -188,7 +188,7 @@ function ClassSelect({ mode, activePeriod, onNext, onBack }) {
 }
 
 // ─── SAEBRS: student list + sequential screening ──────────────────────────────
-function SAEBRSFlow({ className, period, onDone }) {
+function SAEBRSFlow({ className, period, selectedPeriod, onDone }) {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [current, setCurrent] = useState(null);
@@ -262,7 +262,7 @@ function SAEBRSFlow({ className, period, onDone }) {
           <div>
             <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>SAEBRS — {className}</h2>
             <div className="flex items-center gap-2 mt-1">
-              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full">{period}</span>
+              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full">{selectedPeriod?.name || period}</span>
               <span className="text-sm text-slate-500">{completedStudents.size} of {students.length} completed</span>
             </div>
           </div>
@@ -405,7 +405,7 @@ function SAEBRSFlow({ className, period, onDone }) {
 }
 
 // ─── Self-Report: pick individual student ─────────────────────────────────────
-function SelfReportFlow({ className, period, onDone }) {
+function SelfReportFlow({ className, period, selectedPeriod, onDone }) {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [current, setCurrent] = useState(null);
@@ -470,7 +470,7 @@ function SelfReportFlow({ className, period, onDone }) {
           <div>
             <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>Self-Report — {className}</h2>
             <div className="flex items-center gap-2 mt-1">
-              <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-xs font-semibold rounded-full">{period}</span>
+              <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-xs font-semibold rounded-full">{selectedPeriod?.name || period}</span>
               <span className="text-sm text-slate-500">{completedStudents.size} of {students.length} completed</span>
             </div>
           </div>
@@ -575,7 +575,7 @@ function SelfReportFlow({ className, period, onDone }) {
             <h2 className="text-xl font-bold text-slate-900" style={{ fontFamily: 'Manrope,sans-serif' }}>{student.first_name} {student.last_name}</h2>
             <div className="flex items-center gap-2 mt-0.5">
               <p className="text-sm text-slate-500">Student Self-Report</p>
-              <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-xs font-semibold rounded-full">{period}</span>
+              <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-xs font-semibold rounded-full">{selectedPeriod?.name || period}</span>
             </div>
           </div>
         </div>
@@ -661,6 +661,7 @@ export default function ScreeningPage() {
   }
 
   const activePeriodName = selectedPeriod?.name || '';
+  const activePeriodId = selectedPeriod?.period_id || '';
 
   if (step === 'mode') return (
     <ModeSelect 
@@ -680,7 +681,7 @@ export default function ScreeningPage() {
   if (step === 'screen' && mode === 'saebrs') return (
     <SAEBRSFlow 
       className={selectedClass} 
-      period={activePeriodName} 
+      period={activePeriodId} 
       selectedPeriod={selectedPeriod}
       onDone={handleDone} 
     />
@@ -688,7 +689,7 @@ export default function ScreeningPage() {
   if (step === 'screen' && mode === 'self-report') return (
     <SelfReportFlow 
       className={selectedClass} 
-      period={activePeriodName} 
+      period={activePeriodId} 
       selectedPeriod={selectedPeriod}
       onDone={handleDone} 
     />
