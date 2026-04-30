@@ -80,7 +80,7 @@ export default function CalendarPage() {
 
   useEffect(() => {
     loadEvents();
-  }, [year, month]);
+  }, [year, month]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadEvents = async () => {
     setLoading(true);

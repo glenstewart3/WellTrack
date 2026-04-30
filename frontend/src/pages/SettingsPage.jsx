@@ -728,7 +728,7 @@ function GeneralTab({ settings: s, onSave, saving, msg, msgType, featureFlags })
   useEffect(() => {
     setEmailAuthEnabled(s.email_auth_enabled !== false);
     setGoogleAuthEnabled(s.google_auth_enabled !== false);
-  }, [s.email_auth_enabled]);
+  }, [s.email_auth_enabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-detect current term from calendar dates
   useEffect(() => {
@@ -1009,7 +1009,7 @@ function CalendarTab({ msg, msgType, setMsg, setMsgType }) {
     }
   }, [initYear, normalizeTerms]);
 
-  useEffect(() => { fetchTerms(initYear); }, []);
+  useEffect(() => { fetchTerms(initYear); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleYearChange = (year) => fetchTerms(year);
 

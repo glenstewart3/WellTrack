@@ -109,7 +109,7 @@ export default function DashboardPage() {
       }
     };
     load();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (

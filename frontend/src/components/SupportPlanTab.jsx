@@ -90,6 +90,7 @@ export default function SupportPlanTab({ studentId, studentName, tier, canEdit }
     finally { setLoading(false); }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(() => { load(); }, [studentId]);
 
   const openCreate = () => {

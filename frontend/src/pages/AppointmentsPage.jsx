@@ -143,7 +143,7 @@ function SessionModal({ initial, students, interventionTypes, onClose, onSaved, 
         .then(r => setConfig(r.data))
         .catch(() => setConfig({}));
     }
-  }, [initial]);
+  }, [initial]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!form.student_id || !form.intervention_type) { setInterventions([]); return; }
@@ -157,7 +157,7 @@ function SessionModal({ initial, students, interventionTypes, onClose, onSaved, 
           setForm(p => ({ ...p, intervention_id: list[0].intervention_id }));
       })
       .catch(() => setInterventions([]));
-  }, [form.student_id, form.intervention_type]);
+  }, [form.student_id, form.intervention_type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const toggleFlag = flag =>

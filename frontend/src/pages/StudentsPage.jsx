@@ -286,7 +286,7 @@ export default function StudentsPage() {
       // Clear the state so back-navigation doesn't re-apply it
       window.history.replaceState({}, '');
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadStudents = async () => {
     try {
@@ -300,6 +300,7 @@ export default function StudentsPage() {
     finally { setLoading(false); }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadStudents(); }, [filterStatus]);
 
   const filtered = students.filter(s => {

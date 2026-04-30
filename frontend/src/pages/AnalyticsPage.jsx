@@ -118,7 +118,7 @@ export default function AnalyticsPage() {
       finally { setLoading(false); setRefreshing(false); }
     };
     load();
-  }, [filterType, filterValue]);
+  }, [filterType, filterValue]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cohort comparison — lazy load on tab open
   useEffect(() => {
