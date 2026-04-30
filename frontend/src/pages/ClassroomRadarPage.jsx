@@ -177,17 +177,17 @@ export default function ClassroomRadarPage() {
                       <td className="py-3.5 px-4">
                         {item.wellbeing_tier ? (
                           <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${getTierColors(item.wellbeing_tier).badge}`}>
-                            Tier {item.wellbeing_tier} ({item.wellbeing_total}/66)
+                            Tier {item.wellbeing_tier} ({item.wellbeing_total}/21)
                           </span>
                         ) : <span className="text-xs text-slate-400">—</span>}
                       </td>
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2">
                           <div className="w-12 bg-slate-100 rounded-full h-1.5">
-                            <div className={`h-1.5 rounded-full ${item.attendance_pct < 80 ? 'bg-rose-500' : item.attendance_pct < 90 ? 'bg-amber-400' : 'bg-emerald-500'}`}
+                            <div className={`h-1.5 rounded-full ${item.attendance_pct < 75 ? 'bg-rose-500' : item.attendance_pct < 92 ? 'bg-amber-400' : 'bg-emerald-500'}`}
                               style={{ width: `${Math.min(item.attendance_pct, 100)}%` }} />
                           </div>
-                          <span className={`text-xs font-medium ${item.attendance_pct < 80 ? 'text-rose-600' : item.attendance_pct < 90 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                          <span className={`text-xs font-medium ${item.attendance_pct < 75 ? 'text-rose-600' : item.attendance_pct < 92 ? 'text-amber-600' : 'text-emerald-600'}`}>
                             {item.attendance_pct}%
                           </span>
                         </div>

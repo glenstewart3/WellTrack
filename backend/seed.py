@@ -436,20 +436,20 @@ async def seed_database(db, student_count: int = 32):
                 "created_at": f"{seed_year}-05-10T09:30:00", "is_read": False, "resolved": False, "status": "pending"
             })
 
-        if att_frac * 100 < 80:
+        if att_frac * 100 < 75:
             all_alerts.append({
                 "alert_id": f"alrt_{uuid.uuid4().hex[:8]}", "student_id": sid,
                 "student_name": display, "class_name": student["class_name"],
-                "type": "early_warning", "alert_type": "low_attendance_80", "severity": "high",
-                "message": f"{display} critically low attendance ({att_frac * 100:.0f}%)",
+                "type": "early_warning", "alert_type": "low_attendance_severe", "severity": "high",
+                "message": f"{display} severely low attendance ({att_frac * 100:.0f}%) — Tier 3 risk",
                 "created_at": f"{seed_year}-05-01T08:00:00", "is_read": False, "resolved": False, "status": "pending"
             })
-        elif att_frac * 100 < 90:
+        elif att_frac * 100 < 92:
             all_alerts.append({
                 "alert_id": f"alrt_{uuid.uuid4().hex[:8]}", "student_id": sid,
                 "student_name": display, "class_name": student["class_name"],
-                "type": "early_warning", "alert_type": "low_attendance_90", "severity": "medium",
-                "message": f"{display} attendance below 90% ({att_frac * 100:.0f}%)",
+                "type": "early_warning", "alert_type": "low_attendance_some", "severity": "medium",
+                "message": f"{display} attendance below 92% ({att_frac * 100:.0f}%) — Some Risk band",
                 "created_at": f"{seed_year}-05-01T08:00:00", "is_read": False, "resolved": False, "status": "pending"
             })
 

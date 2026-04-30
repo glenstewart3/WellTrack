@@ -523,7 +523,7 @@ export default function StudentProfilePage() {
           <div className="flex flex-wrap gap-3 items-center">
             {mtss_tier && <TierBadge tier={mtss_tier} />}
             <div className="text-right">
-              <p className={`text-lg font-bold ${attendance_pct < 80 ? 'text-rose-600' : attendance_pct < 90 ? 'text-amber-600' : 'text-emerald-600'}`}>{attendance_pct}%</p>
+              <p className={`text-lg font-bold ${attendance_pct < 75 ? 'text-rose-600' : attendance_pct < 92 ? 'text-amber-600' : 'text-emerald-600'}`}>{attendance_pct}%</p>
               <p className="text-xs text-slate-400">Attendance</p>
             </div>
             <button onClick={async () => { await exportStudentProfile(profile); }} data-testid="export-profile-pdf-btn"
@@ -537,7 +537,7 @@ export default function StudentProfilePage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5 pt-5 border-t border-slate-100">
           {[
             { label: 'SAEBRS Total', value: latestSaebrs ? `${latestSaebrs.total_score}/57` : '—', sub: latestSaebrs?.risk_level },
-            { label: 'Wellbeing Score', value: latestPlus ? `${latestPlus.wellbeing_total}/66` : '—', sub: latestPlus ? `Tier ${latestPlus.wellbeing_tier}` : '—' },
+            { label: 'Wellbeing Score', value: latestPlus ? `${latestPlus.wellbeing_total}/21` : '—', sub: latestPlus ? `Tier ${latestPlus.wellbeing_tier}` : '—' },
             { label: 'Active Interventions', value: interventions?.filter(i => i.status === 'active').length || 0 },
             { label: 'Case Notes', value: case_notes?.length || 0 },
           ].map(stat => (

@@ -62,7 +62,7 @@ export default function MeetingPrepPage() {
       lines.push(`${studentDisplayName(s.student)} (${s.student.class_name})`);
       lines.push(`  MTSS Tier: ${s.mtss_tier}`);
       lines.push(`  SAEBRS: ${s.saebrs?.total_score || '—'}/57 (${s.saebrs?.risk_level || '—'})`);
-      lines.push(`  Wellbeing: ${s.saebrs_plus?.wellbeing_total || '—'}/66`);
+      lines.push(`  Wellbeing: ${s.saebrs_plus?.wellbeing_total || '—'}/21`);
       lines.push(`  Attendance: ${s.attendance_pct}%`);
       lines.push(`  Active Interventions: ${s.active_interventions.length}`);
       if (s.active_interventions.length > 0) {
@@ -239,12 +239,12 @@ export default function MeetingPrepPage() {
                     </div>
                     <div className="bg-slate-50 rounded-lg p-2.5">
                       <p className="text-slate-400 mb-1">Wellbeing</p>
-                      <p className="font-bold text-slate-900">{item.saebrs_plus?.wellbeing_total || '—'}/66</p>
+                      <p className="font-bold text-slate-900">{item.saebrs_plus?.wellbeing_total || '—'}/21</p>
                       {item.saebrs_plus && <span className={`px-1.5 py-0.5 rounded-full font-medium ${getTierColors(item.saebrs_plus.wellbeing_tier).badge}`}>Tier {item.saebrs_plus.wellbeing_tier}</span>}
                     </div>
                     <div className="bg-slate-50 rounded-lg p-2.5">
                       <p className="text-slate-400 mb-1">Attendance</p>
-                      <p className={`font-bold ${item.attendance_pct < 80 ? 'text-rose-600' : item.attendance_pct < 90 ? 'text-amber-600' : 'text-emerald-600'}`}>{item.attendance_pct}%</p>
+                      <p className={`font-bold ${item.attendance_pct < 75 ? 'text-rose-600' : item.attendance_pct < 92 ? 'text-amber-600' : 'text-emerald-600'}`}>{item.attendance_pct}%</p>
                     </div>
                     <div className="bg-slate-50 rounded-lg p-2.5">
                       <p className="text-slate-400 mb-1">Interventions</p>

@@ -366,8 +366,8 @@ export default function AnalyticsPage() {
         <div id="pdf-section-attendance" className="space-y-6">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {statCard('School Days', attTrends?.total_school_days ?? '—', 'Days with attendance data')}
-            {statCard('Chronic Absentees', attTrends?.chronic_absentees?.length ?? 0, 'Below 90% attendance', 'text-amber-600')}
-            {statCard('Critical Absentees', attTrends?.chronic_absentees?.filter(a => a.attendance_pct < 80).length ?? 0, 'Below 80% attendance', 'text-rose-600')}
+            {statCard('Attendance Concern', attTrends?.chronic_absentees?.length ?? 0, 'Below 92% attendance', 'text-amber-600')}
+            {statCard('Severe Absence', attTrends?.chronic_absentees?.filter(a => a.attendance_pct < 75).length ?? 0, 'Below 75% attendance', 'text-rose-600')}
           </div>
 
           {attTrends?.day_of_week?.length > 0 && (
@@ -432,12 +432,12 @@ export default function AnalyticsPage() {
 
           {attTrends?.chronic_absentees?.length > 0 && (
             <div className="bg-white border border-slate-200 rounded-xl p-6">
-              <SectionHeader icon={AlertTriangle} title="Chronic Absentees" sub="Students with attendance below 90% — click to view profile" />
+              <SectionHeader icon={AlertTriangle} title="Attendance Concerns" sub="Students with attendance below 92% — click to view profile" />
               <div className="space-y-2">
                 {attTrends.chronic_absentees.map((ca, i) => {
                   const pct = ca.attendance_pct;
-                  const color = pct < 80 ? 'text-rose-600' : 'text-amber-600';
-                  const bg = pct < 80 ? 'bg-rose-50 border-rose-200' : 'bg-amber-50 border-amber-200';
+                  const color = pct < 75 ? 'text-rose-600' : 'text-amber-600';
+                  const bg = pct < 75 ? 'bg-rose-50 border-rose-200' : 'bg-amber-50 border-amber-200';
                   const name = ca.student ? `${ca.student.first_name}${ca.student.preferred_name && ca.student.preferred_name !== ca.student.first_name ? ` (${ca.student.preferred_name})` : ''} ${ca.student.last_name}` : '—';
                   return (
                     <div key={i} className={`flex items-center justify-between p-3 rounded-xl border ${bg} cursor-pointer hover:opacity-90`}

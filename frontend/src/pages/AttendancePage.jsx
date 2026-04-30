@@ -214,8 +214,8 @@ export default function AttendancePage() {
     .sort((a, b) => (a.attendance_pct ?? 100) - (b.attendance_pct ?? 100));
 
   const withData = summary.filter(s => s.has_data);
-  const concerns = withData.filter(s => s.attendance_pct < 90);
-  const atRisk = withData.filter(s => s.attendance_pct >= 90 && s.attendance_pct < 95);
+  const concerns = withData.filter(s => s.attendance_pct < 92);
+  const atRisk = withData.filter(s => s.attendance_pct >= 85 && s.attendance_pct < 92);
   const avgPct = withData.length
     ? (withData.reduce((a, s) => a + s.attendance_pct, 0) / withData.length).toFixed(1)
     : '—';
@@ -343,8 +343,8 @@ export default function AttendancePage() {
         {[
           { label: 'Total Students', value: summary.length, sub: `with data: ${withData.length}`, icon: <Users size={18} />, color: 'text-slate-700' },
           { label: 'School Average', value: withData.length ? `${avgPct}%` : '—', sub: curLabel, icon: <CalendarDays size={18} />, color: 'text-slate-700' },
-          { label: 'Tier 3 Concerns', value: concerns.length, sub: 'below 90%', icon: <TrendingDown size={18} />, color: 'text-rose-600' },
-          { label: 'Tier 2 At Risk', value: atRisk.length, sub: '90–95%', icon: <AlertTriangle size={18} />, color: 'text-amber-600' },
+          { label: 'Attendance Concern', value: concerns.length, sub: 'below 92%', icon: <TrendingDown size={18} />, color: 'text-rose-600' },
+          { label: 'Some Risk', value: atRisk.length, sub: '85–91%', icon: <AlertTriangle size={18} />, color: 'text-amber-600' },
         ].map(tile => (
           <div key={tile.label} className="bg-white border border-slate-200 rounded-xl p-4">
             <div className={`${tile.color} mb-2`}>{tile.icon}</div>
@@ -503,7 +503,7 @@ export default function AttendancePage() {
                 <div className="space-y-5">
                   <div className="grid grid-cols-3 gap-4">
                     <div className="bg-slate-50 rounded-xl p-4 text-center">
-                      <p className={`text-2xl font-bold ${studentDetail.attendance_pct < 90 ? 'text-rose-600' : studentDetail.attendance_pct < 95 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                      <p className={`text-2xl font-bold ${studentDetail.attendance_pct < 75 ? 'text-rose-600' : studentDetail.attendance_pct < 92 ? 'text-amber-600' : 'text-emerald-600'}`}>
                         {studentDetail.attendance_pct}%
                       </p>
                       <p className="text-xs text-slate-400 mt-0.5">Attendance</p>

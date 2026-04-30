@@ -308,7 +308,7 @@ export default function StudentsPage() {
     const matchSearch = !search || name.includes(search.toLowerCase());
     const matchClass = !filterClass || s.class_name === filterClass;
     const matchTier = !filterTier || String(s.mtss_tier) === filterTier;
-    const matchChronic = !filterChronicOnly || (s.attendance_pct !== null && s.attendance_pct < 90);
+    const matchChronic = !filterChronicOnly || (s.attendance_pct !== null && s.attendance_pct < 92);
     return matchSearch && matchClass && matchTier && matchChronic;
   }).sort((a, b) => {
     if (!sortField) return (b.mtss_tier || 0) - (a.mtss_tier || 0);
@@ -426,7 +426,7 @@ export default function StudentsPage() {
           <div className="flex items-center gap-3 mt-1 flex-wrap">
             <p className="text-slate-500">{students.length} {filterStatus === 'archived' ? 'archived' : 'enrolled'} students</p>
             {filterStatus === 'active' && (() => {
-              const chronicCount = students.filter(s => s.attendance_pct !== null && s.attendance_pct < 90).length;
+              const chronicCount = students.filter(s => s.attendance_pct !== null && s.attendance_pct < 92).length;
               return chronicCount > 0 ? (
                 <button
                   onClick={() => setFilterChronicOnly(f => !f)}
@@ -779,20 +779,20 @@ export default function StudentsPage() {
                       <td className="py-3 px-4 hidden lg:table-cell">
                         {s.wellbeing_tier ? (
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getTierColors(s.wellbeing_tier).badge}`}>
-                            T{s.wellbeing_tier} ({s.wellbeing_total}/66)
+                            T{s.wellbeing_tier} ({s.wellbeing_total}/21)
                           </span>
                         ) : <span className="text-xs text-slate-400">—</span>}
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className={`text-sm font-medium ${s.attendance_pct !== null && s.attendance_pct < 80 ? 'text-rose-600' : s.attendance_pct !== null && s.attendance_pct < 90 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                          <span className={`text-sm font-medium ${s.attendance_pct !== null && s.attendance_pct < 75 ? 'text-rose-600' : s.attendance_pct !== null && s.attendance_pct < 92 ? 'text-amber-600' : 'text-emerald-600'}`}>
                             {s.attendance_pct !== null ? `${s.attendance_pct}%` : '—'}
                           </span>
-                          {s.attendance_pct !== null && s.attendance_pct < 90 && (
+                          {s.attendance_pct !== null && s.attendance_pct < 92 && (
                             <span
                               className="inline-flex items-center gap-0.5 px-1.5 py-px rounded text-[10px] font-bold bg-rose-100 text-rose-700 leading-none"
                               data-testid={`chronic-badge-${s.student_id}`}
-                              title={`Chronic absence: ${s.attendance_pct}% attendance (below 90%)`}
+                              title={`Attendance concern: ${s.attendance_pct}% attendance (below 92%)`}
                             >
                               <AlertTriangle size={9} />
                               CA
