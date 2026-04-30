@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
-import { getTierColors, getRiskColors } from '../utils/tierUtils';
+import { getTierColors, getRiskColors, computeTierContext } from '../utils/tierUtils';
 import { sortClasses } from '../utils/classSort';
 import { Search, Users, Upload, Download, X, CheckCircle, AlertTriangle, Loader, ChevronRight, UserPlus, Archive, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Camera } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
@@ -659,7 +659,7 @@ export default function StudentsPage() {
                       { key: 'student', label: 'Student', cls: '' },
                       { key: 'class', label: 'Class', cls: 'hidden sm:table-cell' },
                       { key: 'year', label: 'Year', cls: 'hidden md:table-cell' },
-                      { key: 'tier', label: 'Tier', cls: '' },
+                      { key: 'tier', label: 'Tier / Primary Need', cls: '' },
                       { key: 'saebrs', label: 'SAEBRS', cls: 'hidden md:table-cell' },
                       { key: null, label: 'Wellbeing', cls: 'hidden lg:table-cell' },
                       { key: 'attend', label: 'Attend.', cls: '' },
@@ -744,32 +744,33 @@ export default function StudentsPage() {
                       <td className="py-3 px-4 text-slate-600 text-sm hidden sm:table-cell">{s.class_name}</td>
                       <td className="py-3 px-4 text-slate-600 text-sm hidden md:table-cell">{s.year_level}</td>
                       <td className="py-3 px-4">
-                        {s.mtss_tier ? (
-                          <span
-                            className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold"
-                            style={{
-                              backgroundColor: s.mtss_tier === 3 ? 'var(--wt-tier3-soft)'
-                                : s.mtss_tier === 2 ? 'var(--wt-tier2-soft)'
-                                : 'var(--wt-tier1-soft)',
-                              color: s.mtss_tier === 3 ? 'var(--wt-tier3-foreground)'
-                                : s.mtss_tier === 2 ? 'var(--wt-tier2-foreground)'
-                                : 'var(--wt-tier1-foreground)',
-                              borderColor: s.mtss_tier === 3 ? 'var(--wt-tier3-border)'
-                                : s.mtss_tier === 2 ? 'var(--wt-tier2-border)'
-                                : 'var(--wt-tier1-border)',
-                            }}
-                          >
-                            <span
-                              className="h-1.5 w-1.5 rounded-full"
-                              style={{
-                                backgroundColor: s.mtss_tier === 3 ? 'var(--wt-tier3)'
-                                  : s.mtss_tier === 2 ? 'var(--wt-tier2)'
-                                  : 'var(--wt-tier1)',
-                              }}
-                            />
-                            Tier {s.mtss_tier}
-                          </span>
-                        ) : <span className="text-xs text-slate-400">—</span>}
+                        {s.mtss_tier ? (() => {
+                          const ctx = computeTierContext({
+                            mtss_tier: s.mtss_tier,
+                            saebrs_risk: s.saebrs_risk,
+                            wellbeing_tier: s.wellbeing_tier,
+                            wellbeing_total: s.wellbeing_total,
+                            attendance_pct: s.attendance_pct,
+                          });
+                          const tierBg = s.mtss_tier === 3 ? 'var(--wt-tier3-soft)' : s.mtss_tier === 2 ? 'var(--wt-tier2-soft)' : 'var(--wt-tier1-soft)';
+                          const tierFg = s.mtss_tier === 3 ? 'var(--wt-tier3-foreground)' : s.mtss_tier === 2 ? 'var(--wt-tier2-foreground)' : 'var(--wt-tier1-foreground)';
+                          const tierBorder = s.mtss_tier === 3 ? 'var(--wt-tier3-border)' : s.mtss_tier === 2 ? 'var(--wt-tier2-border)' : 'var(--wt-tier1-border)';
+                          const tierDot = s.mtss_tier === 3 ? 'var(--wt-tier3)' : s.mtss_tier === 2 ? 'var(--wt-tier2)' : 'var(--wt-tier1)';
+                          return (
+                            <div className="flex flex-col gap-0.5">
+                              <span
+                                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold w-fit"
+                                style={{ backgroundColor: tierBg, color: tierFg, borderColor: tierBorder }}
+                              >
+                                <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: tierDot }} />
+                                Tier {s.mtss_tier}{ctx.domainShort ? ` – ${ctx.domainShort}` : ''}
+                              </span>
+                              {ctx.riskFlags.length > 0 && (
+                                <span className="text-[10px] text-slate-400 leading-tight pl-1">{ctx.riskFlags.slice(0, 2).join(' · ')}</span>
+                              )}
+                            </div>
+                          );
+                        })() : <span className="text-xs text-slate-400">—</span>}
                       </td>
                       <td className="py-3 px-4 hidden md:table-cell">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getRiskColors(s.saebrs_risk)}`}>
@@ -777,11 +778,14 @@ export default function StudentsPage() {
                         </span>
                       </td>
                       <td className="py-3 px-4 hidden lg:table-cell">
-                        {s.wellbeing_tier ? (
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getTierColors(s.wellbeing_tier).badge}`}>
-                            T{s.wellbeing_tier} ({s.wellbeing_total}/21)
-                          </span>
-                        ) : <span className="text-xs text-slate-400">—</span>}
+                        {s.wellbeing_tier ? (() => {
+                          const wbLabel = s.wellbeing_tier === 3 ? 'High Concern' : s.wellbeing_tier === 2 ? 'Emerging' : 'Low Concern';
+                          return (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getTierColors(s.wellbeing_tier).badge}`}>
+                              {wbLabel} ({s.wellbeing_total ?? '—'}/21)
+                            </span>
+                          );
+                        })() : <span className="text-xs text-slate-400">—</span>}
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-1.5 flex-wrap">

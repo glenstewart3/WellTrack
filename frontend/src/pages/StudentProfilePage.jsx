@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
-import { getTierColors, getRiskColors, INTERVENTION_TYPES, NOTE_TYPES } from '../utils/tierUtils';
+import { getTierColors, getRiskColors, INTERVENTION_TYPES, NOTE_TYPES, computeTierContext } from '../utils/tierUtils';
 import { ArrowLeft, Plus, X, Loader, Edit2, Check, Sparkles, Trash2, AlertTriangle, Stethoscope, Paperclip, FileText, Upload, Download } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
@@ -405,6 +405,13 @@ export default function StudentProfilePage() {
   const tierColors = getTierColors(mtss_tier);
   const latestSaebrs = saebrs_results?.slice(-1)[0];
   const latestPlus = self_report_results?.slice(-1)[0];
+  const tierCtx = computeTierContext({
+    mtss_tier,
+    saebrs_risk: latestSaebrs?.risk_level ?? null,
+    wellbeing_tier: latestPlus?.wellbeing_tier ?? null,
+    wellbeing_total: latestPlus?.wellbeing_total ?? null,
+    attendance_pct,
+  });
 
   // Chart data
   const screeningChartData = saebrs_results?.map((r, i) => ({
@@ -537,7 +544,7 @@ export default function StudentProfilePage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5 pt-5 border-t border-slate-100">
           {[
             { label: 'SAEBRS Total', value: latestSaebrs ? `${latestSaebrs.total_score}/57` : '—', sub: latestSaebrs?.risk_level },
-            { label: 'Wellbeing Score', value: latestPlus ? `${latestPlus.wellbeing_total}/21` : '—', sub: latestPlus ? `Tier ${latestPlus.wellbeing_tier}` : '—' },
+            { label: 'Wellbeing Score', value: latestPlus ? `${latestPlus.wellbeing_total}/21` : '—', sub: latestPlus ? tierCtx.wellbeingLabel : '—' },
             { label: 'Active Interventions', value: interventions?.filter(i => i.status === 'active').length || 0 },
             { label: 'Case Notes', value: case_notes?.length || 0 },
           ].map(stat => (
@@ -549,6 +556,38 @@ export default function StudentProfilePage() {
           ))}
         </div>
       </div>
+
+      {/* Why This Tier? */}
+      {mtss_tier && (
+        <div className={`border rounded-xl p-5 mb-6 ${mtss_tier === 3 ? 'bg-rose-50 border-rose-200' : mtss_tier === 2 ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'}`}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${mtss_tier === 3 ? 'bg-rose-100' : mtss_tier === 2 ? 'bg-amber-100' : 'bg-emerald-100'}`}>
+                <Stethoscope size={18} className={mtss_tier === 3 ? 'text-rose-600' : mtss_tier === 2 ? 'text-amber-600' : 'text-emerald-600'} />
+              </div>
+              <div>
+                <p className={`text-xs font-semibold uppercase tracking-wider mb-0.5 ${mtss_tier === 3 ? 'text-rose-500' : mtss_tier === 2 ? 'text-amber-500' : 'text-emerald-600'}`}>Why this tier?</p>
+                <p className="text-sm font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>
+                  Tier {mtss_tier} — Primary Need: {tierCtx.primaryDomain}
+                </p>
+                {tierCtx.riskFlags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {tierCtx.riskFlags.map(f => (
+                      <span key={f} className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${mtss_tier === 3 ? 'bg-rose-100 text-rose-700' : mtss_tier === 2 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>{f}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            {tierCtx.pathway && (
+              <div className="text-xs text-slate-600 max-w-xs">
+                <p className="font-semibold text-slate-700 mb-0.5">Recommended next action</p>
+                <p className="leading-relaxed">{tierCtx.pathway}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 mb-6 overflow-x-auto">
@@ -619,9 +658,10 @@ export default function StudentProfilePage() {
             ) : <p className="text-sm text-slate-400 py-8 text-center">No screening data available</p>}
           </div>
 
-          {/* Wellbeing Radar */}
+          {/* Wellbeing Radar — Attendance excluded, shown separately below */}
           <div className="bg-white border border-slate-200 rounded-xl p-6">
-            <h3 className="font-semibold text-slate-900 mb-3" style={{fontFamily:'Manrope,sans-serif'}}>Wellbeing Domain Profile</h3>
+            <h3 className="font-semibold text-slate-900 mb-1" style={{fontFamily:'Manrope,sans-serif'}}>Wellbeing Domain Profile</h3>
+            <p className="text-xs text-slate-400 mb-3">Social · Academic · Emotional · Belonging (self-report)</p>
             {radarAlerts.length > 0 && (
               <div className="flex flex-col gap-1.5 mb-4">
                 {radarAlerts.map((msg, i) => (
@@ -632,23 +672,62 @@ export default function StudentProfilePage() {
                 ))}
               </div>
             )}
-            <ResponsiveContainer width="100%" height={200}>
-              <RadarChart data={radarData}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="domain" tick={{ fontSize: 12 }} />
-                <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-                <Radar dataKey="pct" stroke="#6366f1" fill="#6366f1" fillOpacity={0.2} />
-                <Tooltip formatter={(v) => [`${v}%`, 'Score']} contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
-              </RadarChart>
-            </ResponsiveContainer>
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {radarData.map(d => (
-                <div key={d.domain} className="text-center">
-                  <p className="text-sm font-bold text-slate-900">{d.score}<span className="text-xs text-slate-400">/{d.max}</span></p>
-                  <p className="text-xs text-slate-400">{d.domain}</p>
+            {(() => {
+              const wellbeingRadarData = radarData.filter(d => d.domain !== 'Attendance');
+              return (
+                <>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <RadarChart data={wellbeingRadarData}>
+                      <PolarGrid />
+                      <PolarAngleAxis dataKey="domain" tick={{ fontSize: 12 }} />
+                      <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+                      <Radar dataKey="pct" stroke="#6366f1" fill="#6366f1" fillOpacity={0.2} />
+                      <Tooltip formatter={(v) => [`${v}%`, 'Score']} contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                  <div className="grid grid-cols-4 gap-2 mt-2">
+                    {wellbeingRadarData.map(d => (
+                      <div key={d.domain} className="text-center">
+                        <p className="text-sm font-bold text-slate-900">{d.score}<span className="text-xs text-slate-400">/{d.max}</span></p>
+                        <p className="text-xs text-slate-400">{d.domain}</p>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+
+          {/* Attendance — Engagement Indicator (separate from wellbeing radar) */}
+          <div className="bg-white border border-slate-200 rounded-xl p-6">
+            <h3 className="font-semibold text-slate-900 mb-1" style={{fontFamily:'Manrope,sans-serif'}}>Attendance — Engagement Indicator</h3>
+            <p className="text-xs text-slate-400 mb-4">Shown separately from wellbeing domains. Low Risk ≥92% · Some Risk 85–91% · High Risk 75–84% · Severe &lt;75%</p>
+            {attendance_pct != null ? (
+              <>
+                <div className="flex items-end gap-3 mb-3">
+                  <p className={`text-4xl font-extrabold ${attendance_pct < 75 ? 'text-rose-600' : attendance_pct < 92 ? 'text-amber-600' : 'text-emerald-600'}`} style={{fontFamily:'Manrope,sans-serif'}}>{attendance_pct}%</p>
+                  <span className={`mb-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                    attendance_pct < 75 ? 'bg-rose-100 text-rose-700'
+                    : attendance_pct < 85 ? 'bg-orange-100 text-orange-700'
+                    : attendance_pct < 92 ? 'bg-amber-100 text-amber-700'
+                    : 'bg-emerald-100 text-emerald-700'
+                  }`}>
+                    {attendance_pct < 75 ? 'Severe Risk' : attendance_pct < 85 ? 'High Risk' : attendance_pct < 92 ? 'Some Risk' : 'Low Risk'}
+                  </span>
                 </div>
-              ))}
-            </div>
+                <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                  <div
+                    className={`h-3 rounded-full transition-all ${attendance_pct < 75 ? 'bg-rose-500' : attendance_pct < 85 ? 'bg-orange-400' : attendance_pct < 92 ? 'bg-amber-400' : 'bg-emerald-500'}`}
+                    style={{ width: `${Math.min(attendance_pct, 100)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[10px] text-slate-400 mt-1 px-0.5">
+                  <span>0%</span><span>75%</span><span>85%</span><span>92%</span><span>100%</span>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-slate-400 py-4 text-center">No attendance data recorded</p>
+            )}
           </div>
 
           {/* SAEBRS detail */}
