@@ -57,11 +57,13 @@ async def login_email(data: dict, response: Response, db=Depends(get_tenant_db))
 
     session_token = f"sess_{uuid.uuid4().hex}"
     expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    now_iso = datetime.now(timezone.utc).isoformat()
     await db.user_sessions.insert_one({
         "user_id": user_doc["user_id"], "session_token": session_token,
         "expires_at": expires_at.isoformat(),
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": now_iso,
     })
+    await db.users.update_one({"user_id": user_doc["user_id"]}, {"$set": {"last_login": now_iso}})
     _set_session_cookie(response, session_token)
     # Determine where to send the user — always go to dashboard if setup is done
     is_complete = bool(settings and settings.get("onboarding_complete")) or \
@@ -251,11 +253,13 @@ async def google_callback(request: Request):
     user_id = existing["user_id"]
     session_token = f"sess_{uuid.uuid4().hex}"
     expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    now_iso = datetime.now(timezone.utc).isoformat()
     await db.user_sessions.insert_one({
         "user_id": user_id, "session_token": session_token,
         "expires_at": expires_at.isoformat(),
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": now_iso,
     })
+    await db.users.update_one({"user_id": user_id}, {"$set": {"last_login": now_iso}})
 
     settings_doc = await _get_settings(db)
     onboarding_complete = bool(settings_doc and settings_doc.get("onboarding_complete"))
