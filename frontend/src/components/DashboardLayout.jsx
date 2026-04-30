@@ -9,7 +9,7 @@ import {
   Target, Users2, Bell, Settings, LogOut,
   Menu, X, Shield, UserCog, Check, Sun, Moon, CalendarClock,
   Calendar, CalendarDays, AlertTriangle, FileText, Inbox, ClipboardList,
-  MoreHorizontal, Search, Command
+  MoreHorizontal, Search
 } from 'lucide-react';
 
 // Simple flat list of nav items
@@ -286,7 +286,9 @@ export default function DashboardLayout() {
           {/* Desktop Global Search - Centered */}
           <div className="hidden lg:flex flex-1 justify-center max-w-xl mx-auto">
             <div className="relative w-full max-w-md">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search size={18} className="text-slate-400" />
+              </div>
               <input
                 type="text"
                 placeholder="Search students, interventions, plans..."
@@ -299,8 +301,16 @@ export default function DashboardLayout() {
                     setSearchResults([]);
                   }
                 }}
-                className="w-full pl-10 pr-4 py-2 text-sm bg-slate-100 border-transparent focus:bg-white focus:border-slate-300 rounded-xl transition-all outline-none"
+                className="w-full pl-11 pr-4 py-2.5 text-sm bg-white border border-slate-200 shadow-sm hover:shadow-md focus:shadow-lg focus:border-blue-400 rounded-xl transition-all outline-none placeholder:text-slate-400"
               />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(''); setSearchResults([]); }}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                >
+                  <X size={16} className="text-slate-400 hover:text-slate-600" />
+                </button>
+              )}
               {searchResults.length > 0 && searchQuery.length >= 2 && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 max-h-80 overflow-y-auto">
                   {searchResults.map((result) => (
@@ -316,7 +326,7 @@ export default function DashboardLayout() {
                       <result.icon size={18} className="text-slate-400" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-slate-800 truncate">{result.title}</p>
-                        <p className="text-xs text-slate-500">{result.type}</p>
+                        <p className="text-xs text-slate-500">{result.subtitle ? `${result.subtitle} · ` : ''}{result.type}</p>
                       </div>
                     </button>
                   ))}
@@ -527,7 +537,10 @@ export default function DashboardLayout() {
               onClick={() => setSearchOpen(true)}
               className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${searchOpen ? 'text-blue-600' : 'text-slate-500'}`}
             >
-              <Command size={22} />
+              <div className="relative">
+                <Search size={22} />
+                <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-500 rounded-full"></div>
+              </div>
               <span className="text-[10px] font-medium">Search</span>
             </button>
             <button
@@ -630,7 +643,7 @@ export default function DashboardLayout() {
                     }
                   }}
                   autoFocus={searchOpen}
-                  className="w-full pl-10 pr-10 py-3 text-base bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-400 outline-none"
+                  className="w-full pl-10 pr-10 py-3 text-base bg-white border border-slate-200 shadow-sm focus:shadow-md focus:border-blue-400 rounded-xl outline-none"
                 />
                 {searchQuery && (
                   <button 
@@ -666,7 +679,7 @@ export default function DashboardLayout() {
                       <result.icon size={20} className="text-slate-400" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-slate-800 truncate">{result.title}</p>
-                        <p className="text-xs text-slate-500">{result.type}</p>
+                        <p className="text-xs text-slate-500">{result.subtitle ? `${result.subtitle} · ` : ''}{result.type}</p>
                       </div>
                     </button>
                   ))}
@@ -678,7 +691,7 @@ export default function DashboardLayout() {
                 </div>
               ) : (
                 <div className="p-8 text-center text-slate-400">
-                  <Command size={32} className="mx-auto mb-2 opacity-30" />
+                  <Search size={32} className="mx-auto mb-2 opacity-30" />
                   <p className="text-sm">Type to search...</p>
                 </div>
               )}
