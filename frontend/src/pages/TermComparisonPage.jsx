@@ -8,30 +8,10 @@ import {
   BarChart2, ArrowRight, Download, School, Target
 } from 'lucide-react';
 import useDocumentTitle from '../hooks/useDocumentTitle';
-import { Line, Bar } from 'react-chartjs-2';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-
-// Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer,
+} from 'recharts';
 
 // ── Term Comparison Page ─────────────────────────────────────────────────────
 export default function TermComparisonPage() {
@@ -99,83 +79,15 @@ export default function TermComparisonPage() {
   // Chart data preparation
   const chartData = useMemo(() => {
     if (!comparisonData) return null;
-    
-    const labels = comparisonData.terms.map(t => `${t.term} ${t.year}`);
-    
-    if (activeMetric === 'tier') {
-      return {
-        labels,
-        datasets: [
-          {
-            label: 'Tier 1',
-            data: comparisonData.data.map(d => d.tier1_count),
-            backgroundColor: 'rgba(34, 197, 94, 0.6)',
-            borderColor: 'rgba(34, 197, 94, 1)',
-            borderWidth: 2,
-          },
-          {
-            label: 'Tier 2',
-            data: comparisonData.data.map(d => d.tier2_count),
-            backgroundColor: 'rgba(245, 158, 11, 0.6)',
-            borderColor: 'rgba(245, 158, 11, 1)',
-            borderWidth: 2,
-          },
-          {
-            label: 'Tier 3',
-            data: comparisonData.data.map(d => d.tier3_count),
-            backgroundColor: 'rgba(239, 68, 68, 0.6)',
-            borderColor: 'rgba(239, 68, 68, 1)',
-            borderWidth: 2,
-          },
-        ],
-      };
-    } else if (activeMetric === 'saebrs') {
-      return {
-        labels,
-        datasets: [
-          {
-            label: 'Average SAEBRS Total',
-            data: comparisonData.data.map(d => d.avg_saebrs_total),
-            borderColor: 'rgba(59, 130, 246, 1)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            fill: true,
-            tension: 0.4,
-          },
-        ],
-      };
-    } else if (activeMetric === 'attendance') {
-      return {
-        labels,
-        datasets: [
-          {
-            label: 'Average Attendance %',
-            data: comparisonData.data.map(d => d.avg_attendance),
-            borderColor: 'rgba(168, 85, 247, 1)',
-            backgroundColor: 'rgba(168, 85, 247, 0.1)',
-            fill: true,
-            tension: 0.4,
-          },
-        ],
-      };
-    }
-    
-    return null;
-  }, [comparisonData, activeMetric]);
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-      },
-    },
-  };
+    return comparisonData.data.map(d => ({
+      name: `${d.term} ${d.year}`,
+      tier1: d.tier1_count,
+      tier2: d.tier2_count,
+      tier3: d.tier3_count,
+      saebrs: d.avg_saebrs_total,
+      attendance: d.avg_attendance,
+    }));
+  }, [comparisonData]);
 
   // Calculate trends
   const calculateTrend = (current, previous) => {
@@ -284,9 +196,40 @@ export default function TermComparisonPage() {
             <div className="h-80">
               {chartData && (
                 activeMetric === 'tier' ? (
-                  <Bar data={chartData} options={chartOptions} />
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={32} />
+                      <Tooltip contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
+                      <Legend wrapperStyle={{ fontSize: '12px' }} />
+                      <Bar dataKey="tier1" name="Tier 1" fill="rgba(34,197,94,0.7)" radius={[4,4,0,0]} />
+                      <Bar dataKey="tier2" name="Tier 2" fill="rgba(245,158,11,0.7)" radius={[4,4,0,0]} />
+                      <Bar dataKey="tier3" name="Tier 3" fill="rgba(239,68,68,0.7)" radius={[4,4,0,0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : activeMetric === 'saebrs' ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={40} />
+                      <Tooltip contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} />
+                      <Legend wrapperStyle={{ fontSize: '12px' }} />
+                      <Line type="monotone" dataKey="saebrs" name="Avg SAEBRS Total" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
                 ) : (
-                  <Line data={chartData} options={chartOptions} />
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={40} />
+                      <Tooltip contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '12px' }} formatter={(v) => [`${v}%`, 'Avg Attendance']} />
+                      <Legend wrapperStyle={{ fontSize: '12px' }} />
+                      <Line type="monotone" dataKey="attendance" name="Avg Attendance %" stroke="#a855f7" strokeWidth={2} dot={{ r: 4 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
                 )
               )}
             </div>
