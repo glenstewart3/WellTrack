@@ -13,9 +13,17 @@
   to { opacity: 1; transform: translateY(0); }
 }
 .fade-in { animation: fadeIn 0.3s ease-out; }
+/* Disable on mobile to prevent navigation blocking during touch */
+@media (hover: none) and (pointer: coarse) {
+  .fade-in { animation: none; }
+}
 
 @keyframes slideIn {
   from { opacity: 0; transform: translateX(-8px); }
   to { opacity: 1; transform: translateX(0); }
 }
 .slide-in { animation: slideIn 0.2s ease-out; }
+/* Disable on mobile to prevent navigation blocking during touch */
+@media (hover: none) and (pointer: coarse) {
+  .slide-in { animation: none; }
+}

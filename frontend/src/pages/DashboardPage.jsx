@@ -225,7 +225,7 @@ export default function DashboardPage() {
   const cardStyle = { backgroundColor: 'var(--wt-card)', borderColor: 'var(--wt-border)', touchAction: 'manipulation' };
 
   return (
-    <div className="px-4 py-6 lg:px-8 lg:py-8 space-y-6 fade-in" style={{ touchAction: 'manipulation' }}>
+    <div className="px-4 py-6 lg:px-8 lg:py-8 space-y-6" style={{ touchAction: 'manipulation' }}>
       {/* ── Hero greeting ─────────────────────────────────────────────── */}
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div>
