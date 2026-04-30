@@ -222,10 +222,10 @@ export default function DashboardPage() {
     },
   ];
 
-  const cardStyle = { backgroundColor: 'var(--wt-card)', borderColor: 'var(--wt-border)' };
+  const cardStyle = { backgroundColor: 'var(--wt-card)', borderColor: 'var(--wt-border)', touchAction: 'manipulation' };
 
   return (
-    <div className="px-4 py-6 lg:px-8 lg:py-8 space-y-6 fade-in">
+    <div className="px-4 py-6 lg:px-8 lg:py-8 space-y-6 fade-in" style={{ touchAction: 'manipulation' }}>
       {/* ── Hero greeting ─────────────────────────────────────────────── */}
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div>
@@ -255,8 +255,8 @@ export default function DashboardPage() {
             key={k.label}
             onClick={k.onClick}
             data-testid={k.testid}
-            className="group relative overflow-hidden rounded-2xl border p-5 text-left transition-all hover:shadow-sm active:scale-[0.99]"
-            style={cardStyle}
+            className="group relative overflow-hidden rounded-2xl border p-5 text-left transition-shadow hover:shadow-sm"
+            style={{ ...cardStyle, touchAction: 'manipulation' }}
           >
             <div className="flex items-start justify-between">
               <div className="space-y-1">
@@ -396,8 +396,8 @@ export default function DashboardPage() {
               <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--wt-tier3)' }} /> Tier 3</span>
             </div>
           </div>
-          <div className="w-full" style={{ minHeight: 288 }}>
-            <ResponsiveContainer width="100%" height={288}>
+          <div className="w-full" style={{ minHeight: 288, touchAction: 'pan-y' }}>
+            <ResponsiveContainer width="100%" height={288} className="pointer-events-none lg:pointer-events-auto">
               <AreaChart data={movementData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="fill-tier1" x1="0" y1="0" x2="0" y2="1">
@@ -481,8 +481,8 @@ export default function DashboardPage() {
           <p className="text-xs" style={{ color: 'var(--wt-muted-fg)' }}>
             Across {totalStudents} student{totalStudents === 1 ? '' : 's'}
           </p>
-          <div className="relative mx-auto mt-2" style={{ width: 176, height: 176, minHeight: 176 }}>
-            <ResponsiveContainer width={176} height={176}>
+          <div className="relative mx-auto mt-2" style={{ width: 176, height: 176, minHeight: 176, touchAction: 'pan-y' }}>
+            <ResponsiveContainer width={176} height={176} className="pointer-events-none lg:pointer-events-auto">
               <PieChart>
                 <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={82} paddingAngle={3} dataKey="value">
                   {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
@@ -554,7 +554,7 @@ export default function DashboardPage() {
                     onClick={() => navigate(`/students/${alert.student_id}`)}
                     data-testid={`alert-item-${alert.alert_id}`}
                     className="flex items-center justify-between gap-3 py-3 cursor-pointer transition-colors hover:opacity-80"
-                    style={idx > 0 ? { borderTop: '1px solid var(--wt-border)' } : {}}
+                    style={{ ...(idx > 0 ? { borderTop: '1px solid var(--wt-border)' } : {}), touchAction: 'manipulation' }}
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: t.solid }} />
@@ -610,6 +610,7 @@ export default function DashboardPage() {
                     onClick={() => navigate(`/students/${s.student_id}`)}
                     data-testid={`student-row-${s.student_id}`}
                     className="flex w-full items-center gap-3 rounded-xl p-2 -m-2 text-left transition-colors hover:bg-black/5"
+                    style={{ touchAction: 'manipulation' }}
                   >
                     <div
                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold"
