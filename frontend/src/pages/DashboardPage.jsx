@@ -50,6 +50,8 @@ const TrendChip = ({ delta, suffix = '', positiveIsGood = true }) => {
   );
 };
 
+const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+
 export default function DashboardPage() {
   useDocumentTitle('Dashboard');
   const { user } = useAuth();
@@ -466,9 +468,9 @@ export default function DashboardPage() {
                     );
                   }}
                 />
-                <Area type="monotone" dataKey="tier1" stroke="var(--wt-tier1)" strokeWidth={2} fill="url(#fill-tier1)" />
-                <Area type="monotone" dataKey="tier2" stroke="var(--wt-tier2)" strokeWidth={2} fill="url(#fill-tier2)" />
-                <Area type="monotone" dataKey="tier3" stroke="var(--wt-tier3)" strokeWidth={2} fill="url(#fill-tier3)" />
+                <Area type="monotone" dataKey="tier1" stroke="var(--wt-tier1)" strokeWidth={2} fill="url(#fill-tier1)" isAnimationActive={!isTouchDevice} />
+                <Area type="monotone" dataKey="tier2" stroke="var(--wt-tier2)" strokeWidth={2} fill="url(#fill-tier2)" isAnimationActive={!isTouchDevice} />
+                <Area type="monotone" dataKey="tier3" stroke="var(--wt-tier3)" strokeWidth={2} fill="url(#fill-tier3)" isAnimationActive={!isTouchDevice} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -484,7 +486,7 @@ export default function DashboardPage() {
           <div className="relative mx-auto mt-2" style={{ width: 176, height: 176, minHeight: 176, touchAction: 'pan-y' }}>
             <ResponsiveContainer width={176} height={176} className="pointer-events-none lg:pointer-events-auto">
               <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={82} paddingAngle={3} dataKey="value">
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={82} paddingAngle={3} dataKey="value" isAnimationActive={!isTouchDevice}>
                   {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
                 <Tooltip

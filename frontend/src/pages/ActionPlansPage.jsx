@@ -148,12 +148,12 @@ export default function ActionPlansPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 mb-4">
         {/* Status tabs */}
-        <div className="flex rounded-lg border border-slate-200 overflow-hidden bg-white">
+        <div className="flex rounded-lg border border-slate-200 overflow-x-auto bg-white w-full sm:w-auto">
           {[['', 'All'], ['active', 'Active'], ['overdue', 'Overdue'], ['completed', 'Completed'], ['archived', 'Archived']].map(([val, label]) => (
             <button key={val} onClick={() => setStatusFilter(val)}
-              className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+              className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                 statusFilter === val
                   ? val === 'overdue' ? 'bg-red-600 text-white' : 'bg-slate-900 text-white'
                   : 'text-slate-600 hover:bg-slate-50'
@@ -168,12 +168,12 @@ export default function ActionPlansPage() {
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search student…"
-            className="pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none bg-white w-44" />
+            className="pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none bg-white w-full sm:w-44" />
         </div>
 
         {/* Tier filter */}
         <select value={tierFilter} onChange={e => setTierFilter(e.target.value)}
-          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none bg-white">
+          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none bg-white w-full sm:w-auto">
           <option value="">All Tiers</option>
           <option value="1">Tier 1</option>
           <option value="2">Tier 2</option>
