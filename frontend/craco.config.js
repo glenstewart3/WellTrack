@@ -37,6 +37,11 @@ let webpackConfig = {
       '@': path.resolve(__dirname, 'src'),
     },
     configure: (webpackConfig) => {
+      // Suppress source map warnings from third-party packages (e.g. dompurify)
+      webpackConfig.ignoreWarnings = [
+        ...(webpackConfig.ignoreWarnings || []),
+        /Failed to parse source map/,
+      ];
 
       // Add ignored patterns to reduce watched directories
         webpackConfig.watchOptions = {
