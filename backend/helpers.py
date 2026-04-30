@@ -20,10 +20,13 @@ def compute_saebrs_risk(total: int, social: int, academic: int, emotional: int, 
     return total_risk, social_risk, academic_risk, emotional_risk
 
 
-def compute_wellbeing_tier(total: int) -> int:
-    if total >= 50:
+def compute_wellbeing_tier(total: int, thresholds: dict = None) -> int:
+    t = thresholds or {}
+    tier1_min = t.get("self_report_tier1_min", 16)
+    tier2_min = t.get("self_report_tier2_min", 11)
+    if total >= tier1_min:
         return 1
-    elif total >= 35:
+    elif total >= tier2_min:
         return 2
     return 3
 
@@ -39,13 +42,51 @@ def compute_attendance_score(pct: float) -> int:
 
 
 def compute_mtss_tier(saebrs_risk: str, wellbeing_tier: int, attendance_pct: float, thresholds: dict = None) -> int:
+    """
+    Three independent domains — attendance alone cannot trigger Tier 3.
+
+    Attendance bands (configurable):
+      Low Risk   : >= attendance_low_threshold      (default 92%)
+      Some Risk  : >= attendance_some_threshold     (default 85%)
+      High Risk  : >= attendance_severe_threshold   (default 75%)
+      Severe Risk: <  attendance_severe_threshold   (default 75%)
+
+    Tier 3:
+      SAEBRS = High Risk
+      OR Self-Report = Tier 3 (score <= tier2_min - 1)
+      OR (attendance severely low AND (SAEBRS >= Some Risk OR Self-Report >= Tier 2))
+
+    Tier 2:
+      SAEBRS = Some Risk
+      OR Self-Report = Tier 2
+      OR attendance in some-risk band (85–91% by default)
+
+    Tier 1: none of the above.
+    """
     t = thresholds or {}
-    att_high = t.get("attendance_high_risk", 80.0)
-    att_some = t.get("attendance_some_risk", 90.0)
-    if saebrs_risk == "High Risk" or wellbeing_tier == 3 or attendance_pct < att_high:
+    att_low      = t.get("attendance_low_threshold",    92.0)
+    att_some     = t.get("attendance_some_threshold",   85.0)
+    att_severe   = t.get("attendance_severe_threshold", 75.0)
+
+    att_severe_risk   = attendance_pct < att_severe
+    att_some_risk     = att_severe <= attendance_pct < att_some
+    att_any_risk      = attendance_pct < att_low
+
+    saebrs_high = saebrs_risk == "High Risk"
+    saebrs_some = saebrs_risk == "Some Risk"
+    sr_high     = wellbeing_tier == 3
+    sr_some     = wellbeing_tier == 2
+
+    # Tier 3: behavioural/emotional high risk, OR severe attendance combined with another domain
+    if saebrs_high or sr_high:
         return 3
-    elif saebrs_risk == "Some Risk" or wellbeing_tier == 2 or attendance_pct < att_some:
+    if att_severe_risk and (saebrs_some or sr_some):
+        return 3
+
+    # Tier 2: some risk in behavioural/emotional domain, or any attendance concern
+    if saebrs_some or sr_some or att_any_risk:
         return 2
+
     return 1
 
 

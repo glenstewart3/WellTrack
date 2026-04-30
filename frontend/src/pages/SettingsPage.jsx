@@ -189,7 +189,7 @@ function BrandingTab({ settings: s, onSave, saving, msg, msgType }) {
 
 // ── MTSS & SCREENING TAB ─────────────────────────────────────────────────────
 function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
-  const DEFAULT_THRESHOLDS = { saebrs_some_risk: 37, saebrs_high_risk: 24, attendance_some_risk: 95, attendance_high_risk: 90 };
+  const DEFAULT_THRESHOLDS = { saebrs_some_risk: 37, saebrs_high_risk: 24, attendance_low_threshold: 92, attendance_some_threshold: 85, attendance_severe_threshold: 75, self_report_tier1_min: 16, self_report_tier2_min: 11 };
   const [thresholds, setThresholds] = useState({ ...DEFAULT_THRESHOLDS, ...s.tier_thresholds });
   const resetThresholds = () => setThresholds({ ...DEFAULT_THRESHOLDS });
   const handleSave = () => onSave({ tier_thresholds: thresholds });
@@ -242,28 +242,82 @@ function MTSSTab({ settings: s, onSave, saving, msg, msgType }) {
           </div>
 
           <div>
-            <p className="text-sm font-semibold text-slate-700 mb-3">Attendance (%)</p>
+            <p className="text-sm font-semibold text-slate-700 mb-3">Self-Report Wellbeing Score (0–21)</p>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-slate-500 mb-1 block">Amber — below</label>
+                <label className="text-xs text-slate-500 mb-1 block">Tier 1 minimum — at or above</label>
                 <div className="flex items-center gap-3">
-                  <input type="range" min={thresholds.attendance_high_risk + 1} max={100} value={thresholds.attendance_some_risk}
-                    onChange={e => setThresholds(p => ({ ...p, attendance_some_risk: +e.target.value }))}
-                    data-testid="attendance-some-risk-slider"
-                    className="flex-1 accent-amber-500" />
-                  <span className="w-10 text-sm font-bold text-amber-600">{thresholds.attendance_some_risk}%</span>
+                  <input type="range" min={thresholds.self_report_tier2_min + 1} max={21} value={thresholds.self_report_tier1_min}
+                    onChange={e => setThresholds(p => ({ ...p, self_report_tier1_min: +e.target.value }))}
+                    className="flex-1 accent-emerald-500" />
+                  <span className="w-8 text-sm font-bold text-emerald-600">{thresholds.self_report_tier1_min}</span>
                 </div>
               </div>
               <div>
-                <label className="text-xs text-slate-500 mb-1 block">Red — below</label>
+                <label className="text-xs text-slate-500 mb-1 block">Tier 2 minimum — at or above</label>
                 <div className="flex items-center gap-3">
-                  <input type="range" min={1} max={thresholds.attendance_some_risk - 1} value={thresholds.attendance_high_risk}
-                    onChange={e => setThresholds(p => ({ ...p, attendance_high_risk: +e.target.value }))}
-                    data-testid="attendance-high-risk-slider"
-                    className="flex-1 accent-rose-500" />
-                  <span className="w-10 text-sm font-bold text-rose-600">{thresholds.attendance_high_risk}%</span>
+                  <input type="range" min={1} max={thresholds.self_report_tier1_min - 1} value={thresholds.self_report_tier2_min}
+                    onChange={e => setThresholds(p => ({ ...p, self_report_tier2_min: +e.target.value }))}
+                    className="flex-1 accent-amber-500" />
+                  <span className="w-8 text-sm font-bold text-amber-600">{thresholds.self_report_tier2_min}</span>
                 </div>
               </div>
+            </div>
+            <div className="mt-3 h-2 rounded-full overflow-hidden flex">
+              <div style={{ width: `${(thresholds.self_report_tier2_min / 21) * 100}%` }} className="bg-rose-400" />
+              <div style={{ width: `${((thresholds.self_report_tier1_min - thresholds.self_report_tier2_min) / 21) * 100}%` }} className="bg-amber-400" />
+              <div className="flex-1 bg-emerald-400" />
+            </div>
+            <div className="flex justify-between text-xs text-slate-400 mt-1">
+              <span>0 — Tier 3</span><span>{thresholds.self_report_tier2_min} — Tier 2</span><span>{thresholds.self_report_tier1_min} — Tier 1 — 21</span>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold text-slate-700 mb-3">Attendance (%)</p>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Low risk — below</label>
+                <div className="flex items-center gap-3">
+                  <input type="range" min={thresholds.attendance_some_threshold + 1} max={100} value={thresholds.attendance_low_threshold}
+                    onChange={e => setThresholds(p => ({ ...p, attendance_low_threshold: +e.target.value }))}
+                    data-testid="attendance-low-slider"
+                    className="flex-1 accent-amber-400" />
+                  <span className="w-10 text-sm font-bold text-amber-500">{thresholds.attendance_low_threshold}%</span>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Some risk — below</label>
+                <div className="flex items-center gap-3">
+                  <input type="range" min={thresholds.attendance_severe_threshold + 1} max={thresholds.attendance_low_threshold - 1} value={thresholds.attendance_some_threshold}
+                    onChange={e => setThresholds(p => ({ ...p, attendance_some_threshold: +e.target.value }))}
+                    data-testid="attendance-some-risk-slider"
+                    className="flex-1 accent-amber-500" />
+                  <span className="w-10 text-sm font-bold text-amber-600">{thresholds.attendance_some_threshold}%</span>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Severe risk — below</label>
+                <div className="flex items-center gap-3">
+                  <input type="range" min={1} max={thresholds.attendance_some_threshold - 1} value={thresholds.attendance_severe_threshold}
+                    onChange={e => setThresholds(p => ({ ...p, attendance_severe_threshold: +e.target.value }))}
+                    data-testid="attendance-high-risk-slider"
+                    className="flex-1 accent-rose-500" />
+                  <span className="w-10 text-sm font-bold text-rose-600">{thresholds.attendance_severe_threshold}%</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 h-2 rounded-full overflow-hidden flex">
+              <div style={{ width: `${thresholds.attendance_severe_threshold}%` }} className="bg-rose-400" />
+              <div style={{ width: `${thresholds.attendance_some_threshold - thresholds.attendance_severe_threshold}%` }} className="bg-amber-500" />
+              <div style={{ width: `${thresholds.attendance_low_threshold - thresholds.attendance_some_threshold}%` }} className="bg-amber-300" />
+              <div className="flex-1 bg-emerald-400" />
+            </div>
+            <div className="flex justify-between text-xs text-slate-400 mt-1">
+              <span>0 — Severe</span>
+              <span>{thresholds.attendance_severe_threshold}% — High</span>
+              <span>{thresholds.attendance_some_threshold}% — Some</span>
+              <span>{thresholds.attendance_low_threshold}% — Low risk — 100%</span>
             </div>
           </div>
         </div>

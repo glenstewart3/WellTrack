@@ -89,7 +89,9 @@ async def submit_saebrs_plus(result: SAEBRSPlusResult, user=Depends(get_current_
         emo = result.emotional_domain
         bel = result.belonging_domain
     total = soc + aca + emo + bel
-    tier = compute_wellbeing_tier(total)
+    school_s_plus = await get_school_settings_doc(db)
+    thresholds_plus = school_s_plus.get("tier_thresholds", {})
+    tier = compute_wellbeing_tier(total, thresholds_plus)
     d = result.model_dump()
     d.update({"social_domain": soc, "academic_domain": aca, "emotional_domain": emo,
                "belonging_domain": bel, "wellbeing_total": total, "wellbeing_tier": tier})
