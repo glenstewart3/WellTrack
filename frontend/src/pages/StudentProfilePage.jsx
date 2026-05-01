@@ -557,38 +557,6 @@ export default function StudentProfilePage() {
         </div>
       </div>
 
-      {/* Why This Tier? */}
-      {mtss_tier && (
-        <div className={`border rounded-xl p-5 mb-6 ${mtss_tier === 3 ? 'bg-rose-50 border-rose-200' : mtss_tier === 2 ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'}`}>
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${mtss_tier === 3 ? 'bg-rose-100' : mtss_tier === 2 ? 'bg-amber-100' : 'bg-emerald-100'}`}>
-                <Stethoscope size={18} className={mtss_tier === 3 ? 'text-rose-600' : mtss_tier === 2 ? 'text-amber-600' : 'text-emerald-600'} />
-              </div>
-              <div>
-                <p className={`text-xs font-semibold uppercase tracking-wider mb-0.5 ${mtss_tier === 3 ? 'text-rose-500' : mtss_tier === 2 ? 'text-amber-500' : 'text-emerald-600'}`}>Why this tier?</p>
-                <p className="text-sm font-bold text-slate-900" style={{fontFamily:'Manrope,sans-serif'}}>
-                  Tier {mtss_tier} — Primary Need: {tierCtx.primaryDomain}
-                </p>
-                {tierCtx.riskFlags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {tierCtx.riskFlags.map(f => (
-                      <span key={f} className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${mtss_tier === 3 ? 'bg-rose-100 text-rose-700' : mtss_tier === 2 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>{f}</span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            {tierCtx.pathway && (
-              <div className="text-xs text-slate-600 max-w-xs">
-                <p className="font-semibold text-slate-700 mb-0.5">Recommended next action</p>
-                <p className="leading-relaxed">{tierCtx.pathway}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Tabs */}
       <div className="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 mb-6 overflow-x-auto">
         {[['overview', 'Overview'], ['attendance', 'Attendance'], ['screening', 'Screening History'], ['interventions', 'Interventions'], ['notes', 'Case Notes'],
@@ -612,6 +580,23 @@ export default function StudentProfilePage() {
           </button>
         ))}
       </div>
+
+      {/* Tier context insight — compact card shown below tabs on overview */}
+      {activeTab === 'overview' && mtss_tier && (
+        <div className={`flex items-start gap-3 rounded-xl px-4 py-3 mb-5 border text-sm ${
+          mtss_tier === 3 ? 'bg-rose-50 border-rose-200' : mtss_tier === 2 ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'
+        }`}>
+          <Stethoscope size={15} className={`mt-0.5 shrink-0 ${mtss_tier === 3 ? 'text-rose-500' : mtss_tier === 2 ? 'text-amber-500' : 'text-emerald-600'}`} />
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="font-semibold text-slate-800">Tier {mtss_tier} — {tierCtx.primaryDomain}</span>
+            {tierCtx.riskFlags.map(f => (
+              <span key={f} className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                mtss_tier === 3 ? 'bg-rose-100 text-rose-700' : mtss_tier === 2 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+              }`}>{f}</span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Tab Content */}
       {activeTab === 'overview' && (
@@ -1023,6 +1008,18 @@ export default function StudentProfilePage() {
 
       {activeTab === 'interventions' && (
         <div className="space-y-4">
+          {/* Recommended next action — only shown when no active interventions exist */}
+          {tierCtx.pathway && !(interventions || []).some(i => i.status === 'active') && (
+            <div className={`flex items-start gap-3 rounded-xl p-4 border ${
+              mtss_tier === 3 ? 'bg-rose-50 border-rose-200' : mtss_tier === 2 ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'
+            }`}>
+              <Stethoscope size={15} className={`mt-0.5 shrink-0 ${mtss_tier === 3 ? 'text-rose-500' : mtss_tier === 2 ? 'text-amber-500' : 'text-emerald-600'}`} />
+              <div>
+                <p className="text-xs font-semibold text-slate-700 mb-0.5">Recommended next action</p>
+                <p className="text-sm text-slate-600 leading-relaxed">{tierCtx.pathway}</p>
+              </div>
+            </div>
+          )}
           <div className="flex justify-between items-center">
             <p className="text-sm text-slate-500">{interventions?.length || 0} intervention{interventions?.length !== 1 ? 's' : ''} recorded</p>
             <div className="flex gap-2">
