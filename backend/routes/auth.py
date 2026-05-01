@@ -329,25 +329,43 @@ async def impersonate(request: Request, token: str, slug: str = ""):
 
     db = client[school["db_name"]]
 
-    # Look up the token in school's impersonation_tokens collection
-    imp_doc = await db.impersonation_tokens.find_one({"token": token})
+    # Atomically claim the token: only an unused token matches, and the same
+    # operation marks it as used. This prevents a TOCTOU race where two
+    # concurrent requests with the same token could both pass the "not used"
+    # check before either flips the flag.
+    # Tenant scoping is implicit — `db` is this school's database, so a token
+    # issued for school A cannot be redeemed against school B.
+    imp_doc = await db.impersonation_tokens.find_one_and_update(
+        {"token": token, "used": {"$ne": True}},
+        {"$set": {"used": True, "used_at": datetime.now(timezone.utc).isoformat()}},
+    )
     if not imp_doc:
+        # Either no such token, already used, or wrong tenant.
+        # Fetch separately just to distinguish the "expired token" UX from
+        # "invalid/used", so admins know to request a fresh one.
+        existing = await db.impersonation_tokens.find_one({"token": token}, {"_id": 0, "expires_at": 1, "used": 1})
+        if existing and existing.get("used"):
+            return RedirectResponse(url=f"{frontend_url}/login?error=token_used")
+        if existing:
+            exp_str = existing.get("expires_at", "")
+            try:
+                exp = datetime.fromisoformat(exp_str).replace(tzinfo=timezone.utc)
+                if exp < datetime.now(timezone.utc):
+                    return RedirectResponse(url=f"{frontend_url}/login?error=token_expired")
+            except (TypeError, ValueError):
+                pass
         return RedirectResponse(url=f"{frontend_url}/login?error=invalid_token")
 
-    # Check expiry
+    # Token was claimed atomically — now verify expiry. If expired, the claim
+    # is wasted but at least no one else can replay it.
     expires_at_str = imp_doc.get("expires_at", "")
     if expires_at_str:
-        exp = datetime.fromisoformat(expires_at_str).replace(tzinfo=timezone.utc)
-        if exp < datetime.now(timezone.utc):
-            await db.impersonation_tokens.delete_one({"token": token})
+        try:
+            exp = datetime.fromisoformat(expires_at_str).replace(tzinfo=timezone.utc)
+        except (TypeError, ValueError):
+            exp = None
+        if exp and exp < datetime.now(timezone.utc):
             return RedirectResponse(url=f"{frontend_url}/login?error=token_expired")
-
-    # Check if already used
-    if imp_doc.get("used"):
-        return RedirectResponse(url=f"{frontend_url}/login?error=token_used")
-
-    # Mark as used
-    await db.impersonation_tokens.update_one({"token": token}, {"$set": {"used": True}})
 
     # Find an admin user to impersonate
     admin_user = await db.users.find_one({"role": "admin"}, {"_id": 0})

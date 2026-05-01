@@ -42,8 +42,14 @@ async def get_super_admin(request: Request):
             token = auth_header.split(" ")[1]
     if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    # Exchange tokens (`sa_xchg_*`) are one-time URL-borne credentials that
+    # must NEVER be accepted as session cookies — they are issued by the
+    # OAuth callback and consumed by /auth/exchange, which then sets a
+    # distinct `sa_sess_*` cookie. Defence-in-depth.
+    if token.startswith("sa_xchg_"):
+        raise HTTPException(status_code=401, detail="Invalid session")
     session = await control_db.super_admin_sessions.find_one(
-        {"session_token": token}, {"_id": 0}
+        {"session_token": token, "is_exchange": {"$ne": True}}, {"_id": 0}
     )
     if not session:
         raise HTTPException(status_code=401, detail="Invalid session")
@@ -268,48 +274,81 @@ async def sa_google_callback(code: str = None, error: str = None, response: Resp
             {"super_admin_id": admin["super_admin_id"]}, {"$set": updates}
         )
 
-    # Create session
-    token = f"sa_sess_{uuid.uuid4().hex}"
-    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    # Create a SHORT-LIVED, ONE-TIME exchange token that the SA frontend will
+    # immediately POST to /auth/exchange. The exchange endpoint atomically
+    # consumes it and issues a fresh 7-day session cookie. This token is NOT
+    # the session itself — it is a single-use bearer that goes through the URL
+    # (browser history / referrer) and so must be tightly scoped.
+    exchange_token = f"sa_xchg_{uuid.uuid4().hex}"
+    exchange_expires = datetime.now(timezone.utc) + timedelta(minutes=5)
     await control_db.super_admin_sessions.insert_one({
         "super_admin_id": admin["super_admin_id"],
-        "session_token":  token,
-        "expires_at":     expires_at.isoformat(),
+        "session_token":  exchange_token,
+        "expires_at":     exchange_expires.isoformat(),
         "created_at":     datetime.now(timezone.utc).isoformat(),
-        "auth_method":    "google",
+        "auth_method":    "google_exchange",
+        "is_exchange":    True,
     })
 
     await _log_sa_audit(admin, "login_google", "super_admin",
                         admin["super_admin_id"], admin.get("name", email))
 
-    # Pass token to SA frontend via query param — frontend exchanges it for a
-    # same-origin cookie via /auth/exchange. Direct cookie-on-redirect fails
-    # cross-subdomain in modern browsers (SameSite=lax).
+    # Pass exchange token to SA frontend via query param — frontend immediately
+    # POSTs it to /auth/exchange, which swaps it for an httpOnly session cookie.
+    # Direct cookie-on-redirect fails cross-subdomain in modern browsers
+    # (SameSite=lax), which is why this hop exists.
     sa_base = _SA_FRONTEND_URL.rstrip('/') if _SA_FRONTEND_URL else ""
-    exchange_url = f"{sa_base}/login?sa_token={token}" if sa_base else f"/login?sa_token={token}"
+    exchange_url = f"{sa_base}/login?sa_token={exchange_token}" if sa_base else f"/login?sa_token={exchange_token}"
     return RedirectResponse(url=exchange_url, status_code=302)
 
 
 @router.post("/superadmin/auth/exchange")
 async def sa_exchange_token(data: dict, response: Response):
-    """Exchange a short-lived Google OAuth token (from query param) for a proper
-    httpOnly session cookie set on the current origin (admin subdomain)."""
+    """Exchange a one-time URL-borne token for a proper httpOnly session cookie.
+
+    Security model:
+      • The OAuth callback issues a `sa_xchg_*` token with a 5-minute TTL and
+        marks it `is_exchange: True`. This token is what travels through the
+        browser's URL bar (and therefore history / referrers).
+      • This endpoint atomically deletes the exchange token and issues a NEW
+        long-lived `sa_sess_*` session that is set as the httpOnly cookie.
+      • If anyone scrapes the URL token from history / referrer logs, replay
+        is impossible: the token has been deleted by the time of replay (or
+        it has expired within 5 minutes).
+
+    Legacy `sa_sess_*` tokens are no longer accepted here — they were never
+    safe to expose in the URL.
+    """
     token = (data.get("token") or "").strip()
-    if not token or not token.startswith("sa_sess_"):
+    if not token or not token.startswith("sa_xchg_"):
         raise HTTPException(status_code=400, detail="Invalid token")
-    session = await control_db.super_admin_sessions.find_one(
-        {"session_token": token}, {"_id": 0}
+
+    # Atomic claim: matches only an unused exchange token and removes it in one op.
+    exchange_doc = await control_db.super_admin_sessions.find_one_and_delete(
+        {"session_token": token, "is_exchange": True}
     )
-    if not session:
+    if not exchange_doc:
         raise HTTPException(status_code=401, detail="Token not found or already used")
-    expires_at = session["expires_at"]
+
+    expires_at = exchange_doc.get("expires_at")
     if isinstance(expires_at, str):
         expires_at = datetime.fromisoformat(expires_at)
-    if expires_at.tzinfo is None:
+    if expires_at and expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=timezone.utc)
-    if expires_at < datetime.now(timezone.utc):
+    if not expires_at or expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=401, detail="Token expired")
-    _set_sa_cookie(response, token)
+
+    # Issue a fresh long-lived session token — distinct from the URL-borne one.
+    new_token = f"sa_sess_{uuid.uuid4().hex}"
+    new_expires = datetime.now(timezone.utc) + timedelta(days=7)
+    await control_db.super_admin_sessions.insert_one({
+        "super_admin_id": exchange_doc["super_admin_id"],
+        "session_token":  new_token,
+        "expires_at":     new_expires.isoformat(),
+        "created_at":     datetime.now(timezone.utc).isoformat(),
+        "auth_method":    "google",
+    })
+    _set_sa_cookie(response, new_token)
     return {"message": "ok"}
 
 

@@ -13,6 +13,20 @@ _UPLOADS_BASE = Path(os.environ.get("UPLOADS_DIR", str(Path(__file__).resolve().
 ALLOWED_EXTENSIONS = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".png", ".jpg", ".jpeg", ".gif", ".txt", ".rtf"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
+# Roles permitted to upload/edit/delete student documents.
+# Read access is open to any authenticated user (matches the rest of the student profile).
+_DOC_WRITE_ROLES = {"admin", "leadership", "wellbeing", "professional"}
+
+
+def _require_doc_write_role(user: dict):
+    """Authorisation guard for document mutation endpoints."""
+    if user.get("role") not in _DOC_WRITE_ROLES:
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to modify student documents.",
+        )
+
+
 router = APIRouter()
 
 
@@ -41,6 +55,7 @@ async def upload_document(
     db=Depends(get_tenant_db),
 ):
     """Upload a document for a student."""
+    _require_doc_write_role(user)
     student = await db.students.find_one({"student_id": student_id}, {"_id": 0, "student_id": 1, "first_name": 1, "last_name": 1})
     if not student:
         raise HTTPException(404, "Student not found")
@@ -85,6 +100,7 @@ async def upload_document(
 async def update_document(student_id: str, document_id: str, data: dict,
                           user=Depends(get_current_user), db=Depends(get_tenant_db)):
     """Update document metadata (category, notes)."""
+    _require_doc_write_role(user)
     allowed = {"category", "notes"}
     updates = {k: v for k, v in data.items() if k in allowed}
     if not updates:
@@ -102,6 +118,7 @@ async def update_document(student_id: str, document_id: str, data: dict,
 async def delete_document(request: Request, student_id: str, document_id: str,
                           user=Depends(get_current_user), db=Depends(get_tenant_db)):
     """Delete a document."""
+    _require_doc_write_role(user)
     doc = await db.student_documents.find_one({"document_id": document_id, "student_id": student_id})
     if not doc:
         raise HTTPException(404, "Document not found")

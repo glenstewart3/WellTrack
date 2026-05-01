@@ -68,6 +68,12 @@ def compute_mtss_tier(saebrs_risk: str, wellbeing_tier: int, attendance_pct: flo
     att_some     = t.get("attendance_some_threshold",   85.0)
     att_severe   = t.get("attendance_severe_threshold", 75.0)
 
+    # Boundary semantics (matches the docstring above and CLAUDE.md):
+    #   Severe band : pct <  att_severe                (e.g. < 75)
+    #   High band   : att_severe <= pct < att_some     (e.g. 75–84.999…)  ── stored in att_some_risk for legacy reasons
+    #   Some band   : att_some   <= pct < att_low      (e.g. 85–91.999…)  ── covered by att_any_risk
+    #   Low band    : pct >= att_low                   (e.g. >= 92)
+    # NB: a student at exactly the severe threshold (e.g. 75%) is High, NOT Severe — this is intentional.
     att_severe_risk   = attendance_pct < att_severe
     att_some_risk     = att_severe <= attendance_pct < att_some
     att_any_risk      = attendance_pct < att_low

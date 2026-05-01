@@ -7,7 +7,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / '.env')
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.routing import APIRouter
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
@@ -124,15 +124,89 @@ async def serve_staff_photo(slug: str, filename: str):
         raise _H(status_code=404, detail="Photo not found")
     return _FileResponse(photo_path)
 
+async def _verify_tenant_access(request, slug: str):
+    """
+    Authorisation guard for tenant-scoped file serving.
+    Returns the resolved school doc on success; raises HTTPException otherwise.
+
+    Allows:
+      - A Super Admin with a valid sa_session_token cookie, OR
+      - A school user whose session lives in the tenant DB matching `slug`.
+    """
+    from fastapi import HTTPException as _H
+    from control_db import control_db
+    from database import client
+
+    school = await control_db.schools.find_one({"slug": slug}, {"_id": 0})
+    if not school or school.get("status") in ("suspended", "archived"):
+        # Mask existence — return 404 so the endpoint can't be used to enumerate slugs.
+        raise _H(status_code=404, detail="Document not found")
+
+    now = datetime.now(timezone.utc)
+
+    # 1. Super Admin path — valid sa_session_token grants access to any tenant.
+    sa_token = request.cookies.get("sa_session_token")
+    if sa_token:
+        sa_session = await control_db.super_admin_sessions.find_one(
+            {"session_token": sa_token}, {"_id": 0, "expires_at": 1}
+        )
+        if sa_session:
+            exp = sa_session.get("expires_at")
+            if isinstance(exp, str):
+                exp = datetime.fromisoformat(exp)
+            if exp and exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+            if exp and exp >= now:
+                return school
+
+    # 2. School user path — session must live in THIS tenant's DB.
+    session_token = request.cookies.get("session_token")
+    if not session_token:
+        raise _H(status_code=401, detail="Authentication required")
+    school_db = client[school["db_name"]]
+    session = await school_db.user_sessions.find_one(
+        {"session_token": session_token}, {"_id": 0, "expires_at": 1}
+    )
+    if not session:
+        raise _H(status_code=401, detail="Invalid session")
+    exp = session.get("expires_at")
+    if isinstance(exp, str):
+        exp = datetime.fromisoformat(exp)
+    if exp and exp.tzinfo is None:
+        exp = exp.replace(tzinfo=timezone.utc)
+    if not exp or exp < now:
+        raise _H(status_code=401, detail="Session expired")
+    return school
+
+
 @app.get("/api/student-documents/{slug}/{student_id}/{filename}")
-async def serve_student_document(slug: str, student_id: str, filename: str):
-    """Serve a student document from the tenant-scoped uploads directory."""
+async def serve_student_document(slug: str, student_id: str, filename: str, request: Request):
+    """Serve a student document from the tenant-scoped uploads directory.
+
+    Requires either an authenticated school user belonging to `slug`'s tenant
+    or a valid Super Admin session. Also requires that a matching record
+    exists in the tenant's `student_documents` collection — this prevents
+    direct file-path probing even if the random filename leaks.
+    """
+    from fastapi import HTTPException as _H
+    from database import client
+
+    school = await _verify_tenant_access(request, slug)
+    school_db = client[school["db_name"]]
+
+    # Ownership check against the tenant DB — filename alone isn't sufficient.
+    doc_record = await school_db.student_documents.find_one(
+        {"stored_filename": filename, "student_id": student_id},
+        {"_id": 0, "original_filename": 1},
+    )
+    if not doc_record:
+        raise _H(status_code=404, detail="Document not found")
+
     _uploads = Path(os.environ.get("UPLOADS_DIR", str(Path(__file__).resolve().parent / "uploads")))
     doc_path = _uploads / slug / "student_documents" / student_id / filename
     if not doc_path.exists() or not doc_path.is_file():
-        from fastapi import HTTPException as _H
         raise _H(status_code=404, detail="Document not found")
-    return _FileResponse(doc_path, filename=filename)
+    return _FileResponse(doc_path, filename=doc_record.get("original_filename") or filename)
 
 
 # Legacy: also serve from old flat path for backward compat
