@@ -52,8 +52,23 @@ export default function SALoginPage() {
     }
   }, [location.search]);
 
+  // Handle Google OAuth callback — exchange sa_token query param for a cookie
   useEffect(() => {
-    if (admin) { navigate('/sa/dashboard', { replace: true }); return; }
+    const params = new URLSearchParams(location.search);
+    const saToken = params.get('sa_token');
+    if (!saToken) return;
+    setMode('loading');
+    saApi.post('/auth/exchange', { token: saToken })
+      .then(() => checkAuth())
+      .then(() => navigate('/dashboard', { replace: true }))
+      .catch(() => {
+        setError('Google sign-in failed — could not establish session. Please try again.');
+        setMode('login');
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (admin) { navigate('/dashboard', { replace: true }); return; }
     saApi.post('/auth/bootstrap', { name: '__check__', email: 'x', password: '12345678' })
       .then(() => { setMode('bootstrap'); setGoogleEnabled(false); })
       .catch(err => {
@@ -79,7 +94,7 @@ export default function SALoginPage() {
         await saApi.post('/auth/login-email', { email: form.email, password: form.password });
       }
       await checkAuth();
-      navigate('/sa/dashboard', { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(err.response?.data?.detail || 'Something went wrong');
     } finally {

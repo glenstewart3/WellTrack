@@ -23,8 +23,10 @@ router = APIRouter()
 _pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 logger = logging.getLogger("superadmin")
 
-_COOKIE_SECURE = os.environ.get('COOKIE_SECURE', 'true').lower() != 'false'
-_COOKIE_SAMESITE = 'none' if _COOKIE_SECURE else 'lax'
+_COOKIE_SECURE   = os.environ.get('COOKIE_SECURE', 'true').lower() != 'false'
+_COOKIE_SAMESITE = 'lax'
+_BASE_DOMAIN     = os.environ.get('BASE_DOMAIN', '')
+_COOKIE_DOMAIN   = f'.{_BASE_DOMAIN}' if _BASE_DOMAIN else None
 
 RESERVED_SLUGS = {"www", "api", "admin", "superadmin", "app", "mail", "ftp", "staging", "dev"}
 
@@ -61,12 +63,15 @@ async def get_super_admin(request: Request):
 
 
 def _set_sa_cookie(response, token: str):
-    response.set_cookie(
+    kwargs = dict(
         key="sa_session_token", value=token,
         httponly=True, secure=_COOKIE_SECURE,
         samesite=_COOKIE_SAMESITE, path="/",
         max_age=7 * 24 * 3600,
     )
+    if _COOKIE_DOMAIN:
+        kwargs['domain'] = _COOKIE_DOMAIN
+    response.set_cookie(**kwargs)
 
 
 async def _log_sa_audit(admin, action: str, entity_type: str, entity_id: str = "",
@@ -146,7 +151,10 @@ async def sa_logout(request: Request, response: Response):
     token = request.cookies.get("sa_session_token")
     if token:
         await control_db.super_admin_sessions.delete_one({"session_token": token})
-    response.delete_cookie("sa_session_token", path="/", samesite=_COOKIE_SAMESITE, secure=_COOKIE_SECURE)
+    delete_kwargs = dict(key="sa_session_token", path="/", samesite=_COOKIE_SAMESITE, secure=_COOKIE_SECURE)
+    if _COOKIE_DOMAIN:
+        delete_kwargs['domain'] = _COOKIE_DOMAIN
+    response.delete_cookie(**delete_kwargs)
     return {"message": "Logged out"}
 
 
@@ -274,11 +282,35 @@ async def sa_google_callback(code: str = None, error: str = None, response: Resp
     await _log_sa_audit(admin, "login_google", "super_admin",
                         admin["super_admin_id"], admin.get("name", email))
 
-    # Redirect to dashboard with cookie set
-    sa_dashboard_url = f"{_SA_FRONTEND_URL}/dashboard" if _SA_FRONTEND_URL else "/dashboard"
-    redirect = RedirectResponse(url=sa_dashboard_url, status_code=302)
-    _set_sa_cookie(redirect, token)
-    return redirect
+    # Pass token to SA frontend via query param — frontend exchanges it for a
+    # same-origin cookie via /auth/exchange. Direct cookie-on-redirect fails
+    # cross-subdomain in modern browsers (SameSite=lax).
+    sa_base = _SA_FRONTEND_URL.rstrip('/') if _SA_FRONTEND_URL else ""
+    exchange_url = f"{sa_base}/login?sa_token={token}" if sa_base else f"/login?sa_token={token}"
+    return RedirectResponse(url=exchange_url, status_code=302)
+
+
+@router.post("/superadmin/auth/exchange")
+async def sa_exchange_token(data: dict, response: Response):
+    """Exchange a short-lived Google OAuth token (from query param) for a proper
+    httpOnly session cookie set on the current origin (admin subdomain)."""
+    token = (data.get("token") or "").strip()
+    if not token or not token.startswith("sa_sess_"):
+        raise HTTPException(status_code=400, detail="Invalid token")
+    session = await control_db.super_admin_sessions.find_one(
+        {"session_token": token}, {"_id": 0}
+    )
+    if not session:
+        raise HTTPException(status_code=401, detail="Token not found or already used")
+    expires_at = session["expires_at"]
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at)
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=401, detail="Token expired")
+    _set_sa_cookie(response, token)
+    return {"message": "ok"}
 
 
 # ── Platform Stats ───────────────────────────────────────────────────────────
