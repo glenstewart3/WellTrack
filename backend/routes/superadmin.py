@@ -4,12 +4,14 @@ All endpoints are prefixed with /superadmin by the router.
 Auth is separate from school auth — uses control_db.super_admins + control_db.super_admin_sessions.
 """
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import RedirectResponse
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import uuid
 import os
 import re
 import logging
+import httpx
 
 from passlib.context import CryptContext
 
@@ -164,6 +166,119 @@ async def sa_change_password(data: dict, admin=Depends(get_super_admin)):
         {"$set": {"password_hash": _pwd.hash(new_pw)}}
     )
     return {"message": "Password changed"}
+
+
+# ── Google OAuth ─────────────────────────────────────────────────────────────
+
+# Reuse the school-portal Google credentials — same Google Cloud project.
+# Only the redirect URI differs (must be registered in Google Cloud Console).
+_SA_GOOGLE_CLIENT_ID     = os.environ.get("SA_GOOGLE_CLIENT_ID") or os.environ.get("GOOGLE_CLIENT_ID", "")
+_SA_GOOGLE_CLIENT_SECRET = os.environ.get("SA_GOOGLE_CLIENT_SECRET") or os.environ.get("GOOGLE_CLIENT_SECRET", "")
+_SA_GOOGLE_REDIRECT_URI  = os.environ.get("SA_GOOGLE_REDIRECT_URI", "")
+_SA_FRONTEND_URL         = os.environ.get("SA_FRONTEND_URL", os.environ.get("FRONTEND_URL", ""))
+
+_GOOGLE_AUTH_URL  = "https://accounts.google.com/o/oauth2/v2/auth"
+_GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+_GOOGLE_USERINFO  = "https://www.googleapis.com/oauth2/v3/userinfo"
+
+
+@router.get("/superadmin/auth/google-status")
+async def sa_google_status():
+    """Returns whether Google OAuth is configured for the SA portal."""
+    enabled = bool(_SA_GOOGLE_CLIENT_ID and _SA_GOOGLE_CLIENT_SECRET and _SA_GOOGLE_REDIRECT_URI)
+    return {"enabled": enabled}
+
+
+@router.get("/superadmin/auth/google")
+async def sa_google_login():
+    """Redirect browser to Google's OAuth consent screen."""
+    if not _SA_GOOGLE_CLIENT_ID or not _SA_GOOGLE_REDIRECT_URI:
+        raise HTTPException(status_code=503, detail="Google OAuth is not configured for the Super Admin portal.")
+    from urllib.parse import urlencode
+    params = urlencode({
+        "client_id":     _SA_GOOGLE_CLIENT_ID,
+        "redirect_uri":  _SA_GOOGLE_REDIRECT_URI,
+        "response_type": "code",
+        "scope":         "openid email profile",
+        "access_type":   "online",
+        "prompt":        "select_account",
+    })
+    return RedirectResponse(url=f"{_GOOGLE_AUTH_URL}?{params}")
+
+
+@router.get("/superadmin/auth/google/callback")
+async def sa_google_callback(code: str = None, error: str = None, response: Response = None):
+    """Exchange Google auth code for a session. Only allows pre-existing super admins."""
+    sa_login_url = f"{_SA_FRONTEND_URL}/login" if _SA_FRONTEND_URL else "/login"
+
+    if error or not code:
+        return RedirectResponse(url=f"{sa_login_url}?error=google_denied")
+
+    if not _SA_GOOGLE_CLIENT_ID or not _SA_GOOGLE_CLIENT_SECRET or not _SA_GOOGLE_REDIRECT_URI:
+        return RedirectResponse(url=f"{sa_login_url}?error=google_not_configured")
+
+    # Exchange code for tokens
+    async with httpx.AsyncClient() as client_h:
+        try:
+            token_resp = await client_h.post(_GOOGLE_TOKEN_URL, data={
+                "code":          code,
+                "client_id":     _SA_GOOGLE_CLIENT_ID,
+                "client_secret": _SA_GOOGLE_CLIENT_SECRET,
+                "redirect_uri":  _SA_GOOGLE_REDIRECT_URI,
+                "grant_type":    "authorization_code",
+            })
+            token_resp.raise_for_status()
+            tokens = token_resp.json()
+
+            info_resp = await client_h.get(_GOOGLE_USERINFO, headers={
+                "Authorization": f"Bearer {tokens['access_token']}"
+            })
+            info_resp.raise_for_status()
+            info = info_resp.json()
+        except Exception as exc:
+            logger.warning("SA Google OAuth token exchange failed: %s", exc)
+            return RedirectResponse(url=f"{sa_login_url}?error=google_failed")
+
+    email = (info.get("email") or "").lower().strip()
+    if not email:
+        return RedirectResponse(url=f"{sa_login_url}?error=no_email")
+
+    # Only allow emails that already exist as super admins (no auto-provisioning)
+    admin = await control_db.super_admins.find_one({"email": email}, {"_id": 0})
+    if not admin:
+        logger.warning("SA Google OAuth: unrecognised email attempted login — %s", email)
+        return RedirectResponse(url=f"{sa_login_url}?error=not_authorised")
+
+    # Update google_id + name if missing
+    updates = {}
+    if not admin.get("google_id") and info.get("sub"):
+        updates["google_id"] = info["sub"]
+    if not admin.get("name") and info.get("name"):
+        updates["name"] = info["name"]
+    if updates:
+        await control_db.super_admins.update_one(
+            {"super_admin_id": admin["super_admin_id"]}, {"$set": updates}
+        )
+
+    # Create session
+    token = f"sa_sess_{uuid.uuid4().hex}"
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    await control_db.super_admin_sessions.insert_one({
+        "super_admin_id": admin["super_admin_id"],
+        "session_token":  token,
+        "expires_at":     expires_at.isoformat(),
+        "created_at":     datetime.now(timezone.utc).isoformat(),
+        "auth_method":    "google",
+    })
+
+    await _log_sa_audit(admin, "login_google", "super_admin",
+                        admin["super_admin_id"], admin.get("name", email))
+
+    # Redirect to dashboard with cookie set
+    sa_dashboard_url = f"{_SA_FRONTEND_URL}/dashboard" if _SA_FRONTEND_URL else "/dashboard"
+    redirect = RedirectResponse(url=sa_dashboard_url, status_code=302)
+    _set_sa_cookie(redirect, token)
+    return redirect
 
 
 # ── Platform Stats ───────────────────────────────────────────────────────────

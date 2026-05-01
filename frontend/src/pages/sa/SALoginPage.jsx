@@ -1,19 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Shield, AlertCircle, Eye, EyeOff, Loader2, UserPlus } from 'lucide-react';
 import { useSAAuth } from '../../context/SuperAdminAuthContext';
 import saApi from '../../api-superadmin';
 import useDocumentTitle from '../../hooks/useDocumentTitle';
 
+const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || 'welltrack.com.au';
+const isAdminSubdomain = window.location.hostname === `admin.${BASE_DOMAIN}`;
+const SA_API_BASE = isAdminSubdomain
+  ? '/api/superadmin'
+  : `${process.env.REACT_APP_BACKEND_URL}/api/superadmin`;
+const SA_GOOGLE_AUTH_URL = `${SA_API_BASE}/auth/google`;
+
 export default function SALoginPage() {
   useDocumentTitle('Sign in · Super Admin');
   const { admin, checkAuth } = useSAAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mode, setMode] = useState('loading'); // 'loading' | 'bootstrap' | 'login'
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState(false);
 
   // SA portal respects system dark mode
   useEffect(() => {
@@ -27,15 +36,35 @@ export default function SALoginPage() {
     return () => mq.removeEventListener('change', apply);
   }, []);
 
+  // Surface errors forwarded from the Google OAuth callback redirect
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const oauthError = params.get('error');
+    if (oauthError) {
+      const msgs = {
+        google_denied:        'Google sign-in was cancelled.',
+        google_failed:        'Google authentication failed. Please try again.',
+        google_not_configured:'Google OAuth is not configured on this server.',
+        not_authorised:       'Your Google account is not authorised for this portal.',
+        no_email:             'Could not retrieve your email address from Google.',
+      };
+      setError(msgs[oauthError] || 'Google sign-in error. Please try again.');
+    }
+  }, [location.search]);
+
   useEffect(() => {
     if (admin) { navigate('/sa/dashboard', { replace: true }); return; }
     saApi.post('/auth/bootstrap', { name: '__check__', email: 'x', password: '12345678' })
-      .then(() => setMode('bootstrap'))
+      .then(() => { setMode('bootstrap'); setGoogleEnabled(false); })
       .catch(err => {
         if (err.response?.status === 403) setMode('login');
         else if (err.response?.status === 400) setMode('bootstrap');
         else setMode('login');
       });
+    // Check if Google OAuth is configured on the backend
+    saApi.get('/auth/google-status')
+      .then(r => setGoogleEnabled(!!r.data?.enabled))
+      .catch(() => setGoogleEnabled(false));
   }, [admin, navigate]);
 
   const handleSubmit = async (e) => {
@@ -109,6 +138,31 @@ export default function SALoginPage() {
               <AlertCircle size={16} className="mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
+          )}
+
+          {/* Google Sign-In — only shown in login mode when configured */}
+          {mode === 'login' && googleEnabled && (
+            <>
+              <a
+                href={SA_GOOGLE_AUTH_URL}
+                data-testid="sa-google-login-btn"
+                className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+              >
+                <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                  <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                  <path fill="none" d="M0 0h48v48H0z"/>
+                </svg>
+                Continue with Google
+              </a>
+              <div className="flex items-center gap-3 my-1">
+                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+                <span className="text-xs text-slate-400 dark:text-slate-500">or</span>
+                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+              </div>
+            </>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
