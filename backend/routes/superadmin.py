@@ -175,7 +175,7 @@ async def sa_change_password(data: dict, admin=Depends(get_super_admin)):
 _SA_GOOGLE_CLIENT_ID     = os.environ.get("SA_GOOGLE_CLIENT_ID") or os.environ.get("GOOGLE_CLIENT_ID", "")
 _SA_GOOGLE_CLIENT_SECRET = os.environ.get("SA_GOOGLE_CLIENT_SECRET") or os.environ.get("GOOGLE_CLIENT_SECRET", "")
 _SA_GOOGLE_REDIRECT_URI  = os.environ.get("SA_GOOGLE_REDIRECT_URI", "")
-_SA_FRONTEND_URL         = os.environ.get("SA_FRONTEND_URL", os.environ.get("FRONTEND_URL", ""))
+_SA_FRONTEND_URL         = os.environ.get("SA_FRONTEND_URL", "")
 
 _GOOGLE_AUTH_URL  = "https://accounts.google.com/o/oauth2/v2/auth"
 _GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
