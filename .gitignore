@@ -33,6 +33,9 @@ uploads/
 .idea/
 .vscode/
 
+# Claude / AI assistant local context
+.claude/
+
 # Logs
 npm-debug.log*
 yarn-debug.log*
